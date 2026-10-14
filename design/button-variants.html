@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>实例卡按钮组 · 两个变体对比</title>
+<style>
+:root {
+  --bg: #131417;
+  --panel: #1b1d21;
+  --panel-soft: #212429;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #e8e6e1;
+  --text-mid: #b9b6ae;
+  --text-dim: #8b8880;
+  --accent: #4f8cff;
+  --accent-soft: rgba(79, 140, 255, 0.14);
+  --violet: #9d7bff;
+  --violet-soft: rgba(157, 123, 255, 0.14);
+  --ok: #4ec27a;
+  --danger: #e0685f;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 26px 30px 40px; background: var(--bg); color: var(--text);
+  font: 14px/1.55 "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+.ic { flex: none; fill: currentColor; }
+
+/* ---------- 页头 ---------- */
+.page-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: .2px; }
+.page-sub { color: var(--text-dim); font-size: 12.5px; }
+.lede { margin: 8px 0 20px; color: var(--text-mid); font-size: 12.5px; max-width: 1180px; }
+.lede code { font-family: var(--mono); font-size: 12px; color: var(--text); background: var(--panel-soft); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+/* ---------- 两栏 ---------- */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.variant { min-width: 0; }
+.v-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.v-tag {
+  flex: none; height: 22px; padding: 0 8px; display: inline-flex; align-items: center;
+  border-radius: 999px; font-size: 11.5px; font-weight: 600; letter-spacing: .3px;
+}
+.v-tag.a { color: #cfe0ff; background: var(--accent-soft); border: 1px solid rgba(79, 140, 255, .38); }
+.v-tag.b { color: #ddd2ff; background: var(--violet-soft); border: 1px solid rgba(157, 123, 255, .38); }
+.v-title { font-size: 14px; font-weight: 600; }
+.v-note { color: var(--text-dim); font-size: 12px; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- 实例卡（几何取自 src/components/InstanceRow.vue） ---------- */
+.row {
+  position: relative; display: flex; flex-direction: column; gap: 11px;
+  padding: 14px 16px 14px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.row-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
+.tile { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; }
+.tile.accent { background: rgba(78, 194, 122, .14); color: var(--ok); }
+.tile.violet { background: var(--violet-soft); color: var(--violet); }
+.ident { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.name { display: block; font-family: var(--mono); font-size: 15px; font-weight: 600; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.kind {
+  flex: none; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 999px;
+  font-size: 10.5px; line-height: 1.3; color: var(--text-mid); background: var(--panel-soft); white-space: nowrap;
+}
+.dot-slot { flex: none; width: 13px; display: grid; place-items: center; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot.on { background: var(--ok); box-shadow: 0 0 0 3px rgba(78, 194, 122, .16); }
+.dot.off { background: var(--text-dim); }
+.state-label { flex: none; font-size: 12px; color: var(--text-mid); }
+.tail { min-width: 0; display: flex; gap: 8px; font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fields { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.field { display: grid; grid-template-columns: 16px 116px minmax(0, 1fr); align-items: center; gap: 6px; font-size: 12px; }
+.field-icon { color: var(--text-dim); display: grid; place-items: center; }
+.field-label { color: var(--text-dim); }
+.field-value { font-family: var(--mono); font-size: 11.5px; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- 按钮（尺寸对齐 InstanceActions.vue） ---------- */
+.actions { position: relative; display: flex; justify-content: flex-end; gap: 6px; }
+.btn {
+  height: 30px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text); font-size: 12.5px; white-space: nowrap; cursor: pointer;
+}
+.btn.primary { border-color: transparent; color: #fff; background: var(--btn-bg, var(--accent)); }
+.btn.icon-only { width: 30px; padding: 0; justify-content: center; }
+.dot-danger { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--danger); }
+.split { display: inline-flex; }
+.split.accent { --btn-bg: var(--accent); }
+.split.violet { --btn-bg: var(--violet); }
+.split-main { border-right-width: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.split > .btn.split-caret {
+  min-width: 26px; padding: 0; justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, .34);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.split.accent { --split-bg: var(--accent); }
+.caret { transform: rotate(90deg); opacity: .8; }
+.btn.accent-primary { --btn-bg: var(--accent); }
+.btn.violet-primary { --btn-bg: var(--violet); }
+
+/* ---------- 展开菜单（.menu 挂点对齐 InstanceActions.vue：actions 容器 top+6 / right 0） ---------- */
+.menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  min-width: 168px; padding: 4px; display: flex; flex-direction: column;
+  background: var(--panel-soft); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); box-shadow: 0 12px 26px rgba(0, 0, 0, .45);
+}
+.menu-under-start { right: 0; }  /* 挂点仍是 .actions；不越出卡片右缘 */
+.menu-item {
+  display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 9px;
+  border: 0; border-radius: 5px; background: transparent; color: var(--text-mid);
+  font-size: 12.5px; text-align: left; cursor: pointer;
+}
+.menu-item.danger { color: var(--danger); }
+.menu-sep { height: 1px; margin: 4px 6px; background: var(--line-strong); }
+.menu-caption { padding: 2px 9px 4px; font-size: 10.5px; color: var(--text-dim); letter-spacing: .3px; }
+.menu-focus { background: var(--panel); color: var(--text); }
+.anchor-note { margin-top: 6px; font-size: 11px; color: var(--text-dim); }
+.anchor-note b { color: var(--text-mid); font-weight: 500; }
+/* 展开态：菜单是绝对定位的浮层（top: calc(100% + 6px)，高 199px），
+   给它真实高度 + 8px 余量，免得盖住下一张卡与下面的说明 */
+.row.open-menu { margin-bottom: 213px; }
+
+/* ---------- 理由块 ---------- */
+.reasons { margin-top: 22px; padding: 13px 15px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.reasons h3 { margin: 0 0 9px; font-size: 13px; font-weight: 600; }
+.reasons h4 { margin: 12px 0 7px; font-size: 12.5px; font-weight: 600; color: var(--text-mid); }
+.reasons p { margin: 0 0 8px; font-size: 12.5px; color: var(--text-mid); }
+.reasons ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
+.reasons li { font-size: 12.5px; color: var(--text-mid); }
+.reasons li b, .reasons p b { color: var(--text); font-weight: 600; }
+.reasons .tag { display: inline-block; min-width: 15px; height: 15px; margin-right: 4px; border-radius: 4px; font-size: 10.5px; line-height: 15px; text-align: center; }
+.reasons .bad { color: var(--danger); }
+.reasons .good { color: var(--ok); }
+.reasons .fine { color: var(--warn); }
+.verdict { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--accent-soft); border: 1px solid rgba(79, 140, 255, .3); }
+.verdict .k { flex: none; font-size: 12.5px; font-weight: 600; color: #cfe0ff; }
+.verdict .v { font-size: 12.5px; color: var(--text-mid); }
+.footnote { margin-top: 20px; color: var(--text-dim); font-size: 11.5px; line-height: 1.7; }
+.kbd { font-family: var(--mono); font-size: 11.5px; color: var(--text-mid); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-launch" viewBox="0 0 24 24"><path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h7v2H5v14h14v-7h2v7q0 .825-.587 1.413T19 21zm4.7-5.3l-1.4-1.4L17.6 5H14V3h7v7h-2V6.4z"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 19V5l11 7zm2-3.65L15.25 12L10 8.65z"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20q-3.35 0-5.675-2.325T4 12t2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V4h2v7h-7V9h4.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12t1.75 4.25T12 18q1.925 0 3.475-1.1T17.65 14h2.1q-.7 2.65-2.85 4.325T12 20"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><path fill="currentColor" d="M6 14q-.825 0-1.412-.587T4 12t.588-1.412T6 10t1.413.588T8 12t-.587 1.413T6 14m6 0q-.825 0-1.412-.587T10 12t.588-1.412T12 10t1.413.588T14 12t-.587 1.413T12 14m6 0q-.825 0-1.412-.587T16 12t.588-1.412T18 10t1.413.588T20 12t-.587 1.413T18 14"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path fill="currentColor" d="M12.6 12L8 7.4L9.4 6l6 6l-6 6L8 16.6z"/></symbol><symbol id="i-fork" viewBox="0 0 24 24"><path fill="currentColor" d="M9 21V6.825L7.4 8.4L6 7l4-4l4 4l-1.4 1.425l-1.6-1.6v6.525q.875-.775 1.975-1.112t2.2-.338q.275 0 .525.025t.475.075L14.6 10.4L16 9l4 4l-4 4l-1.4-1.4l1.575-1.6q-.275-.05-.55-.088t-.55-.037q-1.35 0-2.488.763T11 17v4z"/></symbol><symbol id="i-archive" viewBox="0 0 24 24"><path fill="currentColor" d="m12 18l4-4l-1.4-1.4l-1.6 1.6V10h-2v4.2l-1.6-1.6L8 14zM5 8v11h14V8zm0 13q-.825 0-1.412-.587T3 19V6.525q0-.35.113-.675t.337-.6L4.7 3.725q.275-.35.687-.538T6.25 3h11.5q.45 0 .863.188t.687.537l1.25 1.525q.225.275.338.6t.112.675V19q0 .825-.587 1.413T19 21zm.4-15h13.2l-.85-1H6.25z"/></symbol><symbol id="i-del" viewBox="0 0 24 24"><path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zM17 6H7v13h10zM9 17h2V8H9zm4 0h2V8h-2zM7 6v13z"/></symbol><symbol id="i-logs" viewBox="0 0 24 24"><path fill="currentColor" d="M8 18h8v-2H8zm0-4h8v-2H8zm-2 8q-.825 0-1.412-.587T4 20V4q0-.825.588-1.412T6 2h8l6 6v12q0 .825-.587 1.413T18 22zm7-13V4H6v16h12V9z"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path fill="currentColor" d="M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h6l2 2h8q.825 0 1.413.588T22 8H11.175l-2-2H4v12l2.4-8h17.1l-2.575 8.575q-.2.65-.737 1.038T19 20zm2.1-2H19l1.8-6H7.9zm0 0l1.8-6zM4 8V6z"/></symbol><symbol id="i-tune" viewBox="0 0 24 24"><path fill="currentColor" d="M11 21v-6h2v2h8v2h-8v2zm-8-2v-2h6v2zm4-4v-2H3v-2h4V9h2v6zm4-2v-2h10v2zm4-4V3h2v2h4v2h-4v2zM3 7V5h10v2z"/></symbol><symbol id="i-tag" viewBox="0 0 24 24"><path fill="currentColor" d="M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h11q.475 0 .9.213t.7.587L22 12l-5.4 7.2q-.275.375-.7.588T15 20zm0-2h11l4.5-6L15 6H4z"/></symbol><symbol id="i-layers" viewBox="0 0 24 24"><path fill="currentColor" d="m12 21.05l-9-7l1.65-1.25L12 18.5l7.35-5.7L21 14.05zM12 16L3 9l9-7l9 7zm0-2.55L17.75 9L12 4.55L6.25 9z"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path fill="currentColor" d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19h3v-6h6v6h3v-9l-6-4.5L6 10zm-2 2V9l8-6l8 6v12h-7v-6h-2v6zm8-8.75"/></symbol><symbol id="i-puzzle" viewBox="0 0 24 24"><path fill="currentColor" d="M5 19h13v-4.6l1.125-.55q.4-.2.638-.55t.237-.8q0-.425-.238-.788t-.637-.562L18 10.625V6h-4.8l-.25-1.7q-.075-.55-.487-.925T11.5 3q-.575 0-.987.375t-.488.925L9.775 6H5v2.15q1.4.525 2.2 1.7T8 12.5q0 1.5-.8 2.675t-2.2 1.7zm0 2q-.85 0-1.425-.575T3 19v-3.8q1.2 0 2.1-.762T6 12.5q0-1.15-.9-1.9T3 9.8V6q0-.825.588-1.412T5 4h3.05q.175-1.275 1.15-2.137T11.5 1q1.3 0 2.275.863T14.95 4H18q.825 0 1.413.588T20 6v3.35q.9.45 1.45 1.3T22 12.5q0 1.025-.55 1.875T20 15.65V19q0 .85-.587 1.425T18 21z"/></symbol></defs></svg>
+<div class="page-head">
+  <h1>实例卡按钮组 · 两个变体对比</h1>
+  <span class="page-sub">静态样例 · 只对比按钮组，不改工程代码</span>
+</div>
+<p class="lede">
+  真实数据：运行中卡 <span class="kbd">dsh :3080</span>（端口探测命中 dsh 签名，进程读不到，所以 Profile / DSH_HOME / 时长是「未知」），
+  已停止卡 <span class="kbd">web</span>（本机 profile，DSH_PROFILE 指向它）。按钮尺寸、图标、配色取自现有工程。
+  每组里第二张卡画出 <span class="kbd">⋯</span> / 下拉的<strong>展开态</strong>，看菜单挂在哪儿。
+  主按钮底色照实例色调走（运行中卡蓝 <span class="kbd">#4f8cff</span>、profile 卡紫 <span class="kbd">#9d7bff</span>），所以变体 A 的「启动」是紫的——变体 B 那张里按「启动」自己的配色画成了蓝的。
+</p>
+
+<div class="grid">
+  <!-- ============ 变体 A ============ -->
+  <section class="variant" data-variant="A">
+    <div class="v-head">
+      <span class="v-tag a">变体 A</span>
+      <span class="v-title">主按钮保持纯粹，收纳入口独立在行尾</span>
+    </div>
+    <div class="stack">
+    <article class="row" data-card="a-running">
+      <header class="row-head">
+        <span class="tile accent"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-launch"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">dsh :3080</span></div>
+          <div class="sub-line" data-status="running">
+            <span class="kind">本机监听的 dsh 实例</span>
+            <span class="dot-slot"><i class="dot on"></i></span>
+            <span class="state-label">运行中</span>
+            <span class="tail"><span class="uptime">运行时长未知</span></span>
+          </div>
+        </div>
+        <div class="actions" data-probe="actions-a-running">
+          <button type="button" class="btn primary" data-probe="btn-open-ui"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-launch"/></svg><span>打开 Web UI</span></button>
+          <button type="button" class="btn" data-probe="btn-stop"><i class="dot-danger"></i><span>停止</span></button>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+          <button type="button" class="btn icon-only" data-probe="btn-more" aria-label="更多操作"><svg class="ic " width="16" height="16" aria-hidden="true"><use href="#i-more"/></svg></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">http://127.0.0.1:3080/</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">—</span></li></ul>
+    </article>
+    <article class="row open-menu" data-card="a-running-menu">
+      <header class="row-head">
+        <span class="tile accent"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-launch"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">dsh :3080</span></div>
+          <div class="sub-line" data-status="running">
+            <span class="kind">本机监听的 dsh 实例</span>
+            <span class="dot-slot"><i class="dot on"></i></span>
+            <span class="state-label">运行中</span>
+            <span class="tail"><span class="uptime">运行时长未知</span></span>
+          </div>
+        </div>
+        <div class="actions" data-probe="actions-a-running"><div class="menu" data-probe="menu-a-running" role="menu"><button type="button" class="menu-item" role="menuitem" data-action="fork"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-fork"/></svg><span>派生开发副本</span></button><button type="button" class="menu-item" role="menuitem" data-action="archive"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-archive"/></svg><span>归档</span></button><button type="button" class="menu-item danger" role="menuitem" data-action="delete"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-del"/></svg><span>删除</span></button><div class="menu-sep" role="separator"></div><button type="button" class="menu-item" role="menuitem" data-action="logs"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-logs"/></svg><span>查看日志</span></button><button type="button" class="menu-item" role="menuitem" data-action="dir"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-folder"/></svg><span>打开工作目录</span></button><button type="button" class="menu-item" role="menuitem" data-action="config"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tune"/></svg><span>编辑配置</span></button></div>
+          <button type="button" class="btn primary" data-probe="btn-open-ui"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-launch"/></svg><span>打开 Web UI</span></button>
+          <button type="button" class="btn" data-probe="btn-stop"><i class="dot-danger"></i><span>停止</span></button>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+          <button type="button" class="btn icon-only" data-probe="btn-more" aria-label="更多操作"><svg class="ic " width="16" height="16" aria-hidden="true"><use href="#i-more"/></svg></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">http://127.0.0.1:3080/</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">—</span></li></ul>
+    </article>
+      <div class="anchor-note">↑ 展开态：菜单挂在 <b>⋯</b> 所属按钮组容器上（<span class="kbd">top: actions 底 + 6px，right: 0</span>），右缘对齐卡片内边距线 <b>x = 卡右内边距</b>，即「行尾」。</div>
+    <article class="row" data-card="a-stopped">
+      <header class="row-head">
+        <span class="tile violet"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-puzzle"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">web</span></div>
+          <div class="sub-line" data-status="stopped">
+            <span class="kind">本地 profile · 默认</span>
+            <span class="dot-slot"><i class="dot off"></i></span>
+            <span class="state-label">已停止</span>
+            <span class="tail"><span class="uptime">cordis.patch.yml 167 行 · lock 10-13 21:15</span></span>
+          </div>
+        </div>
+        <div class="actions" data-probe="actions-a-stopped">
+          <button type="button" class="btn primary" data-probe="btn-start"><svg class="ic " width="13" height="13" aria-hidden="true"><use href="#i-play"/></svg><span>启动</span></button>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+          <button type="button" class="btn icon-only" data-probe="btn-more" aria-label="更多操作"><svg class="ic " width="16" height="16" aria-hidden="true"><use href="#i-more"/></svg></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">web</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">—</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">~/.dsh</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">声明 13 · 已装 10</span></li></ul>
+    </article>
+    <article class="row open-menu" data-card="a-stopped-menu">
+      <header class="row-head">
+        <span class="tile violet"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-puzzle"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">web</span></div>
+          <div class="sub-line" data-status="stopped">
+            <span class="kind">本地 profile · 默认</span>
+            <span class="dot-slot"><i class="dot off"></i></span>
+            <span class="state-label">已停止</span>
+            <span class="tail"><span class="uptime">cordis.patch.yml 167 行 · lock 10-13 21:15</span></span>
+          </div>
+        </div>
+        <div class="actions" data-probe="actions-a-stopped"><div class="menu" data-probe="menu-a-stopped" role="menu"><button type="button" class="menu-item" role="menuitem" data-action="fork"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-fork"/></svg><span>派生开发副本</span></button><button type="button" class="menu-item" role="menuitem" data-action="archive"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-archive"/></svg><span>归档</span></button><button type="button" class="menu-item danger" role="menuitem" data-action="delete"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-del"/></svg><span>删除</span></button><div class="menu-sep" role="separator"></div><button type="button" class="menu-item" role="menuitem" data-action="logs"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-logs"/></svg><span>查看日志</span></button><button type="button" class="menu-item" role="menuitem" data-action="dir"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-folder"/></svg><span>打开工作目录</span></button><button type="button" class="menu-item" role="menuitem" data-action="config"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tune"/></svg><span>编辑配置</span></button></div>
+          <button type="button" class="btn primary" data-probe="btn-start"><svg class="ic " width="13" height="13" aria-hidden="true"><use href="#i-play"/></svg><span>启动</span></button>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+          <button type="button" class="btn icon-only" data-probe="btn-more" aria-label="更多操作"><svg class="ic " width="16" height="16" aria-hidden="true"><use href="#i-more"/></svg></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">web</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">—</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">~/.dsh</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">声明 13 · 已装 10</span></li></ul>
+    </article>
+      <div class="anchor-note">↑ 展开态：同样是 <b>⋯</b>，同样挂在行尾。已停止 → 运行中只换第一颗按钮（<span class="kbd">启动</span> ↔ <span class="kbd">停止</span>），后两颗位置不动。</div>
+    </div>
+
+    <div class="reasons">
+      <h3>变体 A 的理由 / 问题</h3>
+      <ol>
+        <li><b>「打开 Web UI」终于是它自己。</b>运行中卡上最常按、最没有歧义的动作，恢复成一颗独立实心按钮：没有焊接的尖角，也就不会被读成「这个动作有变体」。</li>
+        <li><b>两个状态是同一个骨架。</b>运行中 <span class="kbd">[打开 Web UI][停止][重启][⋯]</span>、已停止 <span class="kbd">[▶ 启动][重启][⋯]</span>——第一颗按钮语义相反、位置相同，<span class="kbd">重启</span> 和 <span class="kbd">⋯</span> 在两态里钉在同一处。使用者切状态时不需要重新找按钮，视线不跳。</li>
+        <li><b>收纳入口是独立点击目标。</b><span class="kbd">⋯</span> 是 30×30 的方形按钮，和左边任何一颗主按钮之间隔 6px，误触不会牵动主操作，主操作也不会顺手把菜单带出来。</li>
+        <li class="bad"><b>代价：</b>卡片右侧多一颗按钮的宽度（约 +36px）。已停止卡当前正是这个结构，所以真正变化的只有运行中卡，回归面小。</li>
+        <li class="bad"><b>代价：</b><span class="kbd">⋯</span> 是纯图标，没有文字标签，第一次看到需要点一下才知道里面有什么。菜单第一屏应把高频项（查看日志 / 打开工作目录 / 编辑配置）放在易读位置。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ 变体 B ============ -->
+  <section class="variant" data-variant="B">
+    <div class="v-head">
+      <span class="v-tag b">变体 B</span>
+      <span class="v-title">把两段式从运行中卡挪到已停止卡</span>
+    </div>
+    <div class="stack">
+    <article class="row" data-card="b-running">
+      <header class="row-head">
+        <span class="tile accent"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-launch"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">dsh :3080</span></div>
+          <div class="sub-line" data-status="running">
+            <span class="kind">本机监听的 dsh 实例</span>
+            <span class="dot-slot"><i class="dot on"></i></span>
+            <span class="state-label">运行中</span>
+            <span class="tail"><span class="uptime">运行时长未知</span></span>
+          </div>
+        </div>
+        <div class="actions" data-probe="actions-b-running">
+          <button type="button" class="btn primary" data-probe="btn-open-ui"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-launch"/></svg><span>打开 Web UI</span></button>
+          <button type="button" class="btn" data-probe="btn-stop"><i class="dot-danger"></i><span>停止</span></button>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+          <button type="button" class="btn icon-only" data-probe="btn-more" aria-label="更多操作"><svg class="ic " width="16" height="16" aria-hidden="true"><use href="#i-more"/></svg></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">http://127.0.0.1:3080/</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">—</span></li></ul>
+    </article>
+    <article class="row open-menu" data-card="b-running-menu">
+      <header class="row-head">
+        <span class="tile accent"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-launch"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">dsh :3080</span></div>
+          <div class="sub-line" data-status="running">
+            <span class="kind">本机监听的 dsh 实例</span>
+            <span class="dot-slot"><i class="dot on"></i></span>
+            <span class="state-label">运行中</span>
+            <span class="tail"><span class="uptime">运行时长未知</span></span>
+          </div>
+        </div>
+        <div class="actions" data-probe="actions-b-running"><div class="menu" data-probe="menu-b-running" role="menu"><button type="button" class="menu-item" role="menuitem" data-action="fork"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-fork"/></svg><span>派生开发副本</span></button><button type="button" class="menu-item" role="menuitem" data-action="archive"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-archive"/></svg><span>归档</span></button><button type="button" class="menu-item danger" role="menuitem" data-action="delete"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-del"/></svg><span>删除</span></button><div class="menu-sep" role="separator"></div><button type="button" class="menu-item" role="menuitem" data-action="logs"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-logs"/></svg><span>查看日志</span></button><button type="button" class="menu-item" role="menuitem" data-action="dir"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-folder"/></svg><span>打开工作目录</span></button><button type="button" class="menu-item" role="menuitem" data-action="config"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tune"/></svg><span>编辑配置</span></button></div>
+          <button type="button" class="btn primary" data-probe="btn-open-ui"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-launch"/></svg><span>打开 Web UI</span></button>
+          <button type="button" class="btn" data-probe="btn-stop"><i class="dot-danger"></i><span>停止</span></button>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+          <button type="button" class="btn icon-only" data-probe="btn-more" aria-label="更多操作"><svg class="ic " width="16" height="16" aria-hidden="true"><use href="#i-more"/></svg></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">http://127.0.0.1:3080/</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">未知</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">—</span></li></ul>
+    </article>
+      <div class="anchor-note">↑ 运行中卡与 A 相同：拆开两段式，收纳回到行尾 <b>⋯</b>。这一半两个变体没有分歧。</div>
+    <article class="row" data-card="b-stopped">
+      <header class="row-head">
+        <span class="tile violet"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-puzzle"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">web</span></div>
+          <div class="sub-line" data-status="stopped">
+            <span class="kind">本地 profile · 默认</span>
+            <span class="dot-slot"><i class="dot off"></i></span>
+            <span class="state-label">已停止</span>
+            <span class="tail"><span class="uptime">cordis.patch.yml 167 行 · lock 10-13 21:15</span></span>
+          </div>
+        </div>
+<div class="actions" data-probe="actions-b-stopped"><div class="split violet" data-probe="split-start"><button type="button" class="btn primary split-main" data-probe="btn-start"><svg class="ic " width="13" height="13" aria-hidden="true"><use href="#i-play"/></svg><span>启动</span></button><button type="button" class="btn primary split-caret" data-probe="btn-start-caret" aria-label="启动菜单"><svg class="ic caret" width="12" height="12" aria-hidden="true"><use href="#i-chevron"/></svg></button></div>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">web</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">—</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">~/.dsh</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">声明 13 · 已装 10</span></li></ul>
+    </article>
+    <article class="row open-menu" data-card="b-stopped-menu">
+      <header class="row-head">
+        <span class="tile violet"><svg class="ic " width="20" height="20" aria-hidden="true"><use href="#i-puzzle"/></svg></span>
+        <div class="ident">
+          <div class="title-line"><span class="name">web</span></div>
+          <div class="sub-line" data-status="stopped">
+            <span class="kind">本地 profile · 默认</span>
+            <span class="dot-slot"><i class="dot off"></i></span>
+            <span class="state-label">已停止</span>
+            <span class="tail"><span class="uptime">cordis.patch.yml 167 行 · lock 10-13 21:15</span></span>
+          </div>
+        </div>
+        <div class="actions" data-probe="actions-b-stopped"><div class="menu menu-under-start" data-probe="menu-b-stopped" role="menu"><button type="button" class="menu-item" role="menuitem" data-action="fork"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-fork"/></svg><span>派生开发副本</span></button><button type="button" class="menu-item" role="menuitem" data-action="archive"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-archive"/></svg><span>归档</span></button><button type="button" class="menu-item danger" role="menuitem" data-action="delete"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-del"/></svg><span>删除</span></button><div class="menu-sep" role="separator"></div><button type="button" class="menu-item" role="menuitem" data-action="logs"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-logs"/></svg><span>查看日志</span></button><button type="button" class="menu-item" role="menuitem" data-action="dir"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-folder"/></svg><span>打开工作目录</span></button><button type="button" class="menu-item" role="menuitem" data-action="config"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tune"/></svg><span>编辑配置</span></button></div>
+          <div class="split violet" data-probe="split-start"><button type="button" class="btn primary split-main" data-probe="btn-start"><svg class="ic " width="13" height="13" aria-hidden="true"><use href="#i-play"/></svg><span>启动</span></button><button type="button" class="btn primary split-caret" data-probe="btn-start-caret" aria-label="启动菜单"><svg class="ic caret" width="12" height="12" aria-hidden="true"><use href="#i-chevron"/></svg></button></div>
+          <button type="button" class="btn" data-probe="btn-restart"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-refresh"/></svg><span>重启</span></button>
+        </div>
+      </header>
+<ul class="fields"><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-tag"/></svg></span><span class="field-label">DSH 版本 / 来源</span><span class="field-value">0.2.0-rc.2（本机已安装）</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="field-label">Profile</span><span class="field-value">web</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg></span><span class="field-label">访问地址</span><span class="field-value">—</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-home"/></svg></span><span class="field-label">DSH_HOME</span><span class="field-value">~/.dsh</span></li><li class="field"><span class="field-icon"><svg class="ic " width="14" height="14" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="field-label">插件数量</span><span class="field-value">声明 13 · 已装 10</span></li></ul>
+    </article>
+      <div class="anchor-note">↑ 展开态：菜单被焊在 <b>启动</b> 上。菜单宽 168px、这一行按钮组只有 158px，所以菜单左缘比 <span class="kbd">启动</span> 左缘还要往外 10px——挂在哪儿都对不齐它「属于启动」这件事。菜单里的「归档 / 删除 / 编辑配置」和「启动」没有任何变体关系。</div>
+    </div>
+
+    <div class="reasons">
+      <h3>变体 B 的理由 / 问题</h3>
+      <h4>合理之处（如实记）</h4>
+      <p><b>「启动」确实是最像有变体的动作。</b>如果将来出现「用别的来源启动这只 profile」「以 headless 模式启动」「换 DSH 版本启动」这类真实分支，启动按钮带尖角是说得通的——那时下拉装的是主按钮的<strong>同类变体</strong>，语义对齐。</p>
+      <h4>但现在的问题</h4>
+      <ol>
+        <li><b>下拉里没有任何一个「启动变体」。</b>当前菜单是 派生开发副本 / 归档 / 删除 / 查看日志 / 打开工作目录 / 编辑配置——全是与启动<strong>无关</strong>的其它操作。焊接的尖角承诺「这个动作有变体」，打开的却是别的东西，这是把「更多」挂错了位置。</li>
+        <li><b>两个状态反而更不一致。</b>运行中卡第一颗是<strong>无尖角</strong>的纯按钮，已停止卡第一颗<strong>带尖角</strong>。同一个位置的同一颗主按钮，在两个状态下形状不同，使用者会以为「启动」比「打开 Web UI」多一层东西——实际上里面装的还是同一个收纳菜单。</li>
+        <li><b>已停止卡少了 <span class="kbd">⋯</span>，收纳入口变成了「启动的一部分」。</b>想归档一只没在跑的 profile，得先点「启动」的尖角；运行中卡却是点行尾独立的 <span class="kbd">⋯</span>。同一个功能，两个状态两种找法。</li>
+        <li><b>误触面叠在不可逆动作上。</b>尖角只有 26px 宽，和「启动」共用一条 30px 高的边；菜单里第三项就是<strong>删除</strong>。错手一次，代价比错开一个菜单大。</li>
+        <li class="fine"><b>如果只按字面理解「已经把两段式挪到已停止卡」也算一种交代</b>——它至少让运行中卡恢复干净。但比较基准是「两个状态一致」，那样只做了一半。</li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<div class="verdict">
+  <span class="k">推荐：变体 A</span>
+  <span class="v">两段式该拆掉、不该搬家——「更多」属于行尾的独立入口，不属于任何一颗主按钮；这样运行中与已停止是同一个骨架，只有第一颗按钮的语义随状态翻转。</span>
+</div>
+
+<p class="footnote">
+  几何取自 <span class="kbd">src/components/InstanceActions.vue</span>：按钮高 30px、字号 12.5px、内边距 0 8px、图标 14px、间距 6px、<span class="kbd">⋯</span> 为 30×30；
+  卡片取自 <span class="kbd">src/components/InstanceRow.vue</span>：卡片内边距 14px 16px、圆角 10px、标题 15px/600、类型 pill 10.5px、状态点 7px。
+  菜单展开位置两态同一处：<span class="kbd">position: absolute; top: calc(100% + 6px); right: 0</span>，挂在按钮组容器上、右缘对齐卡片内容盒右缘；变体 B 的启动下拉也仍挂在这个容器上（并不与「启动」按钮左缘对齐）。
+  本页零脚本、零外链，菜单为静态展开态。
+</p>
+</body>
+</html>

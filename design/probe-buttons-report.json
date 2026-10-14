@@ -1,0 +1,1062 @@
+{
+ "doc": {
+  "scrollW": 1600,
+  "scrollH": 2064,
+  "viewportW": 1600,
+  "viewportH": 1343
+ },
+ "cards": {
+  "a-running": {
+   "x": 30,
+   "y": 176.4,
+   "w": 759,
+   "h": 188.6,
+   "right": 789,
+   "bottom": 365,
+   "buttons": [
+    {
+     "probe": "btn-open-ui",
+     "label": "打开 Web UI",
+     "cls": "btn primary",
+     "x": 494,
+     "right": 603,
+     "w": 109,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgb(79, 140, 255)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-stop",
+     "label": "停止",
+     "cls": "btn",
+     "x": 609,
+     "right": 666,
+     "w": 57,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 672,
+     "right": 736,
+     "w": 64,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-more",
+     "label": "",
+     "cls": "btn icon-only",
+     "x": 742,
+     "right": 772,
+     "w": 30,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 494,
+    "y": 197.7,
+    "w": 278,
+    "h": 30,
+    "right": 772,
+    "bottom": 227.7
+   },
+   "rowHead": {
+    "x": 47,
+    "y": 191.4,
+    "w": 725,
+    "h": 42.6,
+    "right": 772,
+    "bottom": 234
+   },
+   "tile": {
+    "x": 47,
+    "y": 192.7,
+    "w": 40,
+    "h": 40,
+    "right": 87,
+    "bottom": 232.7
+   },
+   "name": "dsh :3080",
+   "nameStyle": "15px/600",
+   "subText": "本机监听的 dsh 实例 运行中 运行时长未知",
+   "pad": "14px 16px"
+  },
+  "a-running-menu": {
+   "x": 30,
+   "y": 379,
+   "w": 759,
+   "h": 188.6,
+   "right": 789,
+   "bottom": 567.6,
+   "buttons": [
+    {
+     "probe": "btn-open-ui",
+     "label": "打开 Web UI",
+     "cls": "btn primary",
+     "x": 494,
+     "right": 603,
+     "w": 109,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgb(79, 140, 255)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-stop",
+     "label": "停止",
+     "cls": "btn",
+     "x": 609,
+     "right": 666,
+     "w": 57,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 672,
+     "right": 736,
+     "w": 64,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-more",
+     "label": "",
+     "cls": "btn icon-only",
+     "x": 742,
+     "right": 772,
+     "w": 30,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 494,
+    "y": 400.3,
+    "w": 278,
+    "h": 30,
+    "right": 772,
+    "bottom": 430.3
+   },
+   "rowHead": {
+    "x": 47,
+    "y": 394,
+    "w": 725,
+    "h": 42.6,
+    "right": 772,
+    "bottom": 436.6
+   },
+   "tile": {
+    "x": 47,
+    "y": 395.3,
+    "w": 40,
+    "h": 40,
+    "right": 87,
+    "bottom": 435.3
+   },
+   "name": "dsh :3080",
+   "nameStyle": "15px/600",
+   "subText": "本机监听的 dsh 实例 运行中 运行时长未知",
+   "pad": "14px 16px"
+  },
+  "a-stopped": {
+   "x": 30,
+   "y": 832.4,
+   "w": 759,
+   "h": 188.6,
+   "right": 789,
+   "bottom": 1020.9,
+   "buttons": [
+    {
+     "probe": "btn-start",
+     "label": "启动",
+     "cls": "btn primary",
+     "x": 603,
+     "right": 666,
+     "w": 63,
+     "h": 30,
+     "y": 853.7,
+     "bg": "rgb(79, 140, 255)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 672,
+     "right": 736,
+     "w": 64,
+     "h": 30,
+     "y": 853.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-more",
+     "label": "",
+     "cls": "btn icon-only",
+     "x": 742,
+     "right": 772,
+     "w": 30,
+     "h": 30,
+     "y": 853.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 603,
+    "y": 853.7,
+    "w": 169,
+    "h": 30,
+    "right": 772,
+    "bottom": 883.7
+   },
+   "rowHead": {
+    "x": 47,
+    "y": 847.4,
+    "w": 725,
+    "h": 42.6,
+    "right": 772,
+    "bottom": 890
+   },
+   "tile": {
+    "x": 47,
+    "y": 848.7,
+    "w": 40,
+    "h": 40,
+    "right": 87,
+    "bottom": 888.7
+   },
+   "name": "web",
+   "nameStyle": "15px/600",
+   "subText": "本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15",
+   "pad": "14px 16px"
+  },
+  "a-stopped-menu": {
+   "x": 30,
+   "y": 1034.9,
+   "w": 759,
+   "h": 188.6,
+   "right": 789,
+   "bottom": 1223.5,
+   "buttons": [
+    {
+     "probe": "btn-start",
+     "label": "启动",
+     "cls": "btn primary",
+     "x": 603,
+     "right": 666,
+     "w": 63,
+     "h": 30,
+     "y": 1056.2,
+     "bg": "rgb(79, 140, 255)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 672,
+     "right": 736,
+     "w": 64,
+     "h": 30,
+     "y": 1056.2,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-more",
+     "label": "",
+     "cls": "btn icon-only",
+     "x": 742,
+     "right": 772,
+     "w": 30,
+     "h": 30,
+     "y": 1056.2,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 603,
+    "y": 1056.2,
+    "w": 169,
+    "h": 30,
+    "right": 772,
+    "bottom": 1086.2
+   },
+   "rowHead": {
+    "x": 47,
+    "y": 1049.9,
+    "w": 725,
+    "h": 42.6,
+    "right": 772,
+    "bottom": 1092.5
+   },
+   "tile": {
+    "x": 47,
+    "y": 1051.2,
+    "w": 40,
+    "h": 40,
+    "right": 87,
+    "bottom": 1091.2
+   },
+   "name": "web",
+   "nameStyle": "15px/600",
+   "subText": "本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15",
+   "pad": "14px 16px"
+  },
+  "b-running": {
+   "x": 811,
+   "y": 176.4,
+   "w": 759,
+   "h": 188.6,
+   "right": 1570,
+   "bottom": 365,
+   "buttons": [
+    {
+     "probe": "btn-open-ui",
+     "label": "打开 Web UI",
+     "cls": "btn primary",
+     "x": 1275,
+     "right": 1384,
+     "w": 109,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgb(79, 140, 255)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-stop",
+     "label": "停止",
+     "cls": "btn",
+     "x": 1390,
+     "right": 1447,
+     "w": 57,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 1453,
+     "right": 1517,
+     "w": 64,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-more",
+     "label": "",
+     "cls": "btn icon-only",
+     "x": 1523,
+     "right": 1553,
+     "w": 30,
+     "h": 30,
+     "y": 197.7,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 1275,
+    "y": 197.7,
+    "w": 278,
+    "h": 30,
+    "right": 1553,
+    "bottom": 227.7
+   },
+   "rowHead": {
+    "x": 828,
+    "y": 191.4,
+    "w": 725,
+    "h": 42.6,
+    "right": 1553,
+    "bottom": 234
+   },
+   "tile": {
+    "x": 828,
+    "y": 192.7,
+    "w": 40,
+    "h": 40,
+    "right": 868,
+    "bottom": 232.7
+   },
+   "name": "dsh :3080",
+   "nameStyle": "15px/600",
+   "subText": "本机监听的 dsh 实例 运行中 运行时长未知",
+   "pad": "14px 16px"
+  },
+  "b-running-menu": {
+   "x": 811,
+   "y": 379,
+   "w": 759,
+   "h": 188.6,
+   "right": 1570,
+   "bottom": 567.6,
+   "buttons": [
+    {
+     "probe": "btn-open-ui",
+     "label": "打开 Web UI",
+     "cls": "btn primary",
+     "x": 1275,
+     "right": 1384,
+     "w": 109,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgb(79, 140, 255)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-stop",
+     "label": "停止",
+     "cls": "btn",
+     "x": 1390,
+     "right": 1447,
+     "w": 57,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 1453,
+     "right": 1517,
+     "w": 64,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    },
+    {
+     "probe": "btn-more",
+     "label": "",
+     "cls": "btn icon-only",
+     "x": 1523,
+     "right": 1553,
+     "w": 30,
+     "h": 30,
+     "y": 400.3,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 1275,
+    "y": 400.3,
+    "w": 278,
+    "h": 30,
+    "right": 1553,
+    "bottom": 430.3
+   },
+   "rowHead": {
+    "x": 828,
+    "y": 394,
+    "w": 725,
+    "h": 42.6,
+    "right": 1553,
+    "bottom": 436.6
+   },
+   "tile": {
+    "x": 828,
+    "y": 395.3,
+    "w": 40,
+    "h": 40,
+    "right": 868,
+    "bottom": 435.3
+   },
+   "name": "dsh :3080",
+   "nameStyle": "15px/600",
+   "subText": "本机监听的 dsh 实例 运行中 运行时长未知",
+   "pad": "14px 16px"
+  },
+  "b-stopped": {
+   "x": 811,
+   "y": 831.6,
+   "w": 759,
+   "h": 188.6,
+   "right": 1570,
+   "bottom": 1020.2,
+   "buttons": [
+    {
+     "probe": "btn-start",
+     "label": "启动",
+     "cls": "btn primary split-main",
+     "x": 1395,
+     "right": 1457,
+     "w": 62,
+     "h": 30,
+     "y": 852.9,
+     "bg": "rgb(157, 123, 255)",
+     "fs": "12.5px",
+     "radius": "6px 0px 0px 6px"
+    },
+    {
+     "probe": "btn-start-caret",
+     "label": "",
+     "cls": "btn primary split-caret",
+     "x": 1457,
+     "right": 1483,
+     "w": 26,
+     "h": 30,
+     "y": 852.9,
+     "bg": "rgb(157, 123, 255)",
+     "fs": "12.5px",
+     "radius": "0px 6px 6px 0px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 1489,
+     "right": 1553,
+     "w": 64,
+     "h": 30,
+     "y": 852.9,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 1395,
+    "y": 852.9,
+    "w": 158,
+    "h": 30,
+    "right": 1553,
+    "bottom": 882.9
+   },
+   "rowHead": {
+    "x": 828,
+    "y": 846.6,
+    "w": 725,
+    "h": 42.6,
+    "right": 1553,
+    "bottom": 889.2
+   },
+   "tile": {
+    "x": 828,
+    "y": 847.9,
+    "w": 40,
+    "h": 40,
+    "right": 868,
+    "bottom": 887.9
+   },
+   "name": "web",
+   "nameStyle": "15px/600",
+   "subText": "本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15",
+   "pad": "14px 16px"
+  },
+  "b-stopped-menu": {
+   "x": 811,
+   "y": 1034.2,
+   "w": 759,
+   "h": 188.6,
+   "right": 1570,
+   "bottom": 1222.7,
+   "buttons": [
+    {
+     "probe": "btn-start",
+     "label": "启动",
+     "cls": "btn primary split-main",
+     "x": 1395,
+     "right": 1457,
+     "w": 62,
+     "h": 30,
+     "y": 1055.5,
+     "bg": "rgb(157, 123, 255)",
+     "fs": "12.5px",
+     "radius": "6px 0px 0px 6px"
+    },
+    {
+     "probe": "btn-start-caret",
+     "label": "",
+     "cls": "btn primary split-caret",
+     "x": 1457,
+     "right": 1483,
+     "w": 26,
+     "h": 30,
+     "y": 1055.5,
+     "bg": "rgb(157, 123, 255)",
+     "fs": "12.5px",
+     "radius": "0px 6px 6px 0px"
+    },
+    {
+     "probe": "btn-restart",
+     "label": "重启",
+     "cls": "btn",
+     "x": 1489,
+     "right": 1553,
+     "w": 64,
+     "h": 30,
+     "y": 1055.5,
+     "bg": "rgba(0, 0, 0, 0)",
+     "fs": "12.5px",
+     "radius": "6px"
+    }
+   ],
+   "actions": {
+    "x": 1395,
+    "y": 1055.5,
+    "w": 158,
+    "h": 30,
+    "right": 1553,
+    "bottom": 1085.5
+   },
+   "rowHead": {
+    "x": 828,
+    "y": 1049.2,
+    "w": 725,
+    "h": 42.6,
+    "right": 1553,
+    "bottom": 1091.8
+   },
+   "tile": {
+    "x": 828,
+    "y": 1050.5,
+    "w": 40,
+    "h": 40,
+    "right": 868,
+    "bottom": 1090.5
+   },
+   "name": "web",
+   "nameStyle": "15px/600",
+   "subText": "本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15",
+   "pad": "14px 16px"
+  }
+ },
+ "menus": {
+  "menu-a-running": {
+   "probe": "menu-a-running",
+   "rect": {
+    "x": 604,
+    "y": 436.3,
+    "w": 168,
+    "h": 199,
+    "right": 772,
+    "bottom": 635.3
+   },
+   "anchorContainer": "actions",
+   "anchorRect": {
+    "x": 494,
+    "y": 400.3,
+    "w": 278,
+    "h": 30,
+    "right": 772,
+    "bottom": 430.3
+   },
+   "triggerProbe": "btn-more",
+   "triggerRect": {
+    "x": 742,
+    "y": 400.3,
+    "w": 30,
+    "h": 30,
+    "right": 772,
+    "bottom": 430.3
+   },
+   "gapBelowActionsBottom": 6,
+   "gapBelowTriggerBottom": 6,
+   "menuRightVsActionsRight": 0,
+   "menuLeftVsActionsLeft": null,
+   "menuRightVsCardRight": -17,
+   "cardRect": {
+    "x": 30,
+    "y": 379,
+    "w": 759,
+    "h": 188.6,
+    "right": 789,
+    "bottom": 567.6
+   },
+   "cardContentRight": 772,
+   "items": [
+    "派生开发副本",
+    "归档",
+    "删除",
+    "查看日志",
+    "打开工作目录",
+    "编辑配置"
+   ],
+   "itemRect": [
+    {
+     "label": "派生开发副本",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 441.3
+    },
+    {
+     "label": "归档",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 471.3
+    },
+    {
+     "label": "删除",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 501.3
+    },
+    {
+     "label": "查看日志",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 540.3
+    },
+    {
+     "label": "打开工作目录",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 570.3
+    },
+    {
+     "label": "编辑配置",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 600.3
+    }
+   ]
+  },
+  "menu-a-stopped": {
+   "probe": "menu-a-stopped",
+   "rect": {
+    "x": 604,
+    "y": 1092.2,
+    "w": 168,
+    "h": 199,
+    "right": 772,
+    "bottom": 1291.2
+   },
+   "anchorContainer": "actions",
+   "anchorRect": {
+    "x": 603,
+    "y": 1056.2,
+    "w": 169,
+    "h": 30,
+    "right": 772,
+    "bottom": 1086.2
+   },
+   "triggerProbe": "btn-more",
+   "triggerRect": {
+    "x": 742,
+    "y": 1056.2,
+    "w": 30,
+    "h": 30,
+    "right": 772,
+    "bottom": 1086.2
+   },
+   "gapBelowActionsBottom": 6,
+   "gapBelowTriggerBottom": 6,
+   "menuRightVsActionsRight": 0,
+   "menuLeftVsActionsLeft": null,
+   "menuRightVsCardRight": -17,
+   "cardRect": {
+    "x": 30,
+    "y": 1034.9,
+    "w": 759,
+    "h": 188.6,
+    "right": 789,
+    "bottom": 1223.5
+   },
+   "cardContentRight": 772,
+   "items": [
+    "派生开发副本",
+    "归档",
+    "删除",
+    "查看日志",
+    "打开工作目录",
+    "编辑配置"
+   ],
+   "itemRect": [
+    {
+     "label": "派生开发副本",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 1097.2
+    },
+    {
+     "label": "归档",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 1127.2
+    },
+    {
+     "label": "删除",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 1157.2
+    },
+    {
+     "label": "查看日志",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 1196.2
+    },
+    {
+     "label": "打开工作目录",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 1226.2
+    },
+    {
+     "label": "编辑配置",
+     "w": 158,
+     "h": 30,
+     "x": 609,
+     "y": 1256.2
+    }
+   ]
+  },
+  "menu-b-running": {
+   "probe": "menu-b-running",
+   "rect": {
+    "x": 1385,
+    "y": 436.3,
+    "w": 168,
+    "h": 199,
+    "right": 1553,
+    "bottom": 635.3
+   },
+   "anchorContainer": "actions",
+   "anchorRect": {
+    "x": 1275,
+    "y": 400.3,
+    "w": 278,
+    "h": 30,
+    "right": 1553,
+    "bottom": 430.3
+   },
+   "triggerProbe": "btn-more",
+   "triggerRect": {
+    "x": 1523,
+    "y": 400.3,
+    "w": 30,
+    "h": 30,
+    "right": 1553,
+    "bottom": 430.3
+   },
+   "gapBelowActionsBottom": 6,
+   "gapBelowTriggerBottom": 6,
+   "menuRightVsActionsRight": 0,
+   "menuLeftVsActionsLeft": null,
+   "menuRightVsCardRight": -17,
+   "cardRect": {
+    "x": 811,
+    "y": 379,
+    "w": 759,
+    "h": 188.6,
+    "right": 1570,
+    "bottom": 567.6
+   },
+   "cardContentRight": 1553,
+   "items": [
+    "派生开发副本",
+    "归档",
+    "删除",
+    "查看日志",
+    "打开工作目录",
+    "编辑配置"
+   ],
+   "itemRect": [
+    {
+     "label": "派生开发副本",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 441.3
+    },
+    {
+     "label": "归档",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 471.3
+    },
+    {
+     "label": "删除",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 501.3
+    },
+    {
+     "label": "查看日志",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 540.3
+    },
+    {
+     "label": "打开工作目录",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 570.3
+    },
+    {
+     "label": "编辑配置",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 600.3
+    }
+   ]
+  },
+  "menu-b-stopped": {
+   "probe": "menu-b-stopped",
+   "rect": {
+    "x": 1385,
+    "y": 1091.5,
+    "w": 168,
+    "h": 199,
+    "right": 1553,
+    "bottom": 1290.5
+   },
+   "anchorContainer": "actions",
+   "anchorRect": {
+    "x": 1395,
+    "y": 1055.5,
+    "w": 158,
+    "h": 30,
+    "right": 1553,
+    "bottom": 1085.5
+   },
+   "triggerProbe": "split-start",
+   "triggerRect": {
+    "x": 1395,
+    "y": 1055.5,
+    "w": 88,
+    "h": 30,
+    "right": 1483,
+    "bottom": 1085.5
+   },
+   "gapBelowActionsBottom": 6,
+   "gapBelowTriggerBottom": 6,
+   "menuRightVsActionsRight": 0,
+   "menuLeftVsActionsLeft": null,
+   "menuRightVsCardRight": -17,
+   "cardRect": {
+    "x": 811,
+    "y": 1034.2,
+    "w": 759,
+    "h": 188.6,
+    "right": 1570,
+    "bottom": 1222.7
+   },
+   "cardContentRight": 1553,
+   "items": [
+    "派生开发副本",
+    "归档",
+    "删除",
+    "查看日志",
+    "打开工作目录",
+    "编辑配置"
+   ],
+   "itemRect": [
+    {
+     "label": "派生开发副本",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 1096.5
+    },
+    {
+     "label": "归档",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 1126.5
+    },
+    {
+     "label": "删除",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 1156.5
+    },
+    {
+     "label": "查看日志",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 1195.5
+    },
+    {
+     "label": "打开工作目录",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 1225.5
+    },
+    {
+     "label": "编辑配置",
+     "w": 158,
+     "h": 30,
+     "x": 1390,
+     "y": 1255.5
+    }
+   ]
+  }
+ },
+ "overflow": [],
+ "overlaps": []
+}

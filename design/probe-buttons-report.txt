@@ -1,0 +1,109 @@
+doc {"scrollW":1600,"scrollH":2064,"viewportW":1600,"viewportH":1343}
+
+### a-running  卡 rect x=30 y=176.4 w=759 h=188.6 right=789  pad=14px 16px
+    name="dsh :3080" (15px/600)   sub="本机监听的 dsh 实例 运行中 运行时长未知"
+    actions rect x=494 right=772 w=278 h=30
+    btn probe=btn-open-ui cls="btn primary" label="打开 Web UI" x=494 right=603 109x30 bg=rgb(79, 140, 255) fs=12.5px radius=6px
+    btn probe=btn-stop cls="btn" label="停止" x=609 right=666 57x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-restart cls="btn" label="重启" x=672 right=736 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-more cls="btn icon-only" label="" x=742 right=772 30x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+### a-running-menu  卡 rect x=30 y=379 w=759 h=188.6 right=789  pad=14px 16px
+    name="dsh :3080" (15px/600)   sub="本机监听的 dsh 实例 运行中 运行时长未知"
+    actions rect x=494 right=772 w=278 h=30
+    btn probe=btn-open-ui cls="btn primary" label="打开 Web UI" x=494 right=603 109x30 bg=rgb(79, 140, 255) fs=12.5px radius=6px
+    btn probe=btn-stop cls="btn" label="停止" x=609 right=666 57x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-restart cls="btn" label="重启" x=672 right=736 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-more cls="btn icon-only" label="" x=742 right=772 30x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+### a-stopped  卡 rect x=30 y=832.4 w=759 h=188.6 right=789  pad=14px 16px
+    name="web" (15px/600)   sub="本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15"
+    actions rect x=603 right=772 w=169 h=30
+    btn probe=btn-start cls="btn primary" label="启动" x=603 right=666 63x30 bg=rgb(79, 140, 255) fs=12.5px radius=6px
+    btn probe=btn-restart cls="btn" label="重启" x=672 right=736 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-more cls="btn icon-only" label="" x=742 right=772 30x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+### a-stopped-menu  卡 rect x=30 y=1034.9 w=759 h=188.6 right=789  pad=14px 16px
+    name="web" (15px/600)   sub="本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15"
+    actions rect x=603 right=772 w=169 h=30
+    btn probe=btn-start cls="btn primary" label="启动" x=603 right=666 63x30 bg=rgb(79, 140, 255) fs=12.5px radius=6px
+    btn probe=btn-restart cls="btn" label="重启" x=672 right=736 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-more cls="btn icon-only" label="" x=742 right=772 30x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+### b-running  卡 rect x=811 y=176.4 w=759 h=188.6 right=1570  pad=14px 16px
+    name="dsh :3080" (15px/600)   sub="本机监听的 dsh 实例 运行中 运行时长未知"
+    actions rect x=1275 right=1553 w=278 h=30
+    btn probe=btn-open-ui cls="btn primary" label="打开 Web UI" x=1275 right=1384 109x30 bg=rgb(79, 140, 255) fs=12.5px radius=6px
+    btn probe=btn-stop cls="btn" label="停止" x=1390 right=1447 57x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-restart cls="btn" label="重启" x=1453 right=1517 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-more cls="btn icon-only" label="" x=1523 right=1553 30x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+### b-running-menu  卡 rect x=811 y=379 w=759 h=188.6 right=1570  pad=14px 16px
+    name="dsh :3080" (15px/600)   sub="本机监听的 dsh 实例 运行中 运行时长未知"
+    actions rect x=1275 right=1553 w=278 h=30
+    btn probe=btn-open-ui cls="btn primary" label="打开 Web UI" x=1275 right=1384 109x30 bg=rgb(79, 140, 255) fs=12.5px radius=6px
+    btn probe=btn-stop cls="btn" label="停止" x=1390 right=1447 57x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-restart cls="btn" label="重启" x=1453 right=1517 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+    btn probe=btn-more cls="btn icon-only" label="" x=1523 right=1553 30x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+### b-stopped  卡 rect x=811 y=831.6 w=759 h=188.6 right=1570  pad=14px 16px
+    name="web" (15px/600)   sub="本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15"
+    actions rect x=1395 right=1553 w=158 h=30
+    btn probe=btn-start cls="btn primary split-main" label="启动" x=1395 right=1457 62x30 bg=rgb(157, 123, 255) fs=12.5px radius=6px 0px 0px 6px
+    btn probe=btn-start-caret cls="btn primary split-caret" label="" x=1457 right=1483 26x30 bg=rgb(157, 123, 255) fs=12.5px radius=0px 6px 6px 0px
+    btn probe=btn-restart cls="btn" label="重启" x=1489 right=1553 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+### b-stopped-menu  卡 rect x=811 y=1034.2 w=759 h=188.6 right=1570  pad=14px 16px
+    name="web" (15px/600)   sub="本地 profile · 默认 已停止 cordis.patch.yml 167 行 · lock 10-13 21:15"
+    actions rect x=1395 right=1553 w=158 h=30
+    btn probe=btn-start cls="btn primary split-main" label="启动" x=1395 right=1457 62x30 bg=rgb(157, 123, 255) fs=12.5px radius=6px 0px 0px 6px
+    btn probe=btn-start-caret cls="btn primary split-caret" label="" x=1457 right=1483 26x30 bg=rgb(157, 123, 255) fs=12.5px radius=0px 6px 6px 0px
+    btn probe=btn-restart cls="btn" label="重启" x=1489 right=1553 64x30 bg=rgba(0, 0, 0, 0) fs=12.5px radius=6px
+
+=== 菜单 rect
+menu-a-running
+  rect          x=604 y=436.3 w=168 h=199 right=772 bottom=635.3
+  挂点容器      .actions  rect x=494 right=772 bottom=430.3
+  触发器        btn-more  x=742 right=772 bottom=430.3
+  距 actions 底 6px（= top: calc(100% + 6px)）   距触发器底 6px
+  右缘对齐      菜单右 772 vs actions 右 772 (Δ0)  vs 卡外框右 789 (Δ-17.0)
+  卡内容盒右缘  x=772（卡右 789 − 边框 1 − 内边距 16）  菜单右缘 Δ=0.0
+  左缘          菜单左 604 vs actions 左 494 (Δ110.0)
+  菜单项        6 项，每项高 30/30/30/30/30/30
+  首项/末项     派生开发副本 @y=441.3 … 编辑配置 @y=600.3
+
+menu-a-stopped
+  rect          x=604 y=1092.2 w=168 h=199 right=772 bottom=1291.2
+  挂点容器      .actions  rect x=603 right=772 bottom=1086.2
+  触发器        btn-more  x=742 right=772 bottom=1086.2
+  距 actions 底 6px（= top: calc(100% + 6px)）   距触发器底 6px
+  右缘对齐      菜单右 772 vs actions 右 772 (Δ0)  vs 卡外框右 789 (Δ-17.0)
+  卡内容盒右缘  x=772（卡右 789 − 边框 1 − 内边距 16）  菜单右缘 Δ=0.0
+  左缘          菜单左 604 vs actions 左 603 (Δ1.0)
+  菜单项        6 项，每项高 30/30/30/30/30/30
+  首项/末项     派生开发副本 @y=1097.2 … 编辑配置 @y=1256.2
+
+menu-b-running
+  rect          x=1385 y=436.3 w=168 h=199 right=1553 bottom=635.3
+  挂点容器      .actions  rect x=1275 right=1553 bottom=430.3
+  触发器        btn-more  x=1523 right=1553 bottom=430.3
+  距 actions 底 6px（= top: calc(100% + 6px)）   距触发器底 6px
+  右缘对齐      菜单右 1553 vs actions 右 1553 (Δ0)  vs 卡外框右 1570 (Δ-17.0)
+  卡内容盒右缘  x=1553（卡右 1570 − 边框 1 − 内边距 16）  菜单右缘 Δ=0.0
+  左缘          菜单左 1385 vs actions 左 1275 (Δ110.0)
+  菜单项        6 项，每项高 30/30/30/30/30/30
+  首项/末项     派生开发副本 @y=441.3 … 编辑配置 @y=600.3
+
+menu-b-stopped
+  rect          x=1385 y=1091.5 w=168 h=199 right=1553 bottom=1290.5
+  挂点容器      .actions  rect x=1395 right=1553 bottom=1085.5
+  触发器        split-start  x=1395 right=1483 bottom=1085.5
+  距 actions 底 6px（= top: calc(100% + 6px)）   距触发器底 6px
+  右缘对齐      菜单右 1553 vs actions 右 1553 (Δ0)  vs 卡外框右 1570 (Δ-17.0)
+  卡内容盒右缘  x=1553（卡右 1570 − 边框 1 − 内边距 16）  菜单右缘 Δ=0.0
+  左缘          菜单左 1385 vs actions 左 1395 (Δ-10.0)
+  菜单项        6 项，每项高 30/30/30/30/30/30
+  首项/末项     派生开发副本 @y=1096.5 … 编辑配置 @y=1255.5
+
+overflow 0  []
+overlaps []
