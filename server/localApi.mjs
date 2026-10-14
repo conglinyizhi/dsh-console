@@ -68,6 +68,14 @@ function readLogsRoute(req) {
 export function createLocalApiMiddleware() {
   return async function localApi(req, res, next) {
     const pathname = (req.url ?? '').split('?')[0]
+    // 浏览器扩展（React DevTools 等）会请求它自己注入脚本的 sourcemap，形如 /installHook.js.map。
+    // 这类根级 .map 请求被 SPA 回退成 HTML，DevTools 一 JSON.parse 就在控制台报错。
+    // 对根级 .map 明确回 404 + JSON 消掉这条噪声；只碰根级，
+    // /src、/node_modules、/@ 下的真实 sourcemap 一律放行走 Vite 自己。
+    if (req.method === 'GET' && /^\/[^/]+\.map$/.test(pathname)) {
+      sendJson(res, 404, { error: 'not-found', message: '没有这个 sourcemap：' + pathname })
+      return
+    }
     if (!pathname.startsWith('/api/local/')) {
       next()
       return
