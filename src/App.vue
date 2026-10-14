@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import SideNav from './components/SideNav.vue'
 import NavTopBar from './components/NavTopBar.vue'
 import OverviewView from './views/OverviewView.vue'
-import PlaceholderView from './views/PlaceholderView.vue'
-import { navItems, type NavKey } from './nav'
+import LogsView from './views/LogsView.vue'
+import AboutView from './views/AboutView.vue'
+import type { NavKey } from './nav'
 
 const page = ref<NavKey>('overview')
-
-const currentLabel = computed(
-  () => navItems.find((item) => item.key === page.value)?.label ?? '',
-)
 
 function selectPage(key: NavKey) {
   page.value = key
@@ -24,7 +21,8 @@ function selectPage(key: NavKey) {
       <NavTopBar />
       <main class="main">
         <OverviewView v-if="page === 'overview'" />
-        <PlaceholderView v-else :title="currentLabel" />
+        <LogsView v-else-if="page === 'logs'" />
+        <AboutView v-else />
       </main>
     </div>
   </div>
