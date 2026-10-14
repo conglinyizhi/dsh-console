@@ -4,6 +4,9 @@ import {
   "moonbit-community/rabbita/cmd",
   "moonbit-community/rabbita/html",
   "moonbit-community/rabbita/http",
+  // 端口探测要拿 @js.Promise（@cmd.attempt 的 async 体里 wait 它），
+  // 其余浏览器副作用走 dom.mbt 里的 extern "js"，不引 rabbita/dom 整包。
+  "moonbit-community/rabbita/js",
   "moonbitlang/core/json",
 }
 
