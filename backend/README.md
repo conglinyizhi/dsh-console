@@ -111,7 +111,7 @@ GET http://127.0.0.1:5390/api/local/instances
 
 | 字段 | 类型 | 口径 |
 | --- | --- | --- |
-| `consoleVersion` | string / null | **运行时**读前端 `package.json` 的 `version`（见下） |
+| `consoleVersion` | string / null | **运行时**读仓库根 `VERSION` 的版本（没有才退回前端 `package.json`，见下） |
 | `consolePackageName` | string | `dsh-console` |
 | `consoleVersionSource` | string | 上面那个版本号是怎么拿到的，或为什么没拿到 |
 | `dshVersion` | string | pnpm 全局目录里 `@deepseek-ai/dsh` 的 package.json version |
@@ -134,11 +134,15 @@ GET http://127.0.0.1:5390/api/local/instances
 
 1. **删掉 `nodeVersion`**。后端不跑 Node，硬编码 `"v26.11.1"` 就是编数据。
    现在如实报告后端自己：`backendRuntime` = `moonbit/native`、`backendVersion`、`backendPackageName`。
-2. **`consoleVersion` 不再是编译期常量**。运行时去读前端 `package.json` 的 `version`：
-   - 目录解析顺序：`DSH_CONSOLE_DIR` / `DSH_CONSOLE_ROOT` / `DSH_CONSOLE_HOME` 环境变量（指向存在的目录即用），
-     否则从 `/proc/self/exe` 的真实路径往上找**同时含 `package.json` 与 `src/`** 的那一层；
-   - 拿到目录就读 `<目录>/package.json` 的 `version`；
-   - 任何一步失败都给 `null`，并把原因写进 `consoleVersionSource`，不编。
+2. **`consoleVersion` 不再是编译期常量**，且**不再绑定前端的实现方式**：
+   - **优先**：从 `/proc/self/exe` 的真实路径往上找含 **`VERSION`** 的目录（产品根），读那个文件的版本；
+   - **兜底（换栈过渡期）**：没有 `VERSION` 时，按 `DSH_CONSOLE_DIR` / `DSH_CONSOLE_ROOT` /
+     `DSH_CONSOLE_HOME` 环境变量，或上溯找**同时含 `package.json` 与 `src/`** 的目录，读它 `package.json` 的 `version`；
+   - 任何一步失败都给 `null`，并把**用的是哪条路**写进 `consoleVersionSource`，不编。
+
+   > 为什么加 `VERSION`：后端原先靠前端 `package.json` 读版本，而前端已经换栈成 MoonBit
+   > （不再是 Vue 那套 `package.json` + `src/`）。绑定前端实现方式的话，删掉旧前端那一刻
+   > 这个读数就会静默失效、关于页变成「未知」。
 
 ### `GET /api/local/profiles`
 

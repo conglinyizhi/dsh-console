@@ -152,7 +152,13 @@ rabbita 这类把产物**平铺在根上**（`index.html` + `console.js` + `cons
 新栈产物落地时不需要再改服务层。MIME 表覆盖 `.woff2` / `.woff` / `.ttf` / `.otf` /
 `.svg` / `.wasm` 等，图标字体不会静默失效。
 
-## 八点九、收尾时会踩的一个雷：控制台版本的来源（已实测确认）
+## 八点九、收尾时会踩的一个雷：控制台版本的来源（**已解决**）
+
+> **已解决（提交 3ce3b32）**：后端改为优先读仓库根的 `VERSION` 文件（已建，内容 `0.1.0`），
+> 前端 `package.json` 那条退为过渡期兜底。实测 `consoleVersionSource` 已变成
+> 「仓库根的 VERSION 文件」。下面保留当时的分析，作为这条修改的依据。
+
+### 当时的问题描述
 
 后端的 `consoleVersion` 是**运行时**解析的：从二进制位置上溯，找**同时含 `package.json`
 与 `src/` 的目录**，再读那份 `package.json` 的 version。实测现在拿到
