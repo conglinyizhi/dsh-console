@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import type { Instance } from '../mock/instances'
+import type { Instance } from '../data/types'
 import type { ActionKey } from '../actions'
 import type { IconName } from './icons'
 import AppIcon from './AppIcon.vue'

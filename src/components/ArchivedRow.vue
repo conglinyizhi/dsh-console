@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { Instance } from '../mock/instances'
+import type { Instance } from '../data/types'
 import AppIcon from './AppIcon.vue'
 
 const props = defineProps<{ instance: Instance }>()

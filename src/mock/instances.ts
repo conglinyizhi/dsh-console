@@ -1,32 +1,13 @@
-export interface Instance {
-  id: string
-  name: string
-  kind: string
-  tone: 'accent' | 'violet'
-  /** starting 仅用于「启动」后的前端演示等待态，没有真实进程可等 */
-  status: 'running' | 'stopped' | 'starting'
-  /** 已运行分钟数，写死的展示值，不做计时器 */
-  uptime: number
-  /** 派生时探测端口的结论，仅启动等待期间展示 */
-  portNote?: string
-  /** 该实例正在等待启动，行内按钮全部不可点 */
-  busy?: boolean
-  version: string
-  profile: string
-  home: string
-  /** 实例入口，完整 URL（访问地址字段直接展示） */
-  url: string
-  pluginCount: string
-  /** 是否允许删除。核心工作实例不给删除入口 */
-  deletable: boolean
-  /** 有值即表示已归档，移出运行/停止两个分组 */
-  archivedAt?: string
-}
+import type { Instance } from '../data/types'
 
 /** 归档时间写死，不做真实时钟 */
 export const ARCHIVED_AT = '2026-10-14 13:05'
 
-export const instances: Instance[] = [
+/**
+ * 演示数据：只在真实读取失败时兜底展示（运行中/已停止两组），归档区本轮不接真实数据、一直是演示。
+ * 展示这几条时，界面上的数据源标记会变成「演示数据 · 真实读取失败」，不跟真实读数混在一起。
+ */
+export const demoRunning: Instance[] = [
   {
     id: 'work-main',
     name: 'work-main',
@@ -54,6 +35,41 @@ export const instances: Instance[] = [
     url: 'http://127.0.0.1:8200',
     pluginCount: '2 个（开发中）',
     deletable: true,
+  },
+]
+
+export const demoStopped: Instance[] = [
+  {
+    id: 'staging',
+    name: 'staging',
+    kind: '插件开发（试验）',
+    tone: 'violet',
+    status: 'stopped',
+    uptime: 0,
+    version: '0.2.0-rc.2（本地源码）',
+    profile: 'staging',
+    home: '/Users/you/.dsh/staging',
+    url: 'http://127.0.0.1:8300',
+    pluginCount: '3 个',
+    deletable: true,
+  },
+]
+
+export const demoArchived: Instance[] = [
+  {
+    id: 'old-experiment',
+    name: 'old-experiment',
+    kind: '插件开发（试验）',
+    tone: 'violet',
+    status: 'stopped',
+    uptime: 0,
+    version: '0.2.0-rc.2（本地源码）',
+    profile: 'dev',
+    home: '/Users/you/.dsh/old-experiment',
+    url: 'http://127.0.0.1:8400',
+    pluginCount: '1 个（开发中）',
+    deletable: true,
+    archivedAt: ARCHIVED_AT,
   },
 ]
 

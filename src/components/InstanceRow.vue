@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Instance } from '../mock/instances'
+import type { Instance } from '../data/types'
 import type { ActionKey } from '../actions'
 import type { IconName } from './icons'
 import AppIcon from './AppIcon.vue'
@@ -10,6 +10,8 @@ interface FieldRow {
   icon: IconName
   label: string
   value: string
+  /** 悬停说明，放放不下的细节（例如缺包全名单） */
+  title?: string
 }
 
 const props = defineProps<{ instance: Instance }>()
@@ -42,7 +44,7 @@ const fields = computed<FieldRow[]>(() => {
     { icon: 'layers', label: 'Profile', value: it.profile },
     { icon: 'link', label: '访问地址', value: it.url },
     { icon: 'home', label: 'DSH_HOME', value: it.home },
-    { icon: 'puzzle', label: '插件数量', value: it.pluginCount },
+    { icon: 'puzzle', label: '插件数量', value: it.pluginCount, title: it.pluginDetail },
   ]
 })
 </script>
@@ -68,8 +70,15 @@ const fields = computed<FieldRow[]>(() => {
           <span class="state-label">{{ stateLabel }}</span>
           <span class="tail">
             <span v-if="starting" class="hint">等待核心就绪</span>
-            <span v-else class="uptime">已运行 {{ duration }}</span>
+            <span v-else-if="running" class="uptime">已运行 {{ duration }}</span>
+            <!-- 已停止的卡没有进程在跑，不编运行时长：真实 profile 显示 patch/锁文件读数，演示卡显示「未运行」 -->
+            <span v-else class="uptime" :title="instance.idleNote">
+              {{ instance.idleNote ?? '未运行' }}
+            </span>
             <span v-if="starting && instance.portNote" class="port-note">{{ instance.portNote }}</span>
+            <span v-else-if="instance.note" class="port-note" :title="instance.note">
+              {{ instance.note }}
+            </span>
           </span>
         </div>
       </div>
@@ -81,7 +90,7 @@ const fields = computed<FieldRow[]>(() => {
       <li v-for="field in fields" :key="field.label" class="field">
         <span class="field-icon"><AppIcon :name="field.icon" :size="14" /></span>
         <span class="field-label">{{ field.label }}</span>
-        <span class="field-value">{{ field.value }}</span>
+        <span class="field-value" :title="field.title">{{ field.value }}</span>
       </li>
     </ul>
   </article>

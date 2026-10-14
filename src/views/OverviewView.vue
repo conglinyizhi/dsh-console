@@ -1,30 +1,86 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
-import { ARCHIVED_AT, instances as seed } from '../mock/instances'
-import type { Instance } from '../mock/instances'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { demoTag, fallbackTag, fetchProcesses, fetchProfiles, fetchRuntime, realTag } from '../api/local'
+import type { LocalProfileFact, LocalRuntime } from '../api/local'
+import { processInstances, profileInstances } from '../data/mapLocal'
+import type { Instance, SourceTag } from '../data/types'
+import { ARCHIVED_AT, demoArchived, demoRunning, demoStopped } from '../mock/instances'
+import { nextPort, pickPort } from '../portProbe'
 import type { ActionKey } from '../actions'
-import InstanceRow from '../components/InstanceRow.vue'
-import ArchivedRow from '../components/ArchivedRow.vue'
+import ArchivedSection from '../components/ArchivedSection.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import InstanceGroup from '../components/InstanceGroup.vue'
+import InstanceRow from '../components/InstanceRow.vue'
 import RenameDialog from '../components/RenameDialog.vue'
-import StoppedEmpty from '../components/StoppedEmpty.vue'
+import RunningEmpty from '../components/RunningEmpty.vue'
 import SideInfoPanel from '../components/SideInfoPanel.vue'
-
-const list = reactive<Instance[]>(seed.map((item) => ({ ...item })))
+import SourceBadge from '../components/SourceBadge.vue'
+import StoppedEmpty from '../components/StoppedEmpty.vue'
 
 /** 启动等待时长（前端演示，没有真实进程可等） */
 const START_DELAY_MS = 2500
-/** 端口探测上限：最多往后试 20 个 */
-const PORT_PROBE_LIMIT = 20
-/** 探测超时：600ms 内没有应答就按空闲处理 */
-const PORT_PROBE_TIMEOUT_MS = 600
+
+const list = reactive<Instance[]>([])
+
+/**
+ * 数据源标记，逐处标：运行中/已停止两组跟真实读数走，归档区本轮固定演示。
+ * 真实读取失败时整组换成演示实例，标记同时变成「演示数据 · 真实读取失败」，不静默混用。
+ */
+const sources = reactive<Record<'runtime' | 'processes' | 'profiles' | 'archived', SourceTag>>({
+  runtime: demoTag('本地只读接口还没返回'),
+  processes: demoTag('本地只读接口还没返回'),
+  profiles: demoTag('本地只读接口还没返回'),
+  archived: demoTag('归档区本轮不接真实数据：磁盘上没有「归档记录」这种概念，这组一直是前端演示'),
+})
 
 const running = computed(() => list.filter((item) => !item.archivedAt && item.status === 'running'))
 /** 启动等待中的行留在原分组，所以「已停止」组把 starting 一起算进来 */
-const stopped = computed(
-  () => list.filter((item) => !item.archivedAt && item.status !== 'running'),
-)
+const stopped = computed(() => list.filter((item) => !item.archivedAt && item.status !== 'running'))
 const archived = computed(() => list.filter((item) => item.archivedAt))
+
+function clone(items: Instance[]): Instance[] {
+  return items.map((item) => ({ ...item }))
+}
+
+/** 页面启动时拉一次本机真实状态：三个只读接口，都是 GET */
+async function loadLocal() {
+  const [runtimeRead, profilesRead, processesRead] = await Promise.all([
+    fetchRuntime(),
+    fetchProfiles(),
+    fetchProcesses(),
+  ])
+
+  const runtime: LocalRuntime | null = runtimeRead.ok ? runtimeRead.data : null
+  const profileFacts: LocalProfileFact[] = profilesRead.data?.profiles ?? []
+  const processFacts = processesRead.data?.instances ?? []
+  const dshHome = profilesRead.data?.dshHome ?? runtime?.dshHome ?? '—'
+
+  const readTime = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+
+  sources.runtime = runtime
+    ? realTag(
+        `dsh ${runtime.dshVersion} · node ${runtime.nodeVersion} · DSH_HOME ${runtime.dshHome}（${runtime.dshHomeSource}） · ${readTime} 读取`,
+      )
+    : fallbackTag(`/api/local/runtime 读取失败：${runtimeRead.error ?? '未知原因'}`)
+
+  sources.processes = processesRead.ok
+    ? realTag(
+        `/api/local/processes 直接读 /proc，扫了 ${processesRead.data?.scanned ?? 0} 个进程，命中 dsh 实例 ${processFacts.length} 个`,
+      )
+    : fallbackTag(`/api/local/processes 读取失败：${processesRead.error ?? '未知原因'}`)
+
+  sources.profiles = profilesRead.ok
+    ? realTag(`/api/local/profiles 扫 ${profilesRead.data?.profilesRoot ?? '—'}，${profileFacts.length} 个 profile`)
+    : fallbackTag(`/api/local/profiles 读取失败：${profilesRead.error ?? '未知原因'}`)
+
+  const runningItems = processesRead.ok ? processInstances(processFacts, runtime, profileFacts) : clone(demoRunning)
+  const stoppedItems = profilesRead.ok ? profileInstances(profileFacts, runtime, dshHome) : clone(demoStopped)
+  list.splice(0, list.length, ...runningItems, ...stoppedItems, ...clone(demoArchived))
+}
+
+onMounted(() => {
+  void loadLocal()
+})
 
 /** 派生编号：在 plugin-dev-N 里取第一个没被占用的号。
    按 id 判断占用而不是按 name，改名不会把 id 让出去，也就不会派生出重号 */
@@ -33,66 +89,6 @@ function nextForkIndex() {
   let index = 2
   while (used.has(`plugin-dev-${index}`)) index += 1
   return index
-}
-
-function nextPort() {
-  let max = 0
-  for (const item of list) {
-    const matched = /:(\d+)$/.exec(item.url)
-    if (matched) max = Math.max(max, Number(matched[1]))
-  }
-  return max + 1
-}
-
-/** 本次会话里已经认掉的端口，避免同一批派生撞到同一个号 */
-const reservedPorts = new Set<number>()
-
-/**
- * 探测单个候选端口。
- * no-cors 请求一旦 resolve，说明对端有东西在应答，按占用处理；
- * reject（连接被拒、超时）只说明这一次没听到应答，按大概空闲处理。
- */
-async function isPortBusy(port: number): Promise<boolean> {
-  try {
-    await fetch(`http://127.0.0.1:${port}/`, {
-      mode: 'no-cors',
-      signal: AbortSignal.timeout(PORT_PROBE_TIMEOUT_MS),
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-interface PortChoice {
-  port: number
-  /** 被跳过时记下第一个占用的端口，用于界面提示 */
-  skipped: number | null
-  /** 20 个候选全被占用时为真，此时只能给出一个没探测过的号 */
-  exhausted: boolean
-}
-
-/** 从候选端口往后找第一个「探测下来没被占用」的端口 */
-async function pickPort(start: number): Promise<PortChoice> {
-  let skipped: number | null = null
-  for (let offset = 0; offset < PORT_PROBE_LIMIT; offset += 1) {
-    const port = start + offset
-    if (reservedPorts.has(port)) {
-      skipped ??= port
-      continue
-    }
-    const taken = await isPortBusy(port)
-    if (taken) {
-      skipped ??= port
-      continue
-    }
-    reservedPorts.add(port)
-    return { port, skipped, exhausted: false }
-  }
-  // 20 个候选全都有人应答：给一个连着往后排的号，并在界面上说清它是没探测过的
-  const fallback = start + PORT_PROBE_LIMIT
-  reservedPorts.add(fallback)
-  return { port: fallback, skipped: start, exhausted: true }
 }
 
 const timers: number[] = []
@@ -105,7 +101,7 @@ onBeforeUnmount(() => {
   for (const id of timers) window.clearTimeout(id)
 })
 
-/** 启动：先留在原分组显示等待态，再落成运行中 */
+/** 启动：先留在原分组显示等待态，再落成运行中（前端演示，不拉起真实进程） */
 function start(item: Instance) {
   if (item.status === 'starting') return
   item.status = 'starting'
@@ -146,7 +142,7 @@ async function fork() {
     item.status = 'running'
   }, START_DELAY_MS)
 
-  const basePort = nextPort()
+  const basePort = nextPort(list)
   item.portNote = `端口 ${basePort} · 正在探测`
   const choice = await pickPort(basePort)
   item.url = `http://127.0.0.1:${choice.port}`
@@ -255,6 +251,8 @@ function onAction(id: string, key: ActionKey, trigger: HTMLElement | null) {
       <header class="page-head">
         <div class="head-text">
           <h1 class="page-title">实例总览</h1>
+          <SourceBadge :tag="sources.runtime" />
+          <span class="head-note">动作仍是演示</span>
         </div>
         <button type="button" class="new-btn">
           <span class="plus">＋</span>
@@ -262,24 +260,17 @@ function onAction(id: string, key: ActionKey, trigger: HTMLElement | null) {
         </button>
       </header>
 
-      <div class="section-head">
-        <h2 class="section-title">当前运行的实例 ({{ running.length }})</h2>
-      </div>
-
-      <div class="rows">
+      <InstanceGroup title="当前运行的实例" :count="running.length" :source="sources.processes">
         <InstanceRow
           v-for="item in running"
           :key="item.id"
           :instance="item"
           @action="(key, trigger) => onAction(item.id, key, trigger)"
         />
-      </div>
+        <RunningEmpty v-if="running.length === 0" :detail="sources.processes.detail" />
+      </InstanceGroup>
 
-      <div class="section-head">
-        <h2 class="section-title">已停止的实例 ({{ stopped.length }})</h2>
-      </div>
-
-      <div class="rows">
+      <InstanceGroup title="已停止的实例" :count="stopped.length" :source="sources.profiles">
         <InstanceRow
           v-for="item in stopped"
           :key="item.id"
@@ -287,23 +278,14 @@ function onAction(id: string, key: ActionKey, trigger: HTMLElement | null) {
           @action="(key, trigger) => onAction(item.id, key, trigger)"
         />
         <StoppedEmpty v-if="stopped.length === 0" />
-      </div>
+      </InstanceGroup>
 
-      <template v-if="archived.length > 0">
-        <div class="section-head">
-          <h2 class="section-title">已归档 ({{ archived.length }})</h2>
-        </div>
-
-        <div class="rows">
-          <ArchivedRow
-            v-for="item in archived"
-            :key="item.id"
-            :instance="item"
-            @unarchive="unarchive"
-            @delete="requestDelete"
-          />
-        </div>
-      </template>
+      <ArchivedSection
+        :items="archived"
+        :source="sources.archived"
+        @unarchive="unarchive"
+        @delete="requestDelete"
+      />
     </section>
 
     <SideInfoPanel />
@@ -350,6 +332,9 @@ function onAction(id: string, key: ActionKey, trigger: HTMLElement | null) {
   gap: 16px;
 }
 .head-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 .page-title {
@@ -357,6 +342,13 @@ function onAction(id: string, key: ActionKey, trigger: HTMLElement | null) {
   font-size: 21px;
   font-weight: 600;
   letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.head-note {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 .new-btn {
   flex: none;
@@ -377,23 +369,5 @@ function onAction(id: string, key: ActionKey, trigger: HTMLElement | null) {
 }
 .plus {
   font-size: 13px;
-}
-.section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 4px;
-}
-.section-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-mid);
-}
-.rows {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 </style>
