@@ -6,6 +6,9 @@ import type { SourceTag } from '../data/types'
 const READ_TIMEOUT_MS = 4000
 
 export interface LocalRuntime {
+  /** 控制台自身版本，读自本项目 package.json */
+  consoleVersion: string | null
+  consolePackageName: string | null
   dshVersion: string
   dshPackageName: string
   dshPackageDir: string
@@ -62,6 +65,8 @@ export interface LocalProcesses {
 
 /** 一条命中的运行中实例：端口探测到的事实 + 尽力而为的进程补充（补不到就是 null） */
 export interface LocalInstanceFact {
+  /** 稳定标识，日志页的 instance:<id> 用它 */
+  id: string
   port: number
   url: string
   title: string | null
@@ -122,14 +127,32 @@ export interface LocalLogLine {
   outcome: string | null
 }
 
+export interface LocalLogInstance {
+  id: string
+  port: number | null
+  dshHome: string | null
+}
+
 export interface LocalLogs {
   source: string
   label: string | null
+  /** fixed = 宿主/审计文件；instance = 运行中实例 */
+  kind: 'fixed' | 'instance'
+  instance: LocalLogInstance | null
+  detectedInstances?: number
+  /** 实例来源：logs 目录下实际读到的那个文件；读不到就是 null */
   path: string | null
+  logsDir?: string
+  logFileCount?: number
+  pickedBy?: string
+  /** 实例来源下，日志目录依据什么定位（实例自带 / 环境变量 / 默认位置）；标注推断口径用 */
+  homeSource?: string
   requestedTail: number | null
   effectiveTail: number
   maxTail: number
   readOk: boolean
+  /** 结构化错误码：unknown-instance / instance-home-unknown / no-log-file / read-failed 等 */
+  errorCode: string | null
   readError: string | null
   fileSize: number | null
   /** 实际读了多少字节的尾部窗口；大文件不整份进内存 */
@@ -193,9 +216,9 @@ export function fetchInstances(): Promise<LocalRead<LocalInstances>> {
   return getLocal<LocalInstances>('/api/local/instances')
 }
 
-/** 日志页：只读尾部若干行，source 只认 host / audit */
-export function fetchLogs(source: 'host' | 'audit', tail = 200): Promise<LocalRead<LocalLogs>> {
-  return getLocal<LocalLogs>(`/api/local/logs?source=${source}&tail=${tail}`)
+/** 日志页：只读尾部若干行，source 认 host / audit 与 instance:<实例 id> */
+export function fetchLogs(source: string, tail = 200): Promise<LocalRead<LocalLogs>> {
+  return getLocal<LocalLogs>(`/api/local/logs?source=${encodeURIComponent(source)}&tail=${tail}`)
 }
 
 /** 数据源标记的构造口，三种标记只用这一处生成，避免各处手写不一致 */

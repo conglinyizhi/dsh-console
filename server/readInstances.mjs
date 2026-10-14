@@ -215,6 +215,8 @@ export async function readInstances() {
     if (!signature) continue
     const proc = supplement.byPort.get(probe.port) ?? null
     instances.push({
+      // 稳定标识：日志页的 instance:<id> 就用它，不随端口以外的字段变化
+      id: 'proc-' + probe.port,
       port: probe.port,
       url: probe.url,
       title: extractTitle(probe.body),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { fallbackTag, fetchLogs, realTag, type LocalLogs } from '../api/local'
+import { fallbackTag, fetchInstances, fetchLogs, realTag, type LocalInstanceFact, type LocalLogs } from '../api/local'
 import type { SourceTag } from '../data/types'
 import AppIcon from '../components/AppIcon.vue'
 import SourceBadge from '../components/SourceBadge.vue'
@@ -8,14 +8,15 @@ import SourceBadge from '../components/SourceBadge.vue'
 /** 与接口默认值一致：尾部 200 行，上限 1000 由接口负责截断并说明 */
 const TAIL = 200
 
-type SourceId = 'host' | 'audit'
-
-const sources: { id: SourceId; label: string }[] = [
+/** 固定来源保留在分隔线之后：插件开发者要看的是文件本身，不是实例 */
+const FIXED_SOURCES = [
   { id: 'host', label: '宿主日志' },
   { id: 'audit', label: '审计日志' },
 ]
 
-const source = ref<SourceId>('host')
+const source = ref<string>('host')
+const instances = ref<LocalInstanceFact[]>([])
+const instanceNote = ref<string | null>(null)
 const data = ref<LocalLogs | null>(null)
 const tag = ref<SourceTag>(fallbackTag('日志还没读'))
 const readTime = ref('')
@@ -23,14 +24,26 @@ const logBox = ref<HTMLElement | null>(null)
 
 const lines = computed(() => data.value?.lines ?? [])
 
-/** 元信息行：读成功写真实口径，读失败写真实原因，不留空 */
+/** 下拉当前选中项的显示名，实例条目用实例名 */
+function labelOf(id: string) {
+  if (id.startsWith('instance:')) {
+    const found = instances.value.find((item) => item.id === id.slice('instance:'.length))
+    return found ? 'dsh :' + found.port : id
+  }
+  return FIXED_SOURCES.find((item) => item.id === id)?.label ?? id
+}
+
+/** 元信息行：读成功写真实口径（含实际读到的文件路径），读失败写真实原因，不留空 */
 const meta = computed(() => {
   const got = data.value
-  if (!got || !got.readOk) return '只读'
+  if (!got) return '只读'
+  const head = got.path ?? '只读'
+  if (!got.readOk) return head + ' · 读取失败 · 只读'
   const rows = got.lines.length + ' 行'
   const size = got.fileSize === null ? '大小未知' : formatBytes(got.fileSize)
   const tailPart = got.truncated ? '尾部 ' + rows + ' · ' + (got.truncatedNote ?? '窗口已截断') : '尾部 ' + rows + '（请求 ' + got.effectiveTail + '）'
-  return tailPart + ' · ' + size + ' · 读于 ' + readTime.value + ' · 只读'
+  const homePart = got.kind === 'instance' && got.homeSource ? ' · 目录依据：' + got.homeSource : ''
+  return tailPart + ' · ' + size + ' · ' + head + homePart + ' · 读于 ' + readTime.value + ' · 只读'
 })
 
 function formatBytes(size: number) {
@@ -53,15 +66,28 @@ async function scrollToBottom() {
   if (box) box.scrollTop = box.scrollHeight
 }
 
+/** 实例列表跟着 /api/local/instances 变；读不到就如实说明，不编条目 */
+async function loadInstances() {
+  const read = await fetchInstances()
+  if (read.ok && read.data) {
+    instances.value = read.data.instances
+    instanceNote.value = null
+  } else {
+    instances.value = []
+    instanceNote.value = read.error ?? '实例列表读取失败'
+  }
+}
+
 async function load() {
   const read = await fetchLogs(source.value, TAIL)
   readTime.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
-  const label = sources.find((item) => item.id === source.value)?.label ?? source.value
+  const label = labelOf(source.value)
+  const query = 'GET /api/local/logs?source=' + encodeURIComponent(source.value)
   if (read.ok && read.data) {
     data.value = read.data
     if (read.data.readOk) {
       tag.value = realTag(
-        'GET /api/local/logs?source=' + source.value + ' 读 ' + read.data.path +
+        query + ' 读 ' + read.data.path +
           ' 尾部 ' + read.data.windowBytes + ' 字节窗口，返回 ' + read.data.lines.length + ' 行 · ' + readTime.value + ' 读取',
       )
     } else {
@@ -69,19 +95,22 @@ async function load() {
     }
   } else {
     data.value = null
-    tag.value = fallbackTag('GET /api/local/logs?source=' + source.value + ' 失败：' + (read.error ?? '未知原因'))
+    tag.value = fallbackTag(query + ' 失败：' + (read.error ?? '未知原因'))
   }
   await scrollToBottom()
 }
 
 function onSourceChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  if (value !== 'host' && value !== 'audit') return
-  source.value = value
+  source.value = (event.target as HTMLSelectElement).value
   void load()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadInstances()
+  // 实例读不到就别硬切：留在宿主日志，把失败写出来
+  if (source.value.startsWith('instance:') && !instances.value.some((i) => 'instance:' + i.id === source.value)) {
+    source.value = 'host'
+  }
   void load()
 })
 </script>
@@ -97,15 +126,26 @@ onMounted(() => {
       <div class="tool-left">
         <label class="field-label" for="log-source">来源</label>
         <select id="log-source" class="select" :value="source" @change="onSourceChange">
-          <option v-for="item in sources" :key="item.id" :value="item.id">{{ item.label }}</option>
+          <option
+            v-for="item in instances"
+            :key="'instance:' + item.id"
+            :value="'instance:' + item.id"
+            :title="'读该实例 DSH_HOME 下 logs 目录里最新的日志文件；实例未带 home 时按本机默认位置定位'"
+          >
+            dsh :{{ item.port }}
+          </option>
+          <option class="divider" disabled value="__divider__">————</option>
+          <option v-for="item in FIXED_SOURCES" :key="item.id" :value="item.id">{{ item.label }}</option>
         </select>
       </div>
-      <span class="meta">{{ meta }}</span>
+      <span class="meta" :title="meta">{{ meta }}</span>
       <button type="button" class="refresh" @click="load()">
         <AppIcon name="refresh" :size="13" />
         <span>刷新</span>
       </button>
     </div>
+
+    <p v-if="instanceNote" class="inst-note">实例列表读取失败，实例条目为空：{{ instanceNote }}</p>
 
     <div v-if="lines.length > 0" ref="logBox" class="log-box">
       <div v-for="(line, i) in lines" :key="i" class="log-line">
@@ -121,7 +161,6 @@ onMounted(() => {
     </div>
   </section>
 </template>
-
 <style scoped>
 .logs {
   display: flex;
@@ -180,6 +219,15 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
+  color: var(--text-dim);
+}
+.inst-note {
+  flex: none;
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--warn);
+}
+.select option.divider {
   color: var(--text-dim);
 }
 .refresh {

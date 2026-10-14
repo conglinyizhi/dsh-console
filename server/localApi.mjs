@@ -12,7 +12,7 @@ const ROUTES = new Map([
   ['/api/local/processes', readProcesses],
   // 运行中实例的主口径：扫 /proc/net/tcp(6) 的 loopback LISTEN 端口，再逐个做 HTTP 签名探测
   ['/api/local/instances', readInstances],
-  // 日志页：只读尾部若干行，来源只认 host / audit 两个白名单
+  // 日志页：只读尾部若干行，来源认 host / audit 与 instance:<实例 id>
   ['/api/local/logs', readLogsRoute],
 ])
 
@@ -40,11 +40,11 @@ function parseTail(raw) {
   return { tail: value, note: null }
 }
 
-function readLogsRoute(req) {
+async function readLogsRoute(req) {
   const query = new URL(req.url ?? '', 'http://127.0.0.1').searchParams
   const source = query.get('source')
   if (source === null || source === '') {
-    const err = new Error('缺少 source 参数，只支持 host / audit')
+    const err = new Error('缺少 source 参数，只支持 host / audit / instance:<实例 id>')
     err.code = 'missing-source'
     throw err
   }
@@ -56,11 +56,11 @@ function readLogsRoute(req) {
   }
   const found = resolveLogSource(source)
   if (!found) {
-    const err = new Error('没有这个来源：' + source + '，只支持 host / audit')
+    const err = new Error('没有这个来源：' + source + '，只支持 host / audit / instance:<实例 id>')
     err.code = 'unknown-source'
     throw err
   }
-  const data = readLogs(found.id, tail)
+  const data = await readLogs(found.id, tail)
   if (note) data.tailNote = note
   return data
 }

@@ -1,6 +1,7 @@
 // 只读读取本机 dsh 运行时事实。全部文件访问都是 readFileSync / statSync / readdirSync，
 // 没有写、改名、删除，也不 spawn 任何命令。
 import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { arch, homedir, platform, release } from 'node:os'
 import path from 'node:path'
 
@@ -58,6 +59,13 @@ export function resolveDshHome() {
   return { dshHome: path.join(homedir(), '.dsh'), source: '默认 ~/.dsh' }
 }
 
+/** 控制台自身的版本：只读本项目 package.json 的 version，读不到就是 null */
+function readConsoleVersion() {
+  const self = fileURLToPath(new URL('../package.json', import.meta.url))
+  const pkg = readPackage(self)
+  return pkg ? { name: pkg.name, version: pkg.version } : { name: 'dsh-console', version: null }
+}
+
 export function readRuntime() {
   const { dshHome, source: dshHomeSource } = resolveDshHome()
 
@@ -82,7 +90,11 @@ export function readRuntime() {
     throw err
   }
 
+  const consolePkg = readConsoleVersion()
+
   return {
+    consoleVersion: consolePkg.version,
+    consolePackageName: consolePkg.name,
     dshVersion: dsh.version,
     dshPackageName: dsh.name,
     dshPackageDir: dsh.dir,

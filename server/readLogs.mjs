@@ -1,14 +1,20 @@
-// 日志页的只读读取层：两个真实来源，只读尾部若干字节，绝不整份进内存。
-// 文件访问只用 openSync/readSync/fstatSync/closeSync 与 statSync，没有写、改名、删除，也不 spawn 任何命令。
-import { closeSync, fstatSync, openSync, readSync, statSync } from 'node:fs'
+// 日志页的只读读取层：两个固定来源（宿主/审计，给插件开发者），加一类动态来源「运行中的实例」。
+// 文件访问只用 readdirSync/readFileSync/statSync/openSync/readSync/fstatSync/closeSync；
+// 没有写、改名、删除，也不 spawn 任何命令。
+import { closeSync, fstatSync, openSync, readdirSync, readSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
+import { readInstances } from './readInstances.mjs'
+import { resolveDshHome } from './readRuntime.mjs'
 
-/** 允许的来源与各自在磁盘上的真身；source 参数只在这个白名单里查，不接受任意路径 */
+/** 固定来源与各自在磁盘上的真身；source 只在这个白名单加实例前缀里查，不接受任意路径 */
 const SOURCES = [
   { id: 'host', label: '宿主日志', file: () => path.join(homedir(), '.dsh', 'logs', 'retry-control', 'host.log') },
   { id: 'audit', label: '审计日志', file: () => path.join(homedir(), '.dsh', 'linxi-guard-audit.jsonl') },
 ]
+
+/** 动态来源前缀：instance:<实例 id>，id 就是 /api/local/instances 里那一条的 id */
+export const INSTANCE_PREFIX = 'instance:'
 
 export const LOG_SOURCES = SOURCES.map((s) => ({ id: s.id, label: s.label, file: s.file() }))
 
@@ -19,8 +25,25 @@ export const MAX_TAIL = 1000
 const INITIAL_WINDOW_BYTES = 64 * 1024
 const MAX_WINDOW_BYTES = 4 * 1024 * 1024
 
+/** 实例的日志就在它 DSH_HOME 下的 logs/ 里；只往下看这么多层，扫不动就如实返回错误 */
+const INSTANCE_LOGS_DIR = 'logs'
+const INSTANCE_SCAN_DEPTH = 3
+/** 只认这些后缀的普通文件；别的文件不猜，也不读 */
+const LOG_EXTENSIONS = ['.log', '.jsonl', '.txt']
+/** 一次扫描最多看多少个目录项，有界 */
+const MAX_SCAN_ENTRIES = 2000
+
+/** source 参数只在这个白名单加实例前缀里解析，不接受任意路径 */
 export function resolveSource(id) {
-  return SOURCES.find((s) => s.id === id) ?? null
+  const raw = String(id)
+  if (raw.startsWith(INSTANCE_PREFIX)) {
+    const instanceId = raw.slice(INSTANCE_PREFIX.length)
+    if (instanceId === '') return null
+    return { id: raw, kind: 'instance', instanceId, label: null, file: null }
+  }
+  const fixed = SOURCES.find((s) => s.id === raw)
+  if (!fixed) return null
+  return { id: fixed.id, kind: 'fixed', instanceId: null, label: fixed.label, file: fixed.file() }
 }
 
 /** 日志里的 ISO 时间戳，取时间部分，让每行开头短一点 */
@@ -93,7 +116,7 @@ export function parseAuditLine(raw) {
 }
 
 /** 反向分块读：从文件末尾往回凑够 tail 行，最多读 MAX_WINDOW_BYTES */
-function readTailLines(file, tail) {
+export function readTailLines(file, tail) {
   let size = 0
   try {
     size = statSync(file).size
@@ -157,8 +180,58 @@ function entry(raw, parsed) {
   }
 }
 
+/** 广度优先扫 logs/ 目录，收集看起来像日志的普通文件，带 mtime */
+function collectLogFiles(root) {
+  const found = []
+  let queue = [{ dir: root, depth: 0 }]
+  let visited = 0
+  while (queue.length > 0) {
+    const current = queue.shift()
+    let entries
+    try {
+      entries = readdirSync(current.dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      visited += 1
+      if (visited > MAX_SCAN_ENTRIES) return found
+      const full = path.join(current.dir, entry.name)
+      if (entry.isDirectory()) {
+        if (current.depth + 1 <= INSTANCE_SCAN_DEPTH) queue.push({ dir: full, depth: current.depth + 1 })
+        continue
+      }
+      if (!entry.isFile()) continue
+      const ext = path.extname(entry.name).toLowerCase()
+      if (!LOG_EXTENSIONS.includes(ext)) continue
+      try {
+        found.push({ file: full, mtimeMs: statSync(full).mtimeMs })
+      } catch {
+        // 读不到状态就不收，不猜
+      }
+    }
+  }
+  return found
+}
+
+/** 定位某个 DSH_HOME 下的日志文件：logs/ 里 mtime 最新的那个可读日志文件；没有就是 null */
+export function locateInstanceLogFile(dshHome) {
+  const logsDir = path.join(dshHome, INSTANCE_LOGS_DIR)
+  const candidates = collectLogFiles(logsDir)
+  if (candidates.length === 0) return null
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs)
+  return { file: candidates[0].file, logsDir, fileCount: candidates.length }
+}
+
+/** 按实例 id 找到那条真实检测结果；找不到就返回结构化原因，不编 */
+async function findInstance(instanceId) {
+  const report = await readInstances()
+  const instance = report.instances.find((item) => item.id === instanceId)
+  return { instance: instance ?? null, detected: report.instances.length }
+}
+
 /** 读一个来源的尾部若干行，返回结构化结果；读不到就带 readError 回来，不抛异常 */
-export function readLogs(sourceId, tail) {
+export async function readLogs(sourceId, tail) {
   const source = resolveSource(sourceId)
   if (!source) {
     return {
@@ -170,21 +243,80 @@ export function readLogs(sourceId, tail) {
       maxTail: MAX_TAIL,
     }
   }
-  const file = source.file()
   const wanted = Number.isInteger(tail) && tail > 0 ? Math.min(tail, MAX_TAIL) : DEFAULT_TAIL
+  const settings = {
+    strategy: 'block-reverse-read',
+    initialWindowBytes: INITIAL_WINDOW_BYTES,
+    maxWindowBytes: MAX_WINDOW_BYTES,
+  }
+
+  if (source.kind === 'instance') {
+    const { instance, detected } = await findInstance(source.instanceId)
+    const instanceMeta = { id: source.instanceId, port: instance?.port ?? null, dshHome: instance?.dshHome ?? null }
+    const base = {
+      source: source.id,
+      label: instance ? `dsh :${instance.port}` : null,
+      kind: 'instance',
+      instance: instanceMeta,
+      detectedInstances: detected,
+      path: null,
+      requestedTail: tail,
+      effectiveTail: wanted,
+      maxTail: MAX_TAIL,
+      settings,
+    }
+    if (!instance) {
+      return { ...base, readOk: false, errorCode: 'unknown-instance', readError: `没有这个运行中的实例：${source.instanceId}（当前检测到 ${detected} 个）`, fileSize: null, windowBytes: 0, lines: [], truncated: false, truncatedNote: null }
+    }
+    // 优先用检测结果里的 DSH_HOME；实例没暴露（/proc 读不到 environ）就回退到 dsh 的默认位置，并在响应里写明来源
+    const fromInstance = typeof instance.dshHome === 'string' && instance.dshHome !== ''
+    const resolved = fromInstance ? { dshHome: instance.dshHome, source: 'instances 接口的 DSH_HOME' } : resolveDshHome()
+    const base2 = { ...base, instance: { ...instanceMeta, dshHome: resolved.dshHome }, homeSource: resolved.source }
+    const logsDir = path.join(resolved.dshHome, INSTANCE_LOGS_DIR)
+    const candidates = collectLogFiles(logsDir)
+    if (candidates.length === 0) {
+      return { ...base2, readOk: false, errorCode: 'no-log-file', readError: `这个实例没有可读的日志来源：${logsDir} 下没有可读日志文件`, fileSize: null, windowBytes: 0, lines: [], truncated: false, truncatedNote: null }
+    }
+    candidates.sort((a, b) => b.mtimeMs - a.mtimeMs)
+    const picked = candidates[0]
+    const read = readTailLines(picked.file, wanted)
+    if (!read.ok) {
+      return { ...base2, path: picked.file, readOk: false, errorCode: 'instance-read-failed', readError: read.error, fileSize: null, windowBytes: 0, lines: [], truncated: false, truncatedNote: null }
+    }
+    const lines = read.rawLines.map((raw) => entry(raw, parseHostLine(raw)))
+    return {
+      ...base2,
+      path: picked.file,
+      logsDir,
+      logFileCount: candidates.length,
+      pickedBy: 'logs 目录内按 mtime 取最新的一个可读日志文件',
+      readOk: true,
+      errorCode: null,
+      readError: null,
+      fileSize: read.size,
+      windowBytes: read.windowBytes,
+      lines,
+      truncated: read.truncated,
+      truncatedNote: read.note,
+    }
+  }
+
+  const file = source.file
   const read = readTailLines(file, wanted)
   const base = {
     source: source.id,
     label: source.label,
+    kind: 'fixed',
+    instance: null,
     path: file,
     requestedTail: tail,
     effectiveTail: wanted,
     maxTail: MAX_TAIL,
-    settings: { strategy: 'block-reverse-read', initialWindowBytes: INITIAL_WINDOW_BYTES, maxWindowBytes: MAX_WINDOW_BYTES },
+    settings,
   }
 
   if (!read.ok) {
-    return { ...base, readOk: false, readError: read.error, fileSize: null, windowBytes: 0, lines: [], truncated: false, truncatedNote: null }
+    return { ...base, readOk: false, errorCode: 'read-failed', readError: read.error, fileSize: null, windowBytes: 0, lines: [], truncated: false, truncatedNote: null }
   }
 
   const parse = source.id === 'audit' ? parseAuditLine : parseHostLine
@@ -192,6 +324,7 @@ export function readLogs(sourceId, tail) {
   return {
     ...base,
     readOk: true,
+    errorCode: null,
     readError: null,
     fileSize: read.size,
     windowBytes: read.windowBytes,
