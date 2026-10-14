@@ -144,7 +144,9 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
     parts.push(
       @md2.btn(
         children=[icon("mdi-open-in-new", XSmall), @html.text(" 打开 Web UI")],
-        color="primary",
+        // 不给 color="primary"：md2 的背景助记类 .bg-primary 是 !important，
+        // 会把实例卡「主色随色调走」（运行中蓝 / profile 紫）这条盖死。
+        // 填充色由 .dsh-btn.primary 读 --btn-bg 给，与 Vue 版一致。
         variant=Flat,
         class="dsh-btn primary" + tone,
         on_click=emit(RowAction(row.id, OpenUi)),
@@ -184,7 +186,6 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
             icon("mdi-play", XSmall),
             @html.text(" " + (if row.status is Starting { "启动中…" } else { "启动" })),
           ],
-          color="primary",
           variant=Flat,
           disabled=row.busy,
           class="dsh-btn primary dsh-split-main",
@@ -192,7 +193,6 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
         ),
         @md2.btn(
           children=[@md2.icon(icon_name="mdi-chevron-right", size=XSmall, class="dsh-caret")],
-          color="primary",
           variant=Flat,
           disabled=row.busy,
           class="dsh-btn primary split-caret",

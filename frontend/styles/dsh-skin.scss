@@ -113,3 +113,18 @@ html.dsh-skin .v-progress-linear__indeterminate { animation: none; transition: n
 html.dsh-skin .dsh-badge .v-chip__prepend { margin: 0; }
 html.dsh-skin .dsh-badge .v-icon { font-size: 12px; }
 html.dsh-skin .dsh-badge .v-chip__content { overflow: visible; }
+// ── 图标字号：Vue 版逐处给了 size（17/16/20/14/26/13…），md2 的 Size 档位只有
+// 16/20/24/28/36 五档，对不上。这里按 Vue 的取值逐处定死，免得字形忽大忽小 ——
+// 侧栏图标大一号就会把「从当前实例派生开发副本」那行挤成两行（实测过）。
+html.dsh-skin .dsh-brand-icon .v-icon { font-size: 17px; }
+html.dsh-skin .dsh-nav-icon .v-icon { font-size: 16px; }
+html.dsh-skin .dsh-tile .v-icon { font-size: 20px; }
+html.dsh-skin .dsh-field-icon .v-icon { font-size: 14px; }
+html.dsh-skin .dsh-empty-icon .v-icon { font-size: 26px; }
+html.dsh-skin .dsh-flow-icon .v-icon { font-size: 16px; }
+html.dsh-skin .dsh-flow-arrow .v-icon { font-size: 14px; }
+html.dsh-skin .dsh-menu-item .v-icon { font-size: 14px; }
+html.dsh-skin .dsh-settings .v-icon { font-size: 14px; }
+html.dsh-skin .dsh-refresh .v-icon { font-size: 13px; }
+html.dsh-skin .dsh-archive-btn .v-icon { font-size: 14px; }
+html.dsh-skin .dsh-new-btn .v-icon { font-size: 14px; }
