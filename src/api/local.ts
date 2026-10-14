@@ -112,6 +112,36 @@ export interface LocalInstances {
   instances: LocalInstanceFact[]
 }
 
+export interface LocalLogLine {
+  /** 从行里读出来的时间部分；读不出就是 null，不编 */
+  time: string | null
+  /** 只在真读得出级别时才有值：error / warn */
+  level: 'error' | 'warn' | null
+  text: string
+  verdict: string | null
+  outcome: string | null
+}
+
+export interface LocalLogs {
+  source: string
+  label: string | null
+  path: string | null
+  requestedTail: number | null
+  effectiveTail: number
+  maxTail: number
+  readOk: boolean
+  readError: string | null
+  fileSize: number | null
+  /** 实际读了多少字节的尾部窗口；大文件不整份进内存 */
+  windowBytes: number
+  lines: LocalLogLine[]
+  /** 读到的行数本身就被窗口截断时为 true */
+  truncated: boolean
+  truncatedNote: string | null
+  /** tail 超过上限时接口给的说明 */
+  tailNote?: string | null
+}
+
 interface Envelope<T> {
   ok?: boolean
   readOnly?: boolean
@@ -161,6 +191,11 @@ export function fetchProcesses(): Promise<LocalRead<LocalProcesses>> {
 /** 运行中实例的主口径：监听端口 + HTTP 签名探测 */
 export function fetchInstances(): Promise<LocalRead<LocalInstances>> {
   return getLocal<LocalInstances>('/api/local/instances')
+}
+
+/** 日志页：只读尾部若干行，source 只认 host / audit */
+export function fetchLogs(source: 'host' | 'audit', tail = 200): Promise<LocalRead<LocalLogs>> {
+  return getLocal<LocalLogs>(`/api/local/logs?source=${source}&tail=${tail}`)
 }
 
 /** 数据源标记的构造口，三种标记只用这一处生成，避免各处手写不一致 */
