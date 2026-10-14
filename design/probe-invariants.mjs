@@ -116,6 +116,13 @@ const menuExpr = `(() => {
     offsetParentCls: String((menu.offsetParent && menu.offsetParent.className) || '').slice(0, 60),
     parentCls: String((menu.parentElement && menu.parentElement.className) || '').slice(0, 60),
     activeIsFirstItem: (() => { const a = document.activeElement; const f = menu.querySelector('[role=menuitem], .menu-item'); return a && f ? a === f : null })(),
+    // 每一项的中心点用 elementFromPoint 反查：拿到的必须是它自己或它的后代。
+    // 这一条同时能抓「被祖先 overflow 裁掉」和「被别的元素盖住」——都是"看得见但点不到"。
+    itemsReachable: [...menu.querySelectorAll('[role=menuitem], button')].map((e) => {
+      const r = e.getBoundingClientRect()
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
+      return { text: e.textContent.trim().slice(0, 10), reachable: !!(hit && (hit === e || e.contains(hit))) }
+    }),
   })
 })()`
 const m2 = await send('Runtime.evaluate', { expression: menuExpr, returnByValue: true })

@@ -54,6 +54,20 @@ html.dsh-skin .v-card {
   background: rgb(var(--v-theme-surface));
 }
 
+// md2 的 .v-card 默认 overflow:hidden（Material 卡片为圆角裁内容）。
+// **这里必须放开**：卡内的下拉菜单比卡片本身高，被裁掉就点不到了——
+// 已停止卡的「重命名 / 归档 / 删除」三项曾经整项消失在卡片下沿之外。
+// 放开不会让字段行的悬停高亮溢出：它只向外扩 6px，而卡片内边距是 16px。
+//
+// 同理，md2 的 .v-card 还带 z-index: 0 —— 那会让**每张卡自成层叠上下文**，
+// 于是卡内的下拉菜单（z-index 30）被关在这张卡的上下文里，永远压不过
+// DOM 里靠后的下一张卡：实测菜单下半截被下一张卡的按钮盖住，点不到。
+// 卡片本身不需要层叠上下文（它在文档流里正常排布），置回 auto 即可。
+html.dsh-skin .v-card {
+  overflow: visible;
+  z-index: auto;
+}
+
 // ── 按钮：36px / 大写 / 阴影 → 30px / 原样大小写 / 无阴影 / 6px 圆角 ──
 html.dsh-skin .v-btn {
   height: 30px;
