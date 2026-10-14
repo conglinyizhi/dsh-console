@@ -1,0 +1,16 @@
+{
+  "is-main": true,
+  "import": [
+    "conglinyizhi/dsh-console-backend/json",
+    "conglinyizhi/dsh-console-backend/localapi",
+    "conglinyizhi/dsh-console-backend/runtime",
+    "conglinyizhi/dsh-console-backend/profiles",
+    "moonbitlang/async",
+    "moonbitlang/async/stdio",
+    "moonbitlang/moonback",
+    {
+      "path": "moonbitlang/async/http",
+      "alias": "async_http"
+    }
+  ]
+}

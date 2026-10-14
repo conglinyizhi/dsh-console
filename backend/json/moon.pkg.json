@@ -1,0 +1,13 @@
+{
+  "is-main": false,
+  "import": [
+    "moonbitlang/async",
+    "moonbitlang/async/fs",
+    "moonbitlang/core/buffer",
+    "moonbitlang/core/encoding/utf8",
+    {
+      "path": "moonbitlang/core/json",
+      "alias": "core_json"
+    }
+  ]
+}
