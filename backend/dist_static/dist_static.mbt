@@ -62,19 +62,26 @@ async fn has_flat_assets(dir : String) -> Bool noraise {
 }
 
 ///|
-/// 从可执行文件位置往上找 dist 目录：每一层先看 <层>/dist，再看这一层本身。
-/// 前者覆盖 backend/_build/... 下的二进制，后者覆盖二进制被放进 dist/ 或直接
-/// 指向构建产物的部署方式。读不到 /proc/self/exe 时退化为相对当前工作目录，
-/// 上溯一层就停（dirname(".") 是 "."）。
+/// 从可执行文件位置往上找产物目录。每一层的候选按优先级：
+///   `<层>/frontend/dist` → `<层>/dist` → 这一层本身
+///
+/// 前两个分别对应换栈后的 rabbita 产物与旧的 Vue 产物。**新栈优先**是有意的：
+/// 旧产物没删之前两者会同时存在，先看新的才不会一直供着过期的页面。
+/// 第三项覆盖二进制被直接放进产物目录里的部署方式。
+/// 读不到 /proc/self/exe 时退化为相对当前工作目录，上溯一层就停（dirname(".") 是 "."）。
 pub async fn locate_dist_dir() -> String? noraise {
   let exe = @json.exe_path()
   let mut current = @json.dirname(exe)
   let mut steps = 0
   while steps < max_walk_up {
     steps = steps + 1
-    let child = @json.join_path(current, "dist")
-    if is_dist_dir(child) {
-      return Some(child)
+    let new_stack = @json.join_path(@json.join_path(current, "frontend"), "dist")
+    if is_dist_dir(new_stack) {
+      return Some(new_stack)
+    }
+    let legacy = @json.join_path(current, "dist")
+    if is_dist_dir(legacy) {
+      return Some(legacy)
     }
     if is_dist_dir(current) {
       return Some(current)
