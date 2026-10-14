@@ -133,6 +133,25 @@ rabbita 这类把产物**平铺在根上**（`index.html` + `console.js` + `cons
 
 所以数据层的写法是：**定义类型 + derive JSON + 用 cmd 发请求**，不要手写解析器。
 
+## 八点五、服务层对新栈产物的演练（已通过）
+
+在**新前端还不存在**的时候，先把后端指向一份**真实的 rabbita/md2 产物**
+（`~/disk/ai_workspace/rabbita-material/out`，`DSH_CONSOLE_DIST` 显式指定）跑了一遍：
+
+| 请求 | 实测 |
+| --- | --- |
+| `/` | 200 `text/html` 8345B（`<title>md2 · 组件陈列</title>`） |
+| `/buttons.html` | 200 `text/html` 16040B（多页站点也伺候得了） |
+| `/md2.css` | 200 `text/css` 193666B |
+| `/demo-app.js` | 200 `text/javascript` 532180B |
+| `/mdi/fonts/materialdesignicons-webfont.woff2` | 200 **`font/woff2`** 403216B |
+| `/mdi/css/materialdesignicons.min.css` | 200 `text/css` 346626B |
+| `/api/local/runtime` | 200 `application/json`（同端口共存，闸门有效） |
+
+**结论**：静态服务层、MIME 表（含字体）、多页站点、与 API 同端口共存——四件都验过了，
+新栈产物落地时不需要再改服务层。MIME 表覆盖 `.woff2` / `.woff` / `.ttf` / `.otf` /
+`.svg` / `.wasm` 等，图标字体不会静默失效。
+
 ## 九、收尾顺序（必须按这个顺序，否则会静默跑旧前端）
 
 后端自动上溯的规则是「每一层先看 `<层>/dist`，再看这一层本身」。而 `dsh-console/dist`
