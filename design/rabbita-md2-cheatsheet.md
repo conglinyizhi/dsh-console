@@ -109,6 +109,20 @@ import {
 出处：`~/disk/ai_workspace/moonbit-llm-faceoff`（模块名也是带连字符的）。
 本工程模块名是 `conglinyizhi/dsh-console-frontend`，根包别名按同一套规则走。
 
+## 8.5 环境税：别把大段代码内联进 `run_code` 的 TS 字符串
+
+在这个环境里写 MoonBit，最容易反复交的税是**宿主语言（TS）和嵌入语言（MoonBit/bash/SCSS）的语法打架**。实测过三种：
+
+1. **MoonBit 的插值 `\{var}`** 写在 TS 模板串里会被 JS 吃掉反斜杠（`"\{var}"` 等于 `"{var}"`），
+   于是插值被写成字面量。**要写 `\\{var}`**。
+2. **整个程序解析失败**（`Identifier cannot follow number` / `Expected ident`）——
+   嵌进去的内容里有让 TS 解析器误判的序列，报错行号还指向无关的地方，极难定位。
+3. 于是就有了**二分排查**：一轮轮试哪一段炸的，每轮都是一次模型往返。**这是纯浪费。**
+
+**做法**：要写超过十几行的脚本或源码，**先用 `write` 工具落成文件，再用 `bash` 执行**，
+不要在 `run_code` 里内联一大段字符串。本项目里 `design/probe-*.mjs`、`dsh-console-design/*.mjs`
+都是这么来的——**一次就位，不用跟转义纠缠**。
+
 ## 9. 数据获取与副作用
 
 见 `rabbita/http`（`Request::expect_json[T : FromJson]`）与 `rabbita/cmd`
