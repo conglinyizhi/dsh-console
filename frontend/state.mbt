@@ -220,7 +220,9 @@ fn initial_model() -> Model {
     rename_return: "",
     confirm_id: "",
     confirm_return: "",
-    archived_open: true,
+    // 归档区默认折叠：这一组目前固定是演示数据，短时间用不上；
+    // 折叠起来不占视线，功能本身留着（展开即可用），比删掉合适。
+    archived_open: false,
     probe_id: "",
     probe_base: 0,
     probe_offset: 0,

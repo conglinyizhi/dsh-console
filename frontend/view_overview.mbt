@@ -379,10 +379,14 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if items.length() == 0 {
     return @html.nothing
   }
-  let body : Array[@html.Html] = if model.archived_open {
-    items.map(fn(row) { archived_row(row, emit) })
-  } else {
-    []
+  // 徽标跟着内容走：折叠时标题行干净，展开时明说这一组是演示数据。
+  // 挂在折叠标题上，标的是用户当时看不到的东西。
+  let body : Array[@html.Html] = []
+  if model.archived_open {
+    body.push(source_badge(model.tag_archived))
+    for row in items {
+      body.push(archived_row(row, emit))
+    }
   }
   @html.fragment([
     @html.div(class="dsh-section-head", [
@@ -401,7 +405,6 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           ],
         ),
       ]),
-      source_badge(model.tag_archived),
     ]),
     @html.div(class="dsh-rows", body),
   ])
