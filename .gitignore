@@ -1,4 +1,3 @@
-node_modules
-dist
+# 顶层不再有 Node 那套（前端在 frontend/，它有自己的 .gitignore 管 .mooncakes/_build/.sandbox/dist）
 *local
 .DS_Store
