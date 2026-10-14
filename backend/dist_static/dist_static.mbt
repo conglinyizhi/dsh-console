@@ -29,12 +29,35 @@ let max_walk_up : Int = 8
 pub let history_fallback_path : String = "/index.html"
 
 ///|
-/// 一个目录是不是构建产物目录：同时有 index.html 与 assets/。
-/// 只 stat 不读内容。两个条件都要，是为了不把「只有 index.html、没有 assets/」的
-/// Vite 开发入口（仓库根那个 index.html）当成 dist。
+/// 一个目录是不是构建产物目录：有 index.html，且旁边确实带着静态资源。
+/// 只 stat 不读内容。
+///
+/// 资源形式放宽成两种：`assets/` 子目录（打包器常见布局），或同层直接有
+/// `.js` / `.css` 文件（rabbita 这类把产物平铺在根上的布局）。
+/// 「index.html 之外还得有东西」这条不能松：只有 index.html 的话，仓库根那个
+/// Vite 开发入口会被误当成产物目录。
 pub async fn is_dist_dir(dir : String) -> Bool noraise {
-  @json.exists(@json.join_path(dir, "index.html")) &&
-  @json.is_dir(@json.join_path(dir, "assets"))
+  if not(@json.exists(@json.join_path(dir, "index.html"))) {
+    return false
+  }
+  if @json.is_dir(@json.join_path(dir, "assets")) {
+    return true
+  }
+  has_flat_assets(dir)
+}
+
+///|
+/// 同层有没有 .js / .css 文件。
+async fn has_flat_assets(dir : String) -> Bool noraise {
+  let mut found = false
+  for entry in @json.list_entries(dir) {
+    let (name, _) = entry
+    if name.has_suffix(".js") || name.has_suffix(".css") {
+      found = true
+      break
+    }
+  }
+  found
 }
 
 ///|

@@ -101,7 +101,27 @@ moon.mod 里照常写模块名与版本，工作区负责解析到本地目录�
 2. 把 md2 以子模块 / vendor 形式收进本仓库（体积与同步成本）
 3. 维持外部相对路径（仅本机可用）
 
-## 七、接口契约（不变）
+## 七、后端供静态产物的兼容性（已解决）
+
+后端认静态根的判据原先写死为 `index.html` + `assets/`（那是 Vite 的布局）。
+rabbita 这类把产物**平铺在根上**（`index.html` + `console.js` + `console.css`）的布局会判不出来，
+上溯失败后静态服务返回 503。
+
+已放宽为：**有 `index.html`，且同层有 `assets/` 目录或 `.js` / `.css` 文件**。
+「`index.html` 之外还得有东西」这条保留 —— 只有 `index.html` 的目录仍判失败，
+免得把仓库根那个开发入口当成产物。
+
+实测（`DSH_CONSOLE_DIST` 指向造好的四种目录）：
+
+| 布局 | 静态 `/` | 接口 |
+| --- | --- | --- |
+| Vite（`index.html` + `assets/`） | 200 | 200 |
+| 平铺（`index.html` + `.js`/`.css`） | 200 | 200 |
+| 只有 `index.html` | 503（如实报错） | 200 |
+| 真实 `dist` + 环境变量 | 200 | 200 |
+| 无环境变量（自动上溯） | 200 | 200 |
+
+## 八、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`
 - 同源相对路径 `/api/local/...`
