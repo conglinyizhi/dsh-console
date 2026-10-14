@@ -1,0 +1,13 @@
+{
+ "_note": "新前端（rabbita）的几何不变量选择器映射。类名从 frontend/styles/app.scss 与 frontend/*.mbt 里读出，交付后需用真实 DOM 核对一遍。",
+ "card": ".dsh-case",
+ "actions": ".dsh-actions",
+ "dot": ".dsh-dot",
+ "dotSlot": ".dsh-dot-slot",
+ "kind": ".dsh-kind",
+ "name": ".dsh-name",
+ "splitMain": ".dsh-split > .dsh-btn:not(.split-caret)",
+ "splitCaret": ".dsh-split > .split-caret",
+ "menuTrigger": ".dsh-btn-icon",
+ "menu": ".dsh-menu"
+}
