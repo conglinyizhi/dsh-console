@@ -152,6 +152,39 @@ rabbita 这类把产物**平铺在根上**（`index.html` + `console.js` + `cons
 新栈产物落地时不需要再改服务层。MIME 表覆盖 `.woff2` / `.woff` / `.ttf` / `.otf` /
 `.svg` / `.wasm` 等，图标字体不会静默失效。
 
+## 八点九、收尾时会踩的一个雷：控制台版本的来源（已实测确认）
+
+后端的 `consoleVersion` 是**运行时**解析的：从二进制位置上溯，找**同时含 `package.json`
+与 `src/` 的目录**，再读那份 `package.json` 的 version。实测现在拿到
+`"0.1.0"`，来源写着「相对二进制位置上溯找到含 package.json + src/ 的目录」——**读的正是
+Vue 前端的 package.json**。
+
+**收尾把 `src/`、`package.json` 删掉之后，这个解析必然失败** → `consoleVersion: null` →
+关于页那一行变成「未知」。这不是猜测：判据、当前实测值、失败路径三者都确认过了。
+
+**收尾必须同时做掉这一件**，三条出路（选一条，别留半拉）：
+
+1. 仓库根放一份 `VERSION`，后端读它（单一来源，最稳）
+2. 后端直接报自己的模块版本（后端与前端现在是一起发布的一个产品）
+3. 前端（MoonBit 侧）声明控制台版本，后端读 `frontend/moon.mod`
+
+同时要把后端那段**判据**改掉（不能继续依赖 `package.json + src/`），并改掉
+`consoleVersionSource` 的文案，别让它说谎。
+
+## 八点九五、收尾的删除清单
+
+仓库根现状（`dsh-console/`）：
+
+| 保留 | 删除 |
+| --- | --- |
+| `backend/`（原生后端） | `src/`（Vue 源码） |
+| `frontend/`（rabbita 前端） | `index.html`、`vite.config.ts`、`tsconfig.json` |
+| `design/`（设计与验证文档） | `package.json`、`pnpm-lock.yaml` |
+| `.git`、`.gitignore`（按需更新） | `node_modules/`、`dist/` |
+
+删完的验收：构建验证链不再需要 Node；后端自动上溯落到新产物；
+`.gitignore` 不再需要 `node_modules` 那几行。
+
 ## 九、收尾顺序（必须按这个顺序，否则会静默跑旧前端）
 
 后端自动上溯的规则是「每一层先看 `<层>/dist`，再看这一层本身」。而 `dsh-console/dist`
