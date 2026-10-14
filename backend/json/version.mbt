@@ -74,7 +74,63 @@ pub async fn resolve_frontend_dir() -> (String?, String) noraise {
 }
 
 ///|
+/// 产品版本文件名。放在仓库根，是「控制台版本」的单一来源。
+///
+/// 为什么要它：原先靠上溯找前端 package.json（Vue 那套）读版本；前端换栈、
+/// package.json 被删掉之后那条路必然失效，关于页会莫名其妙变成「未知」。
+/// 换成仓库根一个文件，与前端用什么实现无关。
+pub let version_file_name : String = "VERSION"
+
+///|
+/// 从二进制位置往上找含 VERSION 的目录（产品根）。找不到返回 None。
+pub async fn locate_version_file() -> String? noraise {
+  let mut current = dirname(exe_path())
+  let mut steps = 0
+  while steps < 8 {
+    steps = steps + 1
+    let parent = dirname(current)
+    if parent == current {
+      break
+    }
+    current = parent
+    let f = join_path(current, version_file_name)
+    if exists(f) {
+      return Some(f)
+    }
+  }
+  None
+}
+
+///|
+/// 读控制台版本，返回 (版本, 来源说明)。读不到给 None，不编。
+/// 优先仓库根的 VERSION 文件；没有才退回前端 package.json（换栈过渡期兼容）。
+pub async fn read_console_version() -> (String?, String) noraise {
+  match locate_version_file() {
+    Some(f) =>
+      match read_text_file(f) {
+        Ok(text) => {
+          let v = trim_both(text)
+          if v == "" {
+            (None, "仓库根的 VERSION 文件是空的：" + f)
+          } else {
+            (Some(v), "仓库根的 VERSION 文件")
+          }
+        }
+        Err(e) => (None, "仓库根的 VERSION 文件读不到：" + f + "（" + e + "）")
+      }
+    None => {
+      let (dir, src) = resolve_frontend_dir()
+      match dir {
+        Some(d) => (read_frontend_version(d), src + " 的 package.json")
+        None => (None, src)
+      }
+    }
+  }
+}
+
+///|
 /// 运行时读前端 package.json 的 version。读不到给 None（上层给 null，不编）。
+/// 换栈过渡期用；VERSION 文件到位后这条只是兜底。
 pub async fn read_frontend_version(dir : String) -> String? noraise {
   let text = match read_text_file(join_path(dir, "package.json")) {
     Ok(t) => t

@@ -194,17 +194,9 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
     }
   }
   let dsh_profile = @json.env_raw("DSH_PROFILE")
-  let (frontend_dir, frontend_source) = @json.resolve_frontend_dir()
-  let mut console_version : String? = None
-  let mut version_source = frontend_source
-  match frontend_dir {
-    Some(dir) =>
-      match @json.read_frontend_version(dir) {
-        Some(v) => console_version = Some(v)
-        None => version_source = "读到了前端目录 \{dir}，但它的 package.json 读不出 version"
-      }
-    None => ()
-  }
+  // 控制台版本：优先仓库根的 VERSION 文件，没有才退回前端 package.json。
+  // 这样前端换栈（删掉 package.json）之后这条读数不会失效。
+  let (console_version, version_source) = @json.read_console_version()
   @json.JObj([
     ("consoleVersion", @json.str_or_null(console_version)),
     ("consolePackageName", @json.JStr(console_package_name)),
