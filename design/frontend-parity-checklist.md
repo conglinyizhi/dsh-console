@@ -164,6 +164,23 @@ rabbita 这类把产物**平铺在根上**（`index.html` + `console.js` + `cons
 
 在那之前自测请用 `DSH_CONSOLE_DIST` 显式指向新产物，别依赖上溯。
 
+## 九点五、样式移植的规模与特性（实测，别低估）
+
+**实测**：现有样式 **941 行散在 18 个组件的 `<style scoped>` 块里**，全局 `app.css` 只有
+**29 行**（纯 token）。也就是说"样式"这部分的工作量**跟逻辑代码几乎一样多**，
+不是"顺手搬一下"。
+
+按文件分布（前几名）：`LogsView` 152、`InstanceRow` 120、`SideInfoPanel` 96、
+`SideNav` 86、`AboutView` 73、`InstanceActions` 70、`OverviewView` 60。
+
+**好消息**：用到的 CSS 特性极朴素——`grid-template` 4 处，`@keyframes` 1 处，
+**没有** `color-mix` / `:has()` / `@container` / `backdrop-filter`。所以移植是
+**近乎逐行可搬**的（顶多加一层 SCSS 嵌套），precss 不需要支持什么冷门语法。
+
+**唯一要保留的动效**：`dot-pulse`（`InstanceRow.vue` 里 `.sub-line.starting .dot`，
+900ms 呼吸 + 琥珀色光晕）——它是**启动等待态的状态指示**，不是装饰，别在重写时丢掉。
+其余地方仍然遵守「不用过渡动画」。
+
 ## 十、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`
