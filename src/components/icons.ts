@@ -28,6 +28,7 @@ import IconMoreHoriz from '~icons/material-symbols/more-horiz-outline'
 import IconArchive from '~icons/material-symbols/archive-outline'
 import IconUnarchive from '~icons/material-symbols/unarchive-outline'
 import IconDelete from '~icons/material-symbols/delete-outline'
+import IconRename from '~icons/material-symbols/drive-file-rename-outline'
 
 export const icons = {
   logo: IconHub,
@@ -58,6 +59,7 @@ export const icons = {
   archive: IconArchive,
   unarchive: IconUnarchive,
   delete: IconDelete,
+  rename: IconRename,
 } as const
 
 export type IconName = keyof typeof icons

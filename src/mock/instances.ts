@@ -3,9 +3,14 @@ export interface Instance {
   name: string
   kind: string
   tone: 'accent' | 'violet'
-  status: 'running' | 'stopped'
-  /** 已运行时长，写死的展示值，不做计时器 */
-  uptime: string
+  /** starting 仅用于「启动」后的前端演示等待态，没有真实进程可等 */
+  status: 'running' | 'stopped' | 'starting'
+  /** 已运行分钟数，写死的展示值，不做计时器 */
+  uptime: number
+  /** 派生时探测端口的结论，仅启动等待期间展示 */
+  portNote?: string
+  /** 该实例正在等待启动，行内按钮全部不可点 */
+  busy?: boolean
   version: string
   profile: string
   home: string
@@ -28,7 +33,7 @@ export const instances: Instance[] = [
     kind: '核心工作实例',
     tone: 'accent',
     status: 'running',
-    uptime: '2 小时 18 分钟',
+    uptime: 138,
     version: '0.2.0-rc.2（本地源码）',
     profile: 'main',
     home: '/Users/you/.dsh/work-main',
@@ -42,7 +47,7 @@ export const instances: Instance[] = [
     kind: '插件开发（试验）',
     tone: 'violet',
     status: 'running',
-    uptime: '42 分钟',
+    uptime: 42,
     version: '0.2.0-rc.2（本地源码）',
     profile: 'dev',
     home: '/Users/you/.dsh/plugin-dev',

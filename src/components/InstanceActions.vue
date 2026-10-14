@@ -17,13 +17,16 @@ const props = defineProps<{ instance: Instance }>()
 const emit = defineEmits<{ action: [key: ActionKey, trigger: HTMLElement | null] }>()
 
 const running = computed(() => props.instance.status === 'running')
+/** 启动等待期：整行按钮都不可点（下拉触发也 disabled，所以菜单根本开不出来），菜单项上的 disabled 只是兜底 */
+const busy = computed(() => props.instance.busy === true)
 
-/** 运行中：派生/归档/删除靠上，运维三项沉底；删除只给可删实例 */
+/** 运行中：重命名/派生/归档/删除靠上，运维三项沉底；删除只给可删实例 */
 const runningMenu = computed<MenuEntry[]>(() => {
   const items: MenuEntry[] = [
     { key: 'tab', icon: 'launch', label: '在新标签页打开' },
     { key: 'copy-url', icon: 'link', label: '复制访问地址' },
     { divider: true },
+    { key: 'rename', icon: 'rename', label: '重命名' },
     { key: 'fork', icon: 'branch', label: '派生开发副本' },
     { key: 'archive', icon: 'archive', label: '归档' },
   ]
@@ -46,6 +49,7 @@ const stoppedMenu = computed<MenuEntry[]>(() => {
     { key: 'dir', icon: 'folderOpen', label: '打开工作目录' },
     { key: 'config', icon: 'sliders', label: '编辑配置' },
     { divider: true },
+    { key: 'rename', icon: 'rename', label: '重命名' },
     { key: 'archive', icon: 'archive', label: '归档' },
   ]
   if (props.instance.deletable) {
@@ -126,23 +130,35 @@ onBeforeUnmount(() => {
         class="btn primary split-caret"
         aria-haspopup="menu"
         :aria-expanded="menuOpen"
-        aria-label="打开 Web UI 菜单"
+        :aria-label="`打开 Web UI 菜单（${instance.name}）`"
         @click="toggleMenu"
       >
         <AppIcon name="chevronRight" :size="12" class="caret" />
       </button>
     </div>
 
-    <button v-if="running" type="button" class="btn" @click="emit('action', 'toggle', null)">
+    <button
+      v-if="running"
+      type="button"
+      class="btn"
+      :disabled="busy"
+      @click="emit('action', 'toggle', null)"
+    >
       <i class="dot-danger" />
       <span>停止</span>
     </button>
-    <button v-else type="button" class="btn primary" @click="emit('action', 'toggle', null)">
+    <button
+      v-else
+      type="button"
+      class="btn primary"
+      :disabled="busy"
+      @click="emit('action', 'toggle', null)"
+    >
       <AppIcon name="play" :size="13" />
-      <span>启动</span>
+      <span>{{ busy ? '启动中…' : '启动' }}</span>
     </button>
 
-    <button type="button" class="btn" :disabled="restarting" @click="onRestart">
+    <button type="button" class="btn" :disabled="restarting || busy" @click="onRestart">
       <AppIcon name="refresh" :size="14" />
       <span>{{ restarting ? '重启中…' : '重启' }}</span>
     </button>
@@ -155,7 +171,8 @@ onBeforeUnmount(() => {
       class="btn icon-only"
       aria-haspopup="menu"
       :aria-expanded="menuOpen"
-      aria-label="更多操作"
+      :disabled="busy"
+      :aria-label="`更多操作（${instance.name}）`"
       @click="toggleMenu"
     >
       <AppIcon name="more" :size="16" />
@@ -170,6 +187,7 @@ onBeforeUnmount(() => {
           class="menu-item"
           :class="{ danger: item.danger }"
           role="menuitem"
+          :disabled="busy"
           :data-action="item.key"
           @click="pickItem(item.key as ActionKey)"
         >
@@ -209,7 +227,8 @@ onBeforeUnmount(() => {
   color: var(--text-mid); font-size: 12.5px;
   cursor: pointer; text-align: left;
 }
-.menu-item:hover { background: var(--panel); color: var(--text); }
+.menu-item:hover:not(:disabled) { background: var(--panel); color: var(--text); }
+.menu-item:disabled { opacity: 0.45; cursor: default; }
 .menu-item:focus-visible {
   outline: 1px solid var(--accent); outline-offset: -1px;
   background: var(--panel); color: var(--text);

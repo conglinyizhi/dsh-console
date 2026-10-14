@@ -6,6 +6,7 @@ export type ActionKey =
   | 'tab'
   | 'copy-url'
   | 'fork'
+  | 'rename'
   | 'archive'
   | 'delete'
   | 'logs'
