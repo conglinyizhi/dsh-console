@@ -83,10 +83,10 @@ GET http://127.0.0.1:5390/api/local/instances
 
 **静态根解析顺序**
 
-1. `DSH_CONSOLE_DIST`：显式指定的目录必须同时含 `index.html` 与 `assets/`；
+1. `DSH_CONSOLE_DIST`：显式指定的目录必须含 `index.html` 与静态资源（`assets/` 目录，或同层有 `.js` / `.css` 文件）；
    **设了但目录不对就直接算失败**，不偷偷回退到第 2 步，原因写进启动日志与响应体（显式指的路径是错的，就该看得见）
 2. 否则从 `/proc/self/exe` 的真实路径往上找（最多 8 层）：先看 `<层>/dist`，再看这一层本身，
-   命中条件同样是 `index.html` + `assets/`。不硬编码任何绝对路径，覆盖
+   命中条件同上（`index.html` 加静态资源）。不硬编码任何绝对路径，覆盖
    `backend/_build/native/<profile>/build/<exe>` 与二进制被放进 `dist/` 两种部署方式
 
 **SPA 回退**：`history_fallback = /index.html`（`unstable_static` 内部要求带前导斜杠，写 `index.html` 会被静默忽略）。

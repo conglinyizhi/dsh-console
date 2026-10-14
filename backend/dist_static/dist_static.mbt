@@ -2,7 +2,8 @@
 //
 // 三件事分清楚：
 //   1. 解析静态根：$DSH_CONSOLE_DIST 优先；没有就从 /proc/self/exe 的位置上溯，
-//      找同时含 index.html 与 assets/ 的目录（与 json 包找前端目录同一套思路，不硬编码绝对路径）。
+//      找同时含 index.html 与静态资源的产物目录（assets/ 目录或同层 .js/.css 都算；
+//      与 json 包找前端目录同一套思路，不硬编码绝对路径）。
 //   2. 有根：用 moonback 的 unstable_static 中间件服务该目录，history_fallback 指向 index.html
 //      （SPA 回退；当前前端是状态切页，这里为将来的 URL 路由留好）。
 //   3. 没根：不注册静态中间件，改成 503 + text/plain 把原因写在响应体和启动日志里——
@@ -110,7 +111,7 @@ pub async fn resolve_dist_root() -> (String?, String) noraise {
       } else if @json.is_dir(v) {
         return (
           None,
-          dist_env_name + " 环境变量指向的目录里没有 index.html + assets/：" + v,
+          dist_env_name + " 环境变量指向的目录里没有 index.html 与静态资源（assets/ 目录或同层 .js/.css）：" + v,
         )
       } else {
         return (None, dist_env_name + " 环境变量指向的目录不存在：" + v)
@@ -121,7 +122,7 @@ pub async fn resolve_dist_root() -> (String?, String) noraise {
     Some(dir) =>
       (
         Some(dir),
-        "相对可执行文件位置 " + exe_note(exe) + " 上溯找到含 index.html + assets/ 的目录",
+        "相对可执行文件位置 " + exe_note(exe) + " 上溯找到含 index.html 与静态资源的目录",
       )
     None =>
       (
@@ -130,7 +131,7 @@ pub async fn resolve_dist_root() -> (String?, String) noraise {
         dist_env_name +
         "，也没能从可执行文件位置 " +
         exe_note(exe) +
-        " 上溯找到含 index.html + assets/ 的目录",
+        " 上溯找到含 index.html 与静态资源的目录",
       )
   }
 }
@@ -141,7 +142,7 @@ pub async fn resolve_dist_root() -> (String?, String) noraise {
 pub fn unavailable_middleware(reason : String) -> @moonback.Middleware {
   let body = "前端静态资源不可用：\{reason}\n" +
     "本地接口不受影响：/api/local/runtime、/profiles、/logs、/processes、/instances 照常。\n" +
-    "修法：把前端构建产物（含 index.html 与 assets/）放到可执行文件同级的 dist/，或用 " +
+    "修法：把前端构建产物（含 index.html 与静态资源）放到可执行文件同级的 dist/，或用 " +
     dist_env_name +
     " 指定该目录。\n"
   @moonback.Middleware(next => {
