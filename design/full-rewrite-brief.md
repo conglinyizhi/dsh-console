@@ -57,6 +57,31 @@
 - **唯一要保留的动效**：启动等待态状态点的 `dot-pulse`（900ms 呼吸 + 琥珀光晕）
 - 其余不加过渡动画
 
+## 三点五、组件映射（我们的 18 个 → md2 或自建）
+
+md2 提供 36 个组件：`app_bar app avatar badge breadcrumbs btn card chip divider
+empty_state expansion_panel field file_input form icon img list menu
+navigation_drawer number_input otp_input overlay pagination progress_circular
+progress_linear radio selection_control select sheet slider stepper tabs
+text_field validation window`。`menu` 与 `dialog` 都在 `v_menu.mbt`。
+
+| 我们的组件 | 用 md2 | 备注 |
+| --- | --- | --- |
+| `SideNav`（导航） | `navigation_drawer` + `list` | — |
+| `NavTopBar` | `app_bar` | — |
+| `InstanceRow`（卡） | `card` | 字段行与两行卡头**自建 CSS**（md2 没有这种版式） |
+| `InstanceActions`（按钮组） | `btn` + `menu` | **两段式 split 要自建**——md2 没有这个控件 |
+| `RenameDialog` | `dialog` + `text_field` | 预填全选、Enter/Esc、焦点回触发元素这些行为要自己接 |
+| `ConfirmDialog` | `dialog` | — |
+| `SourceBadge` | `chip` | — |
+| `InstanceGroup` / 两个空态 | 自建 | 可参考 `empty_state` |
+| `LogsView` 来源下拉 | **原生 `<select>`** | 我们用的是「disabled option 当分隔线」的技巧，md2 的 `select` 没有分隔项 |
+| `LogsView` 日志区 | 自建 | 等宽 + 长行横向滚动 |
+| `ArchivedSection` / `ArchivedRow` | `expansion_panel` + `list` | — |
+| `SideInfoPanel` | `card` + `list` | — |
+| `AppIcon` | `icon` | 走 MDI 类名 |
+| 状态点 | 自建 | 13px 槽位 + `dot-pulse` |
+
 ## 四、顺手修掉切片里的两个问题
 
 1. `web/index.html` 缺 favicon → `/favicon.ico` 404（Vue 版用内联 data URI 解决，照做）
