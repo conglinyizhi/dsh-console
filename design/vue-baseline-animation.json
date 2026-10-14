@@ -1,0 +1,23 @@
+{
+ "baseUrl": "http://127.0.0.1:5380/",
+ "before": {
+  "count": 0,
+  "names": []
+ },
+ "clicked": "clicked:启动",
+ "after": {
+  "count": 1,
+  "items": [
+   {
+    "tag": "i",
+    "cls": "dot",
+    "name": "dot-pulse-157da48c",
+    "duration": "0.9s",
+    "timing": "ease-in-out",
+    "iterations": "infinite",
+    "shadow": "rgba(224, 164, 88, 0.16) 0px 0px 0px 3px"
+   }
+  ],
+  "disabledButtons": 3
+ }
+}
