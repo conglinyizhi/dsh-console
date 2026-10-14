@@ -100,15 +100,24 @@ async function load() {
   await scrollToBottom()
 }
 
+/** 使用者自己选过之后，就不再替他改默认来源 */
+let userPicked = false
+
 function onSourceChange(event: Event) {
+  userPicked = true
   source.value = (event.target as HTMLSelectElement).value
   void load()
 }
 
 onMounted(async () => {
   await loadInstances()
-  // 实例读不到就别硬切：留在宿主日志，把失败写出来
-  if (source.value.startsWith('instance:') && !instances.value.some((i) => 'instance:' + i.id === source.value)) {
+  const first = instances.value[0]
+  if (!userPicked && first) {
+    // 有实例在跑就默认看它：这一页要回答的是「这只实例在说什么」，
+    // 宿主日志那种文件口径留给插件开发者，排在分隔线之后
+    source.value = 'instance:' + first.id
+  } else if (source.value.startsWith('instance:') && !instances.value.some((i) => 'instance:' + i.id === source.value)) {
+    // 实例读不到就别硬切：留在宿主日志，把失败写出来
     source.value = 'host'
   }
   void load()
