@@ -121,7 +121,31 @@ rabbita 这类把产物**平铺在根上**（`index.html` + `console.js` + `cons
 | 真实 `dist` + 环境变量 | 200 | 200 |
 | 无环境变量（自动上溯） | 200 | 200 |
 
-## 八、接口契约（不变）
+## 八、客户端数据与副作用（已探明，别自己造）
+
+从 rabbita 0.15.7 源码里读出来的现成能力：
+
+| 需要 | 现成的 API |
+| --- | --- |
+| 发请求 + 类型化解码 | `rabbita/http`：`Request::expect_json[T : FromJson]`、`RequestWithBody::with_json[T : ToJson]`、`expect_text` / `expect_bytes` / `expect_empty` |
+| 副作用（取数、定时、导航） | `rabbita/cmd`：`@cmd.perform(msg, f)`、`@cmd.effect(f)`、`@cmd.attempt(...)`、`@cmd.batch([...])`、`Op::on_settle` / `on_resume` |
+| JSON 层 | **`moonbitlang/core/json`**，含 `from_json.mbt` 与 derive 测试 → **支持 `derive(FromJson)`** |
+
+所以数据层的写法是：**定义类型 + derive JSON + 用 cmd 发请求**，不要手写解析器。
+
+## 九、收尾顺序（必须按这个顺序，否则会静默跑旧前端）
+
+后端自动上溯的规则是「每一层先看 `<层>/dist`，再看这一层本身」。而 `dsh-console/dist`
+是 **Vue 的产物**，重写后它仍然存在的话，**上溯会继续命中它，页面看着正常、跑的是旧前端**——
+典型静默失败。所以顺序必须是：
+
+1. 新前端产物跑通并验收
+2. **删掉 `dist/`**（以及 `src/`、`vite.config.ts`、`package.json` 里的前端依赖）
+3. 再验证一次自动上溯落到新产物上
+
+在那之前自测请用 `DSH_CONSOLE_DIST` 显式指向新产物，别依赖上溯。
+
+## 十、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`
 - 同源相对路径 `/api/local/...`
