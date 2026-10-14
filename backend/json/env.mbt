@@ -4,12 +4,6 @@
 // 取不到 /proc 时退回 @env（本进程自己的环境）。
 
 ///|
-/// StringView 转 owned String，避开 String::to_string 的 deprecated 警告。
-fn owned(view : StringView) -> String {
-  view.to_owned()
-}
-
-///|
 /// 读 /proc/self/environ 并按 NUL 拆成 key=value。
 async fn environ_from_proc() -> Map[String, String] noraise {
   let map : Map[String, String] = Map([])

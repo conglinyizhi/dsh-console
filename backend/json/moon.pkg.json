@@ -4,6 +4,7 @@
     "moonbitlang/async",
     "moonbitlang/async/fs",
     "moonbitlang/core/buffer",
+    "moonbitlang/core/debug",
     "moonbitlang/core/encoding/utf8",
     {
       "path": "moonbitlang/core/json",

@@ -201,7 +201,7 @@ pub async fn read_profiles() -> @json.JsonVal raise @localapi.ReadError {
   let (dsh_home, dsh_home_source) = @runtime.resolve_dsh_home()
   let root = @json.join_path(dsh_home, "profiles")
   if !@json.is_dir(root) {
-    @localapi.fail_read("profiles-missing", "profiles 目录不存在：{root}")
+    @localapi.fail_read("profiles-missing", "profiles 目录不存在：\{root}")
   }
   let current_profile = @json.env_raw("DSH_PROFILE")
   let shared_dir = @json.join_path(root, "node_modules")

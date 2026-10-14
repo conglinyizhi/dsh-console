@@ -1,23 +1,21 @@
 // GET /api/local/runtime 的数据体。
 //
-// 字段与 Node 版 server/readRuntime.mjs 的返回值逐字段一致：
+// 字段与 Node 版 server/readRuntime.mjs 的返回值对齐：
 //   consoleVersion, consolePackageName, dshVersion, dshPackageName, dshPackageDir,
-//   dshSourceLabel, nodeVersion, dshHome, dshHomeSource, dshProfile, platform
+//   dshSourceLabel, backendRuntime, backendVersion, backendPackageName,
+//   consoleVersionSource, dshHome, dshHomeSource, dshProfile, platform
 //
-// 文件 IO 只有 @json 里那几个只读入口：read_file / readdir / kind / exists。
+// 第二批的两处修正：
+//   1. 删掉 nodeVersion。后端跑在 MoonBit native 运行时上，没有 Node；
+//      硬编码一个 "v26.11.1" 就是编数据。改用 backendRuntime / backendVersion 如实报告后端自己。
+//   2. consoleVersion 不再是编译期常量：运行时读前端 package.json 的 version，
+//      读不到给 null，并在 consoleVersionSource 里写明原因。
+//
+// 文件 IO 只有 @json 里那几个只读入口：read_file / readdir / kind / exists / open+read_at。
 
 ///|
-/// 本后端对应的 dsh-console 前端包事实。前端 package.json 在编译期不可见，
-/// 这里按 Node 版实测值固化；改前端版本号时一并改这里。
+/// 前端包名（Node 版从这里读 package.json；这里只作为常量回显）。
 pub let console_package_name : String = "dsh-console"
-
-///|
-/// 见上。
-pub let console_version : String = "0.1.0"
-
-///|
-/// 本机 Node 版本。MoonBit 进程里没有 Node，这个字段只是与 Node 版保持同形的占位事实。
-pub let node_version : String = "v26.11.1"
 
 ///|
 /// dsh 来源标签，与 Node 版同常量。
@@ -183,7 +181,7 @@ pub async fn kernel_release() -> String noraise {
 pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
   let (dsh_home, dsh_home_source) = resolve_dsh_home()
   if !@json.is_dir(dsh_home) {
-    @localapi.fail_read("dsh-home-missing", "DSH_HOME 不是可读目录：{dsh_home}")
+    @localapi.fail_read("dsh-home-missing", "DSH_HOME 不是可读目录：\{dsh_home}")
   }
   let dsh = match find_installed_dsh() {
     Some(d) => d
@@ -196,14 +194,28 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
     }
   }
   let dsh_profile = @json.env_raw("DSH_PROFILE")
+  let (frontend_dir, frontend_source) = @json.resolve_frontend_dir()
+  let mut console_version : String? = None
+  let mut version_source = frontend_source
+  match frontend_dir {
+    Some(dir) =>
+      match @json.read_frontend_version(dir) {
+        Some(v) => console_version = Some(v)
+        None => version_source = "读到了前端目录 \{dir}，但它的 package.json 读不出 version"
+      }
+    None => ()
+  }
   @json.JObj([
-    ("consoleVersion", @json.JStr(console_version)),
+    ("consoleVersion", @json.str_or_null(console_version)),
     ("consolePackageName", @json.JStr(console_package_name)),
+    ("consoleVersionSource", @json.JStr(version_source)),
     ("dshVersion", @json.JStr(dsh.version)),
     ("dshPackageName", @json.JStr(dsh.name)),
     ("dshPackageDir", @json.JStr(dsh.dir)),
     ("dshSourceLabel", @json.JStr(dsh_source_label)),
-    ("nodeVersion", @json.JStr(node_version)),
+    ("backendRuntime", @json.JStr(@json.backend_runtime)),
+    ("backendVersion", @json.JStr(@json.backend_version)),
+    ("backendPackageName", @json.JStr(@json.backend_package_name)),
     ("dshHome", @json.JStr(dsh_home)),
     ("dshHomeSource", @json.JStr(dsh_home_source)),
     ("dshProfile", @json.str_or_null(dsh_profile)),

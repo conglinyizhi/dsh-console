@@ -1,6 +1,6 @@
 // JSON 编码与时间格式化。
 //
-// 为什么不用 core 的 Json + stringify：@json.Json 的对象是 Map[String, Json]，
+// 为什么不用 core 的 Json + stringify：Json 的对象是 Map[String, Json]，
 // 序列化后的字段顺序不保证与 Node 版（JSON.stringify 按插入顺序）一致。
 // 本包用有序的 JsonVal 自己拼字符串，字段顺序 = 声明顺序，逐字段对齐 Node 版。
 
@@ -137,6 +137,15 @@ pub fn str_or_null(s : String?) -> JsonVal {
 }
 
 ///|
+/// 可空整数字段：None 给 null。
+pub fn int_or_null(n : Int?) -> JsonVal {
+  match n {
+    Some(v) => JNum(v.to_double())
+    None => JNull
+  }
+}
+
+///|
 /// 整数字段。
 pub fn jint(n : Int) -> JsonVal {
   JNum(n.to_double())
@@ -191,6 +200,51 @@ fn pad_num(b : StringBuilder, value : Int64, width : Int) -> Unit {
     pad = pad - 1
   }
   b.write_string(s)
+}
+
+///|
+/// 把一条完整 ISO8601 时间戳（形如 2026-10-14T11:12:05.680Z）取成时间部分 "11:12:05"。
+/// 判据与 Node 版 readLogs.mjs 的 `^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?)` 等价：
+/// 日期三段与时间三段必须是纯数字，小数部分 1..3 位。对不上返回 None。
+fn code_at(value : String, i : Int) -> Char {
+  value.unsafe_get(i).unsafe_to_char()
+}
+
+///|
+pub fn iso_time_part(value : String) -> String? {
+  // 结构位：0123456789...  YYYY-MM-DDTHH:MM:SS[.fff]
+  let n = value.length()
+  if n < 19 {
+    return None
+  }
+  if code_at(value, 4) != '-' || code_at(value, 7) != '-' || code_at(value, 10) != 'T' {
+    return None
+  }
+  if code_at(value, 13) != ':' || code_at(value, 16) != ':' {
+    return None
+  }
+  let digit_positions = [0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18]
+  for i in digit_positions {
+    let c = value.unsafe_get(i).to_int()
+    if c < 48 || c > 57 {
+      return None
+    }
+  }
+  let mut end = 19
+  if n > 19 && code_at(value, 19) == '.' {
+    let mut k = 20
+    while k < n && k - 20 < 3 {
+      let c = value.unsafe_get(k).to_int()
+      if c < 48 || c > 57 {
+        break
+      }
+      k = k + 1
+    }
+    if k > 20 {
+      end = k
+    }
+  }
+  Some(value[11:end].to_owned())
 }
 
 ///|

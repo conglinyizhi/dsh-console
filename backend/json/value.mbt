@@ -1,4 +1,4 @@
-// 读 core 的 @json.Json（profile 的 package.json 用），只做只读取值，不 panic。
+// 读 core 的 Json（profile 的 package.json 用），只做只读取值，不 panic。
 
 ///|
 /// Json 取字符串；不是字符串就 None。

@@ -1,8 +1,8 @@
 // 只读文件访问。本文件是全工程唯一的文件 IO 入口。
 //
-// 允许：read_file / readdir / kind / mtime / exists
+// 允许：read_file / readdir / kind / mtime / exists / open(ReadOnly) + read_at
 // 禁止：任何写 / 建 / 删 / 改名的调用，也禁止创建进程。
-// 敏感文件名在此处硬拦：只判断存在，绝不读内容。
+// open 只以 ReadOnly 模式调用；敏感文件名在此处硬拦：只判断存在，绝不读内容。
 
 ///|
 /// 永远不读内容的敏感文件（与 Node 版 readProfiles.mjs 的 SENSITIVE_FILES 一致）。
@@ -98,6 +98,35 @@ pub fn join_path(a : String, b : String) -> String {
 }
 
 ///|
+/// 取父目录，对应 Node 的 path.dirname（只做字符串处理，不碰文件系统）。
+pub fn dirname(path : String) -> String {
+  if path == "" {
+    return "."
+  }
+  let trimmed = if path.length() > 1 && path.has_suffix("/") {
+    path[:path.length() - 1].to_owned()
+  } else {
+    path
+  }
+  match trimmed.rev_find("/") {
+    None => "."
+    Some(0) => "/"
+    Some(i) => trimmed[:i].to_owned()
+  }
+}
+
+///|
+/// 本进程二进制文件的真实路径：读 /proc/self/exe 的链接目标（只读，不调外部命令）。
+/// 取不到给空串，调用方按「不知道」处理。
+pub async fn exe_path() -> String noraise {
+  try {
+    @fs.realpath("/proc/self/exe")
+  } catch {
+    _ => ""
+  }
+}
+
+///|
 /// 多段路径拼接。
 pub fn join_all(parts : Array[String]) -> String {
   let mut acc = ""
@@ -105,6 +134,47 @@ pub fn join_all(parts : Array[String]) -> String {
     acc = join_path(acc, p)
   }
   acc
+}
+
+///|
+/// 从文件的指定偏移读出最多 `len` 字节。读不到（含越界、IO 错误）返回 Err。
+/// 这是本工程唯一带偏移的读入口，反向分块读尾靠它。
+pub async fn read_some_at(
+  path : String,
+  position : Int64,
+  len : Int,
+) -> Result[Bytes, String] noraise {
+  if is_sensitive_path(path) {
+    return Err("拒绝读取敏感文件：" + basename(path))
+  }
+  let file = try {
+    @fs.open(path, mode=ReadOnly)
+  } catch {
+    err => return Err("打不开文件：" + err.to_string())
+  }
+  defer file.close()
+  let buf : FixedArray[Byte] = FixedArray::make(len, b'\x00')
+  let n = try {
+    file.read_at(buf, position~, offset=0, len~)
+  } catch {
+    err => return Err("读取失败：" + err.to_string())
+  }
+  let view = buf.unsafe_reinterpret_as_bytes()
+  Ok(view[:n].to_owned())
+}
+
+///|
+/// 按偏移读一段并解码成 UTF-8 文本（非法字节按替换字符处理）。
+/// 解码放在整段上做，避免多字节字符被窗口边界切断。
+pub async fn read_text_at(
+  path : String,
+  position : Int64,
+  len : Int,
+) -> Result[String, String] noraise {
+  match read_some_at(path, position, len) {
+    Ok(bytes) => Ok(@utf8.decode_lossy(bytes, ignore_bom=true))
+    Err(e) => Err(e)
+  }
 }
 
 ///|

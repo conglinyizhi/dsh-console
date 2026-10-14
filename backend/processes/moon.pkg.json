@@ -1,0 +1,8 @@
+{
+  "is-main": false,
+  "import": [
+    "conglinyizhi/dsh-console-backend/json",
+    "conglinyizhi/dsh-console-backend/localapi",
+    "moonbitlang/async"
+  ]
+}

@@ -18,8 +18,31 @@ pub fn api(path : String, handler : async () -> @json.JsonVal raise ReadError) -
 }
 
 ///|
+/// 需要读查询串的只读接口（logs 要 source / tail）。
+pub struct QueryApi {
+  path : String
+  handler : async (@moonback.Request) -> @json.JsonVal raise ReadError
+}
+
+///|
+/// 构造一条带查询串的路由。
+pub fn query_api(
+  path : String,
+  handler : async (@moonback.Request) -> @json.JsonVal raise ReadError,
+) -> QueryApi {
+  { path, handler }
+}
+
+///|
+/// 取查询参数（已做 percent-decode）。
+/// Node 版用 URL.searchParams.get()：参数出现但没值时给空串，不区分「没有」和「空」。
+pub fn query_param(req : @moonback.Request, name : String) -> String? {
+  req.query().get(name)
+}
+
+///|
 /// 读取失败的携带码错误。code 为空时按 read-failed 处理（与 Node 版一致）。
-pub suberror ReadError {
+pub(all) suberror ReadError {
   ReadError(code~ : String, message~ : String)
 }
 
@@ -32,6 +55,20 @@ pub fn fail_read(code : String, message : String) -> Unit raise ReadError {
 ///|
 /// 从路由表里找 handler。
 fn find_api(apis : Array[Api], path : String) -> (async () -> @json.JsonVal raise ReadError)? {
+  for r in apis {
+    if r.path == path {
+      return Some(r.handler)
+    }
+  }
+  None
+}
+
+///|
+/// 从带查询串的路由表里找 handler。
+fn find_query_api(
+  apis : Array[QueryApi],
+  path : String,
+) -> (async (@moonback.Request) -> @json.JsonVal raise ReadError)? {
   for r in apis {
     if r.path == path {
       return Some(r.handler)
@@ -72,6 +109,7 @@ pub async fn dispatch(
   req : @moonback.Request,
   res : @moonback.Responder,
   apis : Array[Api],
+  query_apis : Array[QueryApi],
   read_at : String,
 ) -> Unit {
   let path = path_of(req.path)
@@ -84,6 +122,23 @@ pub async fn dispatch(
       extra_headers=[(header_allow, "GET")],
     )
     return
+  }
+  let query_handler = find_query_api(query_apis, path)
+  match query_handler {
+    Some(f) => {
+      try {
+        let data = f(req)
+        send_ok(res, data, read_at)
+      } catch {
+        ReadError(code~, message~) => {
+          let code = if code == "" { "read-failed" } else { code }
+          send_error(res, status_for(code), code, message, read_at=Some(read_at))
+        }
+        err => send_error(res, 500, "read-failed", err.to_string(), read_at=Some(read_at))
+      }
+      return
+    }
+    None => ()
   }
   let handler = find_api(apis, path)
   match handler {
