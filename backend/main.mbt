@@ -2,8 +2,15 @@
 //
 // 默认只监听 127.0.0.1:5390（可用 DSH_CONSOLE_BACKEND_HOST / _PORT 覆盖，自测隔离用），
 // 只答 GET，只读文件。
-// 本轮（第二批）补齐 /api/local/logs、/api/local/processes、/api/local/instances，
-// 五个只读接口全部落地：runtime / profiles / logs / processes / instances。
+// 五个只读接口：runtime / profiles / logs / processes / instances。
+//
+// 本轮新增「接管前端」：同一个端口既答 API 也服务前端构建产物 dist/（A 形态，终局形态）。
+// 中间件顺序只有一条规矩——API 在前，静态在后：
+//   最外层 localapi.api_gate  →  /api/local* 到此为止，不往下走
+//   次外层 dist_static        →  dist 目录服务 + SPA 回退（index.html）
+//   最内层 路由               →  兜底 404
+// 静态中间件不能放到闸门外层：它的 history_fallback 会把 404 改写成 index.html，
+// 未实现接口的错误壳就没了。
 
 ///|
 let default_listen_host : String = "127.0.0.1"
@@ -107,40 +114,24 @@ async fn handle(req : @moonback.Request, res : @moonback.Responder) -> Unit {
 }
 
 ///|
-/// 把 catch-all 路由注册到所有 HTTP 方法上。
-/// 只注册 GET 的话，MoonBack 的路由在方法不匹配时根本不进 handler，
-/// 405 就发不出来（实测 POST 会掉成 404）。
-fn register_local_api(ctx : @moonback.ModuleContext, path : String, handler : @moonback.Handler) -> Unit {
-  let methods : Array[@async_http.RequestMethod] = [
-    @async_http.Get,
-    @async_http.Head,
-    @async_http.Post,
-    @async_http.Put,
-    @async_http.Delete,
-    @async_http.Connect,
-    @async_http.Options,
-    @async_http.Trace,
-    @async_http.Patch,
-  ]
-  for meth in methods {
-    ctx.add_route(meth, path, handler) catch {
-      _ => ()
-    }
-  }
-}
-
-///|
 async fn main {
+  // 静态根在起服务之前解析一次：解析结果要写进启动日志，不能藏。
+  let (dist_root, dist_source) = @dist_static.resolve_dist_root()
   let app = @moonback.App(ctx => {
-    register_local_api(ctx, "/api/local", handle)
-    register_local_api(ctx, "/api/local/*rest", handle)
+    // 接口闸门在最外层：/api/local* 不进静态中间件，404/405 的接口语义原样保留。
+    // 闸门直接调 handle，与路由表指向同一个 handler；405 仍由 dispatch 发（非 GET）。
+    ctx.add_middleware(@localapi.api_gate(handle))
+    // 静态中间件在闸门里层：实体文件命中就答，命中不了回落到 index.html（SPA 回退），
+    // 再命中不了才落到最内层的路由（404）。根解析失败时给的是 503 + 原因说明。
+    ctx.add_middleware(@dist_static.static_middleware(dist_root, dist_source))
   })
   defer app.close()
   let (host, port) = resolve_listen()
   let server = @moonback.listen(host~, port~)
   @stdio.stdout.write(
-    "dsh-console 只读本地接口后端已起，http://\{server.addr}\n" +
-    "GET /api/local/runtime, /profiles, /logs, /processes, /instances\n",
+    "dsh-console 后端已起（API + 前端静态同端口），http://\{server.addr}\n" +
+    "GET /api/local/runtime, /profiles, /logs, /processes, /instances\n" +
+    @dist_static.startup_note(dist_root, dist_source),
   )
   app.serve(server)
 }

@@ -3,12 +3,17 @@
 dsh-console 前端的只读本地接口，用 **MoonBit + moonback** 重写的一版后端。
 
 - 默认只监听 `127.0.0.1:5390`（自测隔离可用 `DSH_CONSOLE_BACKEND_HOST` / `DSH_CONSOLE_BACKEND_PORT` 覆盖）
-- 只答 `GET`，其它方法一律 405
+- **一个进程一个端口**：同一个端口既答 `/api/local/*`，也服务前端构建产物 `dist/`
+  （静态根可用 `DSH_CONSOLE_DIST` 指定）
+- 接口只答 `GET`，其它方法一律 405
 - 只读文件系统：不写文件、不建目录、不删改、不创建进程
-- JSON 响应形状与现有 Node 版（`../server/`，vite 中间件）**逐字段一致**，接入时只换 base URL
+- JSON 响应形状与已退役的 Node 版中间件（`../server/`，见 git 0448ba4 可取回）**逐字段一致**。
+  前端走的是同源相对路径 `/api/local/...`，所以「接入」不需要改 base URL：开发期由 Vite 代理到本服务，
+  生产期由本服务同时供 `dist/` 与接口（一个进程、一个端口、同源）
 
-第二批已补齐 `logs` / `processes` / `instances` 三个接口，并修掉两处硬编码
+第二批补齐 `logs` / `processes` / `instances` 三个接口，并修掉两处硬编码
 （`nodeVersion` 伪造、`consoleVersion` 编译期固化）。五个只读接口全部落地。
+第三批（A 形态，终局形态）让后端**接管前端静态服务**，并把实例探测从串行提到 **8 路并发**。
 
 ## 依赖
 
@@ -54,11 +59,17 @@ cd dsh-console/backend
 # 或者：moon run --target native .
 # 自测换端口（不占用 5390）：
 DSH_CONSOLE_BACKEND_PORT=5391 ./_build/native/debug/build/dsh-console-backend.exe
+# 显式指定前端构建产物（默认从可执行文件位置上溯找 dist/）：
+DSH_CONSOLE_DIST=/path/to/dsh-console/dist ./_build/native/debug/build/dsh-console-backend.exe
 ```
 
-启动后：
+启动日志会写清静态根解析结果（解析出来的目录、来源、SPA 回退落点，或失败原因）。
+
+启动后（API 与前端同一端口）：
 
 ```
+GET http://127.0.0.1:5390/                                   # dist/index.html
+GET http://127.0.0.1:5390/assets/index-xxxxxxxx.js           # 构建产物，MIME 按后缀
 GET http://127.0.0.1:5390/api/local/runtime
 GET http://127.0.0.1:5390/api/local/profiles
 GET http://127.0.0.1:5390/api/local/logs?source=host&tail=200
@@ -66,11 +77,37 @@ GET http://127.0.0.1:5390/api/local/processes
 GET http://127.0.0.1:5390/api/local/instances
 ```
 
+## 静态服务：一个进程一个端口接管前端
+
+后端自己服务 `dist/`，前面不再需要挂 vite / nginx。
+
+**静态根解析顺序**
+
+1. `DSH_CONSOLE_DIST`：显式指定的目录必须同时含 `index.html` 与 `assets/`；
+   **设了但目录不对就直接算失败**，不偷偷回退到第 2 步，原因写进启动日志与响应体（显式指的路径是错的，就该看得见）
+2. 否则从 `/proc/self/exe` 的真实路径往上找（最多 8 层）：先看 `<层>/dist`，再看这一层本身，
+   命中条件同样是 `index.html` + `assets/`。不硬编码任何绝对路径，覆盖
+   `backend/_build/native/<profile>/build/<exe>` 与二进制被放进 `dist/` 两种部署方式
+
+**SPA 回退**：`history_fallback = /index.html`（`unstable_static` 内部要求带前导斜杠，写 `index.html` 会被静默忽略）。
+实体文件、静态目录都命中不了、且路径末段不含 `.` 时回落到 `index.html`；
+`/assets/nope.js` 这类带后缀的路径不回退，如实 404。当前前端是状态切页、没有 URL 路由，这一条是为将来留的。
+
+**API 优先级**：中间件链最外层是 `localapi.api_gate`，`/api/local` 与 `/api/local/*` 由它直接交给接口 handler，
+静态中间件根本看不到这些请求（未实现接口的 404 错误壳、非 GET 的 405 都由 `dispatch` 照旧发出）。
+这一层不是装饰：`history_fallback` 会把「下一跳返回 404」改写成 `index.html`，
+未实现的接口一旦落进静态中间件就会从 JSON 错误壳变成一张 HTML 页面。
+
+**解析失败不静默**：`DSH_CONSOLE_DIST` 指向不存在的目录时，启动日志写清原因，
+非 `/api/local` 的 `GET` / `HEAD` 返回 `503` + `text/plain` 说明（不是 200 空白页），API 照常可用。
+
+静态服务的文件访问走 moonback `unstable_static` 的 `kind` / `open(ReadOnly)`，本工程没有新增写调用点。
+
 ## 已实现的接口
 
 ### `GET /api/local/runtime`
 
-对应 Node 版 `server/readRuntime.mjs`。字段：
+对应已退役的 Node 版 `server/readRuntime.mjs`（git 0448ba4 可取回）。字段：
 
 | 字段 | 类型 | 口径 |
 | --- | --- | --- |
@@ -105,7 +142,7 @@ GET http://127.0.0.1:5390/api/local/instances
 
 ### `GET /api/local/profiles`
 
-对应 Node 版 `server/readProfiles.mjs`。扫 `$DSH_HOME/profiles/`（不递归，跳过 `node_modules` / `.git` / `.cache`），
+对应已退役的 Node 版 `server/readProfiles.mjs`（git 0448ba4 可取回）。扫 `$DSH_HOME/profiles/`（不递归，跳过 `node_modules` / `.git` / `.cache`），
 profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径见 `profiles/profiles.mbt`：
 
 - `bundles.declared`：`package.json` 里 `dsh.profile.bundles` 的长度
@@ -116,7 +153,7 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 ### `GET /api/local/logs?source=...&tail=...`
 
-对应 Node 版 `server/readLogs.mjs`。
+对应已退役的 Node 版 `server/readLogs.mjs`（git 0448ba4 可取回）。
 
 **来源白名单**（只此三类，不接受任意路径）：
 
@@ -153,7 +190,7 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 ### `GET /api/local/processes`
 
-对应 Node 版 `server/readProcesses.mjs`。纯读 `/proc`，不 spawn `ps` / `ss` / `lsof`。
+对应已退役的 Node 版 `server/readProcesses.mjs`（git 0448ba4 可取回）。纯读 `/proc`，不 spawn `ps` / `ss` / `lsof`。
 
 - 匹配：可执行名精确为 `dsh`（`.js` / `.mjs` / `.cjs`）**或**路径段含 `@deepseek-ai/dsh/`
 - `--port` **不再是必需条件**：有就读出来，没有记 `null`，不因此丢掉进程
@@ -163,13 +200,16 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 ### `GET /api/local/instances`
 
-对应 Node 版 `server/readInstances.mjs`。口径是「loopback LISTEN 端口 + HTTP 签名」。
+对应已退役的 Node 版 `server/readInstances.mjs`（git 0448ba4 可取回）。口径是「loopback LISTEN 端口 + HTTP 签名」。
 
 - 读 `/proc/net/tcp` 与 `/proc/net/tcp6`，筛 `st=0A`（LISTEN）且本地地址是 loopback
   （`127.0.0.1` / `::1` / `::ffff:127.0.0.1`，`/proc/net` 里按小端十六进制写）的端口
 - 去重、升序、**上限 40**（超了截断并在响应里说明）
 - 对每个候选端口发一次 `GET http://127.0.0.1:<端口>/`：超时 500ms、不跟随重定向、
   **只读前 8KB** 响应体
+- **8 路并发**（与 Node 版 `PROBE_CONCURRENCY` 同数，`probe.concurrency` 如实回 `8`）：
+  结果顺序仍按端口升序——`@async.all` 按下标收集，谁先回来不影响排序。
+  真实并发 = `min(8, 候选数)`。40 个黑洞端口实测：串行 17.1s → 8 路 2.52s
 - 两条签名判据（命中的 id 回显在响应里）：
   - `dsh-auth-401`：HTTP 401 且体含 `dsh web authentication required`
   - `dsh-boot-global`：体含 `__DSH_BOOT__`
@@ -221,6 +261,9 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 - 凭据类文件（`.credentials.yaml` / `.env` / `.npmrc`）在 `read_text_file` / `read_some_at` 里按 basename 硬拦：
   只判断存在，绝不读内容
 - 环境变量来自 `/proc/self/environ`，是本进程自己的环境，不是子进程
+- 静态服务（`dist_static/`）只调 `@json.exists` / `@json.is_dir` / `@json.exe_path` / `@json.env_value`，
+  真正读文件的是 moonback `unstable_static` 的 `@fs.kind` 与 `@fs.open(ReadOnly)`：新增的只有**读**，
+  `grep` 写 / spawn 关键词在 `.mbt` 里 0 命中（只有注释里出现过「不 spawn、不写盘」这句话）
 - 唯一的网络动作是**对 127.0.0.1 候选端口发一次 GET**（写死回环地址、写死 GET、读完即断）
 
 ## 已知差异（与 Node 版）
@@ -232,8 +275,9 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
    因此探测改用已验证可用的 `Tcp::connect(Addr::parse("127.0.0.1:<端口>"))` 加一个极简
    HTTP/1.1 客户端（`localapi/rawhttp.mbt`：支持 Content-Length 定长 / chunked 分块 / 读到 EOF）。
    对外行为不变：GET、500ms 超时、不跟随重定向、只读前 8KB。
-2. **探测是顺序的**：Node 用 8 路并发，`probe.concurrency` 这里如实写 `1`（不冒充 8）。
-   候选端口上限 40，单个最多 500ms，最坏 20 秒。
+2. **探测并发已与 Node 对齐**：两边都是 8 路，`probe.concurrency` 如实回 `8`，
+   候选上限 40、单个 500ms 的口径没动。40 个「接受连接但不回 HTTP」的黑洞端口实测：
+   串行（改前）17.1s，8 路（改后）2.52s。
 3. **`processSupplement.scanned` / `processes.scanned` 可能比 Node 小**：两边都读同一个 `/proc`，
    但本后端的沙箱有 PID 命名空间隔离（`/proc` 里只能看到自己那几个进程），Node 版跑在宿主命名空间里。
    口径相同，差异来自运行环境。
@@ -270,7 +314,7 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 backend/
 ├── moon.mod                    # 模块定义、依赖、native 目标
 ├── moon.pkg.json               # 主包（可执行入口）
-├── main.mbt                    # 起服务、注册路由、方法守卫、监听地址解析
+├── main.mbt                    # 起服务、中间件顺序（API 闸门 → 静态 → 路由）、监听地址解析
 ├── json/                       # 共用基础层（本工程唯一的只读文件 IO 入口）
 │   ├── encode.mbt              # 有序 JSON 编码 + ISO8601 格式化 + ISO 时间取时分秒
 │   ├── text.mbt                # 字符串/字节工具、级别切词、错误类型
@@ -280,10 +324,12 @@ backend/
 │   ├── env.mbt                 # /proc/self/environ、HOME 解析
 │   └── value.mbt               # core Json 的只读取值
 ├── localapi/
-│   ├── api.mbt                 # 路由分发、查询参数、错误码、方法名
+│   ├── api.mbt                 # 路由分发、查询参数、错误码、方法名、API 优先闸门
 │   ├── respond.mbt             # 响应外壳与响应头
-│   ├── probe.mbt               # 单端口只读探测（超时 / 结果收敛）
+│   ├── probe.mbt               # 单端口只读探测 + 8 路并发批量探测（保序）
 │   └── rawhttp.mbt             # 极简 HTTP/1.1 客户端（回环探测专用）
+├── dist_static/
+│   └── dist_static.mbt         # 静态根解析、dist 静态中间件、SPA 回退、解析失败时的 503
 ├── runtime/runtime.mbt         # GET /api/local/runtime
 ├── profiles/profiles.mbt       # GET /api/local/profiles
 ├── logs/logs.mbt               # GET /api/local/logs

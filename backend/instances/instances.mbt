@@ -8,6 +8,9 @@
 //     truncatedNote, candidates, candidateCount, probe, signatures, processSupplement,
 //     instances }
 //
+// 探测口径与 Node 版 readInstances.mjs 对齐：GET、不跟随重定向、单口 500ms 超时、
+// 只读前 8KB、候选上限 40、8 路并发；顺序按端口升序，与并发无关。
+//
 // 判据只认两条 DSH 独有的长字符串：
 //   dsh-auth-401    HTTP 401 且体含 "dsh web authentication required"
 //   dsh-boot-global 体含 "__DSH_BOOT__"
@@ -335,14 +338,10 @@ pub async fn instances_report() -> InstancesReport noraise {
     unique
   }
 
-  // 探测：只打 loopback，单个 500ms 超时，按端口升序逐个来。
-  // 与 Node 版的差异：Node 用 8 路并发，这里是顺序探测。候选端口上限 40，
-  // 单个探测最多 500ms，最坏 20 秒，对只读控制台可以接受；
-  // 响应里的 probe.concurrency 如实写 1，不冒充 Node 的 8。
-  let settled : Array[@localapi.Probe] = []
-  for port in candidates {
-    settled.push(@localapi.probe_port(port))
-  }
+  // 探测：只打 loopback，单个 500ms 超时，8 路并发（与 Node 版 PROBE_CONCURRENCY 同数）。
+  // 顺序仍是端口升序：probe_ports 按下标返回，谁先回来不影响排序。
+  // 候选上限 40、单口 500ms 的口径没动，最坏耗时因此是 ceil(40/8)×500ms = 2.5s（改前 20s）。
+  let settled = @localapi.probe_ports(candidates)
 
   let (supplement, with_port) = supplement_processes()
   let instances : Array[InstanceSummary] = []
@@ -489,8 +488,8 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
     ("probe", @json.JObj([
       ("method", @json.JStr("GET")),
       ("redirect", @json.JStr("manual")),
-      ("timeoutMs", @json.jint(500)),
-      ("concurrency", @json.jint(1)),
+      ("timeoutMs", @json.jint(@localapi.probe_timeout_ms)),
+      ("concurrency", @json.jint(@localapi.probe_concurrency)),
       ("probed", @json.jint(report.probed)),
       ("reached", @json.jint(report.reached)),
       ("hits", @json.jint(report.instances.length())),

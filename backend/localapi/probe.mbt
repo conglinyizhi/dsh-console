@@ -19,6 +19,15 @@ pub let body_limit_bytes : Int = 8192
 pub let probe_timeout_ms : Int = 500
 
 ///|
+/// 探测并发上限：8 路，与 Node 版 PROBE_CONCURRENCY 取同一个数。
+///
+/// 为什么是 8：只打回环，8 条并发连接对本机没有压力，而候选上限 40 × 单口 500ms
+/// 的最坏耗时从 20s 降到 ceil(40/8)×500ms = 2.5s。取 4 会把最坏值留在 5s，
+/// 换不来什么好处——探测目标写死 127.0.0.1，不存在把别人的端口打满的问题。
+/// 真实并发 = min(probe_concurrency, 候选端口数)，响应里如实回这个上限常数。
+pub let probe_concurrency : Int = 8
+
+///|
 /// 一次探测的结论。字段与 Node 版 probePort 的返回一一对应。
 /// pub(all) 是必须的：instances 包要能读出字段，也要能构造「未执行」这一条。
 pub(all) struct Probe {
@@ -56,6 +65,31 @@ fn describe_error(err : Error) -> String {
   match @json.raw_http_message(err) {
     Some(msg) => msg
     None => "\{@debug.Debug::to_repr(err)}"
+  }
+}
+
+///|
+/// 批量探测：结果按下标与传入的端口顺序一一对应（@async.all 保序），
+/// 同时在跑的探测不超过 probe_concurrency 个。
+/// 顺序稳定是硬要求：响应里的 probeResults / instances 都按端口升序读，
+/// 谁先回来不影响谁排第几。
+pub async fn probe_ports(ports : Array[Int]) -> Array[Probe] noraise {
+  let tasks : Array[async () -> Probe] = []
+  for port in ports {
+    let target = port
+    tasks.push(async fn () { probe_port(target) })
+  }
+  try @async.all(tasks[:], max_concurrent=probe_concurrency) catch {
+    err => {
+      // 单个 probe_port 是 noraise，批量本身只会在被取消（客户端断开）时走到这里。
+      // 那就如实标成「没探测」，端口顺序照旧，不编造任何结论。
+      let reason = "批量探测中断：" + describe_error(err)
+      let out : Array[Probe] = []
+      for port in ports {
+        out.push({ ..empty_probe(reason), port })
+      }
+      out
+    }
   }
 }
 

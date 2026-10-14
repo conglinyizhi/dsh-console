@@ -159,6 +159,39 @@ pub async fn dispatch(
 }
 
 ///|
+/// 接口命名空间的判据：/api 本身，或 /api/ 下面的任意路径。
+/// 收在整个 /api 前缀上而不是只收 /api/local：打错的接口路径（/api/localxyz）
+/// 也必须拿到 JSON 错误壳，不能被静态回退吞成一张 HTML 页——
+/// 前端会把那个 200 当 JSON 解，报出来的错跟真因隔了十万八千里。
+fn owns_api_path(path : StringView) -> Bool {
+  let p = match path.find("?") {
+    Some(i) => path[:i]
+    None => path
+  }
+  p == "/api" || p.has_prefix("/api/")
+}
+
+///|
+/// API 优先闸门：/api/local* 直接交给本地接口 handler，不再往下走一层。
+///
+/// 为什么必须有这一层：静态中间件（unstable_static）的 history_fallback 会把
+/// 「下一跳返回 404」改写成 index.html。未实现的接口本来该回 404 + 错误壳，
+/// 落到静态中间件手里就会变成一张 HTML 页面，接口语义就没了。
+/// 闸门放在中间件链的最外层，物理上不给静态文件抢走接口的机会；
+/// 405（非 GET）与 404（没这个接口）都由 dispatch 照旧发出，语义不变。
+pub fn api_gate(handler : @moonback.Handler) -> @moonback.Middleware {
+  @moonback.Middleware(next => {
+    (req, res) => {
+      if owns_api_path(req.path) {
+        handler(req, res)
+      } else {
+        next(req, res)
+      }
+    }
+  })
+}
+
+///|
 /// 与 Node 版一致的 HTTP 状态映射：只有 source/tail 类参数错误是 400，其余 500。
 fn status_for(code : String) -> Int {
   match code {

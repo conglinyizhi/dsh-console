@@ -8,12 +8,9 @@
     "conglinyizhi/dsh-console-backend/logs",
     "conglinyizhi/dsh-console-backend/processes",
     "conglinyizhi/dsh-console-backend/instances",
+    "conglinyizhi/dsh-console-backend/dist_static",
     "moonbitlang/async",
     "moonbitlang/async/stdio",
-    "moonbitlang/moonback",
-    {
-      "path": "moonbitlang/async/http",
-      "alias": "async_http"
-    }
+    "moonbitlang/moonback"
   ]
 }
