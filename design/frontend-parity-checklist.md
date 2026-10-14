@@ -200,6 +200,21 @@ frontend/dist/
 900ms 呼吸 + 琥珀色光晕）——它是**启动等待态的状态指示**，不是装饰，别在重写时丢掉。
 其余地方仍然遵守「不用过渡动画」。
 
+## 九点八、独立验证器
+
+`design/verify-frontend.mjs`：不依赖任何自证，直接用无头浏览器量页面。
+
+```bash
+node design/verify-frontend.mjs <baseUrl> [截图前缀]
+```
+
+输出 JSON：标题、`scrollWidth`/`clientWidth` 与横向溢出、`innerText` 前 220 字、
+三个关键标记（`真实数据` / `读取失败` / `实例总览`）、元素计数（按钮/卡片/下拉/图标）、
+**控制台 error 与 warning**，并可出图。
+
+已用**已知正常的 Vue 版**（后端服务 `dist/`）验通：无横向溢出、无控制台问题、
+标记齐全。重写完成后先用它量一遍，再逐条对上面的一到五节。
+
 ## 十、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`
