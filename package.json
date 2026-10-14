@@ -1,0 +1,24 @@
+{
+  "name": "dsh-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH 控制台 · DeepSeek Harness 多实例启动器（仅前端）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@iconify-json/material-symbols": "^1.2.95",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "^5.7.2",
+    "unplugin-icons": "^24.0.0",
+    "vite": "^6.0.3",
+    "vue-tsc": "^2.1.10"
+  }
+}
