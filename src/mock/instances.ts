@@ -12,7 +12,14 @@ export interface Instance {
   /** 实例入口，完整 URL（访问地址字段直接展示） */
   url: string
   pluginCount: string
+  /** 是否允许删除。核心工作实例不给删除入口 */
+  deletable: boolean
+  /** 有值即表示已归档，移出运行/停止两个分组 */
+  archivedAt?: string
 }
+
+/** 归档时间写死，不做真实时钟 */
+export const ARCHIVED_AT = '2026-10-14 13:05'
 
 export const instances: Instance[] = [
   {
@@ -27,6 +34,7 @@ export const instances: Instance[] = [
     home: '/Users/you/.dsh/work-main',
     url: 'http://127.0.0.1:8100',
     pluginCount: '5 个',
+    deletable: false,
   },
   {
     id: 'plugin-dev',
@@ -40,6 +48,7 @@ export const instances: Instance[] = [
     home: '/Users/you/.dsh/plugin-dev',
     url: 'http://127.0.0.1:8200',
     pluginCount: '2 个（开发中）',
+    deletable: true,
   },
 ]
 

@@ -25,6 +25,9 @@ import IconLock from '~icons/material-symbols/lock-outline'
 import IconChevronRight from '~icons/material-symbols/chevron-right-outline'
 import IconSettings from '~icons/material-symbols/settings-outline'
 import IconMoreHoriz from '~icons/material-symbols/more-horiz-outline'
+import IconArchive from '~icons/material-symbols/archive-outline'
+import IconUnarchive from '~icons/material-symbols/unarchive-outline'
+import IconDelete from '~icons/material-symbols/delete-outline'
 
 export const icons = {
   logo: IconHub,
@@ -52,6 +55,9 @@ export const icons = {
   chevronRight: IconChevronRight,
   settings: IconSettings,
   more: IconMoreHoriz,
+  archive: IconArchive,
+  unarchive: IconUnarchive,
+  delete: IconDelete,
 } as const
 
 export type IconName = keyof typeof icons
