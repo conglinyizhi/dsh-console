@@ -293,6 +293,24 @@ node design/verify-frontend.mjs <baseUrl> [截图前缀]
    另外 `/assets/mdi/fonts/materialdesignicons-webfont.woff` 是 404（只 vendor 了 woff2）——
    浏览器优先取 woff2，不影响出字形。
 
+## 九点九九、已知成本与可选优化（实测，别忘）
+
+切片的首屏传输量 **2.02 MiB**（后端不发 gzip），构成：
+
+| 项 | 大小 | 说明 |
+| --- | --- | --- |
+| `app.js` | 1178817 B | rabbita 客户端，未压缩未分割（gzip 后 136 KB） |
+| MDI CSS + woff2 字体 | **346626 + 403216 B** | **切片只用到 8 个图标名**（`mdi-dots-horizontal` / `home-outline` / `label-outline` / `layers-outline` / `link-variant` / `open-in-new` / `puzzle-outline` / `refresh`） |
+| app.css | 197222 B | md2 三层（vendor→theme→md2） |
+| dsh-skin.css | 2537 B | 覆写层 |
+
+**最明显的一条**：750 KB 的图标字体只为 8 个字形服务（平均每个近 94 KB）。
+md2 自己已经在 select 上走通「内联 SVG」的路子，照做可以整块摘掉字体。
+
+另外两条：`app.js` 未做分割；后端不做 gzip（回环下影响有限，但数字要如实记）。
+
+这些都不阻塞功能对齐，属于**验收通过后的优化项**。
+
 ## 十、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`
