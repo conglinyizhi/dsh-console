@@ -69,7 +69,7 @@ async function loadLocal() {
 
   sources.runtime = runtime
     ? realTag(
-        `dsh ${runtime.dshVersion} · node ${runtime.nodeVersion} · DSH_HOME ${runtime.dshHome}（${runtime.dshHomeSource}） · ${readTime} 读取`,
+        `dsh ${runtime.dshVersion} · 后端 ${runtime.backendRuntime} ${runtime.backendVersion} · DSH_HOME ${runtime.dshHome}（${runtime.dshHomeSource}） · ${readTime} 读取`,
       )
     : fallbackTag(`/api/local/runtime 读取失败：${runtimeRead.error ?? '未知原因'}`)
 

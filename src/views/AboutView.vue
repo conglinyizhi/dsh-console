@@ -13,7 +13,6 @@ function buildRows(data: LocalRuntime | null, reason: string | null) {
   }
   return [
     { label: 'dsh 版本', value: data.dshVersion, hint: data.dshPackageName },
-    { label: 'node 版本', value: data.nodeVersion },
     { label: '控制台版本', value: data.consoleVersion ?? '未知', hint: data.consolePackageName ?? undefined },
     { label: '平台', value: data.platform },
   ]

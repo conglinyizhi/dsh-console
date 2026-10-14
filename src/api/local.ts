@@ -1,19 +1,24 @@
-// dsh-console 的本地只读接口客户端：三个接口，只用 GET。
-// 对应 vite.config.ts 里 localApiPlugin 挂的 /api/local/*（dev 与 preview 都有）。
+// dsh-console 的本地只读接口客户端：五个接口，只用 GET。
+// /api/local/* 由 MoonBit 后端提供：dev 与 preview 走 vite.config.ts 里的代理，生产由后端自己接。
 import type { SourceTag } from '../data/types'
 
 /** 单个请求的超时：本地接口，超过这个时间就当读取失败，不无限等 */
 const READ_TIMEOUT_MS = 4000
 
 export interface LocalRuntime {
-  /** 控制台自身版本，读自本项目 package.json */
+  /** 控制台自身版本：后端运行时读本项目 package.json，读不到给 null */
   consoleVersion: string | null
-  consolePackageName: string | null
+  /** 上面那个版本号怎么拿到的，或为什么没拿到 */
+  consoleVersionSource: string
+  consolePackageName: string
   dshVersion: string
   dshPackageName: string
   dshPackageDir: string
   dshSourceLabel: string
-  nodeVersion: string
+  /** 后端自己的运行时（moonbit/native）与版本，取代原来的 nodeVersion */
+  backendRuntime: string
+  backendVersion: string
+  backendPackageName: string
   dshHome: string
   dshHomeSource: string
   dshProfile: string | null
