@@ -55,8 +55,11 @@ function isoTime(value) {
 
 /** 只认明确写得出来的级别标记；没有就返回 null，界面不上色 */
 function levelFromText(text) {
-  if (/\berror\b|\bERROR\b|\bfailed\b/i.test(text)) return 'error'
-  if (/\bwarn(?:ing)?\b/i.test(text)) return 'warn'
+  // 按非字母数字切词再比对：日志里常写成 code=PI_AI_ERROR 这种下划线连写，
+  // 用 \b 词边界会被下划线挡住（下划线算词字符），真实错误行会整片漏标。
+  const words = text.toLowerCase().split(/[^a-z0-9]+/)
+  if (words.some((w) => w === 'error' || w === 'failed' || w === 'failure' || w === 'exception')) return 'error'
+  if (words.some((w) => w === 'warn' || w === 'warning')) return 'warn'
   return null
 }
 
