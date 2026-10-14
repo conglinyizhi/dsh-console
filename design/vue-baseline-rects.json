@@ -1,0 +1,201 @@
+{
+ "url": "http://127.0.0.1:5382/",
+ "overflow": {
+  "scrollW": 1280,
+  "clientW": 1280,
+  "overflowX": false
+ },
+ "font": {
+  "size": "14px",
+  "family": "\"PingFang SC\", \"Noto Sans CJK SC\", \"Micr"
+ },
+ "cards": [
+  {
+   "i": 0,
+   "name": "dsh :3080",
+   "card": {
+    "x": 212,
+    "y": 140.7,
+    "w": 786,
+    "h": 173,
+    "right": 998,
+    "bottom": 313.7
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 185.2,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 192.2
+   },
+   "kind": {
+    "x": 279,
+    "y": 179.9,
+    "w": 113,
+    "h": 17.6,
+    "right": 392,
+    "bottom": 197.5
+   }
+  },
+  {
+   "i": 1,
+   "name": "headless",
+   "card": {
+    "x": 212,
+    "y": 361.8,
+    "w": 786,
+    "h": 173,
+    "right": 998,
+    "bottom": 534.8
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 406.3,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 413.3
+   },
+   "kind": {
+    "x": 279,
+    "y": 401,
+    "w": 70,
+    "h": 17.6,
+    "right": 349,
+    "bottom": 418.6
+   }
+  },
+  {
+   "i": 2,
+   "name": "review-dev",
+   "card": {
+    "x": 212,
+    "y": 546.8,
+    "w": 786,
+    "h": 191,
+    "right": 998,
+    "bottom": 737.8
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 600.3,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 607.3
+   },
+   "kind": {
+    "x": 279,
+    "y": 595,
+    "w": 70,
+    "h": 17.6,
+    "right": 349,
+    "bottom": 612.6
+   }
+  },
+  {
+   "i": 3,
+   "name": "web",
+   "card": {
+    "x": 212,
+    "y": 749.8,
+    "w": 786,
+    "h": 191,
+    "right": 998,
+    "bottom": 940.8
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 803.3,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 810.3
+   },
+   "kind": {
+    "x": 279,
+    "y": 798,
+    "w": 107,
+    "h": 17.6,
+    "right": 386,
+    "bottom": 815.6
+   }
+  }
+ ],
+ "invariants": {
+  "dotXsAllEqual": true,
+  "dotXs": [
+   400,
+   400,
+   400,
+   400
+  ],
+  "allActionsMatchContentRight": true,
+  "actionsDeltas": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ "split": {
+  "main": {
+   "x": 823,
+   "y": 382.8,
+   "w": 62,
+   "h": 30,
+   "right": 885,
+   "bottom": 412.8,
+   "radius": "6px 0px 0px 6px",
+   "bg": "rgb(157, 123, 255)"
+  },
+  "caret": {
+   "x": 885,
+   "y": 382.8,
+   "w": 26,
+   "h": 30,
+   "right": 911,
+   "bottom": 412.8,
+   "radius": "0px 6px 6px 0px",
+   "borderLeft": "1px"
+  },
+  "gap": 0
+ },
+ "menu": {
+  "opened": true,
+  "rect": {
+   "x": 829,
+   "y": 197.7,
+   "w": 152,
+   "h": 268,
+   "right": 981,
+   "bottom": 465.7
+  },
+  "deltaTop": 6,
+  "deltaRight": 0,
+  "items": [
+   "在新标签页打开",
+   "复制访问地址",
+   "重命名",
+   "派生开发副本",
+   "归档",
+   "查看日志",
+   "打开工作目录",
+   "编辑配置"
+  ],
+  "activeIsFirstItem": true
+ }
+}
