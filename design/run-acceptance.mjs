@@ -20,6 +20,9 @@ if (run('verify-frontend.mjs', [baseUrl, prefix + '-verify.png', prefix + '-veri
 if (run('probe-invariants.mjs', [baseUrl, prefix + '-inv.json', profile])) errs.push('probe-invariants 失败')
 if (run('probe-logs.mjs', [baseUrl, prefix + '-logs.json', '日志', profile])) errs.push('probe-logs 失败')
 if (run('probe-animation.mjs', [baseUrl, prefix + '-anim.json', '启动'])) errs.push('probe-animation 失败')
+const ccOut = spawnSync('node', [join(here, 'probe-class-contract.mjs'), baseUrl], { encoding: 'utf8', timeout: 180000 })
+let cc = null
+try { cc = JSON.parse((ccOut.stdout || '').trim().split('\n').pop()) } catch (e) { errs.push('类名契约探针输出无法解析') }
 if (errs.length) console.log('探针执行问题: ' + errs.join(' / '))
 
 const v = j(prefix + '-verify.json')
@@ -32,7 +35,8 @@ const vueLogs = j(join(here, 'vue-baseline-logs.json'))
 const vueAnim = j(join(here, 'vue-baseline-animation.json'))
 
 const rows = []
-const add = (name, want, got, ok) => rows.push({ name, want, got, ok })
+const add = (name, want, got, ok) => rows.push({ name, want, got, ok, info: false })
+const addInfo = (name, got) => rows.push({ name, want: '（信息，非判定）', got, ok: true, info: true })
 
 if (v) {
   add('无横向溢出', 'false', String(v.overflowX), v.overflowX === false)
@@ -64,12 +68,23 @@ if (anim) {
   add('等待态禁用按钮数', String(vueAnim?.after?.disabledButtons ?? 3), String(anim.after?.disabledButtons), anim.after?.disabledButtons === (vueAnim?.after?.disabledButtons ?? 3))
 }
 
+if (cc) {
+  // 这是**候选发现器**，不是判决器：无规则的类未必是缺陷（容器、继承样式的 span 都属正常）。
+  // 已知合理：notranslate（翻译排除）、v-card--density-default（默认密度不加规则）。
+  const known = ['notranslate', 'v-card--density-default']
+  const candidates = (cc.missing || []).filter((c) => !known.includes(c))
+  addInfo('类名契约候选（无规则的类）', candidates.length ? candidates.join(',') : '无')
+  addInfo('DOM 类总数', String(cc.totalClasses))
+}
+
 const w = Math.max(...rows.map((r) => r.name.length), 12)
 console.log('判定   ' + '检查项'.padEnd(w) + '  期望(基线)                     实测')
 for (const r of rows) {
-  console.log((r.ok ? ' 通过  ' : ' ✗失败 ') + r.name.padEnd(w) + '  ' + String(r.want).slice(0, 30).padEnd(30) + '  ' + String(r.got))
+  const mark = r.info ? ' 信息  ' : (r.ok ? ' 通过  ' : ' ✗失败 ')
+  console.log(mark + r.name.padEnd(w) + '  ' + String(r.want).slice(0, 30).padEnd(30) + '  ' + String(r.got))
 }
-const failed = rows.filter((r) => !r.ok)
+const failed = rows.filter((r) => !r.ok && !r.info)
 console.log()
-console.log('共 ' + rows.length + ' 项，通过 ' + (rows.length - failed.length) + '，失败 ' + failed.length)
+const judged = rows.filter((r) => !r.info).length
+console.log('判定 ' + judged + ' 项：通过 ' + (judged - failed.length) + '，失败 ' + failed.length + '；另有信息 ' + (rows.length - judged) + ' 条')
 if (failed.length) console.log('失败项: ' + failed.map((f) => f.name).join(' / '))
