@@ -91,3 +91,25 @@ html.dsh-skin .dsh-field-value {
   font-size: 11.5px;
 }
 html.dsh-skin .dsh-tile { border-radius: 10px; }
+
+// ── 使用者明确要求：除启动等待态状态点的 dot-pulse 外不用过渡动画 ──
+// md2 的组件层自带 transition（按钮背景/阴影 280ms、卡片 box-shadow 280ms…）。
+// 把我们用到的组件逐条关掉，量「还有没有动效」时剩下的只有那一个 dot-pulse。
+html.dsh-skin .v-btn,
+html.dsh-skin .v-btn__overlay,
+html.dsh-skin .v-btn__content,
+html.dsh-skin .v-btn__underlay,
+html.dsh-skin .v-card,
+html.dsh-skin .v-chip,
+html.dsh-skin .v-icon { transition: none; }
+
+// 卡片的 loading 指示器：我们不用 md2 的 loading 态。它高度为 0 但确实在 DOM 里，
+// 而且带着一条 indeterminate 动画 —— 量「零动效」时会被量到，所以既不显示也不动。
+html.dsh-skin .v-card__loader { display: none; }
+html.dsh-skin .v-progress-linear,
+html.dsh-skin .v-progress-linear__indeterminate { animation: none; transition: none; }
+
+// ── 徽标（md2 chip）套 dsh-badge 时的对齐与尺寸 ──
+html.dsh-skin .dsh-badge .v-chip__prepend { margin: 0; }
+html.dsh-skin .dsh-badge .v-icon { font-size: 12px; }
+html.dsh-skin .dsh-badge .v-chip__content { overflow: visible; }

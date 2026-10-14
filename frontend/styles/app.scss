@@ -1,19 +1,855 @@
-// 布局层（随 app.css 走，两列 rabbita 页面共用）。
+// dsh-console 前端的全部样式（一层，随 app.css 走，两份外壳共用）。
 //
-// 只写「东西在哪、占多大」；颜色一律从 md2 的主题变量取（--v-theme-* / --v-border-*），
-// 所以同一份 CSS 在「md2 原生暗色」和「dsh 皮肤」两列里都会是暗的 —— 差别只在变量值，
-// 差异因此可以完全归因到 dsh-skin.css，不掺别的变量。
-//
-// 字号 / 字体族 / 圆角 / 阴影属于设计语言，不在这里，全部留给 dsh-skin.scss。
+// 来源：由 Vue 版散在 18 个组件 <style scoped> 里的样式机械迁移而来 ——
+//   * 类名统一加 dsh- 前缀（scoped 合并成全局表后类名必须唯一）
+//   * 设计 token（src/styles/app.css 的 :root）换成 md2 主题变量，颜色因此在
+//     「md2 原生暗色」与「dsh 皮肤」两份外壳里各自成立，差异全部归因到 dsh-skin.css
+//   * 属性值逐条照抄，没有重排。唯一保留的动效是启动态状态点的 dot-pulse（见实例卡一节）
 
-html, body { margin: 0; }
+// ── 设计 token → md2 主题变量 ──────────────────────────────
+$bg: rgb(var(--v-theme-background));
+$panel: rgb(var(--v-theme-surface));
+$panel-soft: rgb(var(--v-theme-surface-light));
+$line: rgba(var(--v-border-color), var(--v-border-opacity));
+$line-strong: rgba(var(--v-border-color), 0.16);
+$text: rgb(var(--v-theme-on-surface));
+$text-mid: rgba(var(--v-theme-on-surface), 0.82);
+$text-dim: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+$accent: rgb(var(--v-theme-primary));
+$accent-soft: rgba(var(--v-theme-primary), 0.14);
+$violet: rgb(var(--v-theme-secondary));
+$violet-soft: rgba(var(--v-theme-secondary), 0.14);
+$ok: rgb(var(--v-theme-success));
+$warn: rgb(var(--v-theme-warning));
+$danger: rgb(var(--v-theme-error));
+$radius: 10px;
+$radius-sm: 6px;
 
-body {
-  background: rgb(var(--v-theme-background));
-  color: rgb(var(--v-theme-on-surface));
+// ── 基础 ───────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #dsh-console-root { height: 100%; margin: 0; }
+body { background: $bg; color: $text; }
+button { font: inherit; color: inherit; }
+// ── 外壳（App.vue） ──
+.dsh-shell {
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+.dsh-workbench {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dsh-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-// ── 关于页 ───────────────────────────────────────────────
+// ── 左侧导航（SideNav.vue） ──
+.dsh-side {
+  width: 190px;
+  flex: none;
+  background: $panel;
+  border-right: 1px solid $line;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 11px 10px;
+}
+.dsh-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 4px 12px;
+}
+.dsh-brand-icon {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(140deg, $accent, $violet);
+}
+.dsh-brand-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.dsh-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dsh-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: $text-mid;
+  cursor: pointer;
+  text-align: left;
+}
+.dsh-nav-item:hover {
+  background: $panel-soft;
+  color: $text;
+}
+.dsh-nav-item.active {
+  background: $accent-soft;
+  color: $text;
+}
+.dsh-nav-icon {
+  color: $text-dim;
+  display: flex;
+}
+.dsh-nav-item.active .dsh-nav-icon {
+  color: $accent;
+}
+.dsh-nav-label {
+  font-size: 13px;
+}
+.dsh-side-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: auto 0 0;
+  padding: 0 2px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: $text-dim;
+}
+.dsh-side-dot {
+  width: 5px;
+  height: 5px;
+  flex: none;
+  border-radius: 50%;
+  background: $ok;
+}
+
+// ── 顶栏（NavTopBar.vue） ──
+.dsh-topbar {
+  flex: none;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 22px;
+  border-bottom: 1px solid $line;
+  background: $bg;
+}
+.dsh-topbar-spacer {
+  flex: 1;
+}
+.dsh-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-mid;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dsh-settings:hover {
+  background: $panel-soft;
+  color: $text;
+}
+
+// ── 数据源徽标（SourceBadge.vue） ──
+.dsh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid $line-strong;
+  border-radius: 999px;
+  background: $panel-soft;
+  color: $text-dim;
+  font-size: 10.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.dsh-badge.real {
+  color: $ok;
+  border-color: rgba(var(--v-theme-success), 0.4);
+  background: rgba(var(--v-theme-success), 0.1);
+}
+.dsh-badge.fallback {
+  color: $warn;
+  border-color: rgba(var(--v-theme-warning), 0.42);
+  background: rgba(var(--v-theme-warning), 0.1);
+}
+
+// ── 分组头（InstanceGroup.vue，ArchivedSection.vue 同款） ──
+.dsh-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.dsh-section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-mid;
+}
+.dsh-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// ── 空态（RunningEmpty.vue / StoppedEmpty.vue） ──
+.dsh-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 30px 16px 32px;
+  border: 1px dashed $line-strong;
+  border-radius: $radius;
+  background: rgba(255, 255, 255, 0.014);
+  text-align: center;
+}
+.dsh-empty-icon {
+  color: $text-dim;
+  margin-bottom: 8px;
+}
+.dsh-empty-line {
+  margin: 0;
+  font-size: 12.5px;
+  color: $text-mid;
+}
+.dsh-empty-sub {
+  margin: 0;
+  font-size: 11px;
+  color: $text-dim;
+  max-width: 60ch;
+}
+
+// ── 归档行（ArchivedRow.vue） ──
+.dsh-archive-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px;
+  background: $panel;
+  border: 1px solid $line;
+  border-radius: $radius;
+}
+.dsh-archive-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px; font-weight: 600; color: $text;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dsh-archive-kind {
+  flex: none; padding: 2px 7px;
+  border: 1px solid $line-strong; border-radius: 999px;
+  font-size: 11px; line-height: 1.35; color: $text-mid;
+  background: $panel-soft; white-space: nowrap;
+}
+.dsh-archive-stamp { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dsh-archive-stamp-label { font-size: 11.5px; color: $text-dim; }
+.dsh-archive-stamp-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; color: $text-mid;
+}
+.dsh-archive-spacer { flex: 1; }
+.dsh-archive-btn {
+  flex: none; height: 28px; padding: 0 9px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: transparent; color: $text;
+  font-size: 12.5px; cursor: pointer; white-space: nowrap;
+}
+.dsh-archive-btn:hover { background: $panel-soft; }
+.dsh-archive-btn.danger { color: $danger; border-color: rgba(var(--v-theme-error), 0.42); }
+.dsh-archive-btn.danger:hover { background: rgba(var(--v-theme-error), 0.12); }
+
+// ── 实例卡（InstanceRow.vue） ──（@keyframes: dot-pulse）
+.dsh-case {
+  /* 两卡共用同一套列宽，逐项左右边界可比。
+     副标题内部同样是固定轨道：类型标签列宽固定，状态点不跟着 pill 走 */
+  --col-kind: 112px;
+  --col-state: 38px;
+  position: relative;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 14px 16px 15px;
+  background: $panel;
+  border: 1px solid $line;
+  border-radius: $radius;
+}
+.dsh-case-head {
+  /* 三列固定栅格：图标底板（跨两行垂直居中）| 两行文本块 | 按钮组。
+     两卡列宽一致，标题行左边界、副标题行左边界、按钮组右边界逐项可比 */
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center; column-gap: 10px;
+}
+.dsh-tile { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; }
+.dsh-tile.accent { background: rgba(var(--v-theme-success), 0.14); color: $ok; }
+.dsh-tile.violet { background: $violet-soft; color: $violet; }
+.dsh-ident {
+  /* 标题行 + 副标题行，行间距 2px，两行同一起点、左对齐 */
+  min-width: 0; display: flex; flex-direction: column; gap: 2px;
+}
+.dsh-title-line { min-width: 0; }
+.dsh-name {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px; font-weight: 600; line-height: 22px; color: $text;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dsh-kind {
+  justify-self: start; align-self: center;
+  padding: 1px 6px;
+  border: 1px solid $line-strong; border-radius: 999px;
+  font-size: 10.5px; line-height: 1.3; color: $text-mid;
+  background: $panel-soft; white-space: nowrap;
+}
+.dsh-sub {
+  /* 副标题行：类型标签 + 状态点 + 状态文案 + 时长，段间只靠 6px 间距分开，不用分隔符。
+     四段都是固定轨道：第一列是固定宽度的标签列，pill 靠列首摆放，
+     所以状态点的 x 不随 pill 内容变化，两卡的点在同一列上。
+     标签列宽（112px）大于最宽 pill（102px），pill 右缘到 13px 点槽的净间距 ≥16px，
+     不再依赖"额外 padding 抵消光环"，"点吸住标签"不会回来。
+     点槽恒为 13px（7px 点 + 两边各 3px 光环），光环在槽位内，
+     运行中与已停止两态几何完全一致，切状态时点不跳。 */
+  display: grid;
+  /* 第三轨常态就是 --col-state（38px，容得下「运行中」的 36px）；
+     「正在启动…」要 60px，用 max-content 让这一行自己撑开，别的行宽度不变，
+     状态点与左侧标签轨仍然一个像素都不动 */
+  grid-template-columns: var(--col-kind) 13px minmax(var(--col-state), max-content) minmax(0, 1fr);
+  align-items: center; column-gap: 6px; min-width: 0;
+  font-size: 12px; line-height: 18px; color: $ok;
+}
+/* 运行中 / 已停止 / 启动等待：三态共用同一副标题轨道，宽度不撑破列宽 */
+.dsh-sub.off { color: $text-dim; }
+.dsh-sub.starting { color: $warn; }
+.dsh-sub.starting .dsh-dot {
+  /* 等待态的点在动，收敛到 0.35 透明度再弹回 */
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-warning), 0.16);
+  animation: dot-pulse 900ms ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.32; }
+}
+.dsh-dot-slot {
+  width: 13px; height: 13px;
+  display: grid; place-items: center;
+}
+.dsh-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; box-shadow: 0 0 0 3px rgba(var(--v-theme-success), 0.13);
+}
+.dsh-sub.off .dsh-dot { box-shadow: none; }
+.dsh-state { font-size: 12px; white-space: nowrap; }
+/* 末轨：常态一行「已运行」，启动等待期是「等待核心就绪」加一行端口探测说明 */
+.dsh-tail { display: flex; flex-direction: column; min-width: 0; }
+.dsh-uptime,
+.dsh-hint,
+.dsh-port-note {
+  font-size: 10.5px; color: $text-dim;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dsh-port-note { color: $text-mid; }
+.dsh-fields {
+  /* 固定两列：5 个字段恒为 2 / 2 / 1，不随窗口宽度塌成一列或涨成四列 */
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 20px;
+}
+.dsh-field {
+  /* z-index: 0 让它成为层叠上下文，下面的 ::before 才能安全地压到内容之下 */
+  position: relative; z-index: 0;
+  display: flex; align-items: center; gap: 7px; height: 28px; min-width: 0;
+}
+/* 悬停提示：高亮画在 ::before 上并向外扩 6px，
+   所以内容（图标 229 那条对齐）一个像素都不动 */
+.dsh-field::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 -6px;
+  border-radius: $radius-sm;
+  background: transparent;
+  pointer-events: none;
+}
+.dsh-field:hover::before { background: $panel-soft; }
+.dsh-field-icon { color: $text-dim; display: flex; }
+.dsh-field-label { flex: none; font-size: 11.5px; color: $text-dim; }
+.dsh-field-value {
+  margin-left: auto; min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; color: $text;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+// ── 行内按钮组与下拉菜单（InstanceActions.vue） ──
+.dsh-actions {
+  /* 运行中：打开 Web UI / 停止 / 重启 / ⋯；已停止：启动（两段式）/ 重启。
+     菜单挂在这个容器上，右缘贴卡片内容盒右缘 */
+  position: relative;
+  justify-self: end;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.dsh-menu-overlay { position: fixed; inset: 0; z-index: 20; }
+.dsh-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  min-width: 152px; padding: 4px;
+  display: flex; flex-direction: column;
+  background: $panel-soft;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+}
+.dsh-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  height: 30px; padding: 0 9px;
+  border: 0; border-radius: 5px; background: transparent;
+  color: $text-mid; font-size: 12.5px;
+  cursor: pointer; text-align: left;
+}
+.dsh-menu-item:hover:not(:disabled) { background: $panel; color: $text; }
+.dsh-menu-item:disabled { opacity: 0.45; cursor: default; }
+.dsh-menu-item:focus-visible {
+  outline: 1px solid $accent; outline-offset: -1px;
+  background: $panel; color: $text;
+}
+.dsh-menu-item.danger,
+.dsh-menu-item.danger:hover,
+.dsh-menu-item.danger:focus-visible { color: $danger; }
+.dsh-menu-sep { height: 1px; margin: 4px 6px; background: $line-strong; }
+.dsh-caret { transform: rotate(90deg); opacity: 0.8; }
+.dsh-btn {
+  height: 30px; padding: 0 8px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: transparent; color: $text;
+  font-size: 12.5px; cursor: pointer; white-space: nowrap;
+}
+.dsh-btn:hover { background: $panel-soft; }
+.dsh-btn:disabled { opacity: 0.6; cursor: default; }
+.dsh-btn.primary {
+  border-color: transparent; color: #fff;
+  background: var(--btn-bg, $accent);
+}
+.dsh-btn.primary:hover { filter: brightness(1.08); }
+.dsh-btn.icon-only { width: 30px; padding: 0; justify-content: center; }
+/* 主色底随实例色调：运行中卡蓝（accent）、已停止的 profile 卡紫（violet） */
+.dsh-split.accent,
+.dsh-btn.primary.accent { --btn-bg: $accent; }
+.dsh-split.violet,
+.dsh-btn.primary.violet { --btn-bg: $violet; }
+/* split button：两半同底色；右半的 border-left 就是分隔线，圆角各只留外侧两角 */
+.dsh-split { display: inline-flex; }
+.dsh-split-main { border-right-width: 0; border-radius: $radius-sm 0 0 $radius-sm; }
+.dsh-split > .dsh-btn.split-caret {
+  min-width: 26px; padding: 0; justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 0 $radius-sm $radius-sm 0;
+}
+/* 悬停只加深指针所在的那一半 */
+.dsh-split > .dsh-btn.primary:hover { filter: brightness(0.88); }
+.dsh-dot-danger { width: 7px; height: 7px; border-radius: 50%; background: $danger; }
+
+// ── 右栏信息面板（SideInfoPanel.vue） ──
+.dsh-side-info {
+  width: 260px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px 20px;
+  border-left: 1px solid $line;
+  background: $bg;
+  overflow-y: auto;
+}
+.dsh-info-card {
+  padding: 12px 13px 13px;
+  background: $panel;
+  border: 1px solid $line;
+  border-radius: $radius;
+}
+.dsh-info-title {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: $text-mid;
+  letter-spacing: 0.2px;
+}
+.dsh-flows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dsh-flow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: $panel-soft;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.dsh-flow:hover {
+  border-color: $line-strong;
+}
+.dsh-flow-icon {
+  margin-top: 1px;
+  display: flex;
+}
+.dsh-flow-icon.accent {
+  color: $accent;
+}
+.dsh-flow-icon.violet {
+  color: $violet;
+}
+.dsh-flow-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.dsh-flow-title {
+  font-size: 12px;
+  color: $text;
+}
+.dsh-flow-detail {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: $text-dim;
+}
+.dsh-flow-arrow {
+  margin-top: 2px;
+  color: $text-dim;
+  display: flex;
+}
+.dsh-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.dsh-note {
+  display: flex;
+  align-items: flex-start;
+}
+.dsh-note-text {
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: $text-dim;
+}
+
+// ── 对话框：删除确认（ConfirmDialog.vue） ──
+.dsh-scrim {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  background: rgba(8, 9, 11, 0.62);
+}
+.dsh-dialog-card {
+  width: min(360px, calc(100vw - 48px));
+  padding: 16px 16px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: $panel-soft;
+  border: 1px solid $line-strong;
+  border-radius: $radius;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+.dsh-dialog-title { margin: 0; font-size: 14px; font-weight: 600; color: $text; }
+.dsh-dialog-message { margin: 0; font-size: 12px; line-height: 1.6; color: $text-mid; }
+.dsh-dialog-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.dsh-dialog-btn {
+  height: 30px; padding: 0 14px;
+  display: inline-flex; align-items: center;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: transparent; color: $text;
+  font-size: 12.5px; cursor: pointer;
+}
+.dsh-dialog-btn:hover { background: $panel; }
+.dsh-dialog-btn.primary { border-color: transparent; background: $accent; color: #fff; }
+.dsh-dialog-btn.primary:hover { filter: brightness(1.08); }
+.dsh-dialog-btn.danger { border-color: transparent; background: $danger; color: #fff; }
+.dsh-dialog-btn.danger:hover { filter: brightness(1.08); }
+.dsh-dialog-btn:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
+
+// ── 对话框：重命名（RenameDialog.vue） ──
+.dsh-scrim {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  background: rgba(8, 9, 11, 0.62);
+}
+.dsh-dialog-card {
+  width: min(360px, calc(100vw - 48px));
+  padding: 16px 16px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: $panel-soft;
+  border: 1px solid $line-strong;
+  border-radius: $radius;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+.dsh-dialog-title { margin: 0; font-size: 14px; font-weight: 600; color: $text; }
+.dsh-dialog-input {
+  height: 32px; padding: 0 10px;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: $panel; color: $text;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.dsh-dialog-input:focus-visible { outline: 2px solid $accent; outline-offset: -1px; }
+.dsh-dialog-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.dsh-dialog-btn {
+  height: 30px; padding: 0 14px;
+  display: inline-flex; align-items: center;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: transparent; color: $text;
+  font-size: 12.5px; cursor: pointer;
+}
+.dsh-dialog-btn:hover:not(:disabled) { background: $panel; }
+.dsh-dialog-btn.primary { border-color: transparent; background: $accent; color: #fff; }
+.dsh-dialog-btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.dsh-dialog-btn:disabled { opacity: 0.5; cursor: default; }
+.dsh-dialog-btn:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
+
+// ── 实例总览页（OverviewView.vue） ──
+.dsh-overview {
+  display: flex;
+  align-items: stretch;
+  min-height: 100%;
+}
+.dsh-overview-page {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 22px 24px;
+}
+.dsh-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dsh-head-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.dsh-page-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.dsh-head-note {
+  flex: none;
+  font-size: 10.5px;
+  color: $text-dim;
+  white-space: nowrap;
+}
+.dsh-new-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: $radius-sm;
+  background: $accent;
+  color: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dsh-new-btn:hover {
+  filter: brightness(1.08);
+}
+.dsh-plus {
+  font-size: 13px;
+}
+
+// ── 日志页（LogsView.vue） ──
+.dsh-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  padding: 16px 22px 20px;
+}
+.dsh-logs-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dsh-page-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.dsh-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dsh-tool-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+}
+.dsh-log-label {
+  font-size: 11.5px;
+  color: $text-dim;
+}
+.dsh-select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+  color: $text;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dsh-select:hover {
+  border-color: $accent;
+}
+.dsh-meta {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: $text-dim;
+}
+.dsh-inst-note {
+  flex: none;
+  margin: 0;
+  font-size: 11.5px;
+  color: $warn;
+}
+.dsh-select option.divider {
+  color: $text-dim;
+}
+.dsh-refresh {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-mid;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dsh-refresh:hover {
+  background: $panel-soft;
+  color: $text;
+}
+.dsh-log-box {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid $line;
+  border-radius: $radius;
+  background: $panel;
+}
+.dsh-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 1px 0;
+  font-family: "JetBrains Mono", "Noto Sans Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  white-space: pre;
+}
+.dsh-log-t {
+  flex: none;
+  color: $text-dim;
+}
+.dsh-log-lv {
+  flex: none;
+  width: 30px;
+  text-align: center;
+}
+.dsh-lv-error {
+  color: $danger;
+}
+.dsh-lv-warn {
+  color: $warn;
+}
+.dsh-lv-none {
+  color: $text-dim;
+  opacity: 0.55;
+}
+.dsh-log-body {
+  color: $text;
+}
+.dsh-log-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px dashed $line-strong;
+  border-radius: $radius;
+  color: $text-dim;
+}
+.dsh-log-empty-title {
+  margin: 0;
+  font-size: 13px;
+  color: $text-mid;
+}
+.dsh-log-empty-detail {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+// ── 关于页（AboutView.vue） ──
 .dsh-page {
   display: flex;
   flex-direction: column;
@@ -21,104 +857,74 @@ body {
   padding: 16px 22px 24px;
   max-width: 760px;
 }
-.dsh-page-head { display: flex; flex-direction: column; gap: 5px; }
-.dsh-page-title { margin: 0; }
-.dsh-panel { padding: 13px 15px 14px; }
-.dsh-panel-title { margin: 0 0 10px; }
-.dsh-para { margin: 0 0 6px; }
-.dsh-para:last-child { margin-bottom: 0; }
-.dsh-panel-title,
-.dsh-para,
-.dsh-label,
-.dsh-foot,
-.dsh-field-label,
-.dsh-field-icon,
-.dsh-uptime {
-  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+.dsh-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
-.dsh-value { color: rgb(var(--v-theme-on-surface)); }
-
-.dsh-kv { display: flex; flex-direction: column; }
+.dsh-page-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.dsh-panel {
+  padding: 13px 15px 14px;
+  border: 1px solid $line;
+  border-radius: $radius;
+  background: $panel;
+}
+.dsh-panel-title {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: $text-mid;
+  letter-spacing: 0.2px;
+}
+.dsh-para {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: $text-dim;
+}
+.dsh-para:last-child {
+  margin-bottom: 0;
+}
+.dsh-kv {
+  display: flex;
+  flex-direction: column;
+}
 .dsh-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-bottom: 1px solid $line;
 }
-.dsh-row:last-child { border-bottom: 0; }
-.dsh-label { flex: none; width: 88px; }
-.dsh-value { min-width: 0; word-break: break-all; }
-.dsh-foot { margin: 10px 0 0; }
-
-// ── 运行中实例卡 ─────────────────────────────────────────
-.dsh-section-title { margin: 6px 0 0; }
-.dsh-instance-list { display: flex; flex-direction: column; gap: 12px; }
-.dsh-case { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 15px; }
-.dsh-case-head {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 10px;
+.dsh-row:last-child {
+  border-bottom: 0;
 }
-.dsh-tile {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  background: rgba(var(--v-theme-success), 0.14);
-  color: rgb(var(--v-theme-success));
+.dsh-label {
+  flex: none;
+  width: 88px;
+  font-size: 12px;
+  color: $text-dim;
 }
-.dsh-ident { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.dsh-title-line { min-width: 0; }
-.dsh-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dsh-sub {
-  display: grid;
-  grid-template-columns: minmax(112px, max-content) 13px minmax(38px, max-content) minmax(0, 1fr);
-  align-items: center;
-  column-gap: 6px;
+.dsh-value {
   min-width: 0;
-  color: rgb(var(--v-theme-success));
+  font-size: 12.5px;
+  color: $text;
+  word-break: break-all;
 }
-.dsh-kind {
-  justify-self: start;
-  align-self: center;
-  white-space: nowrap;
-  padding: 1px 6px;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 999px;
-  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
-  background: rgb(var(--v-theme-surface-light));
+.dsh-foot {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: $text-dim;
 }
-.dsh-dot-slot { width: 13px; height: 13px; display: grid; place-items: center; }
-.dsh-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.dsh-state { white-space: nowrap; }
-.dsh-tail { display: flex; flex-direction: column; min-width: 0; }
-.dsh-uptime { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dsh-actions { justify-self: end; display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
-.dsh-dot-danger {
-  display: block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgb(var(--v-theme-error));
-}
-.dsh-fields {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 20px;
-}
-.dsh-field { display: flex; align-items: center; gap: 7px; height: 28px; min-width: 0; }
-.dsh-field-icon { display: flex; }
-.dsh-field-label { flex: none; }
-.dsh-field-value {
-  margin-left: auto;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: rgb(var(--v-theme-on-surface));
+// ── 压在 md2 组件形状之上的几条补丁 ────────────────────────
+// 两段式按钮：左半只留外侧两角。md2 的 .v-btn 被皮肤层统一成 6px 圆角
+// （html.dsh-skin .v-btn 特异性 0,2,1），所以这一条必须用 0,3,0 的选择器。
+.dsh-split > .dsh-btn.dsh-split-main {
+  border-right-width: 0;
+  border-radius: $radius-sm 0 0 $radius-sm;
 }
