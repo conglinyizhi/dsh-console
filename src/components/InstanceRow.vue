@@ -48,7 +48,7 @@ const fields = computed<FieldRow[]>(() => {
       </span>
 
       <span class="state" :class="{ off: !running }">
-        <i class="dot" />
+        <span class="dot-slot"><i class="dot" /></span>
         <span class="state-label">{{ running ? '运行中' : '已停止' }}</span>
         <span class="uptime">已运行 {{ instance.uptime }}</span>
       </span>
@@ -107,11 +107,20 @@ const fields = computed<FieldRow[]>(() => {
   background: var(--panel-soft); white-space: nowrap;
 }
 .state {
-  /* 状态点、状态文案、时长共用卡头这一条中心线：起点分别为固定轨道 */
-  display: grid; grid-template-columns: 7px var(--col-state) minmax(0, 1fr);
+  /* 状态点、状态文案、时长共用卡头这一条中心线：起点分别为固定轨道。
+     第一列是 13px 槽位（7px 点 + 两边各 3px 光环），光环在槽位内，
+     所以运行中与已停止两态的几何完全一致，切状态时点不会跳。
+     左侧留 6px 自有间距：卡头栅格的 10px 列间距会被运行中的光环吃掉 3px，
+     不加这段就会出现"点吸住左边标签"的观感。 */
+  display: grid; grid-template-columns: 13px var(--col-state) minmax(0, 1fr);
   align-items: center; column-gap: 6px; min-width: 0; color: var(--ok);
+  padding-left: 6px;
 }
 .state.off { color: var(--text-dim); }
+.dot-slot {
+  width: 13px; height: 13px;
+  display: grid; place-items: center;
+}
 .dot {
   width: 7px; height: 7px; border-radius: 50%;
   background: currentColor; box-shadow: 0 0 0 3px rgba(78, 194, 122, 0.13);
