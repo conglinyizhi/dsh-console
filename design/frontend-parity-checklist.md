@@ -164,6 +164,25 @@ rabbita 这类把产物**平铺在根上**（`index.html` + `console.js` + `cons
 
 在那之前自测请用 `DSH_CONSOLE_DIST` 显式指向新产物，别依赖上溯。
 
+## 八点八、前端产物契约（后端供得出去的前提）
+
+`frontend/build.sh` 的三步链（precss 编样式 → 编 js 客户端 → 拷产物）产出：
+
+```
+frontend/dist/
+├── index.html          # 带 dsh-skin.css（我们的皮肤层）
+├── md2-raw.html        # 同一内容但不挂皮肤层 —— 样式方向的 A/B 对照外壳
+└── assets/
+    ├── app.js          # rabbita 客户端（js 目标）
+    ├── app.css         # md2 三层（vendor → theme → md2），precss 编出
+    ├── dsh-skin.css    # 把 md2 主题变量覆写成 dsh-console 的设计 token
+    ├── mdi/{css,fonts} # 图标字体（已 vendor 进仓库）
+    └── licenses/       # md2 / vuetify / MDI 的许可文件
+```
+
+- 资源用**绝对路径** `/assets/...` 引用，正好对应后端以 `dist/` 为站点根
+- 这个布局 = `index.html` + `assets/`，**后端原有的判据就满足**（放宽那条是防御性的）
+
 ## 九点五、样式移植的规模与特性（实测，别低估）
 
 **实测**：现有样式 **941 行散在 18 个组件的 `<style scoped>` 块里**，全局 `app.css` 只有
