@@ -44,7 +44,7 @@ const expr = `(() => {
   const R = (el) => { const r = el.getBoundingClientRect(); return { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1) } }
   const box = document.querySelector(S.box)
   const lines = [...document.querySelectorAll(S.line)]
-  const lv = (cls) => { const el = document.querySelector('.' + cls); return el ? getComputedStyle(el).color : null }
+  const lv = (sel) => { const el = document.querySelector(sel); return el ? getComputedStyle(el).color : null }
   const sel = document.querySelector(S.select)
   const de = document.documentElement
   return JSON.stringify({
@@ -67,7 +67,7 @@ const expr = `(() => {
     levels: {
       error: document.querySelectorAll(S.lvError).length,
       warn: document.querySelectorAll(S.lvWarn).length,
-      errorColor: lv('lv-error'), warnColor: lv('lv-warn'),
+      errorColor: lv(S.lvError), warnColor: lv(S.lvWarn),
     },
     select: sel ? {
       value: sel.value,

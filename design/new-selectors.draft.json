@@ -11,10 +11,10 @@
  "splitCaret": ".dsh-split > .split-caret",
  "menuTrigger": "[aria-haspopup=\"menu\"]",
  "menu": "[data-name=\"row-menu\"]",
- "logBox": "[data-name=\"log-box\"]",
- "logLine": ".dsh-log-line",
  "lvError": ".dsh-lv-error",
  "lvWarn": ".dsh-lv-warn",
  "meta": ".dsh-meta",
- "select": "[data-name=\"log-source\"]"
+ "select": "[data-name=\"log-source\"]",
+ "box": "[data-name=\"log-box\"]",
+ "line": ".dsh-log-line"
 }

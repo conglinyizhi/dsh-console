@@ -74,7 +74,7 @@ out.motion = await evalJs("(() => { const hits = []; for (const el of document.q
 // ── 三、菜单：锚点 / 落焦第一项 / Esc 回触发元素 / 点外关闭 ──
 out.menu = {}
 await clickSel('.dsh-btn.icon-only')
-out.menu.opened = await evalJs("(() => { const menu = document.querySelector('.dsh-menu'); if (!menu) return { open: false }; const actions = menu.parentElement.querySelector('.dsh-actions'); const m = menu.getBoundingClientRect(); const a = actions.getBoundingClientRect(); const items = menu.querySelectorAll('.dsh-menu-item'); return { open: true, deltaTop: Math.round((m.top - a.bottom) * 100) / 100, deltaRight: Math.round((m.right - a.right) * 100) / 100, position: getComputedStyle(menu).position, activeIsFirstItem: document.activeElement === items[0], activeText: (document.activeElement ? document.activeElement.innerText : '').trim(), itemCount: items.length, separators: menu.querySelectorAll('.dsh-menu-sep').length, hasOverlay: !!document.querySelector('.dsh-menu-overlay'), actions: [...items].map(b => b.dataset.action) } })()")
+out.menu.opened = await evalJs("(() => { const menu = document.querySelector('.dsh-menu'); if (!menu) return { open: false }; const actions = menu.closest('.dsh-actions'); const m = menu.getBoundingClientRect(); const a = actions.getBoundingClientRect(); const items = menu.querySelectorAll('.dsh-menu-item'); return { open: true, deltaTop: Math.round((m.top - a.bottom) * 100) / 100, deltaRight: Math.round((m.right - a.right) * 100) / 100, position: getComputedStyle(menu).position, activeIsFirstItem: document.activeElement === items[0], activeText: (document.activeElement ? document.activeElement.innerText : '').trim(), itemCount: items.length, separators: menu.querySelectorAll('.dsh-menu-sep').length, hasOverlay: !!document.querySelector('.dsh-menu-overlay'), actions: [...items].map(b => b.dataset.action) } })()")
 await press('Escape', 27)
 out.menu.afterEscape = await evalJs("(() => ({ menuOpen: !!document.querySelector('.dsh-menu'), focusOnTrigger: document.activeElement.classList.contains('icon-only') || document.activeElement.classList.contains('split-caret'), activeLabel: document.activeElement.getAttribute('aria-label') || '' }))()")
 await clickSel('.dsh-btn.icon-only')
@@ -95,6 +95,52 @@ out.rename.emptyDisabled = await setDraft('')
 out.rename.spacesDisabled = await setDraft('   ')
 await press('Escape', 27)
 out.rename.afterEscape = await evalJs("({ dialogOpen: !!document.querySelector('#dsh-rename-input'), activeClass: document.activeElement.className, activeLabel: document.activeElement.getAttribute('aria-label') || '' })")
+
+
+// ── 四点五、重命名：Enter 确认后名字真的换、焦点回到触发元素 ──
+out.rename.flow = []
+out.rename.flow.push({ step: 'click-trigger', found: await clickSel('.dsh-btn.icon-only'), menuOpen: await evalJs("!!document.querySelector('.dsh-menu')") })
+out.rename.flow.push({ step: 'click-rename', found: await clickSel('.dsh-menu-item[data-action=rename]'), dialogOpen: await evalJs("!!document.querySelector('#dsh-rename-input')"), focused: await evalJs("document.activeElement && document.activeElement.id === 'dsh-rename-input'") })
+out.rename.flow.push({ step: 'set-draft', disabled: await setDraft('renamed-dev') })
+out.rename.flow.push({ step: 'draft-in-model', value: await evalJs("document.querySelector('#dsh-rename-input') ? document.querySelector('#dsh-rename-input').value : null"), disabled: await evalJs("document.querySelector('.dsh-dialog-btn.primary').disabled") })
+await press('Enter', 13)
+await sleep(350)
+out.rename.afterEnter = await evalJs("(() => ({ dialogOpen: !!document.querySelector('#dsh-rename-input'), names: [...document.querySelectorAll('[data-name=instance-card]')].map(c => c.dataset.instance), activeLabel: document.activeElement.getAttribute('aria-label') || '' }))()")
+
+// ── 四点六、两段式按钮几何与「只加深自己那一半」 ──
+out.split = await evalJs("(() => { const split = document.querySelector('.dsh-split'); const main = split.querySelector('.dsh-split-main'); const caret = split.querySelector('.split-caret'); const m = getComputedStyle(main); const c = getComputedStyle(caret); const mr = main.getBoundingClientRect(); const cr = caret.getBoundingClientRect(); return { mainRadius: [m.borderTopLeftRadius, m.borderTopRightRadius, m.borderBottomRightRadius, m.borderBottomLeftRadius].join(' '), mainBorderRightWidth: m.borderRightWidth, caretRadius: [c.borderTopLeftRadius, c.borderTopRightRadius, c.borderBottomRightRadius, c.borderBottomLeftRadius].join(' '), caretBorderLeft: c.borderLeftWidth + ' ' + c.borderLeftColor, caretWidth: cr.width, mainWidth: mr.width, mainLeft: Math.round(mr.left * 100) / 100, caretLeft: Math.round(cr.left * 100) / 100, mainHeight: mr.height } })()")
+
+// 悬停态用 CSS.forcePseudoState 定住再量：headless 里 Input.dispatchMouseEvent 的 hover 不可靠。
+await send('DOM.enable')
+await send('CSS.enable')
+const doc = await send('DOM.getDocument', { depth: -1 })
+const forceHover = async (selector) => {
+  const found = await send('DOM.querySelector', { nodeId: doc.result.root.nodeId, selector })
+  if (!found.result?.nodeId) return false
+  await send('CSS.forcePseudoState', { nodeId: found.result.nodeId, forcedPseudoClasses: ['hover'] })
+  await sleep(120)
+  return true
+}
+const clearHover = async (selector) => {
+  const found = await send('DOM.querySelector', { nodeId: doc.result.root.nodeId, selector })
+  if (!found.result?.nodeId) return
+  await send('CSS.forcePseudoState', { nodeId: found.result.nodeId, forcedPseudoClasses: [] })
+  await sleep(100)
+}
+await forceHover('.dsh-split .split-caret')
+out.split.hoverCaret = await evalJs("(() => { const s = document.querySelector('.dsh-split'); return { caretFilter: getComputedStyle(s.querySelector('.split-caret')).filter, mainFilter: getComputedStyle(s.querySelector('.dsh-split-main')).filter } })()")
+await clearHover('.dsh-split .split-caret')
+await forceHover('.dsh-split .dsh-split-main')
+out.split.hoverMain = await evalJs("(() => { const s = document.querySelector('.dsh-split'); return { caretFilter: getComputedStyle(s.querySelector('.split-caret')).filter, mainFilter: getComputedStyle(s.querySelector('.dsh-split-main')).filter } })()")
+await clearHover('.dsh-split .dsh-split-main')
+await forceHover('.dsh-field')
+out.fieldHover = await evalJs("(() => { const f = document.querySelector('.dsh-field'); const card = f.closest('.dsh-case'); return { beforeBg: getComputedStyle(f, '::before').backgroundColor, beforeInset: getComputedStyle(f, '::before').inset, cardBg: getComputedStyle(card).backgroundColor } })()")
+await clearHover('.dsh-field')
+await forceHover('.dsh-btn.icon-only')
+out.buttonHover = await evalJs("(() => { const b = document.querySelector('.dsh-btn.icon-only'); const cs = getComputedStyle(b); return { background: cs.backgroundColor, borderColor: cs.borderColor, filter: cs.filter } })()")
+await clearHover('.dsh-btn.icon-only')
+
+// 四点七 与悬停相关的量在下面统一用 forcePseudoState 做（见 hoverAdd 段）
 
 // ── 五、删除确认框 ──
 out.confirm = {}
@@ -123,16 +169,30 @@ out.archived.collapsed = await evalJs("({ rows: document.querySelectorAll('.dsh-
 await clickSel('.dsh-collapse')
 out.archived.expanded = await evalJs("({ rows: document.querySelectorAll('.dsh-archive-row').length })")
 
+// 取消归档：从归档区回到「已停止的实例」组
+out.unarchive = {}
+out.unarchive.before = await evalJs("({ archivedRows: document.querySelectorAll('.dsh-archive-row').length, stoppedStatuses: [...document.querySelectorAll('.dsh-sub')].filter(s => s.dataset.status === 'stopped').length })")
+await clickSel('.dsh-archive-btn:not(.danger)')
+out.unarchive.after = await evalJs("({ archivedRows: document.querySelectorAll('.dsh-archive-row').length, hasToggle: !!document.querySelector('.dsh-collapse'), instances: [...document.querySelectorAll('[data-name=instance-card]')].map(c => c.dataset.instance), archivedStopped: [...document.querySelectorAll('[data-name=instance-card]')].filter(c => (c.dataset.instance || '').indexOf('old-experiment') >= 0).map(c => c.querySelector('.dsh-sub').dataset.status) })")
+
+// ── 七点五、归档行上的删除确认框（运行中实例不可删，删除入口在归档行） ──
+out.confirmByArchive = {}
+out.confirmByArchive.hasDeleteButton = await evalJs("!!document.querySelector('.dsh-archive-btn.danger')")
+await clickSel('.dsh-archive-btn.danger')
+out.confirmByArchive.opened = await evalJs("(() => { const card = document.querySelector('.dsh-dialog-card'); if (!card) return { open: false }; return { open: true, title: card.querySelector('.dsh-dialog-title').innerText, focusOnConfirm: document.activeElement.id === 'dsh-confirm-ok', buttons: [...card.querySelectorAll('button')].map(b => b.innerText.trim()) } })()")
+await clickSel('.dsh-dialog-btn:not(.primary)')
+out.confirmByArchive.afterCancel = await evalJs("({ dialogOpen: !!document.querySelector('.dsh-dialog-card'), focusBackId: document.activeElement.id, focusBackClass: document.activeElement.className.slice(0, 40) })")
+
 // ── 八、导航切页 + 日志页 ──
 out.nav = {}
 const urlBefore = await evalJs('location.href')
 await clickSel('[data-name=nav-logs]')
 await sleep(1500)
-out.nav.logs = await evalJs("(() => { const select = document.querySelector('#log-source'); const box = document.querySelector('.dsh-log-box'); const line = box ? box.querySelector('.dsh-log-line') : null; return { onLogs: !!select, url: location.href, selectValue: select ? select.value : null, options: select ? [...select.options].map(o => o.value + (o.disabled ? ' [disabled]' : '') + ' | ' + o.text) : [], meta: document.querySelector('.dsh-meta') ? document.querySelector('.dsh-meta').innerText : '', badge: document.querySelector('.dsh-badge-label') ? document.querySelector('.dsh-badge-label').innerText : '', lines: document.querySelectorAll('.dsh-log-line').length, fontFamily: line ? getComputedStyle(line).fontFamily : '', whiteSpace: line ? getComputedStyle(line).whiteSpace : '', atBottom: box ? Math.abs(box.scrollTop + box.clientHeight - box.scrollHeight) <= 2 : null, scrollTop: box ? box.scrollTop : null, scrollHeight: box ? box.scrollHeight : null, clientHeight: box ? box.clientHeight : null, levels: [...document.querySelectorAll('.dsh-log-lv')].slice(0, 4).map(el => el.innerText + ' / ' + getComputedStyle(el).color) } })()")
+out.nav.logs = await evalJs("(() => { const select = document.querySelector('#log-source'); const box = document.querySelector('.dsh-log-box'); const line = box ? box.querySelector('.dsh-log-line') : null; return { onLogs: !!select, url: location.href, selectValue: select ? select.value : null, options: select ? [...select.options].map(o => o.value + (o.disabled ? ' [disabled]' : '') + ' | ' + o.text) : [], meta: document.querySelector('.dsh-meta') ? document.querySelector('.dsh-meta').innerText : '', badge: document.querySelector('.dsh-badge-label') ? document.querySelector('.dsh-badge-label').innerText : '', lines: document.querySelectorAll('.dsh-log-line').length, fontFamily: line ? getComputedStyle(line).fontFamily : '', whiteSpace: line ? getComputedStyle(line).whiteSpace : '', atBottom: box ? Math.abs(box.scrollTop + box.clientHeight - box.scrollHeight) <= 2 : null, scrollTop: box ? box.scrollTop : null, scrollHeight: box ? box.scrollHeight : null, clientHeight: box ? box.clientHeight : null, levels: { error: document.querySelectorAll('.dsh-lv-error').length, warn: document.querySelectorAll('.dsh-lv-warn').length, none: document.querySelectorAll('.dsh-lv-none').length, errorColor: document.querySelector('.dsh-lv-error') ? getComputedStyle(document.querySelector('.dsh-lv-error')).color : null, errorText: document.querySelector('.dsh-lv-error') ? document.querySelector('.dsh-lv-error').innerText : null, noneColor: document.querySelector('.dsh-lv-none') ? getComputedStyle(document.querySelector('.dsh-lv-none')).color : null }, longestLineScrollW: box ? Math.max(0, ...[...box.querySelectorAll('.dsh-log-line')].map(l => l.scrollWidth)) : null, boxScrollWidth: box ? box.scrollWidth : null, boxClientWidth: box ? box.clientWidth : null } })()")
 out.nav.urlUnchanged = urlBefore === (await evalJs('location.href'))
 out.nav.picked = await evalJs("(() => { const s = document.querySelector('#log-source'); const o = [...s.options].find(x => x.value === 'host'); s.value = o.value; s.dispatchEvent(new Event('change', { bubbles: true })); return o.value })()")
 await sleep(1500)
-out.nav.afterSwitch = await evalJs("(() => { const box = document.querySelector('.dsh-log-box'); return { selectValue: document.querySelector('#log-source').value, lines: document.querySelectorAll('.dsh-log-line').length, atBottom: box ? Math.abs(box.scrollTop + box.clientHeight - box.scrollHeight) <= 2 : null, meta: document.querySelector('.dsh-meta').innerText.slice(0, 200) } })()")
+out.nav.afterSwitch = await evalJs("(() => { const box = document.querySelector('.dsh-log-box'); return { selectValue: document.querySelector('#log-source').value, lines: document.querySelectorAll('.dsh-log-line').length, atBottom: box ? Math.abs(box.scrollTop + box.clientHeight - box.scrollHeight) <= 2 : null, levels: { error: document.querySelectorAll('.dsh-lv-error').length, none: document.querySelectorAll('.dsh-lv-none').length, errorColor: document.querySelector('.dsh-lv-error') ? getComputedStyle(document.querySelector('.dsh-lv-error')).color : null }, meta: document.querySelector('.dsh-meta').innerText.slice(0, 200) } })()")
 await clickSel('[data-name=nav-about]')
 await sleep(500)
 out.nav.about = await evalJs("(() => { const text = document.body.innerText; return { hasNodeVersion: text.indexOf('node 版本') >= 0, rows: [...document.querySelectorAll('.dsh-row')].map(r => r.innerText.split(String.fromCharCode(10)).join(' ')), foot: document.querySelector('.dsh-foot') ? document.querySelector('.dsh-foot').innerText : '' } })()")

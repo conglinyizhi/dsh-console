@@ -18,7 +18,7 @@ const j = (p) => existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null
 const errs = []
 if (run('verify-frontend.mjs', [baseUrl, prefix + '-verify.png', prefix + '-verify.json'])) errs.push('verify-frontend 失败')
 if (run('probe-invariants.mjs', [baseUrl, prefix + '-inv.json', profile])) errs.push('probe-invariants 失败')
-if (run('probe-logs.mjs', [baseUrl, prefix + '-logs.json', '日志'])) errs.push('probe-logs 失败')
+if (run('probe-logs.mjs', [baseUrl, prefix + '-logs.json', '日志', profile])) errs.push('probe-logs 失败')
 if (run('probe-animation.mjs', [baseUrl, prefix + '-anim.json', '启动'])) errs.push('probe-animation 失败')
 if (errs.length) console.log('探针执行问题: ' + errs.join(' / '))
 
