@@ -311,6 +311,22 @@ md2 自己已经在 select 上走通「内联 SVG」的路子，照做可以整�
 
 这些都不阻塞功能对齐，属于**验收通过后的优化项**。
 
+## 九点九七、验收探针的已知调整点（实测发现）
+
+1. **新前端的类名与 Vue 不同名，探针需要一份新的选择器映射。**
+   已观察到机器生成的 `app.scss` 给部分类名加了 `dsh-` 前缀：
+   `.dsh-case` / `.dsh-case-head` / `.dsh-ident` / `.dsh-name` / `.dsh-kind`，
+   另一部分沿用原名：`.tile` / `.title-line` / `.btn` / `.dot-slot` / `.log-box` / `.nav-item`。
+   `probe-invariants.mjs` 的 `vue` profile 因此**不能直接复用**——交付后先 dump 一次 DOM
+   拿到真实类名，补一份 `new` profile 再量。
+   （`probe-animation.mjs` 与 `verify-frontend.mjs` 是选择器无关的，可直接用。）
+
+2. **worker 不能派子 agent**（实测报错 `depth 2 exceeds maxDepth 1`）。
+   往后的简报里不要写"可以派子 agent 分工"，那是空头承诺——它只能自己干或先把活拆小。
+
+3. 它把解释几何不变量的**注释也一起搬进了生成的 SCSS**（例如"点槽恒为 13px（7px 点 +
+   两边各 3px 光环）"）。这是好做法：搬的是**为什么**，不只是**是什么**。
+
 ## 十、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`
