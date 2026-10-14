@@ -234,6 +234,32 @@ node design/verify-frontend.mjs <baseUrl> [截图前缀]
 所以看对比图时别得出超出证据的结论：这一版能回答的是"**md2 的观感 + 我们的调色板与控件形状**
 对不对味"；回答不了"实例卡那套版式能不能保住"——那要等全量重写。
 
+## 九点九五、切片的独立验证结果（已渲染，真数据）
+
+用 `design/verify-frontend.mjs` 对后端服务出来的 `frontend/dist` 实测（不经过 worker 自己的脚本）：
+
+```json
+{ "title": "dsh-console · 关于（rabbita + md2）",
+  "overflowX": false,
+  "textHead": "关于 … dsh 版本 0.2.0-rc.2 / 控制台版本 0.1.0 / 平台 linux x64 (7.2.9-arch1-1)
+               读于 21:07:08 · 来源 GET /api/local/runtime
+               运行中实例（GET /api/local/instances）dsh …",
+  "counts": { "cards": 9, "icons": 9, "buttons": 4 },
+  "consoleIssueCount": 1 }
+```
+
+**结论**：rabbita(js) + md2 + precss + 原生后端这条链**端到端通了**——真数据经 rabbita 渲染、
+暗色皮肤生效、MDI 图标出字形。切片还超出简报范围做了实例卡的版式。
+
+### 待办（两个小问题，都已定位）
+
+1. **`/favicon.ico` 404** —— 唯一那条控制台错误。`web/index.html` 里没有 favicon 链接
+   （Vue 版当年是内联 data URI 解决的，照做即可）。
+2. **`app.js` 1.15 MB（未压缩）** —— Vue 版是 112 KB。本地回环服务下可接受，
+   但如果在意首屏解析时间，可以加一道压缩（后端目前不做 gzip）。
+   另外 `/assets/mdi/fonts/materialdesignicons-webfont.woff` 是 404（只 vendor 了 woff2）——
+   浏览器优先取 woff2，不影响出字形。
+
 ## 十、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`
