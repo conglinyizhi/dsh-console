@@ -1,7 +1,16 @@
 // 日志页不变量探针：node probe-logs.mjs <baseUrl> <outJson> [侧栏文字]
 import { spawn } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
-const [baseUrl, outJson, navLabel = '日志'] = process.argv.slice(2)
+import { writeFileSync, readFileSync } from 'node:fs'
+const [baseUrl, outJson, navLabel = '日志', profileArg = 'vue'] = process.argv.slice(2)
+
+// 选择器映射：内置 vue，或一份 JSON 文件（换栈后的新前端用这个）
+const BUILTIN = {
+  vue: { box: '.log-box', line: '.log-line', lvError: '.lv-error', lvWarn: '.lv-warn', meta: '.meta', select: 'select' },
+}
+let SEL = BUILTIN[profileArg]
+if (!SEL) {
+  try { SEL = JSON.parse(readFileSync(profileArg, 'utf8')); console.log('用外部选择器映射: ' + profileArg) } catch (e) { console.log('读不到选择器映射: ' + profileArg); process.exit(1) }
+}
 
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
   '--hide-scrollbars', '--remote-debugging-port=9336', '--user-data-dir=/tmp/chrome-logs',
@@ -31,11 +40,12 @@ await send('Runtime.evaluate', { expression: `(() => {
 await new Promise((r) => setTimeout(r, 3000))
 
 const expr = `(() => {
+  const S = ${JSON.stringify(SEL)}
   const R = (el) => { const r = el.getBoundingClientRect(); return { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1) } }
-  const box = document.querySelector('.log-box')
-  const lines = [...document.querySelectorAll('.log-line')]
+  const box = document.querySelector(S.box)
+  const lines = [...document.querySelectorAll(S.line)]
   const lv = (cls) => { const el = document.querySelector('.' + cls); return el ? getComputedStyle(el).color : null }
-  const sel = document.querySelector('select')
+  const sel = document.querySelector(S.select)
   const de = document.documentElement
   return JSON.stringify({
     overflow: { scrollW: de.scrollWidth, clientW: de.clientWidth, overflowX: de.scrollWidth > de.clientWidth },
@@ -55,15 +65,15 @@ const expr = `(() => {
     firstLine: lines[0]?.textContent.trim().slice(0, 70) ?? null,
     lastLine: lines.slice(-1)[0]?.textContent.trim().slice(0, 70) ?? null,
     levels: {
-      error: document.querySelectorAll('.lv-error').length,
-      warn: document.querySelectorAll('.lv-warn').length,
+      error: document.querySelectorAll(S.lvError).length,
+      warn: document.querySelectorAll(S.lvWarn).length,
       errorColor: lv('lv-error'), warnColor: lv('lv-warn'),
     },
     select: sel ? {
       value: sel.value,
       options: [...sel.options].map((o) => ({ text: o.textContent.trim(), value: o.value, disabled: o.disabled })),
     } : null,
-    meta: document.querySelector('.meta')?.textContent.trim() ?? null,
+    meta: document.querySelector(S.meta)?.textContent.trim() ?? null,
   })
 })()`
 const out = await send('Runtime.evaluate', { expression: expr, returnByValue: true })

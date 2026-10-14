@@ -112,6 +112,9 @@ const menuExpr = `(() => {
     deltaTop: actions ? +(R(menu).y - R(actions).bottom).toFixed(1) : null,
     deltaRight: actions ? +(R(menu).right - R(actions).right).toFixed(1) : null,
     items: [...menu.querySelectorAll('[role=menuitem], .menu-item')].map((e) => e.textContent.trim()).slice(0, 10),
+    position: getComputedStyle(menu).position,
+    offsetParentCls: String((menu.offsetParent && menu.offsetParent.className) || '').slice(0, 60),
+    parentCls: String((menu.parentElement && menu.parentElement.className) || '').slice(0, 60),
     activeIsFirstItem: (() => { const a = document.activeElement; const f = menu.querySelector('[role=menuitem], .menu-item'); return a && f ? a === f : null })(),
   })
 })()`

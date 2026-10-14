@@ -333,6 +333,34 @@ md2 自己已经在 select 上走通「内联 SVG」的路子，照做可以整�
 3. 它把解释几何不变量的**注释也一起搬进了生成的 SCSS**（例如"点槽恒为 13px（7px 点 +
    两边各 3px 光环）"）。这是好做法：搬的是**为什么**，不只是**是什么**。
 
+## 九点九九五、新前端的首轮独立验收结果（20 项：10 通过 / 10 失败）
+
+用 `node design/run-acceptance.mjs <baseUrl>` 对 `frontend/dist` 实测。**逐项区分了"探针的问题"与"真偏差"**：
+
+**已通过（10）**：无横向溢出（两处）、真数据标记、无读取失败标记、状态点跨卡对齐
+（`[400,400,400,400]`）、按钮组右缘贴内容右缘（`[0,0,0,0]`）、两段式无缝（gap 0，
+主半 `6px`、右半 `0px 6px 6px 0px`）、菜单落焦第一项、来源下拉 4 项、等待态禁用按钮 3 个。
+
+**真偏差（3 项，要改）**：
+- **日志框没有被限高**。实测 `.dsh-log-box` 的 `rect.h = 4096.1`、
+  `scrollHeight = clientHeight = 4094`（Vue 基线是 `clientHeight 735`）——
+  它随内容长长，**页面整体变高而不是框内滚动**，于是「打开即滚到底」「可内部滚动」这两条
+  **无从成立**。横向滚动是有的（`scrollWidth 1162 > clientWidth 1044` ✓）。
+  日志内容本身是对的：200 行、6 个错误级着色、三段行结构（时间/级别/正文）、元信息含目录依据。
+
+- **菜单挂在卡片上，不挂在按钮组上**。实测 `position: absolute`、`offsetParent` 是卡片
+  （`v-card … dsh-case`）、parent 是 `.dsh-case-head`；于是 `deltaTop = 127.5`（基线 6）、
+  `deltaRight = +16`（基线 0，菜单右缘越过按钮组右缘 16px）。
+  清单第五节明确要求「菜单挂在按钮组容器上：`top = 按钮组底 + 6px`、`right: 0`」——这条没做到。
+
+**我的探针/判据的问题（8 项，已修）**：
+- 日志页 5 项：`probe-logs.mjs` 写死了 Vue 的类名（`.log-box` / `.log-line` / `.lv-error` / `.meta`），
+  新前端用的是 `dsh-log-*`。要像 `probe-invariants` 一样支持外部选择器映射。
+- 动效 2 项：新前端静止时有 12 个 `v-progress-linear__indeterminate` 在跑，但**实测 `height: 0`**
+  （不占空间、看不见）——是 md2 进度条的固有行为，**不是视觉缺陷**，只是后台空转。
+  判据已改为只看**可见**动效（宽高 > 0）。
+- 控制台 1 项：`/favicon.ico` 404（切片遗留，对方本该修）。
+
 ## 十、接口契约（不变）
 
 `GET /api/local/runtime | profiles | logs?source=&tail= | processes | instances`

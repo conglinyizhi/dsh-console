@@ -25,7 +25,14 @@ await new Promise((r) => setTimeout(r, 4500))
 
 const before = await send('Runtime.evaluate', { expression: `(() => {
   const anim = [...document.querySelectorAll('*')].filter((e) => { const cs = getComputedStyle(e); return cs.animationName && cs.animationName !== 'none' })
-  return JSON.stringify({ count: anim.length, names: anim.map((e) => getComputedStyle(e).animationName) })
+  const visible = anim.filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 })
+  return JSON.stringify({
+    count: anim.length,
+    visibleCount: visible.length,
+    visibleNames: visible.map((e) => getComputedStyle(e).animationName),
+    names: anim.map((e) => getComputedStyle(e).animationName),
+    items: anim.slice(0, 4).map((e) => { const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); const pr = e.parentElement ? e.parentElement.getBoundingClientRect() : null; return { name: cs.animationName, cls: String(e.className).slice(0, 40), rect: { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1) }, visible: cs.visibility, display: cs.display, opacity: cs.opacity, parentCls: String(e.parentElement && e.parentElement.className || '').slice(0, 40), parentRect: pr ? { x: +pr.x.toFixed(1), y: +pr.y.toFixed(1), w: +pr.width.toFixed(1), h: +pr.height.toFixed(1) } : null } }),
+  })
 })()`, returnByValue: true })
 
 const clicked = await send('Runtime.evaluate', { expression: `(() => {
@@ -39,7 +46,7 @@ const after = await send('Runtime.evaluate', { expression: `(() => {
   const anim = [...document.querySelectorAll('*')].filter((e) => { const cs = getComputedStyle(e); return cs.animationName && cs.animationName !== 'none' })
   return JSON.stringify({
     count: anim.length,
-    items: anim.map((e) => { const cs = getComputedStyle(e); return { tag: e.tagName.toLowerCase(), cls: String(e.className).slice(0, 60), name: cs.animationName, duration: cs.animationDuration, timing: cs.animationTimingFunction, iterations: cs.animationIterationCount, shadow: cs.boxShadow.slice(0, 60) } }),
+    items: anim.map((e) => { const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); return { tag: e.tagName.toLowerCase(), cls: String(e.className).slice(0, 60), name: cs.animationName, duration: cs.animationDuration, timing: cs.animationTimingFunction, iterations: cs.animationIterationCount, shadow: cs.boxShadow.slice(0, 60), rect: { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1) }, visible: cs.visibility, display: cs.display, opacity: cs.opacity, parentCls: String(e.parentElement && e.parentElement.className || '').slice(0, 40) } }),
     disabledButtons: [...document.querySelectorAll('button')].filter((b) => b.disabled).length,
   })
 })()`, returnByValue: true })
