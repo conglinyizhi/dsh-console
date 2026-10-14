@@ -1,18 +1,30 @@
-// 几何不变量探针：node probe-invariants.mjs <baseUrl> <outJson> [选择器profile]
-// 默认 profile=vue（现有 Vue 版的类名）。换栈后的新前端要另给一份选择器映射。
+// 几何不变量探针：node probe-invariants.mjs <baseUrl> <outJson> [profile]
+//
+// profile 可以是内置名（vue），也可以是一份 JSON 文件路径 —— 里面就是选择器映射，
+// 形如 {"card":".dsh-case","actions":".dsh-actions", ...}。
+// 换栈后的新前端类名不同，先 dump DOM 拿到真实类名，写一份 json 就能量，不用改代码。
 import { spawn } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, readFileSync } from 'node:fs'
 
 const [baseUrl, outJson, profile = 'vue'] = process.argv.slice(2)
 
-const SEL = {
+const BUILTIN = {
   vue: {
     card: '.row', actions: '.actions', dot: '.dot', dotSlot: '.dot-slot',
     kind: '.kind', name: '.name', splitMain: '.split-main', splitCaret: '.split-caret',
     menuTrigger: '.btn.icon-only', menu: '.menu',
   },
-}[profile]
-if (!SEL) { console.log('未知 profile: ' + profile); process.exit(1) }
+}
+let SEL = BUILTIN[profile]
+if (!SEL) {
+  try {
+    SEL = JSON.parse(readFileSync(profile, 'utf8'))
+    console.log('用外部选择器映射: ' + profile)
+  } catch (e) {
+    console.log('既不是内置 profile 也读不到该 json: ' + profile)
+    process.exit(1)
+  }
+}
 
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
   '--hide-scrollbars', '--remote-debugging-port=9335', '--user-data-dir=/tmp/chrome-inv',
