@@ -928,3 +928,23 @@ button { font: inherit; color: inherit; }
   border-right-width: 0;
   border-radius: $radius-sm 0 0 $radius-sm;
 }
+
+// ── 手写的两条（不在 Vue 版样式块里，属于这一次新增的交互） ──
+// 归档区的折叠开关：清单要求「可折叠」，Vue 版没有这个交互，没有可搬的规则。
+// 外观跟着分组头走（字号字重色都从 .dsh-section-title 继承），只去掉按钮的默认皮。
+.dsh-collapse {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.dsh-collapse:hover { color: $text; }
+.dsh-collapse .v-icon { font-size: 14px; }
+
+// 徽标里的文字：Vue 版的 SourceBadge 没给 .label 单独写规则，补一条不换行的。
+.dsh-badge-label { white-space: nowrap; }
