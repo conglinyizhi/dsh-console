@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue'
 
-/** 运行中分组的空态：本机真的没有检测到 dsh 进程时就这么说，不留假实例占位 */
-defineProps<{ detail: string }>()
+/** 运行中分组的空态：监听端口扫完、一个 DSH 签名都没命中时才出现，不留假实例占位 */
+defineProps<{ summary: string; detail: string }>()
 </script>
 
 <template>
   <section class="empty">
     <span class="empty-icon"><AppIcon name="server" :size="26" /></span>
-    <p class="line">当前没有检测到正在运行的 dsh 进程。</p>
-    <p class="sub">扫描本机 /proc，带 --port 的 dsh 进程 0 个</p>
+    <p class="line">当前没有检测到正在运行的 dsh 实例。</p>
+    <p class="sub">{{ summary }}</p>
     <p class="sub" :title="detail">{{ detail }}</p>
   </section>
 </template>

@@ -31,7 +31,7 @@ function readArgv(pid) {
   return argv.length > 0 ? argv : null
 }
 
-/** --port 8080 / --port=8080 都认；没带 --port 的不算实例 */
+/** --port 8080 / --port=8080 都认；默认端口的实例命令行里没有 --port，所以这里是「可能为 null」而不当过滤条件 */
 function readPort(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i]
@@ -103,8 +103,9 @@ export function readProcesses() {
     if (!argv) continue
     const entry = argv.find((token) => isDshEntry(token))
     if (!entry) continue
+    // port 允许为 null：默认端口的实例命令行里不带 --port，不能因此把它当不存在。
+    // 这里的进程名单只作补充，运行中实例的主口径是 /api/local/instances 的监听端口探测。
     const port = readPort(argv)
-    if (port === null) continue
 
     const startTicks = readStartTicks(pid)
     let uptimeSeconds = null
@@ -130,7 +131,7 @@ export function readProcesses() {
   return {
     procRoot: '/proc',
     scanned: pids.length,
-    matcher: 'argv 里有 dsh 入口（可执行名 dsh 或路径段 @deepseek-ai/dsh）且带 --port',
+    matcher: 'argv 里有 dsh 入口（可执行名 dsh 或路径段 @deepseek-ai/dsh）；--port 有就读出来，没有记 null，不再当过滤条件',
     instances,
   }
 }

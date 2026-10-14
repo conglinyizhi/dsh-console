@@ -1,5 +1,6 @@
 // dsh-console 的本地只读接口层：dev 与 preview 都挂同一份中间件。
 // 这里不碰文件系统，只做路由、HTTP 方法守卫和 JSON 包装。
+import { readInstances } from './readInstances.mjs'
 import { readProcesses } from './readProcesses.mjs'
 import { readProfiles } from './readProfiles.mjs'
 import { readRuntime } from './readRuntime.mjs'
@@ -8,6 +9,8 @@ const ROUTES = new Map([
   ['/api/local/runtime', readRuntime],
   ['/api/local/profiles', readProfiles],
   ['/api/local/processes', readProcesses],
+  // 运行中实例的主口径：扫 /proc/net/tcp(6) 的 loopback LISTEN 端口，再逐个做 HTTP 签名探测
+  ['/api/local/instances', readInstances],
 ])
 
 function sendJson(res, status, payload) {

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { demoTag, fallbackTag, fetchProcesses, fetchProfiles, fetchRuntime, realTag } from '../api/local'
-import type { LocalProfileFact, LocalRuntime } from '../api/local'
-import { processInstances, profileInstances } from '../data/mapLocal'
+import { demoTag, fallbackTag, fetchInstances, fetchProfiles, fetchRuntime, realTag } from '../api/local'
+import type { LocalInstances, LocalProfileFact, LocalRuntime } from '../api/local'
+import { profileInstances, runningInstances } from '../data/mapLocal'
 import type { Instance, SourceTag } from '../data/types'
 import { ARCHIVED_AT, demoArchived, demoRunning, demoStopped } from '../mock/instances'
 import { nextPort, pickPort } from '../portProbe'
@@ -26,11 +26,21 @@ const list = reactive<Instance[]>([])
  * 数据源标记，逐处标：运行中/已停止两组跟真实读数走，归档区本轮固定演示。
  * 真实读取失败时整组换成演示实例，标记同时变成「演示数据 · 真实读取失败」，不静默混用。
  */
-const sources = reactive<Record<'runtime' | 'processes' | 'profiles' | 'archived', SourceTag>>({
+const sources = reactive<Record<'runtime' | 'instances' | 'profiles' | 'archived', SourceTag>>({
   runtime: demoTag('本地只读接口还没返回'),
-  processes: demoTag('本地只读接口还没返回'),
+  instances: demoTag('本地只读接口还没返回'),
   profiles: demoTag('本地只读接口还没返回'),
   archived: demoTag('归档区本轮不接真实数据：磁盘上没有「归档记录」这种概念，这组一直是前端演示'),
+})
+
+/** 端口探测的元信息，只用来给空态和分组标记报口径，不参与卡片内容 */
+const instancesMeta = ref<LocalInstances | null>(null)
+
+/** 空态口径：扫了多少个 loopback 监听端口、命中几个 DSH 签名 */
+const runningSummary = computed(() => {
+  const meta = instancesMeta.value
+  if (!meta) return '监听端口扫描还没返回结果'
+  return `扫了本机 ${meta.candidateCount} 个 loopback 监听端口，其中 ${meta.probe.hits} 个命中 DSH 签名`
 })
 
 const running = computed(() => list.filter((item) => !item.archivedAt && item.status === 'running'))
@@ -44,15 +54,15 @@ function clone(items: Instance[]): Instance[] {
 
 /** 页面启动时拉一次本机真实状态：三个只读接口，都是 GET */
 async function loadLocal() {
-  const [runtimeRead, profilesRead, processesRead] = await Promise.all([
+  const [runtimeRead, profilesRead, instancesRead] = await Promise.all([
     fetchRuntime(),
     fetchProfiles(),
-    fetchProcesses(),
+    fetchInstances(),
   ])
 
   const runtime: LocalRuntime | null = runtimeRead.ok ? runtimeRead.data : null
   const profileFacts: LocalProfileFact[] = profilesRead.data?.profiles ?? []
-  const processFacts = processesRead.data?.instances ?? []
+  const instanceFacts = instancesRead.data?.instances ?? []
   const dshHome = profilesRead.data?.dshHome ?? runtime?.dshHome ?? '—'
 
   const readTime = new Date().toLocaleTimeString('zh-CN', { hour12: false })
@@ -63,17 +73,20 @@ async function loadLocal() {
       )
     : fallbackTag(`/api/local/runtime 读取失败：${runtimeRead.error ?? '未知原因'}`)
 
-  sources.processes = processesRead.ok
+  // 运行中实例的口径：监听端口 + HTTP 签名探测，进程扫描只在接口内部做补充
+  const meta = instancesRead.ok ? instancesRead.data : null
+  instancesMeta.value = meta ?? null
+  sources.instances = meta
     ? realTag(
-        `/api/local/processes 直接读 /proc，扫了 ${processesRead.data?.scanned ?? 0} 个进程，命中 dsh 实例 ${processFacts.length} 个`,
+        `/api/local/instances 读 ${meta.sources.join(' + ')}：扫 ${meta.candidateCount} 个 loopback LISTEN 端口，命中 DSH 签名 ${meta.probe.hits} 个（判据 ${meta.signatures.map((item) => item.id).join(' / ')}）· 进程补充：${meta.processSupplement.note} · ${readTime} 读取`,
       )
-    : fallbackTag(`/api/local/processes 读取失败：${processesRead.error ?? '未知原因'}`)
+    : fallbackTag(`/api/local/instances 读取失败：${instancesRead.error ?? '未知原因'}`)
 
   sources.profiles = profilesRead.ok
     ? realTag(`/api/local/profiles 扫 ${profilesRead.data?.profilesRoot ?? '—'}，${profileFacts.length} 个 profile`)
     : fallbackTag(`/api/local/profiles 读取失败：${profilesRead.error ?? '未知原因'}`)
 
-  const runningItems = processesRead.ok ? processInstances(processFacts, runtime, profileFacts) : clone(demoRunning)
+  const runningItems = instancesRead.ok ? runningInstances(instanceFacts, profileFacts) : clone(demoRunning)
   const stoppedItems = profilesRead.ok ? profileInstances(profileFacts, runtime, dshHome) : clone(demoStopped)
   list.splice(0, list.length, ...runningItems, ...stoppedItems, ...clone(demoArchived))
 }
@@ -260,14 +273,14 @@ function onAction(id: string, key: ActionKey, trigger: HTMLElement | null) {
         </button>
       </header>
 
-      <InstanceGroup title="当前运行的实例" :count="running.length" :source="sources.processes">
+      <InstanceGroup title="当前运行的实例" :count="running.length" :source="sources.instances">
         <InstanceRow
           v-for="item in running"
           :key="item.id"
           :instance="item"
           @action="(key, trigger) => onAction(item.id, key, trigger)"
         />
-        <RunningEmpty v-if="running.length === 0" :detail="sources.processes.detail" />
+        <RunningEmpty v-if="running.length === 0" :summary="runningSummary" :detail="sources.instances.detail" />
       </InstanceGroup>
 
       <InstanceGroup title="已停止的实例" :count="stopped.length" :source="sources.profiles">

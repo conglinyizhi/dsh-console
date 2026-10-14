@@ -26,9 +26,10 @@ const stateLabel = computed(() => {
   return running.value ? '运行中' : '已停止'
 })
 
-/** 运行时长简写：分钟 -> 小时加分钟 */
+/** 运行时长简写：分钟 -> 小时加分钟；读不到宿主进程（uptime 为 null）就不给数字 */
 const duration = computed(() => {
   const minutes = props.instance.uptime
+  if (minutes === null) return null
   if (minutes < 60) return `${minutes} 分钟`
   return `${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分钟`
 })
@@ -65,12 +66,14 @@ const fields = computed<FieldRow[]>(() => {
           :class="{ off: !running && !starting, starting }"
           :data-status="instance.status"
         >
-          <span class="kind">{{ instance.kind }}</span>
+          <span class="kind" :title="instance.kindHint">{{ instance.kind }}</span>
           <span class="dot-slot"><i class="dot" /></span>
           <span class="state-label">{{ stateLabel }}</span>
           <span class="tail">
             <span v-if="starting" class="hint">等待核心就绪</span>
-            <span v-else-if="running" class="uptime">已运行 {{ duration }}</span>
+            <span v-else-if="running" class="uptime" :title="instance.uptimeHint">
+              {{ duration ? `已运行 ${duration}` : '运行时长未知' }}
+            </span>
             <!-- 已停止的卡没有进程在跑，不编运行时长：真实 profile 显示 patch/锁文件读数，演示卡显示「未运行」 -->
             <span v-else class="uptime" :title="instance.idleNote">
               {{ instance.idleNote ?? '未运行' }}

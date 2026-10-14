@@ -60,6 +60,58 @@ export interface LocalProcesses {
   instances: LocalProcessFact[]
 }
 
+/** 一条命中的运行中实例：端口探测到的事实 + 尽力而为的进程补充（补不到就是 null） */
+export interface LocalInstanceFact {
+  port: number
+  url: string
+  title: string | null
+  httpStatus: number
+  contentType: string | null
+  /** 命中的判据，以及回显的证据片段 */
+  signature: { id: string; describe: string; evidence: string }
+  /** 进程扫描按端口对上号才有；对不上是 null，不编 */
+  profile: string | null
+  pid: number | null
+  dshHome: string | null
+  exePath: string | null
+  startedAt: string | null
+  uptimeSeconds: number | null
+  probeMs: number
+}
+
+export interface LocalInstances {
+  sources: string[]
+  perFile: { file: string; family: string; readable: boolean; listenPorts: number }[]
+  /** 逐个候选端口的探测结论（不含响应体），口径可核对 */
+  probeResults: {
+    port: number
+    reached: boolean
+    httpStatus: number | null
+    contentType: string | null
+    signatureId: string | null
+    error: string | null
+  }[]
+  scope: string
+  listenState: string
+  candidateLimit: number
+  truncated: boolean
+  truncatedNote: string | null
+  candidates: number[]
+  candidateCount: number
+  probe: {
+    method: string
+    redirect: string
+    timeoutMs: number
+    concurrency: number
+    probed: number
+    reached: number
+    hits: number
+  }
+  signatures: { id: string; describe: string }[]
+  processSupplement: { procRoot: string; scanned: number; dshProcesses: number; withPort: number; note: string }
+  instances: LocalInstanceFact[]
+}
+
 interface Envelope<T> {
   ok?: boolean
   readOnly?: boolean
@@ -104,6 +156,11 @@ export function fetchProfiles(): Promise<LocalRead<LocalProfiles>> {
 
 export function fetchProcesses(): Promise<LocalRead<LocalProcesses>> {
   return getLocal<LocalProcesses>('/api/local/processes')
+}
+
+/** 运行中实例的主口径：监听端口 + HTTP 签名探测 */
+export function fetchInstances(): Promise<LocalRead<LocalInstances>> {
+  return getLocal<LocalInstances>('/api/local/instances')
 }
 
 /** 数据源标记的构造口，三种标记只用这一处生成，避免各处手写不一致 */

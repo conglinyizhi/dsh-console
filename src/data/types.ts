@@ -3,11 +3,15 @@ export interface Instance {
   id: string
   name: string
   kind: string
+  /** 类型标签的悬停说明：写清这个标签到底依据什么，避免「当前」这类词被误读成运行中 */
+  kindHint?: string
   tone: 'accent' | 'violet'
   /** starting 仅用于「启动」后的前端演示等待态，本页不启动真实进程 */
   status: 'running' | 'stopped' | 'starting'
-  /** 已运行分钟数；真实进程按 /proc 算出来的启动时刻换算 */
-  uptime: number
+  /** 已运行分钟数；null = 端口探测到了实例但读不到宿主进程，时长未知，不编 */
+  uptime: number | null
+  /** 时长未知时的悬停说明：讲清为什么读不到 */
+  uptimeHint?: string
   /** 派生时探测端口的结论，仅启动等待期间展示 */
   portNote?: string
   /** 已停止卡的末轨第一行：真实 profile 的 patch/锁文件读数；没有就显示「未运行」 */
