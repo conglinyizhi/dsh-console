@@ -1,6 +1,7 @@
 {
- "_note": "新前端（rabbita）的几何不变量选择器映射。类名从 frontend/styles/app.scss 与 frontend/*.mbt 里读出，交付后需用真实 DOM 核对一遍。",
- "card": ".dsh-case",
+ "_note": "新前端（rabbita）的几何不变量选择器映射。优先用 data-name 与 aria 钩子（类名会改，定位钩子不该改）；没有钩子的才退回类名。交付后用真实 DOM 核对一次。",
+ "_hooks_available": "新前端暴露 23 个 data-name：about-page about-panel archived-row archived-toggle instance-card kv-row log-box log-refresh log-source logs-page menu-overlay new-instance overview-page row-menu running-empty settings side-info side-nav source-badge stopped-empty sub-line top-bar version-panel",
+ "card": "[data-name=\"instance-card\"]",
  "actions": ".dsh-actions",
  "dot": ".dsh-dot",
  "dotSlot": ".dsh-dot-slot",
@@ -8,6 +9,6 @@
  "name": ".dsh-name",
  "splitMain": ".dsh-split > .dsh-btn:not(.split-caret)",
  "splitCaret": ".dsh-split > .split-caret",
- "menuTrigger": ".dsh-btn-icon",
- "menu": ".dsh-menu"
+ "menuTrigger": "[aria-haspopup=\"menu\"]",
+ "menu": "[data-name=\"row-menu\"]"
 }
