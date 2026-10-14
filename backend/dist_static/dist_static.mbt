@@ -38,7 +38,7 @@ pub let history_fallback_path : String = "/index.html"
 /// 「index.html 之外还得有东西」这条不能松：只有 index.html 的话，仓库根那个
 /// Vite 开发入口会被误当成产物目录。
 pub async fn is_dist_dir(dir : String) -> Bool noraise {
-  if not(@json.exists(@json.join_path(dir, "index.html"))) {
+  if !@json.exists(@json.join_path(dir, "index.html")) {
     return false
   }
   if @json.is_dir(@json.join_path(dir, "assets")) {
