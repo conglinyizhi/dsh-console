@@ -1,0 +1,11 @@
+import {
+  "conglinyizhi/precss",
+  "conglinyizhi/precss/core",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+}
+
+// 样式编译是构建期的一步，跑在 native 上（读文件、写产物）。
+supported_targets = "native"
+
+pkgtype(kind: "executable")

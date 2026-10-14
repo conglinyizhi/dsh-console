@@ -1,0 +1,11 @@
+import {
+  // 本模块的根包。名字里带连字符，别名必须显式给 —— 默认别名会从最后一段推导，
+  // 推出来的标识符不合法（同模块的 llm-faceoff/bench 也是这么写的）。
+  "conglinyizhi/dsh-console-frontend" @frontend,
+  "moonbit-community/rabbita",
+}
+
+// 浏览器应用：只编 js。
+supported_targets = "js"
+
+pkgtype(kind: "executable")

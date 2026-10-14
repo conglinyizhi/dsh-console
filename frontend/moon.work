@@ -1,0 +1,14 @@
+// 工作区成员。
+//
+// conglinyizhi/md2 **没有发布到 mooncakes**（moon search md2 → No modules found；
+// moon add conglinyizhi/md2 → Module not found in registry），所以它只能以
+// 本地路径依赖的方式进来：moon.mod 里按版本号声明，moon.work 用成员路径把它
+// 指到磁盘上那份源码。moon 解析模块图时用本地目录顶掉 registry 查询。
+//
+// 这份路径指向使用者自己的 md2 检出，跟着它一起演进 —— 改 md2 立刻反映到这里。
+// 代价：本工程不再自包含。要换机器/要脱离该目录，把 md2 源码拷到
+// vendor/md2/ 再把下面这行改成 "vendor/md2" 即可（其余都不用动）。
+members = [
+  ".",
+  "../../../../disk/ai_workspace/rabbita-material",
+]

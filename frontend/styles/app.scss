@@ -1,0 +1,124 @@
+// 布局层（随 app.css 走，两列 rabbita 页面共用）。
+//
+// 只写「东西在哪、占多大」；颜色一律从 md2 的主题变量取（--v-theme-* / --v-border-*），
+// 所以同一份 CSS 在「md2 原生暗色」和「dsh 皮肤」两列里都会是暗的 —— 差别只在变量值，
+// 差异因此可以完全归因到 dsh-skin.css，不掺别的变量。
+//
+// 字号 / 字体族 / 圆角 / 阴影属于设计语言，不在这里，全部留给 dsh-skin.scss。
+
+html, body { margin: 0; }
+
+body {
+  background: rgb(var(--v-theme-background));
+  color: rgb(var(--v-theme-on-surface));
+}
+
+// ── 关于页 ───────────────────────────────────────────────
+.dsh-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 22px 24px;
+  max-width: 760px;
+}
+.dsh-page-head { display: flex; flex-direction: column; gap: 5px; }
+.dsh-page-title { margin: 0; }
+.dsh-panel { padding: 13px 15px 14px; }
+.dsh-panel-title { margin: 0 0 10px; }
+.dsh-para { margin: 0 0 6px; }
+.dsh-para:last-child { margin-bottom: 0; }
+.dsh-panel-title,
+.dsh-para,
+.dsh-label,
+.dsh-foot,
+.dsh-field-label,
+.dsh-field-icon,
+.dsh-uptime {
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+.dsh-value { color: rgb(var(--v-theme-on-surface)); }
+
+.dsh-kv { display: flex; flex-direction: column; }
+.dsh-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.dsh-row:last-child { border-bottom: 0; }
+.dsh-label { flex: none; width: 88px; }
+.dsh-value { min-width: 0; word-break: break-all; }
+.dsh-foot { margin: 10px 0 0; }
+
+// ── 运行中实例卡 ─────────────────────────────────────────
+.dsh-section-title { margin: 6px 0 0; }
+.dsh-instance-list { display: flex; flex-direction: column; gap: 12px; }
+.dsh-case { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 15px; }
+.dsh-case-head {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+}
+.dsh-tile {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--v-theme-success), 0.14);
+  color: rgb(var(--v-theme-success));
+}
+.dsh-ident { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dsh-title-line { min-width: 0; }
+.dsh-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsh-sub {
+  display: grid;
+  grid-template-columns: minmax(112px, max-content) 13px minmax(38px, max-content) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 6px;
+  min-width: 0;
+  color: rgb(var(--v-theme-success));
+}
+.dsh-kind {
+  justify-self: start;
+  align-self: center;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 999px;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  background: rgb(var(--v-theme-surface-light));
+}
+.dsh-dot-slot { width: 13px; height: 13px; display: grid; place-items: center; }
+.dsh-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.dsh-state { white-space: nowrap; }
+.dsh-tail { display: flex; flex-direction: column; min-width: 0; }
+.dsh-uptime { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsh-actions { justify-self: end; display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.dsh-dot-danger {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-error));
+}
+.dsh-fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 20px;
+}
+.dsh-field { display: flex; align-items: center; gap: 7px; height: 28px; min-width: 0; }
+.dsh-field-icon { display: flex; }
+.dsh-field-label { flex: none; }
+.dsh-field-value {
+  margin-left: auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgb(var(--v-theme-on-surface));
+}
