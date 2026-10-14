@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 
-const [baseUrl, shotPrefix] = process.argv.slice(2)
+const [baseUrl, shotPrefix, jsonOut] = process.argv.slice(2)
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
   '--hide-scrollbars', '--remote-debugging-port=9334', '--user-data-dir=/tmp/chrome-verify',
   '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
@@ -76,5 +76,6 @@ if (shotPrefix) {
   data.shot = shotPrefix + '.png'
 }
 console.log(JSON.stringify(data, null, 1))
+if (jsonOut) writeFileSync(jsonOut, JSON.stringify(data, null, 1))
 chrome.kill()
 process.exit(0)
