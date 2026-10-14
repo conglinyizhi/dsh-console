@@ -208,6 +208,21 @@ out.fork.immediately = await evalJs("(() => { const cards = [...document.querySe
 await sleep(3500)
 out.fork.afterWait = await evalJs("(() => { const card = [...document.querySelectorAll('[data-name=instance-card]')].find(c => (c.dataset.instance || '').startsWith('plugin-dev')); if (!card) return { found: false }; return { found: true, status: card.querySelector('.dsh-sub').dataset.status, fields: [...card.querySelectorAll('.dsh-field')].map(f => f.innerText.split(String.fromCharCode(10)).join(' ')), tail: card.querySelector('.dsh-tail').innerText } })()")
 
+
+// ── 九点五、重启的自锁态 与 归档动作 ──
+out.restart = {}
+out.restart.triggered = await evalJs("(() => { const b = [...document.querySelectorAll('.dsh-actions button')].find(x => x.innerText.trim() === '重启'); if (!b) return false; b.click(); return true })()")
+await sleep(250)
+out.restart.duringLock = await evalJs("(() => { const b = [...document.querySelectorAll('.dsh-actions button')].find(x => x.innerText.indexOf('重启中') >= 0); return b ? { label: b.innerText.trim(), disabled: b.disabled } : { label: null } })()")
+await sleep(1000)
+out.restart.afterLock = await evalJs("(() => { const b = [...document.querySelectorAll('.dsh-actions button')].find(x => x.innerText.indexOf('重启') >= 0); return b ? { label: b.innerText.trim(), disabled: b.disabled } : { label: null } })()")
+out.archiveAction = {}
+out.archiveAction.before = await evalJs("({ archivedRows: document.querySelectorAll('.dsh-archive-row').length, stoppedNames: [...document.querySelectorAll('[data-name=instance-card]')].filter(c => c.querySelector('.dsh-sub').dataset.status === 'stopped').map(c => c.dataset.instance) })")
+await clickSel('#dsh-trigger-profile-review-dev')
+out.archiveAction.menuOpened = await evalJs("!!document.querySelector('.dsh-menu')")
+await clickSel('.dsh-menu-item[data-action=archive]')
+out.archiveAction.after = await evalJs("(() => ({ archivedRows: document.querySelectorAll('.dsh-archive-row').length, archivedNames: [...document.querySelectorAll('.dsh-archive-name')].map(n => n.innerText), stoppedNames: [...document.querySelectorAll('[data-name=instance-card]')].filter(c => c.querySelector('.dsh-sub').dataset.status === 'stopped').map(c => c.dataset.instance), menuClosed: !document.querySelector('.dsh-menu') }))()")
+
 // ── 十、favicon 与刷新回总览 ──
 out.favicon = await evalJs("(() => { const link = document.querySelector('link[rel~=icon]'); return link ? link.getAttribute('href').slice(0, 48) : null })()")
 await send('Page.navigate', { url: baseUrl })
