@@ -40,18 +40,17 @@ const fields = computed<FieldRow[]>(() => {
         <AppIcon :name="instance.tone === 'violet' ? 'puzzle' : 'launch'" :size="20" />
       </span>
 
-      <span class="ident">
-        <span class="name-line">
+      <div class="ident">
+        <div class="title-line">
           <span class="name">{{ instance.name }}</span>
+        </div>
+        <div class="sub-line" :class="{ off: !running }">
           <span class="kind">{{ instance.kind }}</span>
-        </span>
-      </span>
-
-      <span class="state" :class="{ off: !running }">
-        <span class="dot-slot"><i class="dot" /></span>
-        <span class="state-label">{{ running ? '运行中' : '已停止' }}</span>
-        <span class="uptime">已运行 {{ instance.uptime }}</span>
-      </span>
+          <span class="dot-slot"><i class="dot" /></span>
+          <span class="state-label">{{ running ? '运行中' : '已停止' }}</span>
+          <span class="uptime">已运行 {{ instance.uptime }}</span>
+        </div>
+      </div>
 
       <InstanceActions :instance="instance" @action="forward" />
     </header>
@@ -68,10 +67,9 @@ const fields = computed<FieldRow[]>(() => {
 
 <style scoped>
 .row {
-  /* 两卡共用同一套列宽，逐项左右边界可比 */
-  --col-ident: 188px;
-  --col-name: 90px;
-  --col-kind: 106px;
+  /* 两卡共用同一套列宽，逐项左右边界可比。
+     副标题内部同样是固定轨道：类型标签列宽固定，状态点不跟着 pill 走 */
+  --col-kind: 112px;
   --col-state: 38px;
   position: relative;
   display: flex; flex-direction: column; gap: 12px;
@@ -81,42 +79,47 @@ const fields = computed<FieldRow[]>(() => {
   border-radius: var(--radius);
 }
 .row-head {
-  /* 固定栅格：图标底板、名称、类型标签、状态、按钮组各自的轨道固定，
-     两卡的列左边界与按钮组右边界逐项一致，不靠内容自然撑开 */
+  /* 三列固定栅格：图标底板（跨两行垂直居中）| 两行文本块 | 按钮组。
+     两卡列宽一致，标题行左边界、副标题行左边界、按钮组右边界逐项可比 */
   display: grid;
-  grid-template-columns: 40px var(--col-ident) minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center; column-gap: 10px;
 }
 .tile { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; }
 .tile.accent { background: rgba(78, 194, 122, 0.14); color: var(--ok); }
 .tile.violet { background: var(--violet-soft); color: var(--violet); }
-.ident { min-width: 0; display: flex; }
-.name-line {
-  display: grid; grid-template-columns: var(--col-name) var(--col-kind);
-  align-items: center; column-gap: 6px; min-width: 0;
+.ident {
+  /* 标题行 + 副标题行，行间距 2px，两行同一起点、左对齐 */
+  min-width: 0; display: flex; flex-direction: column; gap: 2px;
 }
+.title-line { min-width: 0; }
 .name {
+  display: block;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 14px; font-weight: 600; color: var(--text);
+  font-size: 15px; font-weight: 600; line-height: 22px; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .kind {
-  flex: none; padding: 2px 7px;
+  justify-self: start; align-self: center;
+  padding: 1px 6px;
   border: 1px solid var(--line-strong); border-radius: 999px;
-  font-size: 11px; line-height: 1.35; color: var(--text-mid);
+  font-size: 10.5px; line-height: 1.3; color: var(--text-mid);
   background: var(--panel-soft); white-space: nowrap;
 }
-.state {
-  /* 状态点、状态文案、时长共用卡头这一条中心线：起点分别为固定轨道。
-     第一列是 13px 槽位（7px 点 + 两边各 3px 光环），光环在槽位内，
-     所以运行中与已停止两态的几何完全一致，切状态时点不会跳。
-     左侧留 6px 自有间距：卡头栅格的 10px 列间距会被运行中的光环吃掉 3px，
-     不加这段就会出现"点吸住左边标签"的观感。 */
-  display: grid; grid-template-columns: 13px var(--col-state) minmax(0, 1fr);
-  align-items: center; column-gap: 6px; min-width: 0; color: var(--ok);
-  padding-left: 6px;
+.sub-line {
+  /* 副标题行：类型标签 + 状态点 + 状态文案 + 时长，段间只靠 6px 间距分开，不用分隔符。
+     四段都是固定轨道：第一列是固定宽度的标签列，pill 靠列首摆放，
+     所以状态点的 x 不随 pill 内容变化，两卡的点在同一列上。
+     标签列宽（112px）大于最宽 pill（102px），pill 右缘到 13px 点槽的净间距 ≥16px，
+     不再依赖"额外 padding 抵消光环"，"点吸住标签"不会回来。
+     点槽恒为 13px（7px 点 + 两边各 3px 光环），光环在槽位内，
+     运行中与已停止两态几何完全一致，切状态时点不跳。 */
+  display: grid;
+  grid-template-columns: var(--col-kind) 13px var(--col-state) minmax(0, 1fr);
+  align-items: center; column-gap: 6px; min-width: 0;
+  font-size: 12px; line-height: 18px; color: var(--ok);
 }
-.state.off { color: var(--text-dim); }
+.sub-line.off { color: var(--text-dim); }
 .dot-slot {
   width: 13px; height: 13px;
   display: grid; place-items: center;
@@ -125,7 +128,7 @@ const fields = computed<FieldRow[]>(() => {
   width: 7px; height: 7px; border-radius: 50%;
   background: currentColor; box-shadow: 0 0 0 3px rgba(78, 194, 122, 0.13);
 }
-.state.off .dot { box-shadow: none; }
+.sub-line.off .dot { box-shadow: none; }
 .state-label { font-size: 12px; }
 .uptime {
   font-size: 10.5px; color: var(--text-dim);
