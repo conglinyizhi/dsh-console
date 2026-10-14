@@ -42,7 +42,7 @@ const runningMenu = computed<MenuEntry[]>(() => {
   return items
 })
 
-/** 已停止：没有 split button，这个图标按钮是该行唯一的下拉入口；可删实例也能直接删 */
+/** 已停止：下拉入口在「启动」右半的 caret 上；可删实例也能直接把删除放进菜单 */
 const stoppedMenu = computed<MenuEntry[]>(() => {
   const items: MenuEntry[] = [
     { key: 'logs', icon: 'logs', label: '查看日志' },
@@ -118,11 +118,28 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="actions">
-    <!-- 运行中才有 split button：左半打开 UI，右半只开菜单 -->
-    <div v-if="running" class="split" :class="instance.tone">
-      <button type="button" class="btn primary split-main" @click="emit('action', 'open-ui', null)">
-        <AppIcon name="launch" :size="14" />
-        <span>打开 Web UI</span>
+    <!-- 运行中：打开 Web UI 是独立实心按钮，收纳入口回到行尾的 ⋯ -->
+    <button
+      v-if="running"
+      type="button"
+      class="btn primary"
+      :class="instance.tone"
+      @click="emit('action', 'open-ui', null)"
+    >
+      <AppIcon name="launch" :size="14" />
+      <span>打开 Web UI</span>
+    </button>
+
+    <!-- 已停止：两段式启动。左半启动，右半只开菜单，分隔线是右半的 border-left -->
+    <div v-else class="split" :class="instance.tone">
+      <button
+        type="button"
+        class="btn primary split-main"
+        :disabled="busy"
+        @click="emit('action', 'toggle', null)"
+      >
+        <AppIcon name="play" :size="13" />
+        <span>{{ busy ? '启动中…' : '启动' }}</span>
       </button>
       <button
         ref="triggerRef"
@@ -130,7 +147,8 @@ onBeforeUnmount(() => {
         class="btn primary split-caret"
         aria-haspopup="menu"
         :aria-expanded="menuOpen"
-        :aria-label="`打开 Web UI 菜单（${instance.name}）`"
+        :disabled="busy"
+        :aria-label="`启动菜单（${instance.name}）`"
         @click="toggleMenu"
       >
         <AppIcon name="chevronRight" :size="12" class="caret" />
@@ -147,25 +165,15 @@ onBeforeUnmount(() => {
       <i class="dot-danger" />
       <span>停止</span>
     </button>
-    <button
-      v-else
-      type="button"
-      class="btn primary"
-      :disabled="busy"
-      @click="emit('action', 'toggle', null)"
-    >
-      <AppIcon name="play" :size="13" />
-      <span>{{ busy ? '启动中…' : '启动' }}</span>
-    </button>
 
     <button type="button" class="btn" :disabled="restarting || busy" @click="onRestart">
       <AppIcon name="refresh" :size="14" />
       <span>{{ restarting ? '重启中…' : '重启' }}</span>
     </button>
 
-    <!-- 已停止行唯一的下拉入口：纯图标，无文字 -->
+    <!-- 运行中行的下拉入口：纯图标、无文字，方形描边 30×30 -->
     <button
-      v-if="!running"
+      v-if="running"
       ref="triggerRef"
       type="button"
       class="btn icon-only"
@@ -203,7 +211,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .actions {
-  /* 一行三组：打开 Web UI（split）、停止/启动、重启，外加停止行的图标下拉 */
+  /* 运行中：打开 Web UI / 停止 / 重启 / ⋯；已停止：启动（两段式）/ 重启。
+     菜单挂在这个容器上，右缘贴卡片内容盒右缘 */
   position: relative;
   justify-self: end;
   display: flex;
@@ -249,14 +258,17 @@ onBeforeUnmount(() => {
 .btn:disabled { opacity: 0.6; cursor: default; }
 .btn.primary {
   border-color: transparent; color: #fff;
-  background: var(--split-bg, var(--accent));
+  background: var(--btn-bg, var(--accent));
 }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.icon-only { width: 30px; padding: 0; justify-content: center; }
-/* split button：主色底随实例色调，第一张卡蓝、第二张紫 */
+/* 主色底随实例色调：运行中卡蓝（accent）、已停止的 profile 卡紫（violet） */
+.split.accent,
+.btn.primary.accent { --btn-bg: var(--accent); }
+.split.violet,
+.btn.primary.violet { --btn-bg: var(--violet); }
+/* split button：两半同底色；右半的 border-left 就是分隔线，圆角各只留外侧两角 */
 .split { display: inline-flex; }
-.split.accent { --split-bg: var(--accent); }
-.split.violet { --split-bg: var(--violet); }
 .split-main { border-right-width: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
 .split > .btn.split-caret {
   min-width: 26px; padding: 0; justify-content: center;
