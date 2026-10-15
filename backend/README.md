@@ -21,9 +21,13 @@ dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版�
 第四批第二轮改三处：**归档去掉 `merged`**（旧文件仍能读）、
 **每个 profile 的备注**（`/api/local/profiles` 新增 `note` / `noteSource`，新动作 `set-profile-note`，
 落点 `<profile 目录>/.dsh-note.txt`）、**派生结果写明拷贝口径**（已拷 N 个文件、未拷 node_modules）。
-第四批第三轮（本轮，契约「追加契约（第三轮）」那一节）补上三个空壳菜单项里的后端能力：
+第四批第三轮补上三个空壳菜单项里的后端能力：
 新动作 **`open-path`**（打开目录 / 打开配置）——参数只有 profile 名与一个枚举 `kind`，
 目标路径由后端自己拼（**没有路径参数这回事**），交给 `xdg-open` 直接 exec。
+第四批第四轮加**带握手令牌的访问地址**（`instances` 的 `webUrl` / `webUrlSource`，每次现算、不缓存、不进审计）。
+第四批第五轮（本轮，契约「追加契约（第五轮）」那一节）让**派生出来的新 profile 一眼认得出**：
+`profiles` 每个 profile 加 **`dirMtimeMs`** / `dirMtimeSource`（目录 mtime，卡片第六格与列表排序都用它），
+`fork-profile` 给新 profile 写一条备注当"出生证明"（**写失败不让派生失败**），并把"结果落在哪"写进提示。
 
 ## 依赖
 
@@ -193,6 +197,12 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 - `note` / `noteSource`（第二轮新增的**加字段**，旧消费者忽略即可）：备注正文与来源。
   备注放在 `<profile 目录>/.dsh-note.txt`，读到给原文 + `"文件"`；没有这个文件给 `""` + `"默认"`；
   有文件读不动给 `""` + `"默认（<路径> 读取失败：…）"`（与设置的 `sources` 同一套口径，读不到就说读不到）
+- `dirMtimeMs` / `dirMtimeSource`（第五轮新增的**加字段**，旧消费者忽略即可）：profile **目录**的 mtime
+  （Unix 毫秒，数字；读不到给 `null` + 原因）。卡片第六格「最近改动」与列表排序都用它。
+  **口径是「最近改动」，不是「创建时间」**：多数文件系统上可靠的创建时间拿不到
+  （`ctime` 会在 chmod / 改名时变，`birth time` 不通用），目录 mtime 是能拿到且不会骗人的那个值；
+  派生会写进新目录，所以刚派生出来的 profile 一定是 mtime 最新、排在最前面的那一个。
+  这一层**不动** `profiles` 数组的顺序：数组仍按 profile 名升序，降序排序是消费者按 `dirMtimeMs` 做的事
 
 ### `GET /api/local/logs?source=...&tail=...`
 
@@ -432,13 +442,42 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `start-instance` | `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`，等它答出 dsh web 签名才算起成功 | 同 profile 已在跑 → `conflict`（message 里有 pid 与端口）；端口占用 → `conflict`；起不来 → 收掉子进程，message 给「参数被拒」的人话诊断（见「哪些 profile 能起成常驻实例」）或日志尾部 |
 | `stop-instance` | SIGTERM → 等 `process.stopGraceMs` → 仍在则 SIGKILL | 目标必须在运行登记或进程表里认得出是 dsh，否则 `not-found`（不误杀别的 pid） |
 | `restart-instance` | 先停后起，端口与 profile 沿用原来的 | 认不出 profile → `not-found` |
-| `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到） | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来。结果里写明口径：**「已拷 N 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可」**（`outcome.filesCopied` 是真实拷过去的文件数，`outcome.note` 与顶层 `note` 都是这句话） |
+| `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到），**再给新 profile 写一条"出生证明"备注** | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来。拷贝口径写明：**「已拷 N 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可」**（`outcome.filesCopied` 是真实拷过去的文件数）。备注见下面「派生出的新 profile 怎么认得出」 |
 | `rename-profile` | 改磁盘上的目录名 | 空名 / 非法字符 / 重名 / 正在运行 都拒 |
 | `set-profile-note` | 写备注：非空 `text` 原子写进 `<profile 目录>/.dsh-note.txt`（覆盖旧的）；**空串 = 删掉那个文件** | 名字先过白名单、再确认解析到 `profilesRoot` 之内（**目录穿越拒 `bad-params`**）；目录不存在 `not-found`；超过 2000 字符 `bad-params`；写不动 `io-error`。`text` 不 trim（前后空格是用户写的），**缺 `text` 键 ≠ 空串**：缺键 `bad-params` |
 | `open-path` | `xdg-open <目标>` 打开一个**枚举目标**：`kind:"dir"`（缺省）= profile 目录，`kind:"config"` = 它的 `cordis.patch.yml`。**直接 exec**（不经 shell、不做任何字符串插值），spawn 完不等它干活 | **params 只认 `profile` 与 `kind`**，多一个键（比如 `path`）就 `bad-params`——客户端给不了路径。名字过白名单 + 解析结果必须落在 profilesRoot 之内（两道，与 `set-profile-note` 同款）；目标不存在 `not-found`；PATH 里没有 `xdg-open` / 没有图形环境（`DISPLAY` 与 `WAYLAND_DISPLAY` 都没设）/ `xdg-open` 起来就非零退出 → `io-error`，message 写清是哪一种 |
 | `archive-profile` | 往 `archive.json` 追加一条 `{ profile, archivedAt }` | **不动磁盘上的 profile**；同一个 profile 已在归档区 → `conflict` |
 | `unarchive-profile` | 删掉那条记录 | 没有这条 → `not-found` |
 | `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
+
+### 派生出的新 profile 怎么认得出（第五轮）
+
+使用者报过一次："刚才从外部配置文件分出来一个，看不出来是我分出来的……它竟然来到了最下面"。
+三处一起改，缺一处都还是认不出：
+
+1. **列表排序口径 = 最近改动**。`profiles` 数组本身仍按名字升序（只读层的形状不动），
+   已停止那一组由消费者按 `dirMtimeMs` **降序**排，读不到的排最后、按名字升序兜底。
+   用"最近改动"而不是"创建时间"：可靠的创建时间在多数文件系统上拿不到（`ctime` 会因 chmod / 改名而变，
+   `birth time` 不通用）；而派生一定会写这个目录，所以刚派生出来的**一定是 mtime 最新**的那个。
+2. **备注就是它的出生证明**。派生时往 `<新 profile 目录>/.dsh-note.txt` 写：
+
+   ```
+   从 <源 profile> 派生 · <本地时间>
+   <源 profile 原有的备注，原样接在后面>
+   ```
+
+   **为什么覆盖源备注而不是留着不管**：派生是整目录拷贝，源 profile 的备注会跟着拷过来，
+   而那条备注讲的是**源**的事（"这个是干啥用的"），留在新 profile 里会误导 —— 所以第一行必须是它的来历，
+   源的那段原文退居第二行起、继续留着供参考。总长按备注上限 2000 字符截断
+   （第一行短，真正被截掉的只会是尾部）。
+   **备注写失败不算派生失败**：目录已经拷好了，为一个备注把整次派生报成失败是假报 ——
+   outcome 里 `noteFile.written=false` + `noteFile.error` 写清原因，顶层 `note` 也照实说。
+3. **提示要说清结果落在哪**：`outcome` 里有 `newName` / `noteFile{path,text,written,error}` /
+   `dirMtimeMs` / `listPosition`，顶层 `note` 一句话讲完"新 profile 叫什么、它在列表最上面、
+   备注里写着从哪来、拷了多少文件"。使用者问的"那我点这个按钮呢是否有效"就靠这一句回答。
+
+本地时间由 `json/local_time.c` 的 `localtime_r(3)` 取（见下面「FFI」）；
+时区读不到时退回 UTC 并在括号里写明，绝不假装是本地时间。
 
 起实例的两条实测细节（都在代码注释里）：
 
@@ -648,7 +687,7 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 | 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（追加；超 8 MiB 滚动，归档进同目录 `.archive/`） | `store/audit.mbt` |
 | 回收站 | `$XDG_STATE_HOME/dsh-console/trash/<profile>-<毫秒>/` | `actions/profile_fs.mbt`（`deleteToTrash=true`） |
 | profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
-| profile 备注 | `<profile 目录>/.dsh-note.txt`（空串语义 = 删掉它） | `actions/profile_fs.mbt`（`set-profile-note`） |
+| profile 备注 | `<profile 目录>/.dsh-note.txt`（空串语义 = 删掉它；**派生时也写这一个文件**） | `actions/profile_fs.mbt`（`set-profile-note` 与 `fork-profile`） |
 | 实例日志 | `<该实例 DSH_HOME>/logs/console-<profile>-<port>.log` | `actions/instance.mbt`（spawn 时重定向 stdout/stderr） |
 | 打开窗口 | **控制台自己不写盘**：目标路径交给桌面环境（`xdg-open`），后面开什么窗口是那个会话的事 | `actions/open_path.mbt`（第二处建进程处）。它给 `xdg-open` 的 stderr 落一个一次性捕获文件 `<状态目录>/open-path-<毫秒>.log`，探测窗过了就读出来、**随即删掉**（建不了就退回 `/dev/null`） |
 
@@ -656,12 +695,16 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 
 ### FFI
 
-全工程两处 C，各自只有一次系统调用族：
+全工程三处 C，各自只有一次系统调用族：
 
 - `json/fd_link.c`：`readlink(2)`（只读，端口 → inode → PID 那条 join 用）
+- `json/local_time.c`：`localtime_r(3)` 两次（一次取本地 UTC 偏移、一次取时区缩写）。派生备注第一行要写
+  "本地时间"，而核心库与本工程的依赖里**没有时区换算**，UTC 顶替会写出一个与使用者那块表对不上的时间。
+  只读时间，不写盘、不建进程、不碰文件；取不到返回哨兵值，MoonBit 侧按"读不到"处理（写明原因，不拿 UTC 冒充）
 - `fsx/proc_signal.c`：`kill(2)` / `kill(pid,0)` / `getpid(2)`。停止实例要「先 SIGTERM、宽限后 SIGKILL」，
   判活要 `kill(pid,0)`，而 `@process` 只能操作自己 spawn 出来的句柄，**对任意 PID 没有原语**，
   本工程也不想为此去 spawn `/bin/kill`。三个函数都不写盘、不建进程、不读文件。
+- 本地时间只走上面 `json/local_time.c` 那一次 `localtime_r`，**没有**为它去 spawn `date`。
 
 ### 自测怎么核对
 

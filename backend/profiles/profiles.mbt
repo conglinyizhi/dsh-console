@@ -5,13 +5,17 @@
 // 每个 profile：
 //   { name, dir, isCurrent, packageName, bundles: { declared, installed,
 //     installedInProfile, installedHoisted, missing }, patch: { exists, lines },
-//     lock: { exists, mtime }, note, noteSource }
+//     lock: { exists, mtime }, note, noteSource, dirMtimeMs, dirMtimeSource }
 // 读不到的字段给 null / 0 / []，不编造。
 //
 // note / noteSource 是第二轮契约新增的加字段（旧消费者忽略即可）：
 // 备注放在 <profile 目录>/.dsh-note.txt，读到了给原文 + "文件"；
 // 没有这个文件给空串 + "默认"；有文件读不动给空串 + "默认（原因）"——
 // 与设置那边的 sources 口径一致，读不到就说读不到，不编内容。
+//
+// dirMtimeMs / dirMtimeSource 是第五轮契约新增的加字段：profile **目录**的 mtime
+// （毫秒），卡片第六格「最近改动」用它，列表排序也用它——口径是"最近改动"而不是
+// "创建时间"（见 README：多数文件系统上可靠的创建时间拿不到）。读不到给 null + 原因。
 
 ///|
 /// 扫描时跳过的目录（与 Node 版 SKIP_DIRS 一致，不做递归）。
@@ -40,6 +44,36 @@ pub async fn read_profile_note(dir : String) -> (String, String) noraise {
     Ok(text) => (text, "文件")
     Err(e) => ("", "默认（" + path + " 读取失败：" + e + "）")
   }
+}
+
+///|
+/// 读一个 profile **目录**的 mtime（毫秒），返回 (毫秒, 来源说明)。
+///   读得到 -> (Some ms, "<路径> 的 mtime")
+///   读不到 -> (None,   "<路径> 读不到 mtime：…")
+///
+/// 为什么用目录 mtime：契约第五轮写明"最近改动"是能拿到且不会骗人的那个值
+/// （ctime 会在 chmod / 改名时变，birth time 不通用）。派生会写进这个目录，
+/// 所以刚派生出来的 profile 一定是 mtime 最新的那一个。
+pub async fn read_profile_dir_mtime(dir : String) -> (Int64?, String) noraise {
+  match @json.mtime_ms(dir) {
+    Some(ms) => (Some(ms), dir + " 的 mtime")
+    None => (None, dir + " 读不到 mtime")
+  }
+}
+
+///|
+/// 派生时给新 profile 写的备注（第五轮契约第二节）：
+/// 第一行是它的来历 `从 <源> 派生 · <本地时间>`，源 profile 原有的备注**原样接在后面**。
+///
+/// 为什么覆盖而不是不管：派生是整目录拷贝，源 profile 的备注会被一起拷过来，
+/// 那条备注讲的是**源**的事，直接留着会误导 —— 所以新 profile 的第一行必须是它的来历。
+/// 总长按备注上限（`note_max_chars`）截断：第一行短、永远是完整的，被截掉的只会是尾部。
+pub fn fork_note_text(source_name : String, stamp : String, source_note : String) -> String {
+  let head = "从 " + source_name + " 派生 · " + stamp
+  if source_note == "" {
+    return @json.slice(head, 0, note_max_chars)
+  }
+  @json.slice(head + "\n" + source_note, 0, note_max_chars)
 }
 
 ///|
@@ -184,6 +218,7 @@ async fn describe_profile(
   }
 
   let (note, note_source) = read_profile_note(dir)
+  let (dir_mtime, dir_mtime_source) = read_profile_dir_mtime(dir)
 
   let lock_exists = @json.exists(@json.join_path(dir, "pnpm-lock.yaml"))
   let lock_mtime = if lock_exists {
@@ -216,6 +251,8 @@ async fn describe_profile(
     ])),
     ("note", @json.JStr(note)),
     ("noteSource", @json.JStr(note_source)),
+    ("dirMtimeMs", @json.int64_or_null(dir_mtime)),
+    ("dirMtimeSource", @json.JStr(dir_mtime_source)),
     ("lock", @json.JObj([
       ("exists", @json.JBool(lock_exists)),
       (

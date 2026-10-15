@@ -201,6 +201,67 @@ pub fn iso_from_epoch_ms(ms : Int64) -> String {
 }
 
 ///|
+/// localtime_r(3)：某个绝对时刻的本地 UTC 偏移（秒）。取不到给 None。
+/// 走 json/local_time.c 的一次 localtime_r —— 核心库与依赖里没有时区换算，
+/// 而「本地时间」是使用者看的那块表，不能用 UTC 冒充。
+extern "c" fn local_offset_seconds_raw(sec : Int64) -> Int64 = "dsh_console_local_offset_seconds"
+
+///|
+/// 本地时区缩写（C 侧写进缓冲区，返回字节数）。取不到返回 0。
+#borrow(buf)
+extern "c" fn local_zone_name_raw(buf : Bytes, cap : Int) -> Int = "dsh_console_local_zone_name"
+
+///|
+/// C 侧取不到偏移时的哨兵值（|真实偏移| 不可能到 86400 秒）。
+let local_offset_unknown : Int64 = 1000000000L
+
+///|
+/// 把 Unix 毫秒时间戳格式化成**本地时间** `MM-DD HH:MM`（如 `10-15 18:50`）。
+/// 取不到本地时区给 None，调用方按「读不到」写原因，不拿 UTC 顶替。
+pub fn local_stamp_from_epoch_ms(ms : Int64) -> String? {
+  let sec = if ms >= 0L { ms / 1000L } else { (ms - 999L) / 1000L }
+  let offset = local_offset_seconds_raw(sec)
+  if offset == local_offset_unknown || offset <= -86400L || offset >= 86400L {
+    return None
+  }
+  let local_ms = ms + offset * 1000L
+  let mut days = local_ms / 86400000L
+  let mut rem = local_ms % 86400000L
+  if rem < 0L {
+    rem = rem + 86400000L
+    days = days - 1L
+  }
+  let tod = rem.to_int()
+  let (_, month, day) = civil_from_days(days)
+  let b = StringBuilder()
+  pad_num(b, month.to_int64(), 2)
+  b.write_char('-')
+  pad_num(b, day.to_int64(), 2)
+  b.write_char(' ')
+  pad_num(b, (tod / 3600000).to_int64(), 2)
+  b.write_char(':')
+  pad_num(b, (tod % 3600000 / 60000).to_int64(), 2)
+  Some(b.to_string())
+}
+
+///|
+/// 本地时区名（如 `CST`）。取不到给 None —— 只是给人看的补充，
+/// 拿不到时调用方照旧写时间，不写时区。
+pub fn local_zone_name() -> String? {
+  let probe = local_offset_seconds_raw(0L)
+  if probe == local_offset_unknown {
+    return None
+  }
+  let buf = Bytes::make(64, b'\x00')
+  let n = local_zone_name_raw(buf, 64)
+  if n <= 0 {
+    None
+  } else {
+    Some(@utf8.decode_lossy(buf[:n], ignore_bom=true))
+  }
+}
+
+///|
 fn pad_num(b : StringBuilder, value : Int64, width : Int) -> Unit {
   let s = int64_to_dec(value)
   let mut pad = width - s.length()

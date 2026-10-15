@@ -1,7 +1,8 @@
 {
   "is-main": false,
   "native-stub": [
-    "fd_link.c"
+    "fd_link.c",
+    "local_time.c"
   ],
   "import": [
     "moonbitlang/async",

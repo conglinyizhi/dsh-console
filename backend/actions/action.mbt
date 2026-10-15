@@ -222,12 +222,32 @@ pub async fn run_action(
       )
       // 这一轮的派生口径要写在结果里，不能只写在文档里：整目录拷贝，但排除 node_modules，
       // 文件数是这一趟真实拷过去的个数（node_modules 整棵不在其中）。
+      // 备注第一行就是"从 <源> 派生 · <时间>"，提示里直接引它，不另抄一份
+      let mut note_head = ""
+      for line in outcome.note_text.split("\n") {
+        note_head = line.to_owned()
+        break
+      }
       let mut copy_note = "已拷 " + outcome.files.to_string() +
         " 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可"
       let other_skipped = outcome.skipped.filter(fn(s) { s != "node_modules" })
       if other_skipped.length() > 0 {
         copy_note = copy_note + "（另有跳过：" + other_skipped.join("、") + "）"
       }
+      // 使用者的原话里有「那我点这个按钮呢是否有效」——所以提示要说清结果落在哪：
+      // 新名字、它在列表最上面（口径是最近改动，不是创建时间）、以及备注写着从哪来。
+      let mut note_text = "新 profile「" + outcome.new_name + "」已派生，出现在列表最上面" +
+        "（列表按最近改动排序，刚派生的一定最新）。"
+      match outcome.note_error {
+        Some(reason) =>
+          note_text = note_text +
+            "备注没写进去（" + reason + "），派生本身成功；" +
+            "备注本该在 " + outcome.note_path + " 里写着从 " + outcome.profile + " 派生"
+        None =>
+          note_text = note_text +
+            "它的备注（" + outcome.note_path + "）第一行写着来历：" + note_head
+      }
+      note_text = note_text + "。" + copy_note
       let fields : Array[(String, @json.JsonVal)] = [
         ("profile", @json.JStr(outcome.profile)),
         ("newName", @json.JStr(outcome.new_name)),
@@ -235,6 +255,18 @@ pub async fn run_action(
         ("filesCopied", @json.jint(outcome.files)),
         ("dirsCreated", @json.jint(outcome.dirs)),
         ("skipped", @json.jstr_array(outcome.skipped)),
+        (
+          "noteFile",
+          @json.JObj([
+            ("path", @json.JStr(outcome.note_path)),
+            ("text", @json.JStr(outcome.note_text)),
+            ("written", @json.JBool(outcome.note_error is None)),
+            ("error", @json.str_or_null(outcome.note_error)),
+          ]),
+        ),
+        ("dirMtimeMs", @json.int64_or_null(outcome.dir_mtime_ms)),
+        ("dirMtimeSource", @json.JStr(outcome.dir_mtime_source)),
+        ("listPosition", @json.JStr("第一个（列表按最近改动降序）")),
         ("note", @json.JStr(copy_note)),
       ]
       match outcome.started {
@@ -244,7 +276,7 @@ pub async fn run_action(
       @json.JObj([
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj(fields)),
-        ("note", @json.JStr(copy_note)),
+        ("note", @json.JStr(note_text)),
       ])
     }
     "rename-profile" => {

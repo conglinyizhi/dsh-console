@@ -52,6 +52,16 @@ pub struct ForkOutcome {
   dirs : Int
   skipped : Array[String]
   started : SpawnOutcome?
+  /// 新 profile 的"出生证明"备注全文（第五轮契约第二节）
+  note_text : String
+  /// 备注落点：<新 profile 目录>/.dsh-note.txt
+  note_path : String
+  /// 备注写失败时的原因（人话）。写失败**不算派生失败**，这里如实带出来
+  note_error : String?
+  /// 新 profile 目录复制完之后的 mtime（毫秒）；读不到给 None
+  dir_mtime_ms : Int64?
+  /// mtime 的来源或读不到的原因
+  dir_mtime_source : String
 }
 
 ///|
@@ -80,6 +90,8 @@ pub async fn fork_profile(
   validate_profile_name(wanted)
   let target_name = unique_profile_name(root, wanted)
   let target_dir = @json.join_path(root, target_name)
+  // 源备注在拷贝**之前**读：拷完之后目标目录里也有一份同样的内容，那时再读就分不清是谁的
+  let (source_note, _) = @profiles.read_profile_note(source_dir)
   let stats = match @fsx.copy_tree(source_dir, target_dir, ["node_modules"]) {
     Ok(s) => s
     Err(e) => {
@@ -87,6 +99,25 @@ pub async fn fork_profile(
       abort("unreachable: fail 一定抛错")
     }
   }
+  let note_path = @json.join_path(target_dir, @profiles.note_file_name)
+  let stamp = match @json.local_stamp_from_epoch_ms(@async.now()) {
+    Some(s) =>
+      match @json.local_zone_name() {
+        Some(zone) => s + " " + zone
+        None => s
+      }
+    None => @json.iso_from_epoch_ms(@async.now()) + "（本地时区读不到，按 UTC）"
+  }
+  let note_text = @profiles.fork_note_text(source_name, stamp, source_note)
+  // 备注写失败不许让派生失败：目录已经拷好了，为了一个备注把整次派生报成失败是假报。
+  // 这里把失败收成一个原因字符串，调用方原样写进 outcome。
+  let note_error = match @fsx.write_text_atomic(note_path, note_text) {
+    Ok(_) => None
+    Err(e) => Some(e)
+  }
+  // mtime 在拷贝与写备注**之后**读：这才是这一趟真实留下的"最近改动"，
+  // 也正是它在列表里排最前面的依据。读不到给 None + 原因，不拿当前时间冒充。
+  let (dir_mtime_ms, dir_mtime_source) = @profiles.read_profile_dir_mtime(target_dir)
   let started = match port {
     None => None
     Some(_) =>
@@ -106,6 +137,11 @@ pub async fn fork_profile(
     dirs: stats.dirs,
     skipped: stats.skipped,
     started,
+    note_text,
+    note_path,
+    note_error,
+    dir_mtime_ms,
+    dir_mtime_source,
   }
 }
 
