@@ -65,6 +65,14 @@ let scan_max_files : Int = 20
 let min_token_len : Int = 8
 
 ///|
+/// 验证扫描来的令牌时的单次握手超时（毫秒）。
+let verify_timeout_ms : Int = 2000
+
+///|
+/// 验证握手时最多读多少响应体字节（只看状态码，body 只是为了收尾干净）。
+let verify_body_bytes : Int = 4096
+
+///|
 /// 从实例自己的 url（形如 http://127.0.0.1:8400/）里取 host。
 /// 取不到就回 127.0.0.1 —— 实例的 url 本来就是探测时拼的回环地址，这里不编别的主机。
 fn host_of(url : String) -> String {
@@ -272,9 +280,18 @@ async fn probe_own_log(path : String, port : Int) -> TokenFound noraise {
 }
 
 ///|
+/// 一次有界扫描的结论：命中的候选（按文件 mtime 降序排好）与一句人话总结。
+/// note 只在没命中时有内容；命中时来源写在每个候选自己的 note 里。
+priv struct ScanResult {
+  hits : Array[TokenFound]
+  note : String
+}
+
+///|
 /// ~/.dsh/logs 下的有界扫描：最近改动的 20 份 .log，每份只读尾部 200 行。
 /// 只看该目录直接子项里的 .log —— 控制台起的实例日志就落在这里。
-async fn scan_logs_for_token(dir : String, port : Int) -> TokenFound noraise {
+/// 命中可能不止一处（同一个端口历史上被别的 profile 用过），全带回去让调用方逐个验证。
+async fn scan_logs_for_token(dir : String, port : Int) -> ScanResult noraise {
   let files : Array[(String, Int64)] = []
   for name in @json.list_dir(dir) {
     if !@json.ends_with(@json.to_lower(name), ".log") {
@@ -290,7 +307,7 @@ async fn scan_logs_for_token(dir : String, port : Int) -> TokenFound noraise {
     }
   }
   if files.length() == 0 {
-    return { token: None, note: dir + " 下没有 .log 文件可扫" }
+    return { hits: [], note: dir + " 下没有 .log 文件可扫" }
   }
   files.sort_by(fn(a, b) {
     if a.1 != b.1 {
@@ -300,25 +317,60 @@ async fn scan_logs_for_token(dir : String, port : Int) -> TokenFound noraise {
     }
   })
   let limit = if files.length() > scan_max_files { scan_max_files } else { files.length() }
+  let hits : Array[TokenFound] = []
   for i = 0; i < limit; i = i + 1 {
     let window = read_tail_window(files[i].0, scan_tail_bytes, scan_tail_lines)
     if window.ok {
       match last_token_in(window.text, port) {
         Some(t) =>
-          return {
+          hits.push({
             token: Some(t),
             note: "dsh 日志目录 " + dir + " 下有界扫描（最近 " + limit.to_string() +
             " 份 .log，每份尾部 " + scan_tail_lines.to_string() + " 行）：" + files[i].0 +
             " 命中了 :" + port.to_string() + "/?token=",
-          }
+          })
         None => ()
       }
     }
   }
+  if hits.length() > 0 {
+    return { hits, note: "" }
+  }
   {
-    token: None,
+    hits: [],
     note: dir + " 下最近 " + limit.to_string() + " 份 .log（每份只读尾部 " +
     scan_tail_lines.to_string() + " 行）里没有 :" + port.to_string() + "/?token= 的地址",
+  }
+}
+
+///|
+/// 实测一次握手：GET /?token=<串>，只看状态是不是 401。
+/// 扫描来的令牌是跨文件的，可能已经被后一次启动换掉 —— 采信之前先握一次手，
+/// 不把点了就 401 的地址交出去。验证不了（探测不到 / 超时）同样不采用，
+/// 宁可回 null 让前端把裸地址给人自己拼。
+async fn token_handshakes(port : Int, token : String) -> (Bool, String) noraise {
+  let attempt : async () -> @localapi.RawResponse raise = async fn () {
+    @localapi.fetch_path(port, "/?token=" + token, verify_body_bytes)
+  }
+  let result = try {
+    @async.with_timeout_opt(verify_timeout_ms, attempt)
+  } catch {
+    err => {
+      let detail = match @json.raw_http_message(err) {
+        Some(msg) => msg
+        None => err.to_string()
+      }
+      return (false, "没能验证（" + detail + "）")
+    }
+  }
+  match result {
+    None => (false, "验证握手超时（" + verify_timeout_ms.to_string() + "ms 内没答）")
+    Some(res) =>
+      if res.code == 401 {
+        (false, "实测握手仍是 401")
+      } else {
+        (true, "已实测握手 HTTP " + res.code.to_string() + "（不是 401）")
+      }
   }
 }
 
@@ -354,6 +406,9 @@ async fn lookup_web_url(instance : InstanceSummary) -> WebUrlLookup noraise {
   let home = dsh_home_dir()
   let default_logs_dir = @json.join_path(home, "logs")
   let attempts : Array[String] = []
+  // 已经读过的日志路径：登记里的 logPath 与按命名约定拼出来的可能是同一份，
+  // 读两遍没意义，原因也不用在 source 里写两遍
+  let tried_paths : Array[String] = []
   // 只认这一步自己的登记：先按 pid，再按端口。不按 profile 找 ——
   // 同名 profile 的历史登记可能指着一份别的日志
   let entries = @store.load_registry().entries
@@ -381,6 +436,7 @@ async fn lookup_web_url(instance : InstanceSummary) -> WebUrlLookup noraise {
       if r.log_path == "" {
         attempts.push("runtime.json 里这条登记的 logPath 是空的（没有可读的日志路径）")
       } else {
+        tried_paths.push(r.log_path)
         let probe = probe_own_log(r.log_path, port)
         match probe.token {
           Some(t) =>
@@ -407,6 +463,10 @@ async fn lookup_web_url(instance : InstanceSummary) -> WebUrlLookup noraise {
           paths.push(default_path)
         }
         for path in paths {
+          if tried_paths.contains(path) {
+            continue
+          }
+          tried_paths.push(path)
           let probe = probe_own_log(path, port)
           match probe.token {
             Some(t) =>
@@ -425,10 +485,22 @@ async fn lookup_web_url(instance : InstanceSummary) -> WebUrlLookup noraise {
     attempts.push("实例的 profile 认不出来，拼不出 console-<profile>-<port>.log 这个名字")
   }
   let scan = scan_logs_for_token(default_logs_dir, port)
-  match scan.token {
-    Some(t) =>
-      return { url: Some(build_web_url(host, port, t)), source: scan.note }
-    None => attempts.push(scan.note)
+  let mut scan_note = scan.note
+  for hit in scan.hits {
+    match hit.token {
+      Some(t) => {
+        let (ok, why) = token_handshakes(port, t)
+        if ok {
+          return { url: Some(build_web_url(host, port, t)), source: hit.note + "，" + why }
+        }
+        scan_note = scan_note + (if scan_note == "" { "" } else { "；" }) + hit.note +
+          "，但那里的令牌" + why + "，不采用"
+      }
+      None => ()
+    }
+  }
+  if scan_note != "" {
+    attempts.push(scan_note)
   }
   let lead = match record {
     None =>

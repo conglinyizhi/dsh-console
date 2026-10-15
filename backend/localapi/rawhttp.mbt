@@ -199,8 +199,18 @@ async fn read_chunked(sock : @async_socket.Tcp, limit : Int) -> String raise {
 }
 
 ///|
-/// 对 127.0.0.1:<port> 发一次 GET /，最多读 limit 字节。失败就抛错，由上层收敛成 error 文本。
+/// 对 127.0.0.1:<port> 发一次 GET /，最多读 limit 字节。
 pub async fn fetch_root(port : Int, limit : Int) -> RawResponse raise {
+  fetch_path(port, "/", limit)
+}
+
+///|
+/// 对 127.0.0.1:<port> 发一次 GET <path>，最多读 limit 字节。失败就抛错，由上层收敛成 error 文本。
+///
+/// path 会被原样写进请求行：调用方只能传自己拼的路径（根路径探测，或 webUrl 的
+/// `/?token=<串>`），那个串取自日志、且已经过令牌字符集过滤（见 instances/weburl.mbt），
+/// 带不了空格与 CRLF。
+pub async fn fetch_path(port : Int, path : String, limit : Int) -> RawResponse raise {
   let addr = try {
     @async_socket.Addr::parse("127.0.0.1:\{port}")
   } catch {
@@ -213,7 +223,7 @@ pub async fn fetch_root(port : Int, limit : Int) -> RawResponse raise {
   }
   defer sock.close()
   sock.write(
-    "GET / HTTP/1.1\r\nHost: 127.0.0.1:\{port}\r\nAccept: \{accept_header}\r\nConnection: close\r\n\r\n",
+    "GET \{path} HTTP/1.1\r\nHost: 127.0.0.1:\{port}\r\nAccept: \{accept_header}\r\nConnection: close\r\n\r\n",
   )
   let head_raw = match sock.read_until("\r\n\r\n") {
     Some(h) => h
