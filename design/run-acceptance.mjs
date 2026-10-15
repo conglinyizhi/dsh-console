@@ -60,7 +60,14 @@ if (logs) {
   add('日志可滚动', 'true', String(logs.box && logs.box.scrollHeight > logs.box.clientHeight), !!(logs.box && logs.box.scrollHeight > logs.box.clientHeight))
   add('打开即滚到底', String(vueLogs?.box?.atBottom), String(logs.box?.atBottom), logs.box?.atBottom === true)
   add('长行横向滚动', String(vueLogs?.box?.horizontalScroll), String(logs.box?.horizontalScroll), logs.box?.horizontalScroll === true)
-  add('级别配色', vueLogs?.levels?.errorColor ?? null, logs.levels?.errorColor ?? null, logs.levels?.errorColor === (vueLogs?.levels?.errorColor ?? null))
+  // 这条判定的前提是「窗口里真有错误行」。实时日志窗口的级别分布会变，
+  // 没有 error 行时 errorColor 必然是 null——那不是回归，是无从验证。
+  const errRows = logs.levels?.error ?? 0
+  if (errRows > 0) {
+    add('级别配色', vueLogs?.levels?.errorColor ?? null, logs.levels?.errorColor ?? null, logs.levels?.errorColor === (vueLogs?.levels?.errorColor ?? null))
+  } else {
+    addInfo('级别配色（窗口里 0 条 error 行，无从验证）', 'error 行 ' + errRows)
+  }
   add('来源下拉项数', String(vueLogs?.select?.options?.length ?? 4), String(logs.select?.options?.length), logs.select?.options?.length === (vueLogs?.select?.options?.length ?? 4))
   add('元信息含目录依据', 'true', String(!!(logs.meta && logs.meta.includes('目录依据'))), !!(logs.meta && logs.meta.includes('目录依据')))
 }
@@ -73,7 +80,9 @@ if (anim) {
 if (cc) {
   // 这是**候选发现器**，不是判决器：无规则的类未必是缺陷（容器、继承样式的 span 都属正常）。
   // 已知合理：notranslate（翻译排除）、v-card--density-default（默认密度不加规则）。
-  const known = ['notranslate', 'v-card--density-default']
+  // 曾经的两个例外（notranslate / v-card--density-default）随 md2 一起消失了，
+  // 现在这里不该再放任何白名单：有例外就得说清为什么。
+  const known = []
   const candidates = (cc.missing || []).filter((c) => !known.includes(c))
   addInfo('类名契约候选（无规则的类）', candidates.length ? candidates.join(',') : '无')
   addInfo('DOM 类总数', String(cc.totalClasses))
