@@ -1,0 +1,268 @@
+{
+ "url": "http://127.0.0.1:5390/",
+ "overflow": {
+  "scrollW": 1280,
+  "clientW": 1280,
+  "overflowX": false
+ },
+ "font": {
+  "size": "14px",
+  "family": "\"PingFang SC\", \"Noto Sans CJK SC\", \"Micr"
+ },
+ "cards": [
+  {
+   "i": 0,
+   "name": "web :3080",
+   "card": {
+    "x": 212,
+    "y": 96.7,
+    "w": 786,
+    "h": 191,
+    "right": 998,
+    "bottom": 287.7
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 150.2,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 157.2
+   },
+   "kind": {
+    "x": 279,
+    "y": 144.9,
+    "w": 113,
+    "h": 17.6,
+    "right": 392,
+    "bottom": 162.5
+   }
+  },
+  {
+   "i": 1,
+   "name": "web-dev :8400",
+   "card": {
+    "x": 212,
+    "y": 299.7,
+    "w": 786,
+    "h": 191,
+    "right": 998,
+    "bottom": 490.7
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 353.2,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 360.2
+   },
+   "kind": {
+    "x": 279,
+    "y": 347.9,
+    "w": 113,
+    "h": 17.6,
+    "right": 392,
+    "bottom": 365.5
+   }
+  },
+  {
+   "i": 2,
+   "name": "review-dev :8401",
+   "card": {
+    "x": 212,
+    "y": 502.7,
+    "w": 786,
+    "h": 191,
+    "right": 998,
+    "bottom": 693.7
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 556.2,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 563.2
+   },
+   "kind": {
+    "x": 279,
+    "y": 550.9,
+    "w": 113,
+    "h": 17.6,
+    "right": 392,
+    "bottom": 568.5
+   }
+  },
+  {
+   "i": 3,
+   "name": "headless",
+   "card": {
+    "x": 212,
+    "y": 741.8,
+    "w": 786,
+    "h": 173,
+    "right": 998,
+    "bottom": 914.8
+   },
+   "contentRight": 981,
+   "actionsRight": 981,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 786.3,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 793.3
+   },
+   "kind": {
+    "x": 279,
+    "y": 781,
+    "w": 70,
+    "h": 17.6,
+    "right": 349,
+    "bottom": 798.6
+   }
+  }
+ ],
+ "invariants": {
+  "dotXsAllEqual": true,
+  "dotXs": [
+   400,
+   400,
+   400,
+   400
+  ],
+  "allActionsMatchContentRight": true,
+  "actionsDeltas": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ "split": null,
+ "menu": {
+  "opened": true,
+  "rect": {
+   "x": 829,
+   "y": 162.7,
+   "w": 152,
+   "h": 298,
+   "right": 981,
+   "bottom": 460.7
+  },
+  "deltaTop": 6,
+  "deltaRight": 0,
+  "items": [
+   "在新标签页打开",
+   "复制访问地址",
+   "重命名",
+   "编辑备注",
+   "派生开发副本",
+   "归档",
+   "查看日志",
+   "打开工作目录",
+   "编辑配置"
+  ],
+  "position": "absolute",
+  "offsetParentCls": "dsh-actions",
+  "parentCls": "dsh-actions",
+  "activeIsFirstItem": true,
+  "itemsReachable": [
+   {
+    "text": "在新标签页打开",
+    "reachable": true
+   },
+   {
+    "text": "复制访问地址",
+    "reachable": true
+   },
+   {
+    "text": "重命名",
+    "reachable": true
+   },
+   {
+    "text": "编辑备注",
+    "reachable": true
+   },
+   {
+    "text": "派生开发副本",
+    "reachable": true
+   },
+   {
+    "text": "归档",
+    "reachable": true
+   },
+   {
+    "text": "查看日志",
+    "reachable": true
+   },
+   {
+    "text": "打开工作目录",
+    "reachable": true
+   },
+   {
+    "text": "编辑配置",
+    "reachable": true
+   }
+  ]
+ },
+ "menuLast": {
+  "opened": true,
+  "rect": {
+   "x": 829,
+   "y": 527.8,
+   "w": 152,
+   "h": 229,
+   "right": 981,
+   "bottom": 756.8
+  },
+  "viewportH": 900,
+  "insideViewport": true,
+  "flipAttr": "up",
+  "deltaTop": -265,
+  "deltaBottom": 6,
+  "deltaRight": 0,
+  "itemsReachable": [
+   {
+    "text": "查看日志",
+    "reachable": true
+   },
+   {
+    "text": "打开工作目录",
+    "reachable": true
+   },
+   {
+    "text": "编辑配置",
+    "reachable": true
+   },
+   {
+    "text": "重命名",
+    "reachable": true
+   },
+   {
+    "text": "编辑备注",
+    "reachable": true
+   },
+   {
+    "text": "归档",
+    "reachable": true
+   },
+   {
+    "text": "删除",
+    "reachable": true
+   }
+  ]
+ }
+}

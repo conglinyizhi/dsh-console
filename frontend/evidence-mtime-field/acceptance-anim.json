@@ -1,0 +1,40 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "portsBefore": [],
+ "cleanup": {
+  "stopped": []
+ },
+ "before": {
+  "count": 0,
+  "visibleCount": 0,
+  "visibleNames": [],
+  "names": [],
+  "items": []
+ },
+ "clicked": "clicked:启动",
+ "after": {
+  "count": 1,
+  "items": [
+   {
+    "tag": "i",
+    "cls": "dsh-dot",
+    "name": "dot-pulse",
+    "duration": "0.9s",
+    "timing": "ease-in-out",
+    "iterations": "infinite",
+    "shadow": "rgba(224, 164, 88, 0.16) 0px 0px 0px 3px",
+    "rect": {
+     "x": 400,
+     "y": 786.3,
+     "w": 7,
+     "h": 7
+    },
+    "visible": "visible",
+    "display": "block",
+    "opacity": "0.99819",
+    "parentCls": "dsh-dot-slot"
+   }
+  ],
+  "disabledButtons": 3
+ }
+}

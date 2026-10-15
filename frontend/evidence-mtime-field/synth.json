@@ -1,0 +1,316 @@
+{
+ "cards": [
+  {
+   "instance": "fx-beta-newest",
+   "status": "stopped",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "fx-beta-newest",
+     "title": "磁盘上真实存在的 profile 目录名：fx-beta-newest"
+    },
+    {
+     "label": "访问地址",
+     "value": "已停用，无法访问",
+     "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 0 · 已装 0",
+     "title": "fx-beta-newest 声明的插件都已安装"
+    },
+    {
+     "label": "最近改动",
+     "value": "10-15 18:50",
+     "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T10:50:52.694Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+    }
+   ]
+  },
+  {
+   "instance": "fx-gamma-mid",
+   "status": "stopped",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "fx-gamma-mid",
+     "title": "磁盘上真实存在的 profile 目录名：fx-gamma-mid"
+    },
+    {
+     "label": "访问地址",
+     "value": "已停用，无法访问",
+     "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 0 · 已装 0",
+     "title": "fx-gamma-mid 声明的插件都已安装"
+    },
+    {
+     "label": "最近改动",
+     "value": "10-15 16:16",
+     "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T08:16:50.618Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+    }
+   ]
+  },
+  {
+   "instance": "fx-alpha-old",
+   "status": "stopped",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "fx-alpha-old",
+     "title": "磁盘上真实存在的 profile 目录名：fx-alpha-old"
+    },
+    {
+     "label": "访问地址",
+     "value": "已停用，无法访问",
+     "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 0 · 已装 0",
+     "title": "fx-alpha-old 声明的插件都已安装"
+    },
+    {
+     "label": "最近改动",
+     "value": "10-15 13:24",
+     "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T05:24:40.054Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+    }
+   ]
+  },
+  {
+   "instance": "fx-delta-broken",
+   "status": "stopped",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "fx-delta-broken",
+     "title": "磁盘上真实存在的 profile 目录名：fx-delta-broken"
+    },
+    {
+     "label": "访问地址",
+     "value": "已停用，无法访问",
+     "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 0 · 已装 0",
+     "title": "fx-delta-broken 声明的插件都已安装"
+    },
+    {
+     "label": "最近改动",
+     "value": "读不到",
+     "title": "读不到这只 profile 目录的最近改动：桩 fixture：这只的目录 mtime 读不到（EACCES）"
+    }
+   ]
+  },
+  {
+   "instance": "fx-zeta-null",
+   "status": "stopped",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "fx-zeta-null",
+     "title": "磁盘上真实存在的 profile 目录名：fx-zeta-null"
+    },
+    {
+     "label": "访问地址",
+     "value": "已停用，无法访问",
+     "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 0 · 已装 0",
+     "title": "fx-zeta-null 声明的插件都已安装"
+    },
+    {
+     "label": "最近改动",
+     "value": "读不到",
+     "title": "读不到这只 profile 目录的最近改动：桩 fixture：这只的目录 mtime 读不到（目录刚被移走）"
+    }
+   ]
+  }
+ ],
+ "runningOrder": [],
+ "stoppedOrder": [
+  "fx-beta-newest",
+  "fx-gamma-mid",
+  "fx-alpha-old",
+  "fx-delta-broken",
+  "fx-zeta-null"
+ ],
+ "sixth": [
+  {
+   "instance": "fx-beta-newest",
+   "status": "stopped",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "10-15 18:50",
+    "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T10:50:52.694Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+   }
+  },
+  {
+   "instance": "fx-gamma-mid",
+   "status": "stopped",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "10-15 16:16",
+    "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T08:16:50.618Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+   }
+  },
+  {
+   "instance": "fx-alpha-old",
+   "status": "stopped",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "10-15 13:24",
+    "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T05:24:40.054Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+   }
+  },
+  {
+   "instance": "fx-delta-broken",
+   "status": "stopped",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "读不到",
+    "title": "读不到这只 profile 目录的最近改动：桩 fixture：这只的目录 mtime 读不到（EACCES）"
+   }
+  },
+  {
+   "instance": "fx-zeta-null",
+   "status": "stopped",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "读不到",
+    "title": "读不到这只 profile 目录的最近改动：桩 fixture：这只的目录 mtime 读不到（目录刚被移走）"
+   }
+  }
+ ],
+ "grid": {
+  "cardsWithSixFilled": [
+   "fx-beta-newest",
+   "fx-gamma-mid",
+   "fx-alpha-old",
+   "fx-delta-broken",
+   "fx-zeta-null"
+  ],
+  "cardsWithEmptyCell": []
+ },
+ "labels": [
+  "DSH 版本 / 来源",
+  "Profile",
+  "访问地址",
+  "DSH_HOME",
+  "插件数量",
+  "最近改动"
+ ],
+ "mode": "synth:~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/fixture-synth-profiles.json",
+ "stub": {
+  "fx-alpha-old": 1792041880054,
+  "fx-beta-newest": 1792061452694,
+  "fx-gamma-mid": 1792052210618,
+  "fx-delta-broken": null,
+  "fx-zeta-null": null
+ },
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "rects": {
+  "fx-beta-newest": {
+   "x": 212,
+   "y": 356.4375,
+   "w": 786,
+   "h": 173
+  },
+  "fx-gamma-mid": {
+   "x": 212,
+   "y": 541.4375,
+   "w": 786,
+   "h": 173
+  },
+  "fx-alpha-old": {
+   "x": 212,
+   "y": 726.4375,
+   "w": 786,
+   "h": 173
+  },
+  "fx-delta-broken": {
+   "x": 212,
+   "y": 911.4375,
+   "w": 786,
+   "h": 173
+  },
+  "fx-zeta-null": {
+   "x": 212,
+   "y": 1096.4375,
+   "w": 786,
+   "h": 173
+  },
+  "__stoppedHead": {
+   "x": 212,
+   "y": 324.296875,
+   "w": 786,
+   "h": 20.140625
+  },
+  "__docH": 1000
+ },
+ "shots": [
+  "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/synth-top.png",
+  "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/synth-stopped-first.png",
+  "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/synth-stopped-last.png"
+ ]
+}

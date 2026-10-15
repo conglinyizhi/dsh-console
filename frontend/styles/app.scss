@@ -460,7 +460,9 @@ select { appearance: none; -webkit-appearance: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dsh-fields {
-  /* 固定两列：5 个字段恒为 2 / 2 / 1，不随窗口宽度塌成一列或涨成四列 */
+  /* 固定两列：6 个字段恒为 2 / 2 / 2，不随窗口宽度塌成一列或涨成四列。
+     第六格是「最近改动」（profile 目录的 mtime，本地短时刻）—— 它是**最近改动**，
+     不是「创建时间」：可靠的创建时间在多数文件系统上拿不到，别把标签改错。 */
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px 20px;

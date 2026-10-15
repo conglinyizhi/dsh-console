@@ -1,0 +1,71 @@
+{
+  "profiles": [
+    {
+      "name": "fx-listed",
+      "dir": "~/.dsh/profiles/fx-listed",
+      "isCurrent": false,
+      "packageName": "dsh-profile-fixture",
+      "bundles": {
+        "declared": 0,
+        "installed": 0,
+        "installedInProfile": 0,
+        "installedHoisted": 0,
+        "missing": []
+      },
+      "patch": {
+        "exists": false,
+        "lines": 0
+      },
+      "note": "",
+      "noteSource": "默认",
+      "lock": {
+        "exists": false,
+        "mtime": null
+      },
+      "dirMtimeMs": 1792061452694,
+      "dirMtimeSource": "桩 fixture：按值注入"
+    }
+  ],
+  "instances": [
+    {
+      "id": "proc-9001",
+      "port": 9001,
+      "url": "http://127.0.0.1:9001/",
+      "httpStatus": 200,
+      "signatureId": "dsh-boot-global",
+      "signatureDescribe": "桩：判据是响应头里认出来的 dsh 签名",
+      "profile": null,
+      "dshHome": null,
+      "uptimeSeconds": 1234,
+      "version": null,
+      "versionSource": "桩：没有入口包可读",
+      "profileSource": "桩 fixture：cmdline 里没有 --profile，进程也没有 cwd 线索",
+      "dshHomeSource": "桩：cmdline 里没有 --dsh-home",
+      "processReasonCode": "",
+      "processReason": "",
+      "consoleStarted": false,
+      "webUrl": null,
+      "webUrlSource": "桩：没有日志可读令牌"
+    },
+    {
+      "id": "proc-9002",
+      "port": 9002,
+      "url": "http://127.0.0.1:9002/",
+      "httpStatus": 200,
+      "signatureId": "dsh-boot-global",
+      "signatureDescribe": "桩：判据是响应头里认出来的 dsh 签名",
+      "profile": "fx-not-listed",
+      "dshHome": null,
+      "uptimeSeconds": 1234,
+      "version": null,
+      "versionSource": "桩：没有入口包可读",
+      "profileSource": "桩 fixture：cmdline 里写着 --profile fx-not-listed",
+      "dshHomeSource": "桩：cmdline 里没有 --dsh-home",
+      "processReasonCode": "",
+      "processReason": "",
+      "consoleStarted": false,
+      "webUrl": null,
+      "webUrlSource": "桩：没有日志可读令牌"
+    }
+  ]
+}

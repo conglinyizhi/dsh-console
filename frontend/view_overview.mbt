@@ -420,6 +420,26 @@ fn open_ui_hint(row : Row) -> String {
 }
 
 ///|
+/// 卡片字段区第六格「最近改动」的正文：有值就是本地短时刻（10-15 18:50），
+/// 没值就写 row.mtime_missing —— 停止卡是「读不到」，运行卡解析不出 profile 时是「—」。
+///
+/// 标签是「最近改动」，**不是「创建时间」**✗：口径与理由见 state.mbt
+/// 「卡片第六格『最近改动』」那段注释（ctime 会被 chmod / 改名推新，birth time 不通用）。
+/// 用「最近改动」还有一层好处：刚派生出来的 profile 一定最新，它因此同时回答了
+/// 「哪个是刚弄的」。
+fn mtime_value(row : Row) -> String {
+  match row.mtime_ms {
+    Some(ms) =>
+      match js_short_time_ms(ms) {
+        // 数值解析不出成时刻（NaN / 越界）也算读不到，不写一个假的 0
+        "" => row.mtime_missing
+        short => short
+      }
+    None => row.mtime_missing
+  }
+}
+
+///|
 /// 一张实例卡：两行卡头 + 字段区。
 fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let tile_class = match row.tone {
@@ -441,12 +461,15 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
         ident_block(row),
         instance_actions(row, model, emit),
       ]),
+      // 字段区是 2 列 × 3 行 = 6 格。第六格是「最近改动」——
+      // 以前这里只填了 5 格，右下角空着（使用者点出来的那件事）。
       @html.ul(class="dsh-fields", [
         field("label-outline", "DSH 版本 / 来源", row.version, row.version_hint),
         field("layers-outline", "Profile", row.profile, row.profile_hint),
         field("link-variant", "访问地址", row.url, url_hint(row)),
         field("home-outline", "DSH_HOME", row.home, row.home_hint),
         field("puzzle-outline", "插件数量", row.plugin_count, row.plugin_detail),
+        field("clock-outline", "最近改动", mtime_value(row), row.mtime_hint),
       ]),
     ],
   )

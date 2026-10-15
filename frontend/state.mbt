@@ -137,6 +137,20 @@ struct Row {
   user_note : String
   /// 备注的来源 / 读不到的原因，挂在卡上那一行的悬停里（后端原样给）
   user_note_source : String
+  /// 卡片字段区第六格「最近改动」的值：这只 profile **目录**的 mtime（毫秒时间戳）。
+  /// None = 读不到（或没有可读的对象），由 mtime_missing 决定那一格写什么。
+  ///
+  /// 这一格的依据是**目录 mtime（最近改动），不是「创建时间」**：多数文件系统上
+  /// 可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）✗
+  /// 目录 mtime 是能拿到、且不会骗人的那一个 ✓ 刚派生出来的 profile 一定是最新的，
+  /// 所以它同时也回答了「哪个是刚弄的」。标签与注释都不许写成「创建时间」。
+  mtime_ms : Double?
+  /// 没有值时这一格显示的文本。两种缺法不是一回事：
+  /// 停止卡是「读不到」（读了目录但拿不到 mtime），运行卡解析不出 profile 时是「—」
+  /// （根本没有可读的对象）。混成一个词就把「读不到」与「不存在」说成同一件事了。
+  mtime_missing : String
+  /// 这一格的悬停：值从哪来、或为什么读不到（后端给的原因原样带上）
+  mtime_hint : String
 } derive(Eq)
 
 pub extend Row with Eq::{ not_equal, equal }
@@ -755,6 +769,30 @@ fn running_rows(
         Some(item) => item.note_source
         None => ""
       },
+      // 第六格：这只实例用的 profile 目录的最近改动。profile 解析得出就用它的 mtime；
+      // 解析不出就写「—」（不是「读不到」）—— 没有可读的对象与读了拿不到，不是一件事。
+      mtime_ms: match profile_fact {
+        Some(item) => item.dir_mtime_ms
+        None => None
+      },
+      mtime_missing: if profile_fact is Some(_) { "读不到" } else { "—" },
+      mtime_hint: match profile_fact {
+        Some(item) =>
+          match item.dir_mtime_ms {
+            Some(ms) => mtime_value_hint(ms, item.dir_mtime_source)
+            None => mtime_missing_hint(item.dir_mtime_source)
+          }
+        None =>
+          match fact.profile {
+            Some(name) =>
+              "这只实例解析出的 profile 名是「" + name + "」，但 profiles 读数里没有这一只，" +
+              "没有目录可读最近改动" +
+              (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
+            None =>
+              "实例读数里没解析出 profile 名，没有 profile 目录可读最近改动" +
+              (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
+          }
+      },
     }
   })
 }
@@ -792,6 +830,61 @@ fn in_use_by(fact : ProfileFact, running : Array[InstanceFact]) -> Bool {
     }
   }
   false
+}
+
+// ── 卡片第六格「最近改动」 ──────────────────────────────────
+//
+// 卡片字段区是 2 列 × 3 行 = 6 格。前五格是 DSH 版本 / Profile / 访问地址 / DSH_HOME /
+// 插件数量，第六格是「最近改动」：这只 profile **目录**的 mtime。
+//
+// **为什么不是「创建时间」**：多数文件系统上可靠的创建时间拿不到 ——
+// ctime 记的是 inode 变更时间，chmod / 改名都会把它推新（不是出生时间）；
+// birth time 不通用（不是每个文件系统都存，也不是每个平台都读得到）。
+// 目录 mtime 是能拿到、且不会骗人的那一个 ✓
+// 而且刚派生出来的 profile 一定是最新的，所以「最近改动」顺带回答了使用者那句
+// 「我都不知道它忽然冒出来这个新的」—— 派生完它就排在最上面。
+// 界面上这一格的标签、以及这里的所有注释，都不许写成「创建时间」✗
+
+///|
+/// 有值时那一格的悬停：说清这是什么数，并写明口径为什么是「最近改动」。
+fn mtime_value_hint(ms : Double, source : String) -> String {
+  let iso = js_iso_time_ms(ms)
+  "这只 profile 目录的最近改动时刻（mtime" +
+  (if iso == "" { "" } else { " " + iso }) +
+  "，卡上按浏览器本地时间显示）。" +
+  "口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到" +
+  "（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。" +
+  (if source == "" { "" } else { "来源：" + source })
+}
+
+///|
+/// 读不到时那一格的悬停：把后端给的 dirMtimeSource 原样带上，不吞、也不换成一句空话。
+fn mtime_missing_hint(source : String) -> String {
+  "读不到这只 profile 目录的最近改动：" +
+  (if source == "" { "后端没给原因" } else { source })
+}
+
+///|
+/// 降序比较「最近改动」。None **不是 0**：读不到的要沉到最后，不许跟真有值的混在一起比 ✗
+fn mtime_desc(a : Double?, b : Double?) -> Int {
+  match (a, b) {
+    (Some(x), Some(y)) => if x > y { -1 } else if x < y { 1 } else { 0 }
+    (Some(_), None) => -1
+    (None, Some(_)) => 1
+    (None, None) => 0
+  }
+}
+
+///|
+/// 名字升序：同一档里（都没有 mtime）的兜底顺序，让刷新前后是同一个样子。
+///
+/// **必须用 lexical_compare，不能用 `<`**：MoonBit 的 `Compare` 对 String 是
+/// shortlex —— 先比长度、长度相同再逐字符比。于是 `"web-dev" < "headless"` 成立
+/// （7 < 8），排出来是「短的在前」，不是人说的「名字升序」。
+/// lexical_compare 才是逐字符的字典序（同 Java 的 String.compareTo）。
+/// 实测踩过：三张卡按名字升序排成了 web-dev / headless / review-dev。
+fn name_asc(a : String, b : String) -> Int {
+  a.lexical_compare(b)
 }
 
 ///|
@@ -856,8 +949,27 @@ fn profile_rows(
       console_started: false,
       user_note: fact.note,
       user_note_source: fact.note_source,
+      mtime_ms: fact.dir_mtime_ms,
+      mtime_missing: "读不到",
+      mtime_hint: match fact.dir_mtime_ms {
+        Some(ms) => mtime_value_hint(ms, fact.dir_mtime_source)
+        None => mtime_missing_hint(fact.dir_mtime_source)
+      },
     })
   }
+  // 已停止这一组按**最近改动降序**：新的在最上面。
+  //
+  // 依据是目录 mtime（dirMtimeMs），**不是「创建时间」** —— 理由见本文件
+  // 「卡片第六格『最近改动』」那段注释：ctime 会被 chmod / 改名推新，birth time 不通用。
+  // 刚派生出来的 profile 一定是最新的，所以它排在第一个，一眼就能看到。
+  //
+  // 读不到 mtime 的（dirMtimeMs = null）一律沉底，同一档内按名字升序兜底 ——
+  // 顺序必须是确定的，不然同一份读数每次刷新都可能换个样子。
+  // 运行中那一组不在这里排：它按实例读数自己的顺序走，不掺进这条口径。
+  rows.sort_by(fn(a, b) {
+    let by_time = mtime_desc(a.mtime_ms, b.mtime_ms)
+    if by_time != 0 { by_time } else { name_asc(a.name, b.name) }
+  })
   rows
 }
 
@@ -944,6 +1056,10 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     // 磁盘上没有这只 profile，也就没有备注文件可读：不编
     user_note: "",
     user_note_source: "",
+    // 同理：目录都不在了，没有最近改动可读
+    mtime_ms: None,
+    mtime_missing: "读不到",
+    mtime_hint: "磁盘上没有这只 profile 的目录，没有最近改动可读（这一行来自 archive.json 的归档记录）",
   }
 }
 
@@ -970,6 +1086,8 @@ fn demo_running() -> Array[Row] {
       deletable: false, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      mtime_ms: None, mtime_missing: "读不到",
+      mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
     },
     {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
@@ -982,6 +1100,8 @@ fn demo_running() -> Array[Row] {
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      mtime_ms: None, mtime_missing: "读不到",
+      mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
     },
   ]
 }
@@ -1000,6 +1120,8 @@ fn demo_stopped() -> Array[Row] {
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      mtime_ms: None, mtime_missing: "读不到",
+      mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
     },
   ]
 }

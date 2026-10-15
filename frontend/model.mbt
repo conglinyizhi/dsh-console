@@ -38,6 +38,25 @@ fn int_field(obj : Map[String, Json], key : String) -> Int? {
 }
 
 ///|
+/// 可能很大的数值（毫秒时间戳）：**不能走 int_field**，Int 装不下 1.7e12。
+/// 只在这里读时间戳用，别处的整数读法维持 int_field 不动。
+fn num_field(obj : Map[String, Json], key : String) -> Double? {
+  match obj.get(key) {
+    Some(Json::Number(n, ..)) => Some(n)
+    _ => None
+  }
+}
+
+///|
+/// 键在不在（用来区分「字段是 null」与「这个字段根本不在响应里」）。
+fn has_key(obj : Map[String, Json], key : String) -> Bool {
+  match obj.get(key) {
+    Some(_) => true
+    None => false
+  }
+}
+
+///|
 fn bool_field(obj : Map[String, Json], key : String) -> Bool {
   match obj.get(key) {
     Some(Json::True) => true
@@ -172,6 +191,16 @@ pub(all) struct ProfileFact {
   note : String
   /// 备注的读取口径 / 读不到的原因，后端原样给；空串表示没什么要说的
   note_source : String
+  /// 这只 profile **目录**的最近改动时刻（mtime，毫秒时间戳）。None = 读不到。
+  ///
+  /// 为什么是「最近改动」而不是「创建时间」：多数文件系统上可靠的创建时间拿不到
+  /// （ctime 会在 chmod / 改名时变，birth time 不通用）。目录 mtime 是能拿到、
+  /// 且不会骗人的那一个 —— 刚派生出来的 profile 一定是最新的，所以它同时回答了
+  /// 「哪个是刚弄的」。卡上那一格的标签因此写「最近改动」，不许写成「创建时间」。
+  dir_mtime_ms : Double?
+  /// 这个时刻从哪来 / 为什么读不到，后端原样给（dirMtimeSource）；
+  /// 字段**根本不在响应里**时由前端补一句说明（见 parse_profiles），别处不改写它。
+  dir_mtime_source : String
 } derive(Eq)
 
 pub extend ProfileFact with Eq::{ not_equal, equal }
@@ -221,6 +250,14 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       // note 是这一轮新增的字段：后端还没给就是空串（没备注），界面按「没有备注」办
       note: str_field(fact, "note"),
       note_source: str_field(fact, "noteSource"),
+      dir_mtime_ms: num_field(fact, "dirMtimeMs"),
+      // 后端给了 dirMtimeSource 就照它说；字段**整个不在响应里**（这一版后端还没落地）
+      // 补一句前端自己的话 —— 那与「后端读了但读不到」不是同一件事，不能都写成「读不到」。
+      dir_mtime_source: if has_key(fact, "dirMtimeMs") || has_key(fact, "dirMtimeSource") {
+        str_field(fact, "dirMtimeSource")
+      } else {
+        "profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+      },
     })
   }
   Ok({

@@ -1,0 +1,74 @@
+{
+ "overflow": {
+  "scrollW": 1280,
+  "clientW": 1280,
+  "overflowX": false
+ },
+ "title": "日志",
+ "box": {
+  "rect": {
+   "x": 212,
+   "y": 98.5,
+   "w": 1046,
+   "h": 781.5,
+   "right": 1258,
+   "bottom": 880
+  },
+  "scrollHeight": 4094,
+  "clientHeight": 779,
+  "scrollTop": 3315,
+  "maxScrollTop": 3315,
+  "atBottom": true,
+  "scrollWidth": 1134,
+  "clientWidth": 1044,
+  "horizontalScroll": true,
+  "whiteSpace": "normal",
+  "fontFamily": "\"PingFang SC\", \"Noto Sans CJK ",
+  "fontSize": "14px"
+ },
+ "lineCount": 200,
+ "firstLine": "14:54:46.242··[retry-control@2.3.0] substitute code=TRANSPORT provider",
+ "lastLine": "11:17:03.293··[retry-control@2.3.0] observation routes registered: /ap",
+ "levels": {
+  "error": 2,
+  "warn": 0,
+  "errorColor": "rgb(224, 104, 95)",
+  "warnColor": null
+ },
+ "select": {
+  "value": "instance:proc-3080",
+  "options": [
+   {
+    "text": "dsh :3080",
+    "value": "instance:proc-3080",
+    "disabled": false
+   },
+   {
+    "text": "dsh :8400",
+    "value": "instance:proc-8400",
+    "disabled": false
+   },
+   {
+    "text": "dsh :8401",
+    "value": "instance:proc-8401",
+    "disabled": false
+   },
+   {
+    "text": "————",
+    "value": "__divider__",
+    "disabled": true
+   },
+   {
+    "text": "宿主日志",
+    "value": "host",
+    "disabled": false
+   },
+   {
+    "text": "审计日志",
+    "value": "audit",
+    "disabled": false
+   }
+  ]
+ },
+ "meta": "尾部 200 行（请求 200） · 445.4 KB · ~/.dsh/logs/retry-control/host.log · 目录依据：instances 接口的 DSH_HOME · 读于 19:18:07 · 只读"
+}

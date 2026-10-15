@@ -1,0 +1,127 @@
+[
+  {
+    "name": "fx-alpha-old",
+    "dir": "~/.dsh/profiles/fx-alpha-old",
+    "isCurrent": false,
+    "packageName": "dsh-profile-fixture",
+    "bundles": {
+      "declared": 0,
+      "installed": 0,
+      "installedInProfile": 0,
+      "installedHoisted": 0,
+      "missing": []
+    },
+    "patch": {
+      "exists": false,
+      "lines": 0
+    },
+    "note": "",
+    "noteSource": "默认",
+    "lock": {
+      "exists": false,
+      "mtime": null
+    },
+    "dirMtimeMs": 1792041880054,
+    "dirMtimeSource": "桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+  },
+  {
+    "name": "fx-beta-newest",
+    "dir": "~/.dsh/profiles/fx-beta-newest",
+    "isCurrent": false,
+    "packageName": "dsh-profile-fixture",
+    "bundles": {
+      "declared": 0,
+      "installed": 0,
+      "installedInProfile": 0,
+      "installedHoisted": 0,
+      "missing": []
+    },
+    "patch": {
+      "exists": false,
+      "lines": 0
+    },
+    "note": "",
+    "noteSource": "默认",
+    "lock": {
+      "exists": false,
+      "mtime": null
+    },
+    "dirMtimeMs": 1792061452694,
+    "dirMtimeSource": "桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+  },
+  {
+    "name": "fx-gamma-mid",
+    "dir": "~/.dsh/profiles/fx-gamma-mid",
+    "isCurrent": false,
+    "packageName": "dsh-profile-fixture",
+    "bundles": {
+      "declared": 0,
+      "installed": 0,
+      "installedInProfile": 0,
+      "installedHoisted": 0,
+      "missing": []
+    },
+    "patch": {
+      "exists": false,
+      "lines": 0
+    },
+    "note": "",
+    "noteSource": "默认",
+    "lock": {
+      "exists": false,
+      "mtime": null
+    },
+    "dirMtimeMs": 1792052210618,
+    "dirMtimeSource": "桩 fixture：借用真实目录 mtime 的毫秒值，按值注入（不读磁盘）"
+  },
+  {
+    "name": "fx-delta-broken",
+    "dir": "~/.dsh/profiles/fx-delta-broken",
+    "isCurrent": false,
+    "packageName": "dsh-profile-fixture",
+    "bundles": {
+      "declared": 0,
+      "installed": 0,
+      "installedInProfile": 0,
+      "installedHoisted": 0,
+      "missing": []
+    },
+    "patch": {
+      "exists": false,
+      "lines": 0
+    },
+    "note": "",
+    "noteSource": "默认",
+    "lock": {
+      "exists": false,
+      "mtime": null
+    },
+    "dirMtimeMs": null,
+    "dirMtimeSource": "桩 fixture：这只的目录 mtime 读不到（EACCES）"
+  },
+  {
+    "name": "fx-zeta-null",
+    "dir": "~/.dsh/profiles/fx-zeta-null",
+    "isCurrent": false,
+    "packageName": "dsh-profile-fixture",
+    "bundles": {
+      "declared": 0,
+      "installed": 0,
+      "installedInProfile": 0,
+      "installedHoisted": 0,
+      "missing": []
+    },
+    "patch": {
+      "exists": false,
+      "lines": 0
+    },
+    "note": "",
+    "noteSource": "默认",
+    "lock": {
+      "exists": false,
+      "mtime": null
+    },
+    "dirMtimeMs": null,
+    "dirMtimeSource": "桩 fixture：这只的目录 mtime 读不到（目录刚被移走）"
+  }
+]

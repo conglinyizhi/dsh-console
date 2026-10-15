@@ -1,0 +1,204 @@
+{
+ "cards": [
+  {
+   "instance": "dsh :9001",
+   "status": "running",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "未知",
+     "title": "桩：没有入口包可读"
+    },
+    {
+     "label": "Profile",
+     "value": "未知",
+     "title": "桩 fixture：cmdline 里没有 --profile，进程也没有 cwd 线索"
+    },
+    {
+     "label": "访问地址",
+     "value": "http://127.0.0.1:9001/",
+     "title": "这只实例正在 http://127.0.0.1:9001/ 上监听（要进去用「打开 Web UI」）"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "未知",
+     "title": "桩：cmdline 里没有 --dsh-home"
+    },
+    {
+     "label": "插件数量",
+     "value": "—",
+     "title": ""
+    },
+    {
+     "label": "最近改动",
+     "value": "—",
+     "title": "实例读数里没解析出 profile 名，没有 profile 目录可读最近改动（桩 fixture：cmdline 里没有 --profile，进程也没有 cwd 线索）"
+    }
+   ]
+  },
+  {
+   "instance": "fx-not-listed :9002",
+   "status": "running",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "未知",
+     "title": "桩：没有入口包可读"
+    },
+    {
+     "label": "Profile",
+     "value": "fx-not-listed",
+     "title": "桩 fixture：cmdline 里写着 --profile fx-not-listed"
+    },
+    {
+     "label": "访问地址",
+     "value": "http://127.0.0.1:9002/",
+     "title": "这只实例正在 http://127.0.0.1:9002/ 上监听（要进去用「打开 Web UI」）"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "未知",
+     "title": "桩：cmdline 里没有 --dsh-home"
+    },
+    {
+     "label": "插件数量",
+     "value": "—",
+     "title": ""
+    },
+    {
+     "label": "最近改动",
+     "value": "—",
+     "title": "这只实例解析出的 profile 名是「fx-not-listed」，但 profiles 读数里没有这一只，没有目录可读最近改动（桩 fixture：cmdline 里写着 --profile fx-not-listed）"
+    }
+   ]
+  },
+  {
+   "instance": "fx-listed",
+   "status": "stopped",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "fx-listed",
+     "title": "磁盘上真实存在的 profile 目录名：fx-listed"
+    },
+    {
+     "label": "访问地址",
+     "value": "已停用，无法访问",
+     "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 0 · 已装 0",
+     "title": "fx-listed 声明的插件都已安装"
+    },
+    {
+     "label": "最近改动",
+     "value": "10-15 18:50",
+     "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T10:50:52.694Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：按值注入"
+    }
+   ]
+  }
+ ],
+ "runningOrder": [
+  "dsh :9001",
+  "fx-not-listed :9002"
+ ],
+ "stoppedOrder": [
+  "fx-listed"
+ ],
+ "sixth": [
+  {
+   "instance": "dsh :9001",
+   "status": "running",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "—",
+    "title": "实例读数里没解析出 profile 名，没有 profile 目录可读最近改动（桩 fixture：cmdline 里没有 --profile，进程也没有 cwd 线索）"
+   }
+  },
+  {
+   "instance": "fx-not-listed :9002",
+   "status": "running",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "—",
+    "title": "这只实例解析出的 profile 名是「fx-not-listed」，但 profiles 读数里没有这一只，没有目录可读最近改动（桩 fixture：cmdline 里写着 --profile fx-not-listed）"
+   }
+  },
+  {
+   "instance": "fx-listed",
+   "status": "stopped",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "10-15 18:50",
+    "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T10:50:52.694Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：桩 fixture：按值注入"
+   }
+  }
+ ],
+ "grid": {
+  "cardsWithSixFilled": [
+   "dsh :9001",
+   "fx-not-listed :9002",
+   "fx-listed"
+  ],
+  "cardsWithEmptyCell": []
+ },
+ "labels": [
+  "DSH 版本 / 来源",
+  "Profile",
+  "访问地址",
+  "DSH_HOME",
+  "插件数量",
+  "最近改动"
+ ],
+ "mode": "synth:~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/fixture-synth-unresolved.json",
+ "stub": {
+  "fx-listed": 1792061452694
+ },
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "rects": {
+  "dsh :9001": {
+   "x": 212,
+   "y": 96.6875,
+   "w": 786,
+   "h": 173
+  },
+  "fx-not-listed :9002": {
+   "x": 212,
+   "y": 281.6875,
+   "w": 786,
+   "h": 173
+  },
+  "fx-listed": {
+   "x": 212,
+   "y": 502.828125,
+   "w": 786,
+   "h": 173
+  },
+  "__stoppedHead": {
+   "x": 212,
+   "y": 470.6875,
+   "w": 786,
+   "h": 20.140625
+  },
+  "__docH": 1000
+ },
+ "shots": [
+  "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/synth-unresolved-top.png",
+  "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/synth-unresolved-stopped-first.png"
+ ]
+}

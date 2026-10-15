@@ -296,10 +296,66 @@ dsh web 的首次握手是 URL 里的 `?token=…`，不带就是一个 401 页�
 逐页 / 逐分组贴 URL、`Page.reload` 前后对照、前进后退、错误 path 的回落，
 以及用 `Fetch` 拦截把接口压后 2 秒拍到的加载态 / 放行后的真实数据 / 空数组响应下的空态。
 
+## 卡片第六格「最近改动」与已停止组的排序（第五轮追加）
+
+使用者点出来两件事：① 卡片字段区是 2 列 × 3 行 = 6 格，却只填了 5 格，右下空着；
+② 派生出来的 profile 排在列表最下面，看不出「刚弄出来一个」。
+
+### 第六格：最近改动，不是创建时间
+
+那一格取的是 **profile 目录的 mtime**（`GET /api/local/profiles` 的 `dirMtimeMs`，
+毫秒时间戳），按浏览器本地时间显示成 `10-15 18:50`。
+
+**口径是「最近改动」，不是「创建时间」** —— 这条要说清楚，不许含糊：
+
+- 多数文件系统上**可靠的创建时间拿不到**。`ctime` 记的是 inode 变更时间，
+  `chmod` / 改名都会把它推新，它不是出生时间；`birth time` 不通用
+  （不是每个文件系统都存，也不是每个平台都读得到）。
+- 目录 `mtime`（最近改动）是**能拿到、且不会骗人**的那一个。
+- 它顺带回答了「哪个是刚弄的」：**刚派生出来的 profile 一定是最新的**。
+
+所以：标签写「最近改动」，代码注释里也写「最近改动」。**任何地方都不许写成「创建时间」**✗
+
+| 情况 | 那一格显示 | 悬停里有什么 |
+| --- | --- | --- |
+| 有值（停止卡 / 运行卡的 profile 解析得出） | `10-15 18:50` | 完整 ISO、口径说明、`dirMtimeSource` |
+| 读了但读不到（字段是 `null`） | `读不到` | 后端给的 `dirMtimeSource` 原因，原样带上 |
+| 运行卡解析不出 profile | `—` | 是「没解析出 profile 名」还是「profiles 读数里没有这一只」，分开说 |
+| 响应里**根本没有这个字段** | `读不到` | 「profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）」 |
+
+最后一行是前端补的话，与「后端读了但读不到」不是同一件事，所以要说得出区别 ——
+**缺值不当 0，也不假装有值**。运行卡解析不出 profile 写 `—` 而不是「读不到」，
+同理：没有可读的对象，和读了拿不到，不是一件事。
+
+### 已停止组按最近改动降序
+
+- 已停止那一组按 `dirMtimeMs` **降序**排：新的在最上面，刚派生出来的 profile 一眼就能看到。
+- `dirMtimeMs` 为 `null` 的**一律沉底**（`None` 不是 0，不参与比较），同一档内按名字升序兜底 ——
+  顺序必须是确定的，不然同一份读数每次刷新都可能换个样子。
+- 运行中那一组不掺进这条口径：它还是按实例读数自己的顺序走。
+
+**踩过的坑（记在这里免得再踩）**：兜底的名字升序**必须用 `String::lexical_compare`，
+不能用 `<`**。MoonBit 的 `Compare` 对 String 是 **shortlex** —— 先比长度、长度相同再逐字符比。
+于是 `"web-dev" < "headless"` 成立（7 < 8），三张卡按「名字升序」排出来是
+`web-dev / headless / review-dev`，即「短的在前」，不是人说的字典序。
+`evidence-mtime-field/probe-mtime.mjs` 的 DOM 实测把这件事抓出来了（那时页面顺序与接口对不上）。
+
+DOM 实测的证据在 `evidence-mtime-field/`（真响应一跑、合成 fixture 一跑、缺字段一跑）：
+
+```bash
+node evidence-mtime-field/probe-mtime.mjs http://127.0.0.1:5390/ real evidence-mtime-field/real
+node evidence-mtime-field/probe-mtime.mjs http://127.0.0.1:5390/ \
+  synth:evidence-mtime-field/fixture-synth-profiles.json evidence-mtime-field/synth
+node evidence-mtime-field/check-order.mjs evidence-mtime-field/synth.json
+```
+
+`check-order.mjs` 用 JS 的 `sort` 独立算一遍期望顺序，再跟页面上卡片的先后顺序对齐。
+排序要在合成 fixture 上量：已停止组会排除正被实例用着的 profile，而机器上谁在跑是活的。
+
 ## 这一版没做的
 
 - 归档区没有读接口（见上），所以它不是「真实的归档清单」，是本次会话的记录。
 - 没有水合、没有 SSR。控件的交互都走 rabbita 的事件，不需要额外的 behaviors 脚本。
-- `dist/assets/app.js` 1.35 MB（未压缩，gzip 约 150 KB）。后端不发 `Content-Encoding: gzip`，
+- `dist/assets/app.js` 1.61 MB（未压缩，gzip 约 188 KB）。后端不发 `Content-Encoding: gzip`，
   回环访问下可接受；构建链刻意不依赖 Node，所以没有加一道压缩步骤。
 - 两个空态图标（运行中空态、已停止空态）本机有实例时走不到，只在源码层面核对过路径常量。

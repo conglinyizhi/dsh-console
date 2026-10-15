@@ -205,6 +205,33 @@ extern "js" fn js_short_time(iso : String) -> String =
   #| }
 
 ///|
+/// 毫秒时间戳 → 卡片上的短格式（10-15 18:50，本地时区）。
+///
+/// 与 js_short_time 分开是因为入参不同：那边收的是后端的 ISO 串，这里收的是
+/// profiles 读数里的 dirMtimeMs（毫秒数）。**不是 0 也不是 null 当有值**：
+/// 拿不到数就不该走到这里（调用方按 None 分支写「读不到」），
+/// 这里对 NaN / 非有限值返回空串，调用方据此退回「读不到」。
+extern "js" fn js_short_time_ms(ms : Double) -> String =
+  #| ms => {
+  #|   if (!Number.isFinite(ms)) return '';
+  #|   const d = new Date(ms);
+  #|   if (isNaN(d.getTime())) return '';
+  #|   const p = (n) => String(n).padStart(2, '0');
+  #|   return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  #| }
+
+///|
+/// 同一个毫秒时间戳的完整值（UTC ISO），只给卡上那一格的悬停用：
+/// 卡片显示的是本地短时刻，要跟 /api/local/profiles 的 dirMtimeMs 对上号时看这个。
+extern "js" fn js_iso_time_ms(ms : Double) -> String =
+  #| ms => {
+  #|   if (!Number.isFinite(ms)) return '';
+  #|   const d = new Date(ms);
+  #|   if (isNaN(d.getTime())) return '';
+  #|   return d.toISOString();
+  #| }
+
+///|
 /// 渲染完成之后再聚焦：菜单打开要落到第一项，关闭要把焦点还给触发元素。
 /// 用 AfterRender 时机，否则 DOM 还没打补丁，query 到的是上一帧的节点。
 fn focus_after_render(id : String) -> @cmd.Cmd {

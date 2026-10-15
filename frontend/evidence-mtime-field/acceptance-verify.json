@@ -1,0 +1,24 @@
+{
+ "title": "DSH 控制台",
+ "scrollW": 1280,
+ "clientW": 1280,
+ "overflowX": false,
+ "textLen": 1642,
+ "textHead": "DSH 控制台\n实例总览\n日志\n设置\n关于\n\n本机运行，仅限回环访问\n\n实例总览\n真实数据\n菜单里的动作走 POST /api/local/action\n＋\n新建实例\n当前运行的实例 (3)\n真实数据\nweb :3080\n本机监听的 dsh 实例\n运行中\n已运行 8 小时 49 分钟\n缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-expe",
+ "markers": {
+  "真实数据": true,
+  "读取失败": false,
+  "实例总览": true
+ },
+ "counts": {
+  "buttons": 22,
+  "links": 0,
+  "selects": 0,
+  "inputs": 0,
+  "cards": 2,
+  "icons": 0
+ },
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shot": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/acceptance-verify.png.png"
+}

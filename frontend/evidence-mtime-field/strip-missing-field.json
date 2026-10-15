@@ -1,0 +1,256 @@
+{
+ "cards": [
+  {
+   "instance": "web :3080",
+   "status": "running",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（入口包）",
+     "title": "入口包 package.json 的 version 字段：~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/package.json"
+    },
+    {
+     "label": "Profile",
+     "value": "web",
+     "title": "PID 18795 的 cmdline：--profile web"
+    },
+    {
+     "label": "访问地址",
+     "value": "http://127.0.0.1:3080/",
+     "title": "这只实例正在 http://127.0.0.1:3080/ 上监听（要进去用「打开 Web UI」）"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID 18795）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 13 · 已装 10",
+     "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle"
+    },
+    {
+     "label": "最近改动",
+     "value": "读不到",
+     "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+    }
+   ]
+  },
+  {
+   "instance": "web-dev :8400",
+   "status": "running",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（入口包）",
+     "title": "入口包 package.json 的 version 字段：~/.local/share/pnpm/global/5/node_modules/@deepseek-ai/dsh/package.json"
+    },
+    {
+     "label": "Profile",
+     "value": "web-dev",
+     "title": "PID 569163 的 cmdline：--profile web-dev"
+    },
+    {
+     "label": "访问地址",
+     "value": "http://127.0.0.1:8400/",
+     "title": "这只实例正在 http://127.0.0.1:8400/ 上监听（要进去用「打开 Web UI」）"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "$DSH_HOME 环境变量（PID 569163 的 environ）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 13 · 已装 2",
+     "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle、@local/dsh-retry-control、@local/dsh-linxi、dsh-session-manager、@local/dsh-copy-path、@local/dsh-provider-finder、@local/dsh-copy-session、@local/dsh-clyzhi-review、@local/dsh-proxy-pin"
+    },
+    {
+     "label": "最近改动",
+     "value": "读不到",
+     "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+    }
+   ]
+  },
+  {
+   "instance": "review-dev :8401",
+   "status": "running",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（入口包）",
+     "title": "入口包 package.json 的 version 字段：~/.local/share/pnpm/global/5/node_modules/@deepseek-ai/dsh/package.json"
+    },
+    {
+     "label": "Profile",
+     "value": "review-dev",
+     "title": "PID 571254 的 cmdline：--profile review-dev"
+    },
+    {
+     "label": "访问地址",
+     "value": "http://127.0.0.1:8401/",
+     "title": "这只实例正在 http://127.0.0.1:8401/ 上监听（要进去用「打开 Web UI」）"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "$DSH_HOME 环境变量（PID 571254 的 environ）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 15 · 已装 12",
+     "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle"
+    },
+    {
+     "label": "最近改动",
+     "value": "读不到",
+     "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+    }
+   ]
+  },
+  {
+   "instance": "headless",
+   "status": "stopped",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "headless",
+     "title": "磁盘上真实存在的 profile 目录名：headless"
+    },
+    {
+     "label": "访问地址",
+     "value": "已停用，无法访问",
+     "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 2 · 已装 2",
+     "title": "headless 声明的插件都已安装"
+    },
+    {
+     "label": "最近改动",
+     "value": "读不到",
+     "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+    }
+   ]
+  }
+ ],
+ "runningOrder": [
+  "web :3080",
+  "web-dev :8400",
+  "review-dev :8401"
+ ],
+ "stoppedOrder": [
+  "headless"
+ ],
+ "sixth": [
+  {
+   "instance": "web :3080",
+   "status": "running",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "读不到",
+    "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+   }
+  },
+  {
+   "instance": "web-dev :8400",
+   "status": "running",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "读不到",
+    "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+   }
+  },
+  {
+   "instance": "review-dev :8401",
+   "status": "running",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "读不到",
+    "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+   }
+  },
+  {
+   "instance": "headless",
+   "status": "stopped",
+   "fieldCount": 6,
+   "mtime": {
+    "label": "最近改动",
+    "value": "读不到",
+    "title": "读不到这只 profile 目录的最近改动：profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+   }
+  }
+ ],
+ "grid": {
+  "cardsWithSixFilled": [
+   "web :3080",
+   "web-dev :8400",
+   "review-dev :8401",
+   "headless"
+  ],
+  "cardsWithEmptyCell": []
+ },
+ "labels": [
+  "DSH 版本 / 来源",
+  "Profile",
+  "访问地址",
+  "DSH_HOME",
+  "插件数量",
+  "最近改动"
+ ],
+ "mode": "strip",
+ "stub": null,
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "rects": {
+  "web :3080": {
+   "x": 212,
+   "y": 96.6875,
+   "w": 786,
+   "h": 191
+  },
+  "web-dev :8400": {
+   "x": 212,
+   "y": 299.6875,
+   "w": 786,
+   "h": 191
+  },
+  "review-dev :8401": {
+   "x": 212,
+   "y": 502.6875,
+   "w": 786,
+   "h": 191
+  },
+  "headless": {
+   "x": 212,
+   "y": 741.828125,
+   "w": 786,
+   "h": 173
+  },
+  "__stoppedHead": {
+   "x": 212,
+   "y": 709.6875,
+   "w": 786,
+   "h": 20.140625
+  },
+  "__docH": 1000
+ },
+ "shots": [
+  "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/strip-missing-field-top.png",
+  "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-mtime-field/strip-missing-field-stopped-first.png"
+ ]
+}
