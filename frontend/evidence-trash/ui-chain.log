@@ -1,0 +1,281 @@
+── 1. /trash 空态（隔离环境起跑时回收站是空的）
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [],
+ "empty": "回收站是空的\n\n删除进回收站的 profile 会在这里等着，直到把它恢复或彻底删掉。",
+ "loading": null,
+ "missingField": null,
+ "notice": null,
+ "dialog": null,
+ "cards": 0
+}
+── 2. 删除 zz-trash-b 之后的回执（正文 / 悬停）
+{
+ "url": "/",
+ "title": "实例总览",
+ "nav": [
+  "实例总览(当前)",
+  "日志",
+  "设置",
+  "回收站",
+  "关于"
+ ],
+ "rows": [],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "「zz-trash-b」已移入回收站，可以从「回收站」里恢复。",
+  "title": "profile=zz-trash-b · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-b · mode=trash · trashPath=/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-b-1792071650942 · hardDeleted=false"
+ },
+ "dialog": null,
+ "cards": 3
+}
+── 3. 侧栏进回收站：zz-trash-b 那一行
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [
+  "zz-trash-b | 删除于 | 10-15 21:40 | 3 个文件 · 26 B | 恢复 | 彻底删除"
+ ],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "「zz-trash-b」已移入回收站，可以从「回收站」里恢复。",
+  "title": "profile=zz-trash-b · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-b · mode=trash · trashPath=/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-b-1792071650942 · hardDeleted=false"
+ },
+ "dialog": null,
+ "cards": 0
+}
+── 4. 点「彻底删除」弹确认框
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [
+  "zz-trash-b | 删除于 | 10-15 21:40 | 3 个文件 · 26 B | 恢复 | 彻底删除"
+ ],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "「zz-trash-b」已移入回收站，可以从「回收站」里恢复。",
+  "title": "profile=zz-trash-b · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-b · mode=trash · trashPath=/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-b-1792071650942 · hardDeleted=false"
+ },
+ "dialog": {
+  "title": "彻底删除 zz-trash-b？",
+  "message": "这一份是 3 个文件 · 26 B，删掉之后磁盘上就没有了，恢复的路径也同时消失 —— 无法恢复。"
+ },
+ "cards": 0
+}
+── 4b. 取消之后（框应当关了，行还在）
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [
+  "zz-trash-b | 删除于 | 10-15 21:40 | 3 个文件 · 26 B | 恢复 | 彻底删除"
+ ],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "「zz-trash-b」已移入回收站，可以从「回收站」里恢复。",
+  "title": "profile=zz-trash-b · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-b · mode=trash · trashPath=/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-b-1792071650942 · hardDeleted=false"
+ },
+ "dialog": null,
+ "cards": 0
+}
+── 5. 彻底删除之后（列表回到空态）
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [],
+ "empty": "回收站是空的\n\n删除进回收站的 profile 会在这里等着，直到把它恢复或彻底删掉。",
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "彻底删除 zz-trash-b：回收站里的「zz-trash-b」已经彻底删掉（3 个文件 · 26 字节），无法恢复",
+  "title": null
+ },
+ "dialog": null,
+ "cards": 0
+}
+── 6a. 总览页（删除之前）
+{
+ "url": "/",
+ "title": "实例总览",
+ "nav": [
+  "实例总览(当前)",
+  "日志",
+  "设置",
+  "回收站",
+  "关于"
+ ],
+ "rows": [],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": null,
+ "dialog": null,
+ "cards": 3
+}
+deleteCard(zz-trash-a) → clicked
+── 6b. 删除 zz-trash-a 之后的回执
+{
+ "url": "/",
+ "title": "实例总览",
+ "nav": [
+  "实例总览(当前)",
+  "日志",
+  "设置",
+  "回收站",
+  "关于"
+ ],
+ "rows": [],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "「zz-trash-a」已移入回收站，可以从「回收站」里恢复。",
+  "title": "profile=zz-trash-a · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a · mode=trash · trashPath=/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-a-1792071665679 · hardDeleted=false"
+ },
+ "dialog": null,
+ "cards": 2
+}
+── 6. zz-trash-a 在回收站里
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [
+  "zz-trash-a | 删除于 | 10-15 21:41 | 3 个文件 · 26 B | 恢复 | 彻底删除"
+ ],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": null,
+ "dialog": null,
+ "cards": 0
+}
+── 7. 同名 profile 已存在时点「恢复」→ conflict 原文
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [
+  "zz-trash-a | 删除于 | 10-15 21:41 | 3 个文件 · 26 B | 恢复 | 彻底删除"
+ ],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "恢复 zz-trash-a失败：HTTP 409 Conflict · conflict：已经有同名的 profile 了（/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a），先给它改名或删掉它，再恢复这一份",
+  "title": null
+ },
+ "dialog": null,
+ "cards": 0
+}
+── 8. 恢复成功之后（行没了，回到空态）
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站(当前)",
+  "关于"
+ ],
+ "rows": [],
+ "empty": "回收站是空的\n\n删除进回收站的 profile 会在这里等着，直到把它恢复或彻底删掉。",
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "恢复 zz-trash-a：「zz-trash-a」已经回到 profile 列表里（/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a），这一份共 3 个文件 · 26 字节",
+  "title": null
+ },
+ "dialog": null,
+ "cards": 0
+}
+── 9. 总览页：zz-trash-a 回到已停止的实例里
+{
+ "url": "/",
+ "title": "实例总览",
+ "nav": [
+  "实例总览(当前)",
+  "日志",
+  "设置",
+  "回收站",
+  "关于"
+ ],
+ "rows": [],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": null,
+ "dialog": null,
+ "cards": 3
+}
+
+==== 判定 ====
+通过  侧栏有「回收站」且是当前项  → ["实例总览","日志","设置","回收站(当前)","关于"]
+通过  空态文案是「回收站是空的」  → "回收站是空的\n\n删除进回收站的 profile 会在这里等着，直到把它恢复或彻底删掉。"
+通过  删除回执正文说人话（含回收站指路）  → {"text":"「zz-trash-b」已移入回收站，可以从「回收站」里恢复。","title":"profile=zz-trash-b · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-b · mode=trash · trashPath=/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-b-1792071650942 · hardDeleted=false"}
+通过  正文里没有路径 / mode  → "「zz-trash-b」已移入回收站，可以从「回收站」里恢复。"
+通过  悬停里有路径与 mode  → "profile=zz-trash-b · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-b · mode=trash · trashPath=/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-b-1792071650942 · hardDeleted=false"
+通过  回收站列表里有一行（名字/时间/体积/两个按钮）  → ["zz-trash-b | 删除于 | 10-15 21:40 | 3 个文件 · 26 B | 恢复 | 彻底删除"]
+通过  点彻底删除先弹确认框  → {"title":"彻底删除 zz-trash-b？","message":"这一份是 3 个文件 · 26 B，删掉之后磁盘上就没有了，恢复的路径也同时消失 —— 无法恢复。"}
+通过  取消能关框且行还在  → 1
+通过  彻底删除之后回收站空了  → "回收站是空的\n\n删除进回收站的 profile 会在这里等着，直到把它恢复或彻底删掉。"
+通过  磁盘上那份真没了  → "zz-trash-a-1792071665679"
+通过  conflict 分支：拒绝并说明原因  → {"text":"恢复 zz-trash-a失败：HTTP 409 Conflict · conflict：已经有同名的 profile 了（/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a），先给它改名或删掉它，再恢复这一份","title":null}
+通过  恢复成功：行消失 + 磁盘上文件回来
+通过  恢复之后 profile 回到总览列表  → 3

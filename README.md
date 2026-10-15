@@ -35,6 +35,10 @@ MOON_HOME=$PWD/.sandbox/moonhome ./_build/native/debug/build/dsh-console-backend
 **管**（写动作，统一走 `POST /api/local/action`）：启动 / 停止 / 重启实例、派生副本、
 重命名、编辑备注、归档 / 取消归档、删除、打开工作目录 / 打开配置。
 
+**捞**：侧栏「回收站」（`/trash`）列出删除进回收站的每一份（profile 名、删除时刻、文件数、体积），
+能恢复回 profile 目录，也能彻底删掉。删完的回执只讲「进回收站了 / 删掉了」，
+路径与 `mode` 这些收在悬停里，不摊在正文上。
+
 **配**：设置页九项（探测超时与并发、端口起点、进程 detach 与停止宽限、日志默认行数、
 归档区默认展开、删除是否进回收站），**每一项都接到真实行为上**。
 
@@ -43,7 +47,8 @@ MOON_HOME=$PWD/.sandbox/moonhome ./_build/native/debug/build/dsh-console-backend
 - 只绑 `127.0.0.1`，**没有账号体系**
 - 写动作必须带 `X-DSH-Console: 1` 头 + 校验 `Origin` —— 这挡得住浏览器跨源页面触发，
   **挡不住本机其它进程**（那一层不在当前范围内）
-- 删除默认进回收站（`safety.deleteToTrash`）；硬删要在请求里带 `confirm: "DELETE"`
+- 删除默认进回收站（`safety.deleteToTrash`）；硬删要在请求里带 `confirm: "DELETE"`，
+  彻底删掉回收站里的一份要带 `confirm: "PURGE"`（两条都从 body **顶层**读）
 - 「打开工作目录 / 打开配置」只接受枚举目标（profile 名 + kind），**不接受客户端给的路径**
 - 起实例默认 detach：**控制台被杀掉，已起的实例仍然活着**（已实测）
 - 实例的握手令牌从它的启动日志里读，**只用于拼「打开 Web UI」的地址，不写进审计、不写进悬停**

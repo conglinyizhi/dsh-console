@@ -549,6 +549,30 @@ pub(all) struct ConsoleArchive {
 pub extend ConsoleArchive with Eq::{ not_equal, equal }
 
 ///|
+/// 回收站里的一条（GET /api/local/console 的 trash[]，第六轮契约）。
+///
+/// profile 名与删除时刻是后端从目录名（`<profile>-<epochMs>`）里切出来的：
+/// profile 名自己允许带 `-`，所以按**最后一个** `-` 切 —— 切不出来时后端给的是
+/// 「原目录名 + 时间 null」，这里照收，不在前端猜一个时刻出来。
+pub(all) struct ConsoleTrash {
+  /// trash 下的目录名，恢复 / 彻底删除时的 dir 参数
+  dir : String
+  profile : String
+  /// 删除时刻（毫秒时间戳）；None = 目录名里读不出来
+  deleted_at_ms : Double?
+  /// 上面那个时间的来源，或读不出来的原因（后端原样给）
+  deleted_at_source : String
+  /// 递归数出来的普通文件个数；None = 数不动
+  file_count : Int?
+  /// 递归求和的字节数；None = 数不动
+  bytes : Double?
+  /// 文件数与体积的来源，或数不动的原因（后端原样给）
+  size_source : String
+} derive(Eq)
+
+pub extend ConsoleTrash with Eq::{ not_equal, equal }
+
+///|
 /// 控制台自己的状态读数。这一份不在契约里那五个只读接口之列：
 /// runtime.json / archive.json 是两份状态文件，浏览器读不到文件系统，
 /// 后端为此单开了一个只读端点（GET /api/local/console）。
@@ -565,6 +589,14 @@ pub(all) struct ConsoleFacts {
   delete_to_trash_source : String
   runtime : Array[ConsoleRuntime]
   archive : Array[ConsoleArchive]
+  /// 回收站条目（后端按删除时刻倒序给，最近删的在前）
+  trash : Array[ConsoleTrash]
+  /// 响应里**有没有** trash 这个字段。
+  ///
+  /// 与「字段在、但为空」分开：字段不在 = 这一版后端还没有这个读数（页面上要说清是读不到，
+  /// 不是「回收站是空的」）；字段在且为空 = 回收站真的是空的。两种都写成空态，
+  /// 就是把「还没读到」说成了「没有」✗（加载态与空态分开同一条道理）。
+  trash_present : Bool
   notes : Array[String]
 } derive(Eq)
 
@@ -594,6 +626,19 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
       archived_at: str_field(entry, "archivedAt"),
     })
   }
+  let trash : Array[ConsoleTrash] = []
+  for item in arr_field(data, "trash") {
+    guard item is Json::Object(entry) else { continue }
+    trash.push({
+      dir: str_field(entry, "dir"),
+      profile: str_field(entry, "profile"),
+      deleted_at_ms: num_field(entry, "deletedAtMs"),
+      deleted_at_source: str_field(entry, "deletedAtSource"),
+      file_count: int_field(entry, "fileCount"),
+      bytes: num_field(entry, "bytes"),
+      size_source: str_field(entry, "sizeSource"),
+    })
+  }
   let notes : Array[String] = []
   for note in arr_field(data, "notes") {
     match note {
@@ -610,6 +655,8 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     delete_to_trash_source: str_field(data, "deleteToTrashSource"),
     runtime,
     archive,
+    trash,
+    trash_present: has_key(data, "trash"),
     notes,
   })
 }

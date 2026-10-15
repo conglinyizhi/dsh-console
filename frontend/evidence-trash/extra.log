@@ -1,0 +1,45 @@
+── 硬删：确认框里那句 → 删除后无法恢复。
+── 硬删回执
+{
+ "url": "/",
+ "title": "实例总览",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站",
+  "关于"
+ ],
+ "rows": [],
+ "empty": null,
+ "loading": null,
+ "missingField": null,
+ "notice": {
+  "text": "「zz-trash-keep」已删除，无法恢复。",
+  "title": "profile=zz-trash-keep · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-keep · mode=hard-delete · trashPath=（硬删，没有回收站落点） · hardDeleted=true"
+ }
+}
+── 5390 /trash（新前端 + 旧后端，只读）
+{
+ "url": "/trash",
+ "title": "回收站",
+ "nav": [
+  "实例总览",
+  "日志",
+  "设置",
+  "回收站",
+  "关于"
+ ],
+ "rows": [],
+ "empty": null,
+ "loading": null,
+ "missingField": "这一版后端还没有回收站读数。\n\nGET /api/local/console 的响应里没有 trash 字段，读不到回收站里有什么 —— 这与「回收站是空的」不是一回事。重启控制台后端（用带这个字段的那一版）即可。",
+ "notice": null
+}
+
+==== 判定 ====
+通过  硬删确认框说「无法恢复」  → "删除后无法恢复。"
+通过  硬删回执正文是「已删除，无法恢复」  → "「zz-trash-keep」已删除，无法恢复。"
+通过  硬删正文里没有路径  → "「zz-trash-keep」已删除，无法恢复。"
+通过  硬删悬停里有 mode=hard-delete / hardDeleted=true  → "profile=zz-trash-keep · dir=/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-keep · mode=hard-delete · trashPath=（硬删，没有回收站落点） · hardDeleted=true"
+通过  5390 上不谎报「空的」  → "这一版后端还没有回收站读数。\n\nGET /api/local/console 的响应里没有 trash 字段，读不到回收站里有什么 —— 这与「回收站是空的」不是一回事。重启控制台后端（用带这个字段的那一版）即可。"

@@ -645,8 +645,20 @@ fn action_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     return @html.nothing
   }
   let tone = if model.act_notice_ok { " ok" } else { " err" }
+  // 正文之外的细节（删除回执里的路径 / mode / hardDeleted）收在悬停里。
+  // 只在「这段悬停确实属于当前这条提示」时挂上去：提示条被别的动作改写之后它自己失效。
+  let hint = if model.act_notice_hint != "" && model.act_notice_hint_for == model.act_notice {
+    model.act_notice_hint
+  } else {
+    ""
+  }
+  let text_attrs = if hint == "" {
+    mark("action-notice-text", ["overview", "action-notice", "text"])
+  } else {
+    mark("action-notice-text", ["overview", "action-notice", "text"]).title(hint)
+  }
   let children : Array[@html.Html] = [
-    @html.span(class="dsh-notice-text", model.act_notice),
+    @html.span(class="dsh-notice-text", attrs=text_attrs, model.act_notice),
   ]
   let has_button = match model.notice_url {
     Some(_) => model.notice_url_notice == model.act_notice

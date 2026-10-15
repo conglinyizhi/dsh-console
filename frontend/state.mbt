@@ -10,6 +10,8 @@ pub(all) enum Page {
   Overview
   Logs
   Settings
+  /// 回收站（第六轮）：删除进回收站的那些 profile 在这里看得见、能恢复、能彻底删掉
+  Trash
   About
 } derive(Eq)
 
@@ -225,6 +227,9 @@ struct Model {
   note_saving : String
   confirm_id : String
   confirm_return : String
+  // 回收站「彻底删除」的确认框：目标目录名（空串 = 框关着）与触发元素 id
+  trash_purge_dir : String
+  trash_purge_return : String
   archived_open : Bool
   /// 用户手动折过归档区没有：折过之后就不再被 ui.archiveOpenByDefault 覆盖
   archived_user_toggled : Bool
@@ -256,6 +261,13 @@ struct Model {
   /// 页面上那条动作结果提示
   act_notice : String
   act_notice_ok : Bool
+  /// 提示条正文的悬停补充：删除回执里那些路径 / mode / hardDeleted 就收在这里，
+  /// 不摊在正文上（第六轮契约第二节）。空串 = 这一条提示没有要补充的。
+  act_notice_hint : String
+  /// 上面那段悬停**属于哪一条提示文字**。与当前 act_notice 不一致时悬停不出现 ——
+  /// 提示条被别的动作改写之后，那段路径说明自己失效，不留一段对不上号的悬停
+  /// （与 notice_url_notice 同一套口径）。
+  act_notice_hint_for : String
   /// 启动等待态里那句提示要用的动作名（回执与计时是两条路，各自都拿得到它）
   act_label : String
   // 启动成功后自动开标页（占位页模式，见 dom.mbt 的 js_tab_hold）
@@ -330,6 +342,11 @@ priv enum Msg {
   DeleteOpen(String, String)
   DeleteConfirm
   DeleteCancel
+  // 回收站（第六轮）：恢复某一条 / 点「彻底删除」先开确认框 / 框里的确定与取消
+  TrashRestore(String)
+  TrashPurgeOpen(String, String)
+  TrashPurgeConfirm
+  TrashPurgeCancel
   ToggleArchived
   LogSourcePicked(String)
   LogRefresh
@@ -384,6 +401,8 @@ fn initial_model() -> Model {
     note_saving: "",
     confirm_id: "",
     confirm_return: "",
+    trash_purge_dir: "",
+    trash_purge_return: "",
     // 归档区默认折叠：这一组目前固定是演示数据，短时间用不上；
     // 折叠起来不占视线，功能本身留着（展开即可用），比删掉合适。
     archived_open: false,
@@ -408,6 +427,8 @@ fn initial_model() -> Model {
     act_note: "",
     act_notice: "",
     act_notice_ok: false,
+    act_notice_hint: "",
+    act_notice_hint_for: "",
     act_label: "",
     start_tab: "",
     start_tab_profile: "",

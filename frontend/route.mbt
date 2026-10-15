@@ -10,6 +10,7 @@
 //   /logs[?source=…]      日志（来源是页面状态的一部分，跟着进 URL）
 //   /settings             设置（第一个分组）
 //   /settings/<分组 id>   设置（某个分组）
+//   /trash                回收站
 //   /about                关于
 //
 // 认不出来的地址不白屏：总览那一段回落总览，设置那一段回落设置首页，
@@ -210,6 +211,12 @@ fn parse_route(url : String) -> Route {
             settings_group_ids() + "），已回到设置首页。",
         }
       }
+    "trash" =>
+      if segs.length() == 1 {
+        { page: Trash, group: "", source: None, notice: "" }
+      } else {
+        unknown_route(segs)
+      }
     "about" =>
       if segs.length() == 1 {
         { page: About, group: "", source: None, notice: "" }
@@ -228,7 +235,7 @@ fn unknown_route(segs : Array[String]) -> Route {
     group: "",
     source: None,
     notice: "地址里的 /" + join_with(segs, "/") +
-      " 不是本控制台的路由，已回到实例总览。现有路由：/ · /logs · /settings/<分组> · /about",
+      " 不是本控制台的路由，已回到实例总览。现有路由：/ · /logs · /settings/<分组> · /trash · /about",
   }
 }
 
@@ -249,6 +256,7 @@ fn route_url(page : Page, group : String, source : String) -> String {
       } else {
         "/settings"
       }
+    Trash => "/trash"
     About => "/about"
   }
 }

@@ -112,6 +112,17 @@ fn action_body(action : String, params : String) -> String {
 }
 
 ///|
+/// 带二次确认串的请求体：{ action, params, confirm }。
+///
+/// confirm 在**顶层**：契约第一节写的是「body 里还必须带 "confirm":"DELETE"」，
+/// 后端也是从顶层读的（handle_action 里的 json_field(json, "confirm")）。
+/// 塞进 params 里后端读不到，硬删与彻底删除都会以 bad-params 告终 ✗。
+fn action_body_with_confirm(action : String, params : String, confirm : String) -> String {
+  "{\"action\":" + json_text_literal(action) + ",\"params\":" + params + ",\"confirm\":" +
+  json_text_literal(confirm) + "}"
+}
+
+///|
 /// 写接口的固定头。X-DSH-Console 是契约里的跨源闸门：浏览器不允许跨源带自定义头，
 /// 本机别的页面因此发不出这个请求。Origin 由浏览器自己带（同源 POST 会带）。
 fn write_headers() -> String {

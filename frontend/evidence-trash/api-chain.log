@@ -1,0 +1,382 @@
+── 1. 起跑：console.trash
+[]
+── 2. delete-profile zz-trash-a
+{
+ "status": 200,
+ "body": {
+  "ok": true,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.476Z",
+  "data": {
+   "action": "delete-profile",
+   "outcome": {
+    "profile": "zz-trash-a",
+    "dir": "/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a",
+    "mode": "trash",
+    "trashPath": "/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-a-1792071808517",
+    "confirm": "",
+    "hardDeleted": false
+   }
+  }
+ }
+}
+── 3. console.trash（删除之后）
+[
+ {
+  "dir": "zz-trash-a-1792071808517",
+  "profile": "zz-trash-a",
+  "deletedAtMs": 1792071808517,
+  "deletedAtSource": "目录名末段就是删除那一刻的毫秒时间戳",
+  "fileCount": 3,
+  "bytes": 26,
+  "sizeSource": "递归数了这一份里的普通文件（软链等非普通文件不计入）"
+ }
+]
+── 3b. profiles 里还有没有 zz-trash-a
+[
+ "zz-trash-b",
+ "zz-trash-keep"
+]
+── 4. 穿越负例 restore-from-trash dir=../profiles/zz-trash-b
+{
+ "status": 400,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.527Z",
+  "error": {
+   "code": "bad-params",
+   "message": "dir 不能以点开头：../profiles/zz-trash-b"
+  }
+ }
+}
+── 4b. 穿越负例 purge dir=../../etc
+{
+ "status": 400,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.531Z",
+  "error": {
+   "code": "bad-params",
+   "message": "dir 不能以点开头：../../etc"
+  }
+ }
+}
+── 4c. 穿越负例 绝对路径 dir=/tmp
+{
+ "status": 400,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.534Z",
+  "error": {
+   "code": "bad-params",
+   "message": "dir 里有不允许的字符：/（只允许字母数字与 . _ -，回收站条目名就是这两样拼的）"
+  }
+ }
+}
+── 5. 同名已存在时 restore-from-trash
+{
+ "status": 409,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.537Z",
+  "error": {
+   "code": "conflict",
+   "message": "已经有同名的 profile 了（/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a），先给它改名或删掉它，再恢复这一份"
+  }
+ }
+}
+── 5b. 确认磁盘上那份还在（是恢复被拒，不是被覆盖）
+true
+── 6. restore-from-trash
+{
+ "status": 200,
+ "body": {
+  "ok": true,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.540Z",
+  "data": {
+   "action": "restore-from-trash",
+   "outcome": {
+    "dir": "zz-trash-a-1792071808517",
+    "profile": "zz-trash-a",
+    "restoredTo": "/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a",
+    "files": 3,
+    "bytes": 26,
+    "sizeSource": "递归数了这一份里的普通文件（软链等非普通文件不计入）"
+   },
+   "note": "「zz-trash-a」已经回到 profile 列表里（/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a），这一份共 3 个文件 · 26 字节"
+  }
+ }
+}
+── 6b. 恢复之后 console.trash
+[]
+── 6c. 恢复之后 profiles
+[
+ "zz-trash-a",
+ "zz-trash-b",
+ "zz-trash-keep"
+]
+── 6d. 磁盘上恢复到的文件
+[
+ [
+  "a.txt",
+  true
+ ],
+ [
+  "sub/b.txt",
+  true
+ ],
+ [
+  "cordis.patch.yml",
+  true
+ ]
+]
+── 7. 再删一次 zz-trash-a
+{
+ "status": 200,
+ "body": {
+  "ok": true,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.551Z",
+  "data": {
+   "action": "delete-profile",
+   "outcome": {
+    "profile": "zz-trash-a",
+    "dir": "/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-a",
+    "mode": "trash",
+    "trashPath": "/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-a-1792071808595",
+    "confirm": "",
+    "hardDeleted": false
+   }
+  }
+ }
+}
+── 7b. 回收站里的这一条
+{
+ "dir": "zz-trash-a-1792071808595",
+ "profile": "zz-trash-a",
+ "deletedAtMs": 1792071808595,
+ "deletedAtSource": "目录名末段就是删除那一刻的毫秒时间戳",
+ "fileCount": 3,
+ "bytes": 26,
+ "sizeSource": "递归数了这一份里的普通文件（软链等非普通文件不计入）"
+}
+── 8. purge 缺 confirm
+{
+ "status": 400,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.604Z",
+  "error": {
+   "code": "bad-params",
+   "message": "彻底删除不可恢复，body 里必须再带 \"confirm\":\"PURGE\""
+  }
+ }
+}
+── 8b. purge confirm 给错串
+{
+ "status": 400,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.607Z",
+  "error": {
+   "code": "bad-params",
+   "message": "彻底删除不可恢复，body 里必须再带 \"confirm\":\"PURGE\""
+  }
+ }
+}
+── 9. purge confirm=PURGE
+{
+ "status": 200,
+ "body": {
+  "ok": true,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.609Z",
+  "data": {
+   "action": "purge-trash-item",
+   "outcome": {
+    "dir": "zz-trash-a-1792071808595",
+    "profile": "zz-trash-a",
+    "path": "/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-a-1792071808595",
+    "files": 3,
+    "bytes": 26,
+    "sizeSource": "递归数了这一份里的普通文件（软链等非普通文件不计入）",
+    "hardDeleted": true
+   },
+   "note": "回收站里的「zz-trash-a」已经彻底删掉（3 个文件 · 26 字节），无法恢复"
+  }
+ }
+}
+── 9b. 磁盘上那一份还在不在（应 false）
+false
+── 9c. 彻底删除之后 console.trash
+[]
+── 10. 已经不在的 dir 再恢复
+{
+ "status": 404,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.614Z",
+  "error": {
+   "code": "not-found",
+   "message": "回收站里没有这一份：/tmp/dsh-console-trash-e2e/state/dsh-console/trash/zz-trash-a-1792071808595"
+  }
+ }
+}
+── 11. 把 safety.deleteToTrash 置 false
+{
+ "status": 200,
+ "body": {
+  "ok": true,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.616Z",
+  "data": {
+   "path": "/tmp/dsh-console-trash-e2e/state/dsh-console/settings.json",
+   "values": {
+    "probe.timeoutMs": 500,
+    "probe.concurrency": 8,
+    "probe.maxCandidates": 40,
+    "instance.basePort": 8400,
+    "process.detach": true,
+    "process.stopGraceMs": 5000,
+    "logs.defaultTail": 200,
+    "ui.archiveOpenByDefault": false,
+    "safety.deleteToTrash": false
+   },
+   "defaults": {
+    "probe.timeoutMs": 500,
+    "probe.concurrency": 8,
+    "probe.maxCandidates": 40,
+    "instance.basePort": 8400,
+    "process.detach": true,
+    "process.stopGraceMs": 5000,
+    "logs.defaultTail": 200,
+    "ui.archiveOpenByDefault": false,
+    "safety.deleteToTrash": true
+   },
+   "sources": {
+    "probe.timeoutMs": "文件",
+    "probe.concurrency": "文件",
+    "probe.maxCandidates": "文件",
+    "instance.basePort": "文件",
+    "process.detach": "文件",
+    "process.stopGraceMs": "文件",
+    "logs.defaultTail": "文件",
+    "ui.archiveOpenByDefault": "文件",
+    "safety.deleteToTrash": "文件"
+   },
+   "note": null,
+   "changed": [
+    "safety.deleteToTrash"
+   ],
+   "readAt": "2026-10-15T13:43:28.616Z"
+  }
+ }
+}
+── 12. 硬删模式，不带 confirm
+{
+ "status": 400,
+ "body": {
+  "ok": false,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.620Z",
+  "error": {
+   "code": "bad-params",
+   "message": "safety.deleteToTrash=false 时删除是硬删，body 里必须再带 \"confirm\":\"DELETE\""
+  }
+ }
+}
+── 12b. 磁盘上还在（应 true）
+true
+── 13. 硬删模式，带 confirm=DELETE
+{
+ "status": 200,
+ "body": {
+  "ok": true,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.664Z",
+  "data": {
+   "action": "delete-profile",
+   "outcome": {
+    "profile": "zz-trash-keep",
+    "dir": "/tmp/dsh-console-trash-e2e/dsh-home/profiles/zz-trash-keep",
+    "mode": "hard-delete",
+    "trashPath": "",
+    "confirm": "DELETE",
+    "hardDeleted": true
+   }
+  }
+ }
+}
+── 13b. 磁盘上还在（应 false）
+false
+── 14. 置回 deleteToTrash=true
+{
+ "status": 200,
+ "body": {
+  "ok": true,
+  "readOnly": false,
+  "readAt": "2026-10-15T13:43:28.711Z",
+  "data": {
+   "path": "/tmp/dsh-console-trash-e2e/state/dsh-console/settings.json",
+   "values": {
+    "probe.timeoutMs": 500,
+    "probe.concurrency": 8,
+    "probe.maxCandidates": 40,
+    "instance.basePort": 8400,
+    "process.detach": true,
+    "process.stopGraceMs": 5000,
+    "logs.defaultTail": 200,
+    "ui.archiveOpenByDefault": false,
+    "safety.deleteToTrash": true
+   },
+   "defaults": {
+    "probe.timeoutMs": 500,
+    "probe.concurrency": 8,
+    "probe.maxCandidates": 40,
+    "instance.basePort": 8400,
+    "process.detach": true,
+    "process.stopGraceMs": 5000,
+    "logs.defaultTail": 200,
+    "ui.archiveOpenByDefault": false,
+    "safety.deleteToTrash": true
+   },
+   "sources": {
+    "probe.timeoutMs": "文件",
+    "probe.concurrency": "文件",
+    "probe.maxCandidates": "文件",
+    "instance.basePort": "文件",
+    "process.detach": "文件",
+    "process.stopGraceMs": "文件",
+    "logs.defaultTail": "文件",
+    "ui.archiveOpenByDefault": "文件",
+    "safety.deleteToTrash": "文件"
+   },
+   "note": null,
+   "changed": [
+    "safety.deleteToTrash"
+   ],
+   "readAt": "2026-10-15T13:43:28.711Z"
+  }
+ }
+}
+── 15b. 收尾后 console.trash
+[]
+
+==== 判定 ====
+通过  删除进回收站且列表里有它  → {"dir":"zz-trash-a-1792071808517","profile":"zz-trash-a","deletedAtMs":1792071808517,"deletedAtSource":"目录名末段就是删除那一刻的毫秒时间戳","fileCount":3,"bytes":26,"sizeSource":"递归数了这一份里的普通文件（软链等非普通文件不计入）"}
+通过  profile 名含 - 也切成 web-dev 那样的全名  → "zz-trash-a"
+通过  deletedAtMs 读出来了  → 1792071808517
+通过  fileCount / bytes 数出来了  → [3,26]
+通过  穿越负例全是 bad-params
+通过  conflict 拒绝恢复
+通过  恢复之后 profile 回到列表
+通过  purge 缺 confirm 是 bad-params
+通过  purge 之后磁盘上真没了 + 列表回到空

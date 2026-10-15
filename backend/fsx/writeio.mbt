@@ -266,6 +266,50 @@ pub async fn remove_tree(path : String) -> Result[Unit, String] noraise {
 }
 
 ///|
+/// 递归数一份目录树：普通文件个数 + 总字节数（回收站条目那一行要用的两个数）。
+///
+/// 只数普通文件，与 copy_tree 同一口径：软链 / socket / 设备文件是链接不是内容，
+/// 数进去会让"体积"变成一个没有对应的数。目录本身不算文件。
+///
+/// 任何一步读不到就给 Err —— 数不全的时候宁可让调用方写「读不到」，
+/// 也不给一个偏小的数冒充这一份的真实体积。
+pub async fn measure_tree(root : String) -> Result[(Int, Int64), String] noraise {
+  let mut files = 0
+  let mut bytes : Int64 = 0
+  let queue : Array[String] = [root]
+  let mut cursor = 0
+  while cursor < queue.length() {
+    let dir = queue[cursor]
+    cursor = cursor + 1
+    let names = match @json.list_dir_result(dir) {
+      Ok(list) => list
+      Err(e) => return Err("列目录失败：" + dir + "（" + e + "）")
+    }
+    for name in names {
+      let path = @json.join_path(dir, name)
+      let kind = try {
+        @fs.kind(path, follow_symlink=false)
+      } catch {
+        _ => Unknown
+      }
+      match kind {
+        Directory => queue.push(path)
+        Regular =>
+          match @json.file_size(path) {
+            Some(size) => {
+              files = files + 1
+              bytes = bytes + size
+            }
+            None => return Err("读不到文件大小：" + path)
+          }
+        _ => ()
+      }
+    }
+  }
+  Ok((files, bytes))
+}
+
+///|
 /// 复制一个普通文件（保留原始字节）。
 pub async fn copy_file(from : String, to : String) -> Result[Unit, String] noraise {
   match read_bytes(from) {

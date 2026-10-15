@@ -422,6 +422,63 @@ pub async fn run_action(
         ])),
       ])
     }
+    // ── 回收站（第六轮契约第一节）────────────────────────────
+    // 恢复：把 trash/<dir> 移回 <profilesRoot>/<profile>。目标已存在一律拒（conflict）——
+    // 恢复不是覆盖，盖掉一份同名 profile 是事后无法解释的操作。
+    "restore-from-trash" => {
+      ensure_only_keys(params, ["dir"])
+      let outcome = restore_from_trash(require_string(params, "dir"))
+      let size = match (outcome.files, outcome.bytes) {
+        (Some(files), Some(bytes)) =>
+          files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
+        _ => "文件数读不到（" + outcome.size_source + "）"
+      }
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("dir", @json.JStr(outcome.dir)),
+          ("profile", @json.JStr(outcome.profile)),
+          ("restoredTo", @json.JStr(outcome.to)),
+          ("files", @json.int_or_null(outcome.files)),
+          ("bytes", @json.int64_or_null(outcome.bytes)),
+          ("sizeSource", @json.JStr(outcome.size_source)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            "「" + outcome.profile + "」已经回到 profile 列表里（" + outcome.to + "），这一份共 " +
+            size,
+          ),
+        ),
+      ])
+    }
+    // 彻底删除：与 delete-profile 的硬删同一风险等级，必须带 confirm = "PURGE"（缺了给 bad-params）。
+    "purge-trash-item" => {
+      ensure_only_keys(params, ["dir"])
+      let outcome = purge_trash_item(require_string(params, "dir"), confirm)
+      let size = match (outcome.files, outcome.bytes) {
+        (Some(files), Some(bytes)) => files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
+        _ => "文件数读不到（" + outcome.size_source + "）"
+      }
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("dir", @json.JStr(outcome.dir)),
+          ("profile", @json.JStr(outcome.profile)),
+          ("path", @json.JStr(outcome.path)),
+          ("files", @json.int_or_null(outcome.files)),
+          ("bytes", @json.int64_or_null(outcome.bytes)),
+          ("sizeSource", @json.JStr(outcome.size_source)),
+          ("hardDeleted", @json.JBool(true)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            "回收站里的「" + outcome.profile + "」已经彻底删掉（" + size + "），无法恢复",
+          ),
+        ),
+      ])
+    }
     _ => {
       fail("unknown-action", "没有这个动作：" + action)
       abort("unreachable: fail 一定抛错")

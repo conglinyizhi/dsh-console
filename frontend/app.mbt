@@ -92,6 +92,10 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
       } else {
         ({ ..base, settings_loading: true, settings_error: "" }, settings_get_cmd(emit))
       }
+    Trash =>
+      // 回收站是会变的（另一个标签页里删了东西、别处恢复了）：进来就重读一次控制台读数。
+      // 只重发这一份，别的读数不动 —— 它读不到时的样子由这一页自己分档说清。
+      (base, load_console(emit))
     _ => (base, @cmd.none)
   }
 }
@@ -482,6 +486,7 @@ fn send_action(
   label : String,
   params : String,
   emit : @cmd.Emit[Msg],
+  confirm? : String = "",
 ) -> (Model, @cmd.Cmd) {
   if params == "" {
     (
@@ -497,34 +502,107 @@ fn send_action(
     let busy = map_rows(model, id, fn(row) { { ..row, busy: true } })
     (
       { ..busy, act_notice: "" },
-      action_cmd(id, action, label, action_body(action, params), emit),
+      action_cmd(
+        id,
+        action,
+        label,
+        if confirm == "" {
+          action_body(action, params)
+        } else {
+          // 二次确认串在**顶层**（契约第一节的 destructive 要求），不在 params 里
+          action_body_with_confirm(action, params, confirm)
+        },
+        emit,
+      ),
     )
   }
 }
 
 ///|
-/// 删除的参数。契约：safety.deleteToTrash=false 时**必须**带 confirm=DELETE，否则 bad-params。
-/// 读不到删除方式时按「可能要硬删」处理，也带上它 ——
-/// 少带一次的代价是删不掉并弹一个 bad-params，多带一次的代价只是一个多余字段。
-/// 明确读到「进回收站」时才不带。
+/// 删除的参数：只有 profile 这一项。
 ///
-/// 走 delete_to_trash_of 与确认框同一处取值：两边各判一次，迟早在
-/// 「框里说进回收站、请求却按硬删发」这种地方分叉。
+/// 二次确认串**不在这里** —— 它在 body 顶层，由 delete_confirm_of 给出、走
+/// action_body_with_confirm。以前那个串被塞进 params，而后端读的是顶层，
+/// 结果是硬删永远以 bad-params 告终（实测复现过 ✗）。
 fn delete_pairs(model : Model, row_id : String) -> Array[(String, String)] {
-  let base = match find_row(model.rows, row_id) {
+  match find_row(model.rows, row_id) {
     None => []
     Some(row) => profile_pairs(row)
   }
-  if base.length() == 0 {
-    return base
-  }
+}
+
+///|
+/// 删除要不要带二次确认串，带的话是什么。
+///
+/// 契约第一节：safety.deleteToTrash=false 时删除是硬删，**body 顶层**必须带 "confirm":"DELETE"。
+/// 读不到删除方式时按「可能要硬删」处理，也带上它 —— 少带一次的代价是删不掉并弹一个 bad-params，
+/// 多带一次只是一个多余字段（进回收站那条路后端根本不看它）。
+///
+/// 这个串走 action_body_with_confirm（放顶层），不再塞进 params：
+/// 后端是从顶层读的（handle_action 里的 json_field(json, "confirm")），
+/// 塞进 params 的结果是硬删永远以 bad-params 告终 —— 这条实测复现过 ✗
+fn delete_confirm_of(model : Model) -> String {
   if delete_to_trash_of(model) == Some(true) {
-    base
+    ""
   } else {
-    let pairs = base.copy()
-    pairs.push(("confirm", json_text_literal("DELETE")))
-    pairs
+    "DELETE"
   }
+}
+
+///|
+/// 回收站条目对应的 profile 名。
+///
+/// 恢复 / 彻底删除的提示条里用得到：目录名（zz-trash-a-1792071553106）是磁盘上的东西，
+/// 提示条该说人话（zz-trash-a）。读数里没有这一条时退回目录名 —— 不编一个名字出来。
+fn trash_profile_of(model : Model, dir : String) -> String {
+  match model.console {
+    None => dir
+    Some(facts) => {
+      let mut found = dir
+      for entry in facts.trash {
+        if entry.dir == dir {
+          found = entry.profile
+        }
+      }
+      found
+    }
+  }
+}
+
+///|
+/// 删除回执的正文与悬停（第六轮契约第二节）。
+///
+/// 正文只回答「删了会怎样、能不能捞回来」，并指路回收站；
+/// 路径 / mode / hardDeleted 这些是实现细节，收进悬停，不许摊在正文上 ✗
+/// 返回空串 = 这份回执不是删除的（调用方照旧用后端给的 note）。
+fn delete_receipt(res : Result[String, Error]) -> (String, String) {
+  let raw = match res {
+    Err(_) => return ("", "")
+    Ok(text) => text
+  }
+  let got = parse_http_result(raw)
+  let data = match open_envelope(got.body) {
+    Err(_) => return ("", "")
+    Ok(data) => data
+  }
+  let outcome = obj_field(data, "outcome")
+  let profile = str_field(outcome, "profile")
+  let mode = str_field(outcome, "mode")
+  let dir = str_field(outcome, "dir")
+  let trash_path = str_field(outcome, "trashPath")
+  let hard = bool_field(outcome, "hardDeleted")
+  let name = if profile == "" { "这一只" } else { "「" + profile + "」" }
+  let text = if mode == "trash" {
+    name + "已移入回收站，可以从「回收站」里恢复。"
+  } else if mode == "hard-delete" {
+    name + "已删除，无法恢复。"
+  } else {
+    name + "已删除（回执里的 mode 是「" + mode + "」，这一版认不出这个值）。"
+  }
+  let hint = "profile=" + profile + " · dir=" + dir + " · mode=" + mode + " · trashPath=" +
+    (if trash_path == "" { "（硬删，没有回收站落点）" } else { trash_path }) +
+    " · hardDeleted=" + (if hard { "true" } else { "false" })
+  (text, hint)
 }
 
 ///|
@@ -1305,7 +1383,15 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                 tag_archived: real_tag(
                   "GET /api/local/console 读 " + facts.archive_path + "：" +
                   archived.to_string() + " 条归档记录；runtime.json 里 " +
-                  registered.to_string() + " 条登记 · " + time + " 读取",
+                  registered.to_string() + " 条登记" +
+                  // 回收站那一档也说清是「几条」还是「这一版读数里没有这个字段」——
+                  // 后者不是「空的」，标记里就不许写成 0 条
+                  (if facts.trash_present {
+                    "；回收站 " + facts.trash.length().to_string() + " 条"
+                  } else {
+                    "；回收站读数这一版还没有（响应里没有 trash 字段）"
+                  }) +
+                  " · " + time + " 读取",
                 ),
                 read_console: true,
               }
@@ -1785,12 +1871,56 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         "删除 " + row_name(model, target),
         params_of(delete_pairs(model, target)),
         emit,
+        confirm=delete_confirm_of(model),
       )
       (next, @cmd.batch([cmd, focus_after_render(return_id)]))
     }
     DeleteCancel => (
       { ..model, confirm_id: "" },
       focus_after_render(model.confirm_return),
+    )
+    // ── 回收站 ─────────────────────────────────────────────
+    // 恢复：把回收站里那一份移回 profile 目录。成功 / 失败都重读读数并出提示条，
+    // 失败尤其要显示后端给的原因（已经有同名 profile 时是 conflict）。
+    TrashRestore(dir) => {
+      let params = params_of([("dir", json_text_literal(dir))])
+      send_action(
+        model,
+        trash_row_id(dir),
+        "restore-from-trash",
+        "恢复 " + trash_profile_of(model, dir),
+        params,
+        emit,
+      )
+    }
+    // 真删之前先开确认框（走既有那套 dialog()），焦点落在确认键上
+    TrashPurgeOpen(dir, return_id) => (
+      { ..model, trash_purge_dir: dir, trash_purge_return: return_id },
+      focus_after_render("dsh-purge-ok"),
+    )
+    // 彻底删除：confirm 走顶层（缺了后端给 bad-params），与硬删同一风险等级
+    TrashPurgeConfirm => {
+      let dir = model.trash_purge_dir
+      let return_id = model.trash_purge_return
+      if dir == "" {
+        (model, @cmd.none)
+      } else {
+        let params = params_of([("dir", json_text_literal(dir))])
+        let (next, cmd) = send_action(
+          { ..model, trash_purge_dir: "" },
+          trash_row_id(dir),
+          "purge-trash-item",
+          "彻底删除 " + trash_profile_of(model, dir),
+          params,
+          emit,
+          confirm="PURGE",
+        )
+        (next, @cmd.batch([cmd, focus_after_render(return_id)]))
+      }
+    }
+    TrashPurgeCancel => (
+      { ..model, trash_purge_dir: "" },
+      focus_after_render(model.trash_purge_return),
     )
     // 手动折过就记一笔：ui.archiveOpenByDefault 之后不再覆盖用户的选择
     ToggleArchived => (
@@ -1842,16 +1972,36 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         )
       } else {
         let cleared = map_rows(model, row_id, fn(row) { { ..row, busy: false } })
+        // 删除的回执说人话：正文只讲「进回收站了 / 删掉了」，路径与 mode 收进悬停。
+        // 其余动作照旧用后端给的 note。
+        let (receipt, hint) = if action == "delete-profile" && ok {
+          delete_receipt(res)
+        } else {
+          ("", "")
+        }
+        let shown = if receipt == "" { label + "：" + note } else { receipt }
         if ok {
-          // 本地不猜结果：归档记录与运行时登记都在后端的读数里，
+          // 本地不猜结果：归档记录、运行时登记、回收站条目都在后端的读数里，
           // 重读 console / profiles / instances 之后界面自己会变
           refresh_readings(
-            { ..cleared, act_notice: label + "：" + note, act_notice_ok: true },
+            {
+              ..cleared,
+              act_notice: shown,
+              act_notice_ok: true,
+              act_notice_hint: hint,
+              act_notice_hint_for: shown,
+            },
             emit,
           )
         } else {
           (
-            { ..cleared, act_notice: label + "失败：" + note, act_notice_ok: false },
+            {
+              ..cleared,
+              act_notice: label + "失败：" + note,
+              act_notice_ok: false,
+              act_notice_hint: "",
+              act_notice_hint_for: "",
+            },
             @cmd.none,
           )
         }

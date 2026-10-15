@@ -1,0 +1,8 @@
+5390（旧后端）顶层字段：archive, archivePath, auditPath, deleteToTrash, deleteToTrashSource, notes, runtime, runtimePath, settingsPath, stateDir, trashDir
+5491（新后端）顶层字段：archive, archivePath, auditPath, deleteToTrash, deleteToTrashSource, notes, runtime, runtimePath, settingsPath, stateDir, trash, trashDir
+只在旧里有：（无）
+只在新里有：trash
+旧 archive[0] 字段：（归档区空）
+新 archive[0] 字段：（归档区空）
+新 trash 条目字段：（回收站空）
+trash 条目样例：null
