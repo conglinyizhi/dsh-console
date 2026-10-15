@@ -1,0 +1,90 @@
+{
+ "baseUrl": "http://127.0.0.1:5390",
+ "requests": [],
+ "steps": [
+  {
+   "step": "A 透传（真后端）：打开工作目录",
+   "clicked": {
+    "clicked": true
+   },
+   "actionRequests": [
+    {
+     "url": "http://127.0.0.1:5390/api/local/action",
+     "method": "POST",
+     "headers": {
+      "Accept": "*/*",
+      "Content-Type": "application/json",
+      "Origin": "http://127.0.0.1:5390",
+      "Referer": "http://127.0.0.1:5390/",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36",
+      "X-DSH-Console": "1",
+      "sec-ch-ua": "\"Not?A_Brand\";v=\"24\", \"Chromium\";v=\"152\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "body": {
+      "action": "open-path",
+      "params": {
+       "profile": "web",
+       "kind": "dir"
+      }
+     }
+    }
+   ],
+   "notice": {
+    "notice": "打开工作目录 web :3080失败：HTTP 400 Bad Request · unknown-action：没有这个动作：open-path",
+    "noticeOk": "false"
+   }
+  },
+  {
+   "step": "A 透传（真后端）：编辑配置",
+   "clicked": {
+    "clicked": true
+   },
+   "actionRequests": [
+    {
+     "url": "http://127.0.0.1:5390/api/local/action",
+     "method": "POST",
+     "headers": {
+      "Accept": "*/*",
+      "Content-Type": "application/json",
+      "Origin": "http://127.0.0.1:5390",
+      "Referer": "http://127.0.0.1:5390/",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36",
+      "X-DSH-Console": "1",
+      "sec-ch-ua": "\"Not?A_Brand\";v=\"24\", \"Chromium\";v=\"152\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "body": {
+      "action": "open-path",
+      "params": {
+       "profile": "web",
+       "kind": "config"
+      }
+     }
+    }
+   ],
+   "notice": {
+    "notice": "编辑配置 web :3080失败：HTTP 400 Bad Request · unknown-action：没有这个动作：open-path",
+    "noticeOk": "false"
+   }
+  },
+  {
+   "step": "B 成功回执：打开工作目录",
+   "notice": {
+    "notice": "打开工作目录 web :3080：已用 xdg-open 打开 ~/.dsh/profiles/web",
+    "noticeOk": "true"
+   }
+  },
+  {
+   "step": "C not-found 回执：编辑配置",
+   "notice": {
+    "notice": "编辑配置 web :3080失败：HTTP 404 Not Found · not-found：这只 profile 没有 cordis.patch.yml：~/.dsh/profiles/web/cordis.patch.yml",
+    "noticeOk": "false"
+   }
+  }
+ ],
+ "shotSuccess": true,
+ "shotNotFound": true
+}
