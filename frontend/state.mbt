@@ -432,8 +432,23 @@ fn running_rows(facts : Array[InstanceFact], profiles : Array[ProfileFact]) -> A
         Some(_) => ""
       },
       port_note: "",
-      idle_note: "",
-      note: process_note(fact),
+      // 档案的健康读数（patch/lock）搬到这张卡上：它对应的 profile 卡不再单独出现
+      idle_note: match profile_fact {
+        Some(item) => patch_lock_note(item)
+        None => ""
+      },
+      // 这条是「一眼值得知道的那一条」：profile 解析出来时优先报它的缺包情况
+      // （一只正在跑却缺 3 个包的实例，比进程备注更值得看）；解析不出来才退回进程备注。
+      note: match profile_fact {
+        Some(item) =>
+          if item.bundles.missing.length() > 0 {
+            "缺 " + item.bundles.missing.length().to_string() + " 个包：" +
+            join_with(item.bundles.missing, "、")
+          } else {
+            ""
+          }
+        None => process_note(fact)
+      },
       busy: false,
       version: match fact.version {
         Some(v) => v + "（入口包）"
@@ -473,15 +488,57 @@ fn running_rows(facts : Array[InstanceFact], profiles : Array[ProfileFact]) -> A
 }
 
 ///|
-/// 已停止的实例 = 磁盘上真实存在的 profile；没有进程，所以访问地址是「—」。
+/// patch 行数 / lock 时刻这一行：档案的健康读数，运行中卡与停止卡共用同一口径。
+fn patch_lock_note(fact : ProfileFact) -> String {
+  "cordis.patch.yml " + fact.patch_lines.to_string() + " 行 · " +
+  (if fact.lock_exists {
+    match fact.lock_mtime {
+      Some(mtime) =>
+        match js_short_time(mtime) {
+          "" => "lock —"
+          text => "lock " + text
+        }
+      None => "lock —"
+    }
+  } else {
+    "无 pnpm-lock.yaml"
+  })
+}
+
+///|
+/// 这只 profile 是否正被某个可见进程用着。
+/// 按名字比：控制台当前只读一个 DSH_HOME，同名即同一份档案。
+/// 将来支持多 home 时，这里要改成「home + 名字」一起比。
+fn in_use_by(fact : ProfileFact, running : Array[InstanceFact]) -> Bool {
+  for inst in running {
+    match inst.profile {
+      Some(used) =>
+        if used == fact.name {
+          return true
+        }
+      None => ()
+    }
+  }
+  false
+}
+
+///|
+/// 已停止的实例 = 磁盘上真实存在的 profile，**且没有被任何可见进程用着**。
+/// 被用着的那只不在这里出现：它的版本 / 插件 / patch / lock 都归到那张运行中卡上——
+/// 同一个东西不能既「运行中」又「已停止」。
 fn profile_rows(
   profiles : Array[ProfileFact],
   runtime : RuntimeFacts?,
   dsh_home : String,
+  running : Array[InstanceFact],
 ) -> Array[Row] {
-  profiles.map(fn(fact) {
+  let rows : Array[Row] = []
+  for fact in profiles {
+    if in_use_by(fact, running) {
+      continue
+    }
     let missing = fact.bundles.missing
-    {
+    rows.push({
       id: "profile:" + fact.name,
       name: fact.name,
       kind: if fact.is_current { "本地 profile · 默认" } else { "本地 profile" },
@@ -496,19 +553,7 @@ fn profile_rows(
       uptime: Some(0),
       uptime_hint: "",
       port_note: "",
-      idle_note: "cordis.patch.yml " + fact.patch_lines.to_string() + " 行 · " +
-        (if fact.lock_exists {
-          match fact.lock_mtime {
-            Some(mtime) =>
-              match js_short_time(mtime) {
-                "" => "lock —"
-                text => "lock " + text
-              }
-            None => "lock —"
-          }
-        } else {
-          "无 pnpm-lock.yaml"
-        }),
+      idle_note: patch_lock_note(fact),
       note: if missing.length() > 0 {
         "缺 " + missing.length().to_string() + " 个包：" + join_with(missing, "、")
       } else {
@@ -531,8 +576,9 @@ fn profile_rows(
       },
       deletable: true,
       archived_at: None,
-    }
-  })
+    })
+  }
+  rows
 }
 
 // ── 演示数据（真实读取失败时兜底；归档区一直是演示） ─────────

@@ -252,7 +252,19 @@ fn sub_line(row : Row) -> @html.Html {
       tail.push(
         @html.span(
           class="dsh-uptime",
-          attrs=@html.Attrs::build().title(row.uptime_hint),
+          // 悬停里补上档案的健康读数（patch 行数 / lock 时刻）：
+          // 这只 profile 的卡已经不再单独出现，这份读数得跟着进程卡走。
+          attrs=@html.Attrs::build().title(
+            if row.idle_note.length() > 0 {
+              (if row.uptime_hint.length() > 0 {
+                row.uptime_hint + " · "
+              } else {
+                ""
+              }) + row.idle_note
+            } else {
+              row.uptime_hint
+            },
+          ),
           match row.uptime {
             Some(minutes) => "已运行 " + duration_text(minutes)
             None => "运行时长未知"

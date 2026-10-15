@@ -55,8 +55,14 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     Some(facts) => running_rows(facts.instances, profile_list)
     None => demo_running()
   }
+  // 已停止组要排除「正被某个运行中实例用着」的 profile——同一个东西不能既运行中又已停止
+  let live_instances = match model.instances {
+    Some(facts) => facts.instances
+    None => []
+  }
   let stopped = match model.profiles {
-    Some(facts) => profile_rows(facts.profiles, model.runtime, dsh_home_of(model))
+    Some(facts) =>
+      profile_rows(facts.profiles, model.runtime, dsh_home_of(model), live_instances)
     None => demo_stopped()
   }
   let rows : Array[Row] = []
