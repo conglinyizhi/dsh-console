@@ -20,6 +20,13 @@ if (run('verify-frontend.mjs', [baseUrl, prefix + '-verify.png', prefix + '-veri
 if (run('probe-invariants.mjs', [baseUrl, prefix + '-inv.json', profile])) errs.push('probe-invariants 失败')
 if (run('probe-logs.mjs', [baseUrl, prefix + '-logs.json', '日志', profile])) errs.push('probe-logs 失败')
 if (run('probe-animation.mjs', [baseUrl, prefix + '-anim.json', '启动'])) errs.push('probe-animation 失败')
+const dlgOut = spawnSync('node', [join(here, 'probe-dialog.mjs'), baseUrl], { encoding: 'utf8', timeout: 180000 })
+let dlg = null
+for (const line of (dlgOut.stdout || '').split('\n')) {
+  if (line.startsWith('SUMMARY ')) { try { dlg = JSON.parse(line.slice(8)) } catch (e) {} }
+}
+if (!dlg) errs.push('对话框探针没给出 SUMMARY')
+
 const ccOut = spawnSync('node', [join(here, 'probe-class-contract.mjs'), baseUrl], { encoding: 'utf8', timeout: 180000 })
 let cc = null
 try { cc = JSON.parse((ccOut.stdout || '').trim().split('\n').pop()) } catch (e) { errs.push('类名契约探针输出无法解析') }
@@ -77,6 +84,13 @@ if (anim) {
   add('等待态禁用按钮数', String(vueAnim?.after?.disabledButtons ?? 3), String(anim.after?.disabledButtons), anim.after?.disabledButtons === (vueAnim?.after?.disabledButtons ?? 3))
 }
 
+if (dlg) {
+  // 这一组是「看得见但用不了」的克星：位置不对/被遮罩盖住，键盘能过但鼠标点不到。
+  add('对话框居中', 'true', String(dlg.centered), dlg.centered === true)
+  add('对话框在最上层可点', 'true', String(dlg.onTop), dlg.onTop === true)
+  add('取消键能关', 'true', String(dlg.closedByCancel), dlg.closedByCancel === true)
+  add('点遮罩能关', 'true', String(dlg.closedByScrim), dlg.closedByScrim === true)
+}
 if (cc) {
   // 这是**候选发现器**，不是判决器：无规则的类未必是缺陷（容器、继承样式的 span 都属正常）。
   // 已知合理：notranslate（翻译排除）、v-card--density-default（默认密度不加规则）。

@@ -604,11 +604,20 @@ select { appearance: none; -webkit-appearance: none; }
   color: $text-dim;
 }
 
-// ── 对话框：删除确认（ConfirmDialog.vue） ──
+// ── 对话框（删除确认 / 重命名 共用） ──
+//
+// 遮罩与卡片是**兄弟**，不是父子：父子结构下点卡片会冒泡到遮罩的 on_click 上，
+// 而「只在点遮罩本身时关闭」需要事件对象判断 target，rabbita 的 div.on_click 收不到。
+// 所以居中必须由**独立的居中层**来做——它在遮罩之上（61 > 60），
+// 并且 pointer-events: none 让点击穿过去给遮罩，只有卡片自己重新打开。
 .dsh-scrim {
   position: fixed; inset: 0; z-index: 60;
-  display: grid; place-items: center;
   background: rgba(8, 9, 11, 0.62);
+}
+.dsh-dialog-wrap {
+  position: fixed; inset: 0; z-index: 61;
+  display: grid; place-items: center;
+  pointer-events: none;
 }
 .dsh-dialog-card {
   width: min(360px, calc(100vw - 48px));
@@ -618,6 +627,7 @@ select { appearance: none; -webkit-appearance: none; }
   border: 1px solid $line-strong;
   border-radius: $radius;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
 }
 .dsh-dialog-title { margin: 0; font-size: 14px; font-weight: 600; color: $text; }
 .dsh-dialog-message { margin: 0; font-size: 12px; line-height: 1.6; color: $text-mid; }
@@ -636,22 +646,7 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-dialog-btn.danger:hover { filter: brightness(1.08); }
 .dsh-dialog-btn:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 
-// ── 对话框：重命名（RenameDialog.vue） ──
-.dsh-scrim {
-  position: fixed; inset: 0; z-index: 60;
-  display: grid; place-items: center;
-  background: rgba(8, 9, 11, 0.62);
-}
-.dsh-dialog-card {
-  width: min(360px, calc(100vw - 48px));
-  padding: 16px 16px 14px;
-  display: flex; flex-direction: column; gap: 8px;
-  background: $panel-soft;
-  border: 1px solid $line-strong;
-  border-radius: $radius;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
-}
-.dsh-dialog-title { margin: 0; font-size: 14px; font-weight: 600; color: $text; }
+// 重命名对话框独有的输入框（其余规则与删除确认共用上面那一份）
 .dsh-dialog-input {
   height: 32px; padding: 0 10px;
   border: 1px solid $line-strong; border-radius: $radius-sm;
