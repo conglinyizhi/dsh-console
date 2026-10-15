@@ -43,7 +43,7 @@ fn setting_input_attrs(model : Model, def : SettingDef, unit : String) -> @html.
   mark("setting-input", ["settings", "row", def.key, "input"])
     .aria_label(def.label)
     .title(
-      setting_fallback_text(def) + (if unit == "" { "" } else { " · 单位" + unit }),
+      setting_fallback_text(def) + (if unit == "" { "" } else { " | 单位" + unit }),
     )
     .disabled(model.settings_saving == def.key)
 }
@@ -187,16 +187,16 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
   }
   let saving = model.settings_saving == def.key
   // 元信息：来源是「默认」时，当前值与缺省本来就是同一个数，说一遍就够；
-  // 只有被文件改过才需要「当前 X · 缺省 Y」两栏对照。
+  // 只有被文件改过才需要「当前 X | 缺省 Y」两栏对照。
   let default_short = setting_default_short(model, def)
   let meta : Array[@html.Html] = if source_text == "默认" {
     [@html.span(class="dsh-setting-default", "默认 " + default_short)]
   } else {
     [
       @html.span(class="dsh-setting-current", "当前 " + value_text),
-      @html.span(class="dsh-setting-sep", "·"),
+      @html.span(class="dsh-setting-sep", "|"),
       @html.span(class="dsh-setting-source", "来源 " + source_text),
-      @html.span(class="dsh-setting-sep", "·"),
+      @html.span(class="dsh-setting-sep", "|"),
       @html.span(class="dsh-setting-default", "缺省 " + default_short),
     ]
   }

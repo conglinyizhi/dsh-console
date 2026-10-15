@@ -160,16 +160,18 @@ fn settings_put_cmd(key : String, body : String, emit : @cmd.Emit[Msg]) -> @cmd.
 }
 
 ///|
-/// POST /api/local/action。row_id / label 原样带回 update，用来决定这一枪打中了谁。
+/// POST /api/local/action。row_id / name / verb 原样带回 update：
+/// 前两个决定这一枪打中了谁，后两个决定回执该怎么说话（见 app.mbt 的 action_receipt）。
 fn action_cmd(
   row_id : String,
   action : String,
-  label : String,
+  name : String,
+  verb : String,
   body : String,
   emit : @cmd.Emit[Msg],
 ) -> @cmd.Cmd {
   @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(HttpDone(row_id, action, label, res)) },
+    fn(res : Result[String, Error]) { emit(HttpDone(row_id, action, name, verb, res)) },
     async fn() {
       let text : String = js_http_call(
         "POST",

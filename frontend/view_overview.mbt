@@ -294,7 +294,7 @@ fn sub_line(row : Row) -> @html.Html {
             .title(
               if row.idle_note.length() > 0 {
                 (if row.uptime_hint.length() > 0 {
-                  row.uptime_hint + " · "
+                  row.uptime_hint + " | "
                 } else {
                   ""
                 }) + row.idle_note
@@ -932,7 +932,12 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         ),
       )
     } else {
-      running_list.push(running_empty(running_summary(model), model.tag_instances.detail))
+      // 读数失败时把原因带上（那一档标记里有）；读到了就没这一句
+      let detail = match model.tag_instances {
+        Some(tag) => tag.detail
+        None => ""
+      }
+      running_list.push(running_empty(running_summary(model), detail))
     }
   }
   let stopped_list : Array[@html.Html] = stopped.map(fn(row) {

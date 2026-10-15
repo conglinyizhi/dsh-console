@@ -109,7 +109,7 @@ fn logs_meta(model : Model) -> String {
     None => "只读"
   }
   if !got.read_ok {
-    return head + " · 读取失败 · 只读"
+    return head + " | 读取失败 | 只读"
   }
   let rows = got.lines.length().to_string() + " 行"
   let size = match got.file_size {
@@ -117,7 +117,7 @@ fn logs_meta(model : Model) -> String {
     None => "大小未知"
   }
   let tail_part = if got.truncated {
-    "尾部 " + rows + " · " +
+    "尾部 " + rows + " | " +
     (match got.truncated_note {
       Some(note) => note
       None => "窗口已截断"
@@ -127,13 +127,13 @@ fn logs_meta(model : Model) -> String {
   }
   let home_part = if got.kind == "instance" {
     match got.home_source {
-      Some(source) => " · 目录依据：" + source
+      Some(source) => " | 目录依据：" + source
       None => ""
     }
   } else {
     ""
   }
-  tail_part + " · " + size + " · " + head + home_part + " · 读于 " + model.log_time + " · 只读"
+  tail_part + " | " + size + " | " + head + home_part + " | 读于 " + model.log_time + " | 只读"
 }
 
 ///|
@@ -211,9 +211,15 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       lines,
     )
   } else {
+    // 空白这一档的两句话分开：读数失败时把原因摆出来（那才是这一次的真结局）；
+    // 读到了却一行都没有，就说读到了 —— 页头的元信息行已经把路径与窗口说全了。
+    let detail = match model.log_tag {
+      Some(tag) => tag.detail
+      None => "这一份日志读到了，里面没有内容。"
+    }
     @html.div(class="dsh-log-empty", attrs=mark("log-empty", ["logs", "empty"]), [
       @html.p(class="dsh-log-empty-title", "没有可显示的行"),
-      @html.p(class="dsh-log-empty-detail", model.log_tag.detail),
+      @html.p(class="dsh-log-empty-detail", detail),
     ])
   }
   let note = if model.instances_error.length() > 0 {

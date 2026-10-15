@@ -43,7 +43,6 @@
 // 图标各自的用处与尺寸（来自 Vue 版的逐处 AppIcon）：
 //   archive-arrow-up-outline   归档行「取消归档」14
 //   archive-outline            菜单「归档」14
-//   check                      徽标「真实数据」12
 //   chevron-down               归档区折叠开关（展开态）14
 //   chevron-right              折叠开关（折叠态）14 / 流程箭头 14
 //   cog-outline                顶栏「设置」14
@@ -82,7 +81,6 @@ fn icon_path(name : String) -> String {
   match name {
     "archive-arrow-up-outline" => "M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M5 5V7H19V5M10.5 17V14H8L12 10L16 14H13.5V17"
     "archive-outline" => "M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M9.5 11H14.5C14.78 11 15 11.22 15 11.5V13H9V11.5C9 11.22 9.22 11 9.5 11M5 5V7H19V5H5Z"
-    "check" => "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
     "chevron-down" => "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"
     "chevron-right" => "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
     "clock-outline" => "M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"

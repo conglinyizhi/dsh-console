@@ -11,18 +11,24 @@
 // **最后一段永远是这一项自己的键**（row.id / 设置键名 / 来源值），不是序号。
 
 ///|
-/// 数据源徽标：三态各自一个图标与色调，悬停写出这个标记的完整依据。
+/// 数据源徽标：只在读数出岔子时才有 —— 读到了（None）这里一个节点都不产出。
+///
+/// 为什么读到了反而不标：页面上读到的一切都是真读数，为「一切正常」挂个徽标
+/// 只是旧前端迁移期的历史产物（使用者 2026-10-15 决定清掉）。
+/// 而「这一次读取失败了，你看到的是兜底数据」**必须留着** —— 删了它，失败就伪装成正常。
 ///
 /// parts 由调用方给全：同一个 data-name 的徽标在页面上有好几个
 /// （运行中分组 / 已停止分组 / 归档区 / 各页页眉），只靠 name 分不开它们。
-fn source_badge(tag : SourceTag, parts : Array[String]) -> @html.Html {
+fn source_badge(tag : SourceTag?, parts : Array[String]) -> @html.Html {
+  let tag = match tag {
+    None => return @html.nothing
+    Some(tag) => tag
+  }
   let icon_name = match tag.kind {
-    Real => "check"
     Fallback => "shield-outline"
     Pending => "refresh"
   }
   let tone = match tag.kind {
-    Real => " real"
     Fallback => " fallback"
     Pending => " pending"
   }
@@ -34,14 +40,14 @@ fn source_badge(tag : SourceTag, parts : Array[String]) -> @html.Html {
 }
 
 ///|
-/// 分组头：标题 + 计数 + 该组数据的数据源标记。
+/// 分组头：标题 + 计数（读数正常时右边是空的，见 source_badge）。
 ///
 /// 计数是字符串而不是数字：读数还没回来时那里得写「…」而不是「0」——
 /// 「(0)」配一块加载态，正是把「还没读到」读成「没有」的那种写法。
 ///
 /// group 是这一组自己的键（running / stopped），语义路径靠它把两个分组的
 /// 同名徽标与同名标题分开。
-fn section_head(group : String, title : String, count : String, tag : SourceTag) -> @html.Html {
+fn section_head(group : String, title : String, count : String, tag : SourceTag?) -> @html.Html {
   @html.div(class="dsh-section-head", [
     @html.h2(
       class="dsh-section-title",
@@ -54,16 +60,22 @@ fn section_head(group : String, title : String, count : String, tag : SourceTag)
 
 ///|
 /// 运行中分组的空态：监听端口扫完、一个 DSH 签名都没命中时才出现，不留假实例占位。
+///
+/// detail 是**读数出岔子时**那一句（读失败的原因）；读到了就是空串 ——
+/// 那时它本来也只是把 summary 又说了一遍，多一行反而让人以为漏看了什么。
 fn running_empty(summary : String, detail : String) -> @html.Html {
+  let lines : Array[@html.Html] = [
+    @html.span(class="dsh-empty-icon", [icon("server", size=26)]),
+    @html.p(class="dsh-empty-line", "当前没有检测到正在运行的 dsh 实例。"),
+    @html.p(class="dsh-empty-sub", summary),
+  ]
+  if detail != "" {
+    lines.push(@html.p(class="dsh-empty-sub", attrs=@html.Attrs::build().title(detail), detail))
+  }
   @html.section(
     class="dsh-empty",
     attrs=mark("running-empty", ["overview", "section", "running", "empty"]),
-    [
-      @html.span(class="dsh-empty-icon", [icon("server", size=26)]),
-      @html.p(class="dsh-empty-line", "当前没有检测到正在运行的 dsh 实例。"),
-      @html.p(class="dsh-empty-sub", summary),
-      @html.p(class="dsh-empty-sub", attrs=@html.Attrs::build().title(detail), detail),
-    ],
+    lines,
   )
 }
 

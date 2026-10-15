@@ -101,7 +101,7 @@ fn trash_row(item : ConsoleTrash, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.span(
         class="dsh-trash-size",
         attrs=mark("trash-size", ["trash", "list", item.dir, "size"]).title(item.size_source),
-        trash_count_text(item.file_count) + " · " + trash_size_text(item.bytes),
+        trash_count_text(item.file_count) + " | " + trash_size_text(item.bytes),
       ),
       @html.span(class="dsh-trash-spacer", @html.nothing),
       @html.button(
@@ -147,7 +147,7 @@ fn trash_purge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let detail = match item {
     Some(entry) =>
-      "这一份是 " + trash_count_text(entry.file_count) + " · " + trash_size_text(entry.bytes) +
+      "这一份是 " + trash_count_text(entry.file_count) + " | " + trash_size_text(entry.bytes) +
       "，删掉之后磁盘上就没有了，恢复的路径也同时消失 —— 无法恢复。"
     None => "这一份已经不在回收站读数里了，删掉之后无法恢复。"
   }

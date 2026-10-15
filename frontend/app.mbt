@@ -312,7 +312,7 @@ fn open_path_action(
   model : Model,
   row_id : String,
   kind : String,
-  label : String,
+  verb : String,
   emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
   let pairs = match find_row(model.rows, row_id) {
@@ -330,7 +330,8 @@ fn open_path_action(
     { ..model, menu_open: "" },
     row_id,
     "open-path",
-    label + " " + row_name(model, row_id),
+    row_name(model, row_id),
+    verb,
     params_of(pairs),
     emit,
   )
@@ -344,9 +345,9 @@ fn open_outcome_text(outcome : String) -> (Bool, String) {
   if outcome == "ok" {
     (true, "已在新标签页打开带令牌的地址（能直接过握手，不是 401）")
   } else if outcome == "blocked" {
-    (false, "浏览器把新标签页拦掉了（弹窗拦截）—— 地址是带令牌的那一条，可以自己去开")
+    (false, "没能打开：浏览器把新标签页拦掉了（弹窗拦截）—— 地址是带令牌的那一条，可以自己去开")
   } else {
-    (false, "打开新标签页失败（" + outcome + "）")
+    (false, "没能打开（" + outcome + "）")
   }
 }
 
@@ -362,7 +363,6 @@ fn open_outcome_text(outcome : String) -> (Bool, String) {
 fn open_web_ui(
   model : Model,
   row_id : String,
-  label : String,
 ) -> (Model, @cmd.Cmd) {
   let row = match find_row(model.rows, row_id) {
     None => return (model, @cmd.none)
@@ -375,7 +375,7 @@ fn open_web_ui(
         {
           ..model,
           menu_open: "",
-          act_notice: label + " " + row.name + "：" + tail + "。" + url + "（令牌来源：" +
+          act_notice: row.name + " 的 Web UI " + tail + "。地址 " + url + "（令牌来源：" +
             row.web_url_source + "）",
           act_notice_ok: ok,
         },
@@ -392,8 +392,8 @@ fn open_web_ui(
         {
           ..model,
           menu_open: "",
-          act_notice: label + " " + row.name +
-            "：读不到握手令牌，没有打开任何标签页 —— " + reason + "。裸地址 " + row.url +
+          act_notice: row.name + " 的 Web UI 没有打开：读不到握手令牌，一个标签页都没开 —— " +
+            reason + "。裸地址 " + row.url +
             " 直接打开会被挡在门外；可以从启动它的那个终端里，把启动横幅里带令牌的完整地址抄过来。",
           act_notice_ok: false,
         },
@@ -412,7 +412,7 @@ fn open_web_ui(
 fn copy_url_action(
   model : Model,
   row_id : String,
-  label : String,
+  what : String,
   with_token : Bool,
   emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
@@ -444,7 +444,7 @@ fn copy_url_action(
       {
         ..model,
         menu_open: "",
-        act_notice: label + " " + row.name + "：" + why + "，没有可复制的内容",
+        act_notice: row.name + " 的" + what + "没能复制：" + why + "，没有可复制的内容",
         act_notice_ok: false,
       },
       @cmd.none,
@@ -452,7 +452,7 @@ fn copy_url_action(
   }
   (
     { ..model, menu_open: "", act_notice: "" },
-    copy_cmd(label + " " + row.name, text, emit),
+    copy_cmd(row.name + " 的" + what, text, emit),
   )
 }
 
@@ -469,21 +469,29 @@ fn parse_copy_result(text : String) -> (Bool, String) {
   }
   if bool_field(obj, "ok") {
     let how = str_field(obj, "how")
-    (true, if how == "" { "已写入剪贴板" } else { "已写入剪贴板（" + how + "）" })
+    (true, if how == "" { "已写入剪贴板。" } else { "已写入剪贴板（" + how + "）。" })
   } else {
     let why = str_field(obj, "error")
-    (false, if why == "" { "剪贴板写入失败，没有给出原因" } else { "剪贴板写入失败：" + why })
+    (
+      false,
+      if why == "" { "没能写进剪贴板，也没给出原因。" } else { "没能写进剪贴板：" + why + "。" },
+    )
   }
 }
 
 ///|
 /// 一个写动作：发请求，并把这一行置成忙碌（同一行不会连点两次）。
 /// 目标读不到就只在本地说一句，不发请求。
+///
+/// name 是这一行在界面上的名字（谁），verb 是这一步做了什么（「停止」）：
+/// 回执按这两个词组句（见 action_receipt）。**不在这里拼「动作名 + 名字」那种标签** ——
+/// 它以前被贴在提示条句首，读起来像机翻。
 fn send_action(
   model : Model,
   id : String,
   action : String,
-  label : String,
+  name : String,
+  verb : String,
   params : String,
   emit : @cmd.Emit[Msg],
   confirm? : String = "",
@@ -492,8 +500,8 @@ fn send_action(
     (
       {
         ..model,
-        act_notice: label +
-          "：这一行的读数里没有可用的目标（profile 目录名或端口读不到），这一步没有执行",
+        act_notice: name + " " + verb +
+          "没执行：这一行的读数里没有可用的目标（profile 目录名或端口读不到）",
         act_notice_ok: false,
       },
       @cmd.none,
@@ -505,7 +513,8 @@ fn send_action(
       action_cmd(
         id,
         action,
-        label,
+        name,
+        verb,
         if confirm == "" {
           action_body(action, params)
         } else {
@@ -570,39 +579,168 @@ fn trash_profile_of(model : Model, dir : String) -> String {
 }
 
 ///|
-/// 删除回执的正文与悬停（第六轮契约第二节）。
-///
-/// 正文只回答「删了会怎样、能不能捞回来」，并指路回收站；
-/// 路径 / mode / hardDeleted 这些是实现细节，收进悬停，不许摊在正文上 ✗
-/// 返回空串 = 这份回执不是删除的（调用方照旧用后端给的 note）。
-fn delete_receipt(res : Result[String, Error]) -> (String, String) {
+/// 成功回执里的 outcome 对象。回执不是约定的形状就给 None ——
+/// 拿不到结构就退回通用说法，不猜、也不编一个结果出来。
+fn outcome_of(res : Result[String, Error]) -> Map[String, Json]? {
   let raw = match res {
-    Err(_) => return ("", "")
+    Err(_) => return None
     Ok(text) => text
   }
   let got = parse_http_result(raw)
-  let data = match open_envelope(got.body) {
-    Err(_) => return ("", "")
-    Ok(data) => data
+  match open_envelope(got.body) {
+    Err(_) => None
+    Ok(data) => Some(obj_field(data, "outcome"))
   }
-  let outcome = obj_field(data, "outcome")
+}
+
+///|
+/// 后端回执原文 → 悬停补充。正文只说人话，机器口径（pid=… / code=…）收在这里。
+fn backend_hint(note : String) -> String {
+  if note == "" {
+    ""
+  } else {
+    "后端回执：" + note
+  }
+}
+
+///|
+/// 回收站条目的大小：文件数与体积。读不到就照实说读不到，不写 0。
+fn outcome_size_text(outcome : Map[String, Json]) -> String {
+  let files = int_field(outcome, "files")
+  let bytes = num_field(outcome, "bytes")
+  let base = trash_count_text(files) + " | " + trash_size_text(bytes)
+  match (files, bytes) {
+    (Some(_), Some(_)) => base
+    _ => {
+      let source = str_field(outcome, "sizeSource")
+      if source == "" {
+        base
+      } else {
+        base + "（" + source + "）"
+      }
+    }
+  }
+}
+
+///|
+/// 删除回执：正文只回答「删了会怎样、能不能捞回来」，并指路回收站；
+/// 路径 / mode / hardDeleted 这些是实现细节，收进悬停，不许摊在正文上 ✗
+///
+/// 读不出 mode 就退回一句通用的（name 是这一行在界面上的名字），
+/// 不拿一个空 mode 去编「这一版认不出这个值」。
+fn delete_receipt(name : String, outcome : Map[String, Json]?) -> (String, String) {
+  let outcome = match outcome {
+    None => return (name + " 已删除。", "")
+    Some(outcome) => outcome
+  }
   let profile = str_field(outcome, "profile")
+  let who = if profile == "" { name } else { profile }
   let mode = str_field(outcome, "mode")
+  if mode == "" {
+    return (who + " 已删除。", "")
+  }
   let dir = str_field(outcome, "dir")
   let trash_path = str_field(outcome, "trashPath")
   let hard = bool_field(outcome, "hardDeleted")
-  let name = if profile == "" { "这一只" } else { "「" + profile + "」" }
   let text = if mode == "trash" {
-    name + "已移入回收站，可以从「回收站」里恢复。"
+    who + " 已移入回收站，可以从「回收站」里恢复。"
   } else if mode == "hard-delete" {
-    name + "已删除，无法恢复。"
+    who + " 已删除，无法恢复。"
   } else {
-    name + "已删除（回执里的 mode 是「" + mode + "」，这一版认不出这个值）。"
+    who + " 已删除（回执里的 mode 是「" + mode + "」，这一版认不出这个值）。"
   }
-  let hint = "profile=" + profile + " · dir=" + dir + " · mode=" + mode + " · trashPath=" +
+  let hint = "profile=" + profile + " | dir=" + dir + " | mode=" + mode + " | trashPath=" +
     (if trash_path == "" { "（硬删，没有回收站落点）" } else { trash_path }) +
-    " · hardDeleted=" + (if hard { "true" } else { "false" })
+    " | hardDeleted=" + (if hard { "true" } else { "false" })
   (text, hint)
+}
+
+///|
+/// 恢复 / 彻底删除的回执：正文一句话说完，文件数 / 体积 / 路径收进悬停。
+/// 后端这两条 note 里在括号里堆了数字（「…（108 个文件 · 526825 字节），无法恢复」），
+/// 摊在正文上就是生硬；悬停里照旧能看到，一个字都没丢。
+/// 返回空串 = 回执里没有 outcome，调用方退回通用说法。
+fn trash_receipt(
+  action : String,
+  name : String,
+  outcome : Map[String, Json]?,
+) -> (String, String) {
+  let outcome = match outcome {
+    None => return ("", "")
+    Some(outcome) => outcome
+  }
+  let profile = str_field(outcome, "profile")
+  let who = if profile == "" { name } else { profile }
+  if action == "restore-from-trash" {
+    let to = str_field(outcome, "restoredTo")
+    let hint = outcome_size_text(outcome) + (if to == "" { "" } else { " | 恢复到 " + to })
+    (who + " 已恢复，回到 profile 列表里。", hint)
+  } else {
+    let path = str_field(outcome, "path")
+    let hint = outcome_size_text(outcome) + (if path == "" { "" } else { " | 原路径 " + path })
+    (who + " 已彻底删除。", hint)
+  }
+}
+
+///|
+/// 动作回执：谁 + 做了什么 + 结果。
+///
+/// **不让调用方拼「动作名 + 名字」那种标签**：它以前被贴在提示条句首
+/// （label + "：" + 后端那句话），读起来像机翻，同一个名字还会在同一句里出现两遍 ✗
+/// 正文只讲人话；后端回执原文与里面的数字、路径一并收进悬停 ✓
+fn action_receipt(
+  action : String,
+  name : String,
+  verb : String,
+  note : String,
+  res : Result[String, Error],
+) -> (String, String) {
+  let outcome = outcome_of(res)
+  if action == "delete-profile" {
+    return delete_receipt(name, outcome)
+  }
+  if action == "restore-from-trash" || action == "purge-trash-item" {
+    let (text, hint) = trash_receipt(action, name, outcome)
+    if text != "" {
+      return (text, hint)
+    }
+  }
+  // 改名与派生的结果里带着一个新名字：读得到就写进句子，读不到只说做了什么
+  if action == "rename-profile" || action == "fork-profile" {
+    let new_name = match outcome {
+      Some(outcome) => str_field(outcome, "newName")
+      None => ""
+    }
+    if new_name != "" {
+      let text = if action == "rename-profile" {
+        name + " 已改名为 " + new_name + "。"
+      } else {
+        name + " 已派生出 " + new_name + "。"
+      }
+      return (text, backend_hint(note))
+    }
+  }
+  let text = if action == "fork-profile" {
+    name + " 已派生出一份新 profile。"
+  } else {
+    name + " 已" + verb + "。"
+  }
+  (text, backend_hint(note))
+}
+
+///|
+/// 备注保存的回执：清空与写入是两件事，后端在 outcome.removed 里说了；说了就照它说。
+fn note_receipt(name : String, note : String, res : Result[String, Error]) -> (String, String) {
+  let removed = match outcome_of(res) {
+    Some(outcome) => bool_field(outcome, "removed")
+    None => false
+  }
+  let text = if removed {
+    name + " 的备注已清空。"
+  } else {
+    name + " 的备注已保存。"
+  }
+  (text, backend_hint(note))
 }
 
 ///|
@@ -631,12 +769,12 @@ fn start_instance(
   emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
   let params = params_of(profile_pairs(row))
-  let label = "启动 " + row.name
+  let name = row.name
   if params == "" {
     return (
       {
         ..model,
-        act_notice: label + "：读数里没有 profile 目录名，这一步没有执行",
+        act_notice: name + " 启动没执行：读数里没有 profile 目录名",
         act_notice_ok: false,
       },
       @cmd.none,
@@ -651,12 +789,13 @@ fn start_instance(
     {
       ..busy,
       act_pending: row.id,
-      act_label: label,
       act_response: false,
       act_tick: false,
       act_ok: false,
       act_note: "",
       act_notice: "",
+      act_name: name,
+      act_verb: "启动",
       start_tab: tab,
       start_tab_profile: profile,
       start_tab_waiting: false,
@@ -665,7 +804,7 @@ fn start_instance(
       notice_url_notice: "",
     },
     @cmd.batch([
-      action_cmd(row.id, "start-instance", label, action_body("start-instance", params), emit),
+      action_cmd(row.id, "start-instance", name, "启动", action_body("start-instance", params), emit),
       @cmd.delay(emit(StartTick(row.id)), start_delay_ms),
     ]),
   )
@@ -678,21 +817,32 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     return (model, @cmd.none)
   }
   let id = model.act_pending
-  let label = model.act_label
+  let name = model.act_name
+  let verb = model.act_verb
   let ok = model.act_ok
   let note = model.act_note
   let cleared = map_rows(
-    { ..model, act_pending: "", act_response: false, act_tick: false, act_label: "" },
+    {
+      ..model,
+      act_pending: "",
+      act_response: false,
+      act_tick: false,
+      act_name: "",
+      act_verb: "",
+    },
     id,
     fn(row) { { ..row, busy: false, status: Stopped, port_note: "" } },
   )
   if ok {
     // 启动成了：占位标页先留着 —— 带令牌的地址由 instances 读数给出（见 fill_start_tab）
+    let text = name + " 已" + verb + "。"
     refresh_readings(
       {
         ..cleared,
-        act_notice: label + "：" + note,
+        act_notice: text,
         act_notice_ok: true,
+        act_notice_hint: backend_hint(note),
+        act_notice_hint_for: text,
         start_tab_waiting: true,
       },
       emit,
@@ -712,8 +862,10 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     (
       {
         ..cleared,
-        act_notice: label + "失败：" + note + tail,
+        act_notice: name + " " + verb + "失败：" + note + tail,
         act_notice_ok: false,
+        act_notice_hint: "",
+        act_notice_hint_for: "",
         start_tab: "",
         start_tab_profile: "",
         start_tab_waiting: false,
@@ -853,20 +1005,24 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
 fn note_settled(
   model : Model,
   res : Result[String, Error],
-  label : String,
+  name : String,
+  note : String,
   emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
-  let (ok, note) = interpret_http(res)
   let return_id = model.note_return
   let base = { ..model, note_saving: "" }
+  let (ok, _) = interpret_http(res)
   if ok {
+    let (text, hint) = note_receipt(name, note, res)
     let closed = {
       ..base,
       note_open: "",
       note_draft: "",
       note_error: "",
-      act_notice: label + "：" + note,
+      act_notice: text,
       act_notice_ok: true,
+      act_notice_hint: hint,
+      act_notice_hint_for: text,
     }
     let (next, cmd) = refresh_readings(closed, emit)
     (next, @cmd.batch([cmd, focus_after_render(return_id)]))
@@ -901,7 +1057,7 @@ fn interpret_http(res : Result[String, Error]) -> (Bool, String) {
           Err(reason) =>
             (
               false,
-              "HTTP " + got.status.to_string() + " · 回执不是约定的格式：" + reason,
+              "HTTP " + got.status.to_string() + " | 回执不是约定的格式：" + reason,
             )
         }
       } else {
@@ -926,7 +1082,7 @@ fn success_note(data : Map[String, Json]) -> String {
         parts.push(key + "=" + outcome_value_text(value))
       }
       if parts.length() > 0 {
-        join_with(parts, " · ")
+        join_with(parts, " | ")
       } else {
         "完成（outcome 是空的）"
       }
@@ -954,10 +1110,10 @@ fn outcome_value_text(value : Json) -> String {
 fn failure_note(got : HttpResult) -> String {
   let head = http_status_text(got)
   let root = try @json.parse(got.body) catch {
-    _ => return head + " · 回执不是合法 JSON（这一版可能还没有这个动作）"
+    _ => return head + " | 回执不是合法 JSON（这一版可能还没有这个动作）"
   }
   guard root is Json::Object(obj) else {
-    return head + " · 回执不是 JSON 对象"
+    return head + " | 回执不是 JSON 对象"
   }
   match obj.get("error") {
     Some(Json::Object(err)) => {
@@ -966,14 +1122,14 @@ fn failure_note(got : HttpResult) -> String {
       if code == "" && message == "" {
         head
       } else if code == "" {
-        head + " · " + message
+        head + " | " + message
       } else if message == "" {
-        head + " · " + code
+        head + " | " + code
       } else {
-        head + " · " + code + "：" + message
+        head + " | " + code + "：" + message
       }
     }
-    _ => head + " · 回执里没有失败原因"
+    _ => head + " | 回执里没有失败原因"
   }
 }
 
@@ -1075,7 +1231,6 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
       } else if got.status >= 200 && got.status < 300 {
         match parse_settings(got.body) {
           Ok(facts) => {
-            let count = facts.values.length().to_string()
             (
               {
                 ..base,
@@ -1084,16 +1239,15 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
                 settings_status_text: got.status_text,
                 settings_error: "",
                 settings_endpoint_missing: false,
-                tag_settings: real_tag(
-                  "GET /api/local/settings 读到 " + count + " 个键 · " + local_time_now() + " 读取",
-                ),
+                // 读到了就不摆标记：连上一次失败留下的那一副也要清掉
+                tag_settings: None,
                 archived_open: default_archive_open(base, facts),
               },
               @cmd.none,
             )
           }
           Err(reason) => {
-            let detail = http_status_text(got) + " · 响应不是约定的成功壳：" + reason
+            let detail = http_status_text(got) + " | 响应不是约定的成功壳：" + reason
             (
               {
                 ..base,
@@ -1227,9 +1381,7 @@ fn settings_saved_state(
       settings_draft: drafts,
       settings_feedback: label + " 已保存：" + value_text + "（来源 文件）",
       settings_feedback_ok: true,
-      tag_settings: real_tag(
-        "PUT /api/local/settings " + key + " · " + local_time_now() + " 写入",
-      ),
+      tag_settings: None,
     },
     @cmd.none,
   )
@@ -1298,11 +1450,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                 runtime: Some(facts),
                 runtime_error: "",
                 runtime_time: time,
-                tag_runtime: real_tag(
-                  "dsh " + facts.dsh_version + " · 后端 " + facts.backend_runtime + " " +
-                  facts.backend_version + " · DSH_HOME " + facts.dsh_home + "（" +
-                  facts.dsh_home_source + "） · " + time + " 读取",
-                ),
+                tag_runtime: None,
                 read_runtime: true,
               }
             Err(reason) =>
@@ -1338,10 +1486,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                 ..model,
                 profiles: Some(facts),
                 profiles_error: "",
-                tag_profiles: real_tag(
-                  "/api/local/profiles 扫 " + facts.profiles_root + "，" +
-                  facts.profiles.length().to_string() + " 个 profile",
-                ),
+                tag_profiles: None,
                 read_profiles: true,
               }
             Err(reason) =>
@@ -1369,33 +1514,17 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
     ConsoleText(res) => {
       // 这一份读不到不算致命：卡片上的「由本控制台启动」与归档区会缺，别的读数照旧。
       // read_console 照样置 true —— 它挡住的是「列表拼装」，不该为一份读数卡住整页。
-      let time = local_time_now()
       let next = match res {
         Ok(text) =>
           match parse_console(text) {
-            Ok(facts) => {
-              let archived = facts.archive.length()
-              let registered = facts.runtime.length()
+            Ok(facts) =>
               {
                 ..model,
                 console: Some(facts),
                 console_error: "",
-                tag_archived: real_tag(
-                  "GET /api/local/console 读 " + facts.archive_path + "：" +
-                  archived.to_string() + " 条归档记录；runtime.json 里 " +
-                  registered.to_string() + " 条登记" +
-                  // 回收站那一档也说清是「几条」还是「这一版读数里没有这个字段」——
-                  // 后者不是「空的」，标记里就不许写成 0 条
-                  (if facts.trash_present {
-                    "；回收站 " + facts.trash.length().to_string() + " 条"
-                  } else {
-                    "；回收站读数这一版还没有（响应里没有 trash 字段）"
-                  }) +
-                  " · " + time + " 读取",
-                ),
+                tag_archived: None,
                 read_console: true,
               }
-            }
             Err(reason) =>
               {
                 ..model,
@@ -1427,13 +1556,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                 ..model,
                 instances: Some(facts),
                 instances_error: "",
-                tag_instances: real_tag(
-                  "/api/local/instances 读 " + join_with(facts.sources, " + ") + "：扫 " +
-                  facts.candidate_count.to_string() + " 个 loopback LISTEN 端口，命中 DSH 签名 " +
-                  facts.probe_hits.to_string() + " 个（判据 " +
-                  join_with(facts.signature_ids, " / ") + "）· 进程补充：" + facts.process_note +
-                  " · " + local_time_now() + " 读取",
-                ),
+                tag_instances: None,
                 read_instances: true,
               }
             Err(reason) =>
@@ -1473,15 +1596,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                   logs: Some(facts),
                   log_error: "",
                   log_time: time,
-                  log_tag: real_tag(
-                    query + " 读 " +
-                    (match facts.path {
-                      Some(path) => path
-                      None => "—"
-                    }) +
-                    " 尾部 " + facts.window_bytes.to_string() + " 字节窗口，返回 " +
-                    facts.lines.length().to_string() + " 行 · " + time + " 读取",
-                  ),
+                  log_tag: None,
                   log_loading: false,
                   // 这一份内容属于哪个来源：按接口回的 source 记账（前端不猜）
                   log_source_read: facts.source,
@@ -1572,7 +1687,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                   model,
                   id,
                   "stop-instance",
-                  "停止 " + row.name,
+                  row.name,
+                  "停止",
                   params_of(port_pairs(row)),
                   emit,
                 )
@@ -1591,7 +1707,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                 model,
                 id,
                 "restart-instance",
-                "重启 " + row.name,
+                row.name,
+                "重启",
                 params_of(port_pairs(row)),
                 emit,
               )
@@ -1621,7 +1738,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             model,
             id,
             "archive-profile",
-            "归档 " + row_name(model, id),
+            row_name(model, id),
+            "归档",
             params_for_row(model, id, "profile"),
             emit,
           )
@@ -1630,7 +1748,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             model,
             id,
             "unarchive-profile",
-            "取消归档 " + row_name(model, id),
+            row_name(model, id),
+            "取消归档",
             params_for_row(model, id, "profile"),
             emit,
           )
@@ -1639,7 +1758,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             model,
             id,
             "fork-profile",
-            "派生 " + row_name(model, id),
+            row_name(model, id),
+            "派生",
             params_for_row(model, id, "profile"),
             emit,
           )
@@ -1670,8 +1790,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                   {
                     ..model,
                     menu_open: "",
-                    act_notice: "查看日志 " + row.name +
-                      "：这只 profile 现在没有在跑的实例，没有 instance:<id> 这个来源可读",
+                    act_notice: row.name +
+                      " 现在没有在跑的实例，没有可读的日志来源（查看日志这一步没有执行）",
                     act_notice_ok: false,
                   },
                   @cmd.none,
@@ -1680,14 +1800,14 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           }
         // 打开 Web UI（卡上的主按钮）与「在新标签页打开」（行菜单）是同一件事：
         // 开带令牌的 webUrl。读不到令牌就不开标签页，把原因与裸地址说清（见 open_web_ui）。
-        OpenUi => open_web_ui(model, id, "打开 Web UI")
-        Tab => open_web_ui(model, id, "在新标签页打开")
+        OpenUi => open_web_ui(model, id)
+        Tab => open_web_ui(model, id)
         // 两条复制：裸地址（卡上「访问地址」那一行的原值）与带令牌的地址（webUrl）
-        CopyUrl => copy_url_action(model, id, "复制访问地址", false, emit)
-        CopyTokenUrl => copy_url_action(model, id, "复制带令牌的地址", true, emit)
+        CopyUrl => copy_url_action(model, id, "访问地址", false, emit)
+        CopyTokenUrl => copy_url_action(model, id, "带令牌的地址", true, emit)
         // 打开工作目录 / 编辑配置：都走 POST open-path，只有 kind 不同（cli 端不给路径）
         Dir => open_path_action(model, id, "dir", "打开工作目录", emit)
-        Config => open_path_action(model, id, "config", "编辑配置", emit)
+        Config => open_path_action(model, id, "config", "打开配置", emit)
         // 没有兜底分支了：ActionKey 的每一项上面都接上了（以前那行兜底会把这个事实藏起来）
       }
     // 启动按钮的点击：占位标页已经在 DOM 监听器里同步开好（见 view_overview 的
@@ -1747,7 +1867,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         None => (model, @cmd.none)
         Some(url) => {
           let (ok, tail) = open_outcome_text(js_open_url(url))
-          let text = "打开 Web UI：" + tail + "。" + url
+          let text = "Web UI " + tail + "。" + url
           (
             {
               ..model,
@@ -1788,7 +1908,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           cleared,
           id,
           "rename-profile",
-          "重命名 " + old + " → " + draft,
+          old,
+          "重命名",
           params,
           emit,
         )
@@ -1833,13 +1954,13 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             )
           } else {
             // 这一行不置忙：备注保存时卡片本身还能用，忙碌态只锁保存键
-            let label = "保存备注 " + row.name
             (
               { ..model, note_saving: row.id, note_error: "", act_notice: "" },
               action_cmd(
                 row.id,
                 "set-profile-note",
-                label,
+                row.name,
+                "保存备注",
                 action_body("set-profile-note", params_of(pairs)),
                 emit,
               ),
@@ -1868,7 +1989,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         { ..model, confirm_id: "" },
         target,
         "delete-profile",
-        "删除 " + row_name(model, target),
+        row_name(model, target),
+        "删除",
         params_of(delete_pairs(model, target)),
         emit,
         confirm=delete_confirm_of(model),
@@ -1888,7 +2010,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         model,
         trash_row_id(dir),
         "restore-from-trash",
-        "恢复 " + trash_profile_of(model, dir),
+        trash_profile_of(model, dir),
+        "恢复",
         params,
         emit,
       )
@@ -1910,7 +2033,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           { ..model, trash_purge_dir: "" },
           trash_row_id(dir),
           "purge-trash-item",
-          "彻底删除 " + trash_profile_of(model, dir),
+          trash_profile_of(model, dir),
+          "彻底删除",
           params,
           emit,
           confirm="PURGE",
@@ -1961,26 +2085,18 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
     // ── 写动作的回执 ───────────────────────────────────────
     // 启动走「回执 + 展示下限」两条腿；其余动作拿到回执就落定，
     // 成功的动作一律重读 profiles / instances（刷新的是读数，不是弹个提示）。
-    HttpDone(row_id, action, label, res) => {
+    HttpDone(row_id, action, name, verb, res) => {
       let (ok, note) = interpret_http(res)
       if action == "set-profile-note" {
-        note_settled(model, res, label, emit)
+        note_settled(model, res, name, note, emit)
       } else if action == "start-instance" && model.act_pending == row_id {
-        finish_start(
-          { ..model, act_response: true, act_ok: ok, act_note: note, act_label: label },
-          emit,
-        )
+        finish_start({ ..model, act_response: true, act_ok: ok, act_note: note }, emit)
       } else {
         let cleared = map_rows(model, row_id, fn(row) { { ..row, busy: false } })
-        // 删除的回执说人话：正文只讲「进回收站了 / 删掉了」，路径与 mode 收进悬停。
-        // 其余动作照旧用后端给的 note。
-        let (receipt, hint) = if action == "delete-profile" && ok {
-          delete_receipt(res)
-        } else {
-          ("", "")
-        }
-        let shown = if receipt == "" { label + "：" + note } else { receipt }
         if ok {
+          // 回执说人话：谁 + 做了什么 + 结果（见 action_receipt）。
+          // 后端回执原文与里面的数字、路径收进悬停，不摊在正文上。
+          let (shown, hint) = action_receipt(action, name, verb, note, res)
           // 本地不猜结果：归档记录、运行时登记、回收站条目都在后端的读数里，
           // 重读 console / profiles / instances 之后界面自己会变
           refresh_readings(
@@ -1997,7 +2113,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           (
             {
               ..cleared,
-              act_notice: label + "失败：" + note,
+              act_notice: name + " " + verb + "失败：" + note,
               act_notice_ok: false,
               act_notice_hint: "",
               act_notice_hint_for: "",
@@ -2009,13 +2125,13 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
     }
     // 剪贴板回执：只说这一枪的真实结局（写进去了 / 两条路都失败），
     // 复制成功不改任何读数，所以这里不刷新列表。
-    CopyDone(label, res) => {
+    CopyDone(subject, res) => {
       let (ok, note) = match res {
         Ok(text) => parse_copy_result(text)
         Err(err) => (false, "剪贴板调用没发出去（" + describe(err) + "）")
       }
       (
-        { ..model, act_notice: label + "：" + note, act_notice_ok: ok },
+        { ..model, act_notice: subject + note, act_notice_ok: ok },
         @cmd.none,
       )
     }

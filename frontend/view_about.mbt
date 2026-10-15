@@ -58,7 +58,7 @@ fn about_view(model : Model) -> @html.Html {
           @html.div(class="dsh-kv", version_rows(model)),
           @html.p(
             class="dsh-foot",
-            "读于 " + model.runtime_time + " · 读自本机",
+            "读于 " + model.runtime_time + " | 读自本机",
           ),
         ],
       ),

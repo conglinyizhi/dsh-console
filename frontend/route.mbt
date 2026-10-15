@@ -235,7 +235,7 @@ fn unknown_route(segs : Array[String]) -> Route {
     group: "",
     source: None,
     notice: "地址里的 /" + join_with(segs, "/") +
-      " 不是本控制台的路由，已回到实例总览。现有路由：/ · /logs · /settings/<分组> · /trash · /about",
+      " 不是本控制台的路由，已回到实例总览。现有路由：/ | /logs | /settings/<分组> | /trash | /about",
   }
 }
 

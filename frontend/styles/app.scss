@@ -198,7 +198,9 @@ select { appearance: none; -webkit-appearance: none; }
 // 所以整条去掉，内容区直接顶到窗口上沿。顶栏的 .dsh-settings / .dsh-topbar 两条规则
 // 跟着一起删：留着就是没有 DOM 对应的死样式。
 
-// ── 数据源徽标（SourceBadge.vue） ──
+// ── 数据源徽标 ──
+// 只在读数出岔子时出现（读到了就什么都不摆），所以这里只有「回退」与「读取中」两档；
+// 以前那个「真实数据」的绿徽标随迁移期的历史标签一起去掉了（使用者 2026-10-15 决定）。
 .dsh-badge {
   display: inline-flex;
   align-items: center;
@@ -214,17 +216,12 @@ select { appearance: none; -webkit-appearance: none; }
   line-height: 1;
   white-space: nowrap;
 }
-.dsh-badge.real {
-  color: $ok;
-  border-color: rgba($ok-rgb, 0.4);
-  background: rgba($ok-rgb, 0.1);
-}
 .dsh-badge.fallback {
   color: $warn;
   border-color: rgba($warn-rgb, 0.42);
   background: rgba($warn-rgb, 0.1);
 }
-/* 读取中：既不是真实数据也不是演示数据，只是请求还在路上 */
+/* 读取中：不是「没有数据」，只是请求还在路上 */
 .dsh-badge.pending {
   color: $text-dim;
   border-color: $line;

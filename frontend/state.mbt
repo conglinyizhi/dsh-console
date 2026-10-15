@@ -61,13 +61,16 @@ enum Tone {
 pub extend Tone with Eq::{ not_equal, equal }
 
 ///|
-/// 三档：真实读取 / 真实读取失败退回演示 / 请求还在路上。
-/// （以前还有一档「演示数据」，只被「接口还没返回」那个初始态用着 ——
-/// 初始态现在是「读取中」，那一档就没有生产者了，随它一起去掉。）
+/// 两档：真实读取失败退回演示 / 请求还在路上。
+///
+/// 「这一份是真读数」那一档已经删掉（使用者 2026-10-15 决定）：页面上读到的一切
+/// 都是真读数，为「一切正常」再挂一个徽标，只是旧前端迁移到新前端时留下的历史产物。
+/// 于是标记本身也跟着变成可选的 —— None 就是「读到了，没什么要说的」（见 SourceTag?）。
 enum TagKind {
-  Real
+  /// 真实读取失败，这一份退回演示数据。**这一档必须留着**：
+  /// 它说的是「你现在看到的是兜底数据」，删了失败就会伪装成正常。
   Fallback
-  /// 读数还没回来：既不是真实数据，也不是演示数据，界面上说「读取中」
+  /// 读数还没回来：界面上说「读取中」
   Pending
 } derive(Eq)
 
@@ -75,8 +78,10 @@ pub extend TagKind with Eq::{ not_equal, equal }
 
 ///|
 /// 一处数据的数据源标记，界面上逐处标。
-/// real = 真实读取；fallback = 真实读取失败，显式退回演示；
-/// pending = 请求还在路上（这一档**不是**空数据：把「还在读」标成「没有」正是要修的那件事）。
+/// fallback = 真实读取失败，显式退回演示；pending = 请求还在路上
+/// （这一档**不是**空数据：把「还在读」标成「没有」正是要修的那件事）。
+///
+/// 标记只在出岔子时才有：读到了就不摆徽标，模型里存 None（见各处的 tag_* 字段）。
 struct SourceTag {
   kind : TagKind
   label : String
@@ -198,12 +203,12 @@ struct Model {
   profiles_error : String
   instances : InstancesFacts?
   instances_error : String
-  // 三处数据源标记
-  tag_runtime : SourceTag
-  tag_instances : SourceTag
-  tag_profiles : SourceTag
-  tag_archived : SourceTag
-  tag_settings : SourceTag
+  // 五处数据源标记。None = 这一份读到了真读数，界面上不摆任何徽标
+  tag_runtime : SourceTag?
+  tag_instances : SourceTag?
+  tag_profiles : SourceTag?
+  tag_archived : SourceTag?
+  tag_settings : SourceTag?
   // 三个读数是否都落地了：都落地才拼一次列表（Vue 版是 Promise.all 之后拼）
   read_runtime : Bool
   read_profiles : Bool
@@ -268,8 +273,10 @@ struct Model {
   /// 提示条被别的动作改写之后，那段路径说明自己失效，不留一段对不上号的悬停
   /// （与 notice_url_notice 同一套口径）。
   act_notice_hint_for : String
-  /// 启动等待态里那句提示要用的动作名（回执与计时是两条路，各自都拿得到它）
-  act_label : String
+  /// 启动等待态里那句提示要用的两个词（回执与计时是两条路，各自都拿得到它们）：
+  /// 谁（web-dev）与做了什么（启动）。组句见 app.mbt 的 action_receipt。
+  act_name : String
+  act_verb : String
   // 启动成功后自动开标页（占位页模式，见 dom.mbt 的 js_tab_hold）
   /// 点击启动时同步开的占位标页的结局：'held' / 'blocked' / 'error: …'；
   /// 空串 = 这一次点击没有开标页（读数里没有 profile 目录名，请求都没发出去）
@@ -301,7 +308,7 @@ struct Model {
   logs : LogsFacts?
   log_error : String
   log_time : String
-  log_tag : SourceTag
+  log_tag : SourceTag?
   log_instance_note : String
 } derive(Eq)
 
@@ -358,9 +365,9 @@ priv enum Msg {
   SettingDraft(String, String)
   SettingCommit(String, String)
   SettingToggle(String, Bool)
-  // 写动作的回执：row_id / action / label / 原始响应
-  HttpDone(String, String, String, Result[String, Error])
-  // 复制到剪贴板的回执：那一项的名字（动作 + 行名）/ 传输层拿回来的那段 JSON
+  // 写动作的回执：row_id / action / 谁 / 做了什么（动词）/ 原始响应
+  HttpDone(String, String, String, String, Result[String, Error])
+  // 复制到剪贴板的回执：复制的是谁的那一条地址 / 传输层拿回来的那段 JSON
   CopyDone(String, Result[String, Error])
   Noop
 }
@@ -429,7 +436,8 @@ fn initial_model() -> Model {
     act_notice_ok: false,
     act_notice_hint: "",
     act_notice_hint_for: "",
-    act_label: "",
+    act_name: "",
+    act_verb: "",
     start_tab: "",
     start_tab_profile: "",
     start_tab_waiting: false,
@@ -454,20 +462,19 @@ fn initial_model() -> Model {
 // ── 数据源标记 ──────────────────────────────────────────────
 
 ///|
-fn real_tag(detail : String) -> SourceTag {
-  { kind: Real, label: "真实数据", detail }
-}
-
-///|
-fn fallback_tag(detail : String) -> SourceTag {
-  { kind: Fallback, label: "演示数据 · 真实读取失败", detail }
+/// 读失败那一档的标记（读成功那一侧写 None，不摆任何徽标）。
+///
+/// 返回的就是模型字段的值（SourceTag?），省得每个调用点再套一层 Some ——
+/// 这一档只可能以标记的形式存在。
+fn fallback_tag(detail : String) -> SourceTag? {
+  Some({ kind: Fallback, label: "演示数据 | 真实读取失败", detail })
 }
 
 ///|
 /// 请求还在路上：读数没到之前的那一档。与「演示数据 / 读取失败」分开 ——
 /// 那两档说的是「已经知道了什么」，这一档说的是「还不知道」。
-fn pending_tag(detail : String) -> SourceTag {
-  { kind: Pending, label: "读取中", detail }
+fn pending_tag(detail : String) -> SourceTag? {
+  Some({ kind: Pending, label: "读取中", detail })
 }
 
 ///|
@@ -763,7 +770,7 @@ fn running_rows(
       web_url_source: fact.web_url_source,
       plugin_count: match profile_fact {
         Some(item) =>
-          "声明 " + item.bundles.declared.to_string() + " · 已装 " +
+          "声明 " + item.bundles.declared.to_string() + " | 已装 " +
           item.bundles.installed.to_string()
         None => "—"
       },
@@ -821,7 +828,7 @@ fn running_rows(
 ///|
 /// patch 行数 / lock 时刻这一行：档案的健康读数，运行中卡与停止卡共用同一口径。
 fn patch_lock_note(fact : ProfileFact) -> String {
-  "cordis.patch.yml " + fact.patch_lines.to_string() + " 行 · " +
+  "cordis.patch.yml " + fact.patch_lines.to_string() + " 行 | " +
   (if fact.lock_exists {
     match fact.lock_mtime {
       Some(mtime) =>
@@ -927,7 +934,7 @@ fn profile_rows(
     rows.push({
       id: "profile:" + fact.name,
       name: fact.name,
-      kind: if fact.is_current { "本地 profile · 默认" } else { "本地 profile" },
+      kind: if fact.is_current { "本地 profile | 默认" } else { "本地 profile" },
       // 「默认」只表示 DSH_PROFILE 指向它，跟「运行中」无关 —— 这个词以前写成「当前」，会被读成正在跑
       kind_hint: if fact.is_current {
         "环境变量 DSH_PROFILE 指向这只 profile：新起的实例默认用它，不代表它正在运行"
@@ -956,7 +963,7 @@ fn profile_rows(
       // 这只 profile 现在没有在跑的实例：没有地址可握手，也就没有令牌可读
       web_url: None,
       web_url_source: "这只 profile 现在没有在运行的实例，没有访问地址可握手",
-      plugin_count: "声明 " + fact.bundles.declared.to_string() + " · 已装 " +
+      plugin_count: "声明 " + fact.bundles.declared.to_string() + " | 已装 " +
         fact.bundles.installed.to_string(),
       plugin_detail: if missing.length() > 0 {
         "缺少的包：" + join_with(missing, "、")
@@ -1048,7 +1055,7 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
   {
     id: "archived:" + record.profile,
     name: record.profile,
-    kind: "已归档 · 磁盘上没有这只 profile",
+    kind: "已归档 | 磁盘上没有这只 profile",
     kind_hint: "archive.json 里有这只 profile 的归档记录，但 profiles 读数里没有对应的目录",
     tone: Violet,
     status: Stopped,
