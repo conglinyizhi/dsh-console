@@ -23,6 +23,8 @@ priv enum ActionKey {
   CopyUrl
   Fork
   Rename
+  /// 编辑这只 profile 的备注（POST set-profile-note）
+  Note
   Archive
   Unarchive
   Delete
@@ -110,6 +112,14 @@ struct Row {
   port_value : Int?
   /// 运行时登记（runtime.json）里有这一条 → 由本控制台启动
   console_started : Bool
+  /// 用户给这只 profile 写的备注（读自 profiles 读数的 note）。
+  /// 名字带 user_ 是为了跟上面那个 note（末轨第二行的读数说明）分开：两个都在卡上，
+  /// 一个是后端读出来的运行事实，一个是用户自己写的自由文本。
+  /// 空串 = 没备注：卡上那一行与删除确认框里那一段都不出现 ——
+  /// 没有备注的卡片必须与以前逐像素一致。
+  user_note : String
+  /// 备注的来源 / 读不到的原因，挂在卡上那一行的悬停里（后端原样给）
+  user_note_source : String
 } derive(Eq)
 
 pub extend Row with Eq::{ not_equal, equal }
@@ -159,6 +169,15 @@ struct Model {
   rename_id : String
   rename_draft : String
   rename_return : String
+  // 备注（POST /api/local/action 的 set-profile-note）。note_open 非空 = 编辑框开着：
+  // 与重命名同一套（预填、Esc 取消、关闭后焦点回触发元素），只是内容是自由文本。
+  note_open : String
+  note_draft : String
+  note_return : String
+  /// 上一次保存失败的原因（后端给的原文）；空串 = 没有要报的错
+  note_error : String
+  /// 正在保存哪一行的备注；空串 = 没有在保存
+  note_saving : String
   confirm_id : String
   confirm_return : String
   archived_open : Bool
@@ -228,6 +247,11 @@ priv enum Msg {
   RenameInput(String)
   RenameConfirm
   RenameCancel
+  // 备注：打开（带触发元素 id）/ 输入 / 保存 / 取消
+  NoteOpen(String)
+  NoteInput(String)
+  NoteConfirm
+  NoteCancel
   DeleteOpen(String, String)
   DeleteConfirm
   DeleteCancel
@@ -273,6 +297,11 @@ fn initial_model() -> Model {
     rename_id: "",
     rename_draft: "",
     rename_return: "",
+    note_open: "",
+    note_draft: "",
+    note_return: "",
+    note_error: "",
+    note_saving: "",
     confirm_id: "",
     confirm_return: "",
     // 归档区默认折叠：这一组目前固定是演示数据，短时间用不上；
@@ -616,6 +645,15 @@ fn running_rows(
       profile_name: fact.profile,
       port_value: Some(fact.port),
       console_started: fact.console_started || console_started(console, fact.port),
+      // 运行中卡也要带备注：这只 profile 的目录就在磁盘上，备注读得到什么就写什么
+      user_note: match profile_fact {
+        Some(item) => item.note
+        None => ""
+      },
+      user_note_source: match profile_fact {
+        Some(item) => item.note_source
+        None => ""
+      },
     }
   })
 }
@@ -712,6 +750,8 @@ fn profile_rows(
       profile_name: Some(fact.name),
       port_value: None,
       console_started: false,
+      user_note: fact.note,
+      user_note_source: fact.note_source,
     })
   }
   rows
@@ -795,6 +835,9 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     profile_name: Some(record.profile),
     port_value: None,
     console_started: false,
+    // 磁盘上没有这只 profile，也就没有备注文件可读：不编
+    user_note: "",
+    user_note_source: "",
   }
 }
 
@@ -818,6 +861,7 @@ fn demo_running() -> Array[Row] {
       url: "http://127.0.0.1:8100", plugin_count: "5 个", plugin_detail: "",
       deletable: false, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
+      user_note: "", user_note_source: "",
     },
     {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
@@ -827,6 +871,7 @@ fn demo_running() -> Array[Row] {
       url: "http://127.0.0.1:8200", plugin_count: "2 个（开发中）", plugin_detail: "",
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
+      user_note: "", user_note_source: "",
     },
   ]
 }
@@ -842,6 +887,7 @@ fn demo_stopped() -> Array[Row] {
       url: "http://127.0.0.1:8300", plugin_count: "3 个", plugin_detail: "",
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
+      user_note: "", user_note_source: "",
     },
   ]
 }

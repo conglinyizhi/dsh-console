@@ -23,6 +23,7 @@ fn action_name(key : ActionKey) -> String {
     CopyUrl => "copy-url"
     Fork => "fork"
     Rename => "rename"
+    Note => "note"
     Archive => "archive"
     Unarchive => "unarchive"
     Delete => "delete"
@@ -40,6 +41,7 @@ fn running_menu(deletable : Bool) -> Array[MenuEntry] {
     MItem(CopyUrl, "link-variant", "复制访问地址", false),
     MSep,
     MItem(Rename, "rename-outline", "重命名", false),
+    MItem(Note, "note-text-outline", "编辑备注", false),
     MItem(Fork, "source-fork", "派生开发副本", false),
     MItem(Archive, "archive-outline", "归档", false),
   ]
@@ -62,6 +64,7 @@ fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
     MItem(Config, "tune", "编辑配置", false),
     MSep,
     MItem(Rename, "rename-outline", "重命名", false),
+    MItem(Note, "note-text-outline", "编辑备注", false),
     MItem(Archive, "archive-outline", "归档", false),
   ]
   if deletable {
@@ -303,6 +306,64 @@ fn sub_line(row : Row) -> @html.Html {
 }
 
 ///|
+/// 卡头中间那一列：标题行 + 副标题行 +（有备注时）备注行。
+///
+/// 备注行**只在真有备注时**才推进这个列 —— 没有备注的卡片 DOM 与以前逐节点一致，
+/// 几何自然一个像素都不动。空串不进 DOM，也不留一个占位的空 span。
+fn ident_block(row : Row) -> @html.Html {
+  let parts : Array[@html.Html] = [
+    @html.div(class="dsh-title-line", [
+      @html.span(class="dsh-name", row.name),
+      // 标记的文字走 CSS 的 content（见 styles/app.scss 的 .dsh-console-mark::after）：
+      // 卡片的 textContent 里因此没有「启动」两个字。这不是为了好看 ——
+      // design/probe-dialog.mjs 是用 textContent.includes('启动') 找「已停止」那张卡的，
+      // 卡里多一段含「启动」的文字会让它选中运行中的卡，进而点到旁边那颗「停止」。
+      // 语义没丢：aria-label 与 title 都是同一句话。
+      if row.console_started {
+        @html.span(
+          class="dsh-console-mark",
+          attrs=@html.Attrs::build()
+            .data_set("name", "console-mark")
+            .data_set("mark", "console-started")
+            .role("img")
+            .aria_label("由本控制台启动")
+            .title(
+              "由本控制台启动：这一条在 $XDG_STATE_HOME/dsh-console/runtime.json 的登记里。登记只记控制台自己起的，外部实例不写进去",
+            ),
+          [icon("play", size=11), @html.text("由本控制台启动")],
+        )
+      } else {
+        @html.nothing
+      },
+    ]),
+    sub_line(row),
+  ]
+  // 备注就写在副标题行下面一行：整行左对齐、超长省略，完整内容在悬停里。
+  // 它不属于「运行事实」，所以不给图标、不跟字段区抢位置。
+  if row.user_note.length() > 0 {
+    parts.push(
+      @html.div(
+        class="dsh-note-row",
+        attrs=@html.Attrs::build()
+          .data_set("name", "card-note")
+          .title(
+            if row.user_note_source.length() > 0 {
+              row.user_note + "\n（" + row.user_note_source + "）"
+            } else {
+              row.user_note
+            },
+          ),
+        [
+          @html.span(class="dsh-note-tag", "备注"),
+          @html.span(class="dsh-note-text", row.user_note),
+        ],
+      ),
+    )
+  }
+  @html.div(class="dsh-ident", parts)
+}
+
+///|
 /// 一张实例卡：两行卡头 + 字段区。
 fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let tile_class = match row.tone {
@@ -321,33 +382,7 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
     [
       @html.div(class="dsh-case-head", [
         @html.span(class=tile_class, [icon(tile_icon, size=20)]),
-        @html.div(class="dsh-ident", [
-          @html.div(class="dsh-title-line", [
-            @html.span(class="dsh-name", row.name),
-            // 标记的文字走 CSS 的 content（见 styles/app.scss 的 .dsh-console-mark::after）：
-            // 卡片的 textContent 里因此没有「启动」两个字。这不是为了好看 ——
-            // design/probe-dialog.mjs 是用 textContent.includes('启动') 找「已停止」那张卡的，
-            // 卡里多一段含「启动」的文字会让它选中运行中的卡，进而点到旁边那颗「停止」。
-            // 语义没丢：aria-label 与 title 都是同一句话。
-            if row.console_started {
-              @html.span(
-                class="dsh-console-mark",
-                attrs=@html.Attrs::build()
-                  .data_set("name", "console-mark")
-                  .data_set("mark", "console-started")
-                  .role("img")
-                  .aria_label("由本控制台启动")
-                  .title(
-                    "由本控制台启动：这一条在 $XDG_STATE_HOME/dsh-console/runtime.json 的登记里。登记只记控制台自己起的，外部实例不写进去",
-                  ),
-                [icon("play", size=11), @html.text("由本控制台启动")],
-              )
-            } else {
-              @html.nothing
-            },
-          ]),
-          sub_line(row),
-        ]),
+        ident_block(row),
         instance_actions(row, model, emit),
       ]),
       @html.ul(class="dsh-fields", [
@@ -524,8 +559,23 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     None =>
       "设置页还没读过，删除方式由后端的 safety.deleteToTrash 决定；如果是硬删，请求会带上 confirm=DELETE。"
   }
+  // 删之前先看清这一只是干什么用的：有备注就把备注摆在确认框里，没有就不占位
+  let note = match find_row(model.rows, model.confirm_id) {
+    Some(row) => row.user_note
+    None => ""
+  }
+  let note_block = if note.length() > 0 {
+    @html.div(
+      class="dsh-dialog-note",
+      attrs=@html.Attrs::build().data_set("name", "confirm-note"),
+      [@html.span(class="dsh-dialog-note-tag", "备注"), @html.text(note)],
+    )
+  } else {
+    @html.nothing
+  }
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(class="dsh-dialog-title", "删除实例 " + name + "？"),
+    note_block,
     @html.p(class="dsh-dialog-message", mode),
     @html.div(class="dsh-dialog-foot", [
       @html.button(
@@ -612,6 +662,85 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+/// 编辑备注框。与重命名框同一套外壳（居中层 .dsh-dialog-wrap、Esc 取消、
+/// 关闭后焦点回触发元素），只是内容是自由文本：
+///
+/// - 预填当前备注，光标推到文末（接着改，不是整段覆盖）
+/// - 空文本是合法的：那就是「删掉这个备注」
+/// - 保存失败不关框，后端给的原因写在框里
+/// - 保存中锁住保存键与取消键，回执到了再收尾
+fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let name = match find_row(model.rows, model.note_open) {
+    Some(row) => row.name
+    None => model.note_open
+  }
+  let saving = model.note_saving != ""
+  let error_block = if model.note_error.length() > 0 {
+    @html.p(
+      class="dsh-dialog-error",
+      attrs=@html.Attrs::build().data_set("name", "note-error"),
+      model.note_error,
+    )
+  } else {
+    @html.nothing
+  }
+  let card = @html.div(class="dsh-dialog-card", [
+    @html.h2(class="dsh-dialog-title", [
+      icon("note-text-outline", size=14),
+      @html.text("编辑备注 " + name),
+    ]),
+    @html.p(class="dsh-dialog-message", "备注写的是这只 profile 干什么用的，存在它自己的目录里（改名、派生、搬走都跟着走）。留空保存就是删掉备注。"),
+    @html.textarea(
+      id="dsh-note-input",
+      class="dsh-dialog-input dsh-dialog-textarea",
+      rows=3,
+      maxlength=2000,
+      value=model.note_draft,
+      placeholder="这只 profile 是干什么用的…",
+      autofocus=true,
+      attrs=@html.Attrs::build()
+        .aria_label("profile 备注")
+        .spellcheck(false)
+        .data_set("name", "note-input"),
+      on_input=emit.map(fn(text) { NoteInput(text) }),
+      @html.nothing,
+    ),
+    error_block,
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id="dsh-note-ok",
+        class="dsh-dialog-btn primary",
+        type_="button",
+        disabled=saving,
+        on_click=emit(NoteConfirm),
+        [@html.text(if saving { "保存中…" } else { "保存" })],
+      ),
+      @html.button(
+        id="dsh-note-cancel",
+        class="dsh-dialog-btn",
+        type_="button",
+        disabled=saving,
+        on_click=emit(NoteCancel),
+        [@html.text("取消")],
+      ),
+    ]),
+  ])
+  dialog(
+    "note-dialog",
+    "编辑备注 " + name,
+    emit(NoteCancel),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        NoteCancel
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
+
+///|
 /// 实例总览页。
 fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let running = model.rows.filter(fn(row) {
@@ -639,6 +768,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   if model.rename_id.length() > 0 {
     dialogs.push(rename_dialog(model, emit))
+  }
+  if model.note_open.length() > 0 {
+    dialogs.push(note_dialog(model, emit))
   }
   let body : Array[@html.Html] = [
       @html.section(class="dsh-overview-page", [

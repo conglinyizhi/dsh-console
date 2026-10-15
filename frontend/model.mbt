@@ -168,6 +168,10 @@ pub(all) struct ProfileFact {
   lock_exists : Bool
   lock_mtime : String?
   bundles : ProfileBundles
+  /// 用户给这只 profile 写的备注（<profile 目录>/.dsh-note.txt）。空串 = 没写备注。
+  note : String
+  /// 备注的读取口径 / 读不到的原因，后端原样给；空串表示没什么要说的
+  note_source : String
 } derive(Eq)
 
 pub extend ProfileFact with Eq::{ not_equal, equal }
@@ -214,6 +218,9 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
         installed: int_or(bundles, "installed", 0),
         missing,
       },
+      // note 是这一轮新增的字段：后端还没给就是空串（没备注），界面按「没有备注」办
+      note: str_field(fact, "note"),
+      note_source: str_field(fact, "noteSource"),
     })
   }
   Ok({
@@ -459,9 +466,11 @@ pub extend ConsoleRuntime with Eq::{ not_equal, equal }
 
 ///|
 /// 一条归档记录（archive.json）：只记「这只 profile 已归档」，磁盘上的目录不动。
+///
+/// 第二轮起没有「已合并」标记了（使用者的决定）：归档就是归档，成没成果不在这条记录里。
+/// 旧的 archive.json 里可能还带着 merged 字段，读的时候直接忽略 —— 少读一个字段不算错。
 pub(all) struct ConsoleArchive {
   profile : String
-  merged : Bool
   archived_at : String
 } derive(Eq)
 
@@ -503,7 +512,6 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     guard item is Json::Object(entry) else { continue }
     archive.push({
       profile: str_field(entry, "profile"),
-      merged: bool_field(entry, "merged"),
       archived_at: str_field(entry, "archivedAt"),
     })
   }

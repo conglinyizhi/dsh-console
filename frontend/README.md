@@ -174,7 +174,8 @@ import {
 - **行内按钮与下拉菜单** → `POST /api/local/action`，请求带 `Content-Type: application/json`
   与 `X-DSH-Console: 1`（自定义头就是契约里的跨源闸门，浏览器不允许跨源带它）。
   action 与 params 逐条按契约：`start-instance` / `stop-instance` / `restart-instance` /
-  `fork-profile` / `rename-profile` / `archive-profile` / `unarchive-profile` / `delete-profile`。
+  `fork-profile` / `rename-profile` / `archive-profile` / `unarchive-profile` / `delete-profile` /
+  `set-profile-note`。
   `delete-profile` 在 `safety.deleteToTrash` 不是 true 时带上 `confirm:"DELETE"`。
 - **设置页** → `GET /api/local/settings` 取当前值 / 缺省 / 来源，`PUT` 一次改一个键。
   改动即保存，成功失败都有反馈，失败显示后端给的 `code: message`。
@@ -184,6 +185,23 @@ import {
   演示数据里的名字（main / dev / staging）不会被打到真实的东西上。
 - **启动有等待态**：回执与展示下限（`start_delay_ms`）都到齐才收尾；收尾不伪造成「运行中」，
   真的起来了的那张卡由重读 `instances` 给出。
+
+### profile 备注（第二轮）
+
+每只 profile 可以写一条备注记它是干什么用的。备注在**它自己的目录里**
+（`<profile 目录>/.dsh-note.txt`，契约里定的位置），所以改名、派生、搬走都跟着走；
+前端只负责读写这条读数与那个动作：
+
+- **读**：`GET /api/local/profiles` 每个 profile 多一个 `note`（与 `noteSource`）。
+  非空时卡片在副标题行**下面**多一行「备注 …」，整行省略、完整内容与来源在悬停里。
+  **没有备注的卡片不进这一行**（`note` 空串时那个节点根本不在 DOM 里），
+  所以卡片几何与加这个功能之前逐项一致 —— 这条是量过的，不是估的。
+- **写**：行菜单「编辑备注」（与「重命名」并列）→ 同一套对话框外壳
+  （居中层 `.dsh-dialog-wrap`、Esc 取消、关闭后焦点回触发元素），内容是自由文本：
+  预填当前备注、光标落在文末、留空保存就是删掉备注。
+  **保存失败不关框**：后端给的原因（`bad-params` / `io-error` / `not-authorized`…）写在框里，
+  改一改就能再存一次；成功了才关框、重读 `profiles`、提示条里给出后端那句 `note`。
+- **删除确认框里也显示这条备注**：删之前能看清这一只是干什么用的（有备注才出现那一段）。
 
 ### 这两处读数从哪来
 
@@ -195,7 +213,8 @@ import {
   只看端口不够 —— 登记过、后来那个 pid 退了、端口被别人接走的情况长得一样。
 - **归档区**：按 `archive` 里的记录标出对应的 profile 行，行上的归档时间就是记录里的
   `archivedAt`（显示成浏览器本地的 MM-DD HH:MM，原值留在悬停里）。磁盘上已经没有那只
-  profile 的记录另补一行，好让人看见并撤掉它。
+  profile 的记录另补一行，好让人看见并撤掉它。**归档没有「已合并」标记了**（第二轮）：
+  `archive[]` 里只有 `{ profile, archivedAt }`，旧文件里那个多余的字段读到时直接忽略。
 
 这一份读数读不到不影响别的页面：卡片上少一个标记，归档区空着，其余照常。
 

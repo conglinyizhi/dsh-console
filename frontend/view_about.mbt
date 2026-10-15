@@ -40,7 +40,7 @@ fn about_view(model : Model) -> @html.Html {
           ),
           @html.p(
             class="dsh-para",
-            "读数只读本机 ~/.dsh；动作（启动 / 停止 / 重启 / 派生 / 归档 / 重命名 / 删除）走 POST /api/local/action，会真的作用于本机实例与 profile。",
+            "读数只读本机 ~/.dsh；动作（启动 / 停止 / 重启 / 派生 / 归档 / 重命名 / 编辑备注 / 删除）走 POST /api/local/action，会真的作用于本机实例与 profile。",
           ),
         ],
       ),

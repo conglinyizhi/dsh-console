@@ -19,6 +19,18 @@ extern "js" fn js_focus_select_id(id : String) -> Unit =
   #| }
 
 ///|
+/// 聚焦并把光标推到文末：备注框打开时预填当前备注，要接着改而不是整段覆盖。
+/// 与 js_focus_select_id 相对：那个是全选（重命名要改名），这个是落在末尾（备注是接着写）。
+extern "js" fn js_focus_end_id(id : String) -> Unit =
+  #| id => {
+  #|   const el = document.getElementById(id);
+  #|   if (!el) return;
+  #|   el.focus();
+  #|   const n = typeof el.value === 'string' ? el.value.length : 0;
+  #|   if (typeof el.setSelectionRange === 'function') el.setSelectionRange(n, n);
+  #| }
+
+///|
 /// 滚到底：日志区打开与切来源都要看到最新的一行。
 extern "js" fn js_scroll_bottom_id(id : String) -> Unit =
   #| id => { const el = document.getElementById(id); if (el) el.scrollTop = el.scrollHeight; }
@@ -60,6 +72,11 @@ fn focus_after_render(id : String) -> @cmd.Cmd {
 ///|
 fn focus_select_after_render(id : String) -> @cmd.Cmd {
   @cmd.custom_cmd(fn(_scheduler) { js_focus_select_id(id) }, kind=@cmd.after_render)
+}
+
+///|
+fn focus_end_after_render(id : String) -> @cmd.Cmd {
+  @cmd.custom_cmd(fn(_scheduler) { js_focus_end_id(id) }, kind=@cmd.after_render)
 }
 
 ///|

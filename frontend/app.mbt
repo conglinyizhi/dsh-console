@@ -112,6 +112,27 @@ fn row_name(model : Model, id : String) -> String {
 }
 
 ///|
+/// 这一行当前的备注（打开编辑框时预填它）。读不到就是空串 —— 编辑框从空白开始。
+fn row_note(model : Model, id : String) -> String {
+  match find_row(model.rows, id) {
+    Some(row) => row.user_note
+    None => ""
+  }
+}
+
+///|
+/// 备注的参数：{ profile, text }。text 用 json_text_literal 转义（备注是自由文本，
+/// 里面什么字符都可能有）；空串是合法的 —— 契约里空串表示删掉那个文件。
+/// 不给 trim：用户写的换行与行首空格是他自己的事，要不要拒由后端按上限判。
+fn note_pairs(row : Row, text : String) -> Array[(String, String)] {
+  match row.profile_name {
+    Some(name) =>
+      [("profile", json_text_literal(name)), ("text", json_text_literal(text))]
+    None => []
+  }
+}
+
+///|
 /// 把若干 (键, 已渲染好的 JSON 值) 拼成 params 对象。空数组给空串 —— 调用方据此
 /// 判定「这一行没有可用的目标」，在本地说清而不是发一个空 params 出去。
 fn params_of(pairs : Array[(String, String)]) -> String {
@@ -277,6 +298,36 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     refresh_readings({ ..cleared, act_notice: label + "：" + note, act_notice_ok: true }, emit)
   } else {
     ({ ..cleared, act_notice: label + "失败：" + note, act_notice_ok: false }, @cmd.none)
+  }
+}
+
+///|
+/// 备注保存的回执。两条路分开：
+///   成功 —— 关框（位置与触发元素都留着），重读 profiles，卡上那一行由读数给出；
+///           提示条里那句 note 是后端写的「这次到底做了什么」。
+///   失败 —— **框不关**，后端给的原因写进框内，用户改一改就能再存一次。
+fn note_settled(
+  model : Model,
+  res : Result[String, Error],
+  label : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let (ok, note) = interpret_http(res)
+  let return_id = model.note_return
+  let base = { ..model, note_saving: "" }
+  if ok {
+    let closed = {
+      ..base,
+      note_open: "",
+      note_draft: "",
+      note_error: "",
+      act_notice: label + "：" + note,
+      act_notice_ok: true,
+    }
+    let (next, cmd) = refresh_readings(closed, emit)
+    (next, @cmd.batch([cmd, focus_after_render(return_id)]))
+  } else {
+    ({ ..base, note_error: note }, @cmd.none)
   }
 }
 
@@ -1001,6 +1052,8 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           { ..model, confirm_id: id, confirm_return: trigger_id(id) },
           focus_after_render("dsh-confirm-ok"),
         )
+        // 打开编辑框是纯前端的事，真正的写动作在保存那一步（NoteConfirm）
+        Note => (model, emit(NoteOpen(id)))
         Archive =>
           send_action(
             model,
@@ -1093,6 +1146,66 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
       { ..model, rename_id: "", rename_draft: "" },
       focus_after_render(model.rename_return),
     )
+    // 编辑备注：与重命名同一套（预填、Esc 取消、关闭后焦点回触发元素）。
+    // 焦点落在备注框、光标推到文末 —— 这里是接着改，不是整段覆盖。
+    NoteOpen(id) => (
+      {
+        ..model,
+        note_open: id,
+        note_draft: row_note(model, id),
+        note_return: trigger_id(id),
+        note_error: "",
+      },
+      focus_end_after_render("dsh-note-input"),
+    )
+    NoteInput(text) => ({ ..model, note_draft: text, note_error: "" }, @cmd.none)
+    // 保存失败**不关框**：后端给的原因（bad-params / io-error / not-authorized…）写在框里，
+    // 用户改一改就能再存一次。关掉的话那句原因就成了一闪而过的提示条。
+    NoteConfirm =>
+      match find_row(model.rows, model.note_open) {
+        // 框开着却找不到那一行（列表刚被重建掉）：把框收掉，不留一个悬空的编辑框
+        None => (
+          { ..model, note_open: "", note_draft: "", note_error: "", note_return: "" },
+          @cmd.none,
+        )
+        Some(row) => {
+          let pairs = note_pairs(row, model.note_draft)
+          if pairs.length() == 0 {
+            (
+              {
+                ..model,
+                note_error: "这一行的读数里没有 profile 目录名，保存不了 —— 没有目标就不发请求",
+              },
+              @cmd.none,
+            )
+          } else {
+            // 这一行不置忙：备注保存时卡片本身还能用，忙碌态只锁保存键
+            let label = "保存备注 " + row.name
+            (
+              { ..model, note_saving: row.id, note_error: "", act_notice: "" },
+              action_cmd(
+                row.id,
+                "set-profile-note",
+                label,
+                action_body("set-profile-note", params_of(pairs)),
+                emit,
+              ),
+            )
+          }
+        }
+      }
+    NoteCancel => {
+      // 保存中不许关：请求已经出去了，关掉框会让人以为没存上（回执到了会把框关掉）
+      if model.note_saving != "" {
+        (model, @cmd.none)
+      } else {
+        let return_id = model.note_return
+        (
+          { ..model, note_open: "", note_draft: "", note_error: "", note_return: "" },
+          focus_after_render(return_id),
+        )
+      }
+    }
     // 删除也是真实动作：POST delete-profile。删掉的行由重读 profiles 之后消失，
     // 不在这里先手动抹掉 —— 后端失败时列表不该少一行。
     DeleteConfirm => {
@@ -1150,7 +1263,9 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
     // 成功的动作一律重读 profiles / instances（刷新的是读数，不是弹个提示）。
     HttpDone(row_id, action, label, res) => {
       let (ok, note) = interpret_http(res)
-      if action == "start-instance" && model.act_pending == row_id {
+      if action == "set-profile-note" {
+        note_settled(model, res, label, emit)
+      } else if action == "start-instance" && model.act_pending == row_id {
         finish_start(
           { ..model, act_response: true, act_ok: ok, act_note: note, act_label: label },
           emit,
