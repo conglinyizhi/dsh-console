@@ -10,6 +10,10 @@
     {
       "path": "moonbitlang/async/http",
       "alias": "async_http"
+    },
+    {
+      "path": "moonbitlang/async/fs",
+      "alias": "fs"
     }
   ]
 }

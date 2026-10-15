@@ -164,15 +164,212 @@ pub fn unavailable_middleware(reason : String) -> @moonback.Middleware {
 }
 
 ///|
+/// 预压缩资源的后缀。与前端 build.sh 里那一步（gzip -9 -n -k）约定一致。
+let gzip_suffix : String = ".gz"
+
+///|
+/// 去掉查询串与片段。静态中间件自己也做这一步，这里是它前面的一层，得同样处理。
+fn path_without_query(raw : String) -> String {
+  let mut end = raw.length()
+  match raw.find("?") {
+    Some(i) => if i < end { end = i }
+    None => ()
+  }
+  match raw.find("#") {
+    Some(i) => if i < end { end = i }
+    None => ()
+  }
+  raw[:end].to_owned()
+}
+
+///|
+/// 请求路径 -> 静态根下的相对路径；不认就给 None，交给下一层。
+///
+/// 这条捷径只认「原样就能拼」的路径：带 % 转义、反斜杠、NUL、`..` 段、不以 /
+/// 开头的一律放行给 unstable_static，由它那套解码 + 规范化去判。这样不必在这里
+/// 再写一份 URL 解码 —— 少一份解码就少一处能绕开穿越防护的地方，而构建产物
+/// （/assets/app.js 这类）本来就是不需要转义的路径。
+fn relative_path_or_none(raw : String) -> String? {
+  let path = path_without_query(raw)
+  guard path.has_prefix("/") &&
+    !path.contains("\\") &&
+    !path.contains("\u{0}") &&
+    !path.contains("%") else {
+    return None
+  }
+  let segments : Array[String] = []
+  for segment in path.split("/") {
+    let seg = @json.owned(segment)
+    if seg == "" || seg == "." {
+      continue
+    }
+    if seg == ".." {
+      return None
+    }
+    segments.push(seg)
+  }
+  if segments.length() == 0 {
+    return None
+  }
+  Some(segments.join("/"))
+}
+
+///|
+/// q 值是不是 0（"0" / "0.0" / "0.00" 都算，"0.5" 不算）。
+fn quality_is_zero(value : String) -> Bool {
+  let head = match value.find(".") {
+    Some(i) => value[:i].to_owned()
+    None => value
+  }
+  head == "0"
+}
+
+///|
+/// 请求头要不要 gzip：按逗号切条目，认 token（gzip 或 \*）且 q 值不是 0。
+/// "gzip;q=0" 是明确拒绝，不能当成「要」。
+fn accepts_gzip(header : StringView?) -> Bool {
+  let raw = match header {
+    None => return false
+    Some(v) => @json.to_lower(v.to_owned())
+  }
+  for item in raw.split(",") {
+    let entry = @json.trim_both(@json.owned(item))
+    if entry == "" {
+      continue
+    }
+    let parts = entry.split(";").collect()
+    let token = match parts.get(0) {
+      Some(t) => @json.trim_both(@json.owned(t))
+      None => ""
+    }
+    if token != "gzip" && token != "*" {
+      continue
+    }
+    let mut refused = false
+    for i = 1; i < parts.length(); i = i + 1 {
+      let param = @json.trim_both(@json.owned(parts[i]))
+      if param.has_prefix("q=") && quality_is_zero(@json.slice_from(param, 2)) {
+        refused = true
+      }
+    }
+    if !refused {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// 静态资源的内容类型；与 unstable_static 的 guess_content_type 同一口径。
+/// 预压缩只换了传输编码，Content-Type 必须还是原文件那个。
+fn content_type_of(path : String) -> String {
+  let lower = @json.to_lower(path)
+  if lower.has_suffix(".js") || lower.has_suffix(".mjs") {
+    "text/javascript; charset=utf-8"
+  } else if lower.has_suffix(".css") {
+    "text/css; charset=utf-8"
+  } else if lower.has_suffix(".html") {
+    "text/html; charset=utf-8"
+  } else if lower.has_suffix(".json") || lower.has_suffix(".map") {
+    "application/json; charset=utf-8"
+  } else if lower.has_suffix(".txt") {
+    "text/plain; charset=utf-8"
+  } else if lower.has_suffix(".svg") {
+    "image/svg+xml"
+  } else if lower.has_suffix(".png") {
+    "image/png"
+  } else if lower.has_suffix(".ico") {
+    "image/x-icon"
+  } else if lower.has_suffix(".woff2") {
+    "font/woff2"
+  } else {
+    "application/octet-stream"
+  }
+}
+
+///|
+/// 是不是普通文件（目录、设备、读不到的一律不算）。
+async fn is_regular_file(path : String) -> Bool noraise {
+  try @fs.kind(path) catch {
+    _ => false
+  } noraise {
+    kind =>
+      match kind {
+        Regular => true
+        _ => false
+      }
+  }
+}
+
+///|
+/// 预压缩静态资源中间件。三条同时成立才命中：
+///   1. GET / HEAD；
+///   2. Accept-Encoding 认 gzip；
+///   3. 原文件与同名 .gz 都是普通文件。
+/// 任何一条不成立（含读不动、路径不认）都原样交给下一层：.gz 缺失绝不变成 404，
+/// 没预压缩的资源照旧发原文件。接口请求走不到这里 —— 链的最外层是 localapi.api_gate。
+fn gzip_middleware(root : String) -> @moonback.Middleware {
+  @moonback.Middleware(next => {
+    (req, res) => {
+      guard req.meth is @async_http.Get || req.meth is @async_http.Head else {
+        next(req, res)
+        return
+      }
+      guard accepts_gzip(req.headers.get("Accept-Encoding")) else {
+        next(req, res)
+        return
+      }
+      let relative = match relative_path_or_none(@json.owned(req.path)) {
+        Some(r) => r
+        None => {
+          next(req, res)
+          return
+        }
+      }
+      let original = @json.join_path(root, relative)
+      let packed = original + gzip_suffix
+      guard is_regular_file(original) && is_regular_file(packed) else {
+        next(req, res)
+        return
+      }
+      let file = try {
+        @fs.open(packed, mode=ReadOnly)
+      } catch {
+        _ => {
+          next(req, res)
+          return
+        }
+      }
+      defer file.close()
+      let headers = @moonback.Headers::from({
+        "Content-Type": content_type_of(original),
+        "Content-Length": file.size().to_string(),
+        "Content-Encoding": "gzip",
+        "Vary": "Accept-Encoding",
+      })
+      if req.meth is @async_http.Head {
+        res.send_void(status=200, headers~)
+      } else {
+        let writer = res.respond(status=200, headers~)
+        writer.write_reader(file)
+      }
+    }
+  })
+}
+
+///|
 /// 建静态中间件。根解析成功就用 unstable_static（目录服务 + 尾斜杠 index + SPA 回退），
 /// 失败就交给 unavailable_middleware 如实报错。
+/// 预压缩层（gzip_middleware）挂在外层：命中就自己发 .gz，没命中原样放行给下一层。
 pub fn static_middleware(root : String?, source : String) -> @moonback.Middleware {
   match root {
     Some(dir) =>
-      @unstable_static.new(
-        root=dir,
-        rewrite_trailing_slash_index=true,
-        history_fallback=Some(history_fallback_path),
+      gzip_middleware(dir).compose(
+        @unstable_static.new(
+          root=dir,
+          rewrite_trailing_slash_index=true,
+          history_fallback=Some(history_fallback_path),
+        ),
       )
     None => unavailable_middleware(source)
   }
@@ -186,6 +383,9 @@ pub fn startup_note(root : String?, source : String) -> String {
       "- 静态根：\{dir}\n" +
       "- 静态根来源：\{source}\n" +
       "- SPA 回退：\{history_fallback_path}（history_fallback；实体文件与静态目录都命中不了时回落到它）\n" +
+      "- 预压缩：Accept-Encoding 含 gzip 且同名 " + gzip_suffix +
+      " 在时发 " + gzip_suffix + "（Content-Encoding: gzip + Vary: Accept-Encoding），" +
+      "其余照旧发原文件；" + gzip_suffix + " 缺失不是错误，不会变成 404\n" +
       "- 优先级：/api/local 与 /api/local/* 由最外层闸门先接走，静态文件抢不到\n"
     None =>
       "- 静态根未解析：\{source}\n" +

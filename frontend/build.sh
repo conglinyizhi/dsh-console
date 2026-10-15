@@ -5,6 +5,7 @@
 #   1. build-styles  precss 编 SCSS        → dist/assets/app.css
 #   2. app           rabbita 客户端（js）  → _build/js/release/build/cmd/app/app.js
 #   3. 拷产物        js / 页面外壳 / 许可  → dist/
+#   4. 预压缩        app.js / app.css      → 同名 .gz（后端静态服务直接发它）
 #
 # 为什么要包一层：踩过「第 2 步漏跑 → 第 3 步静默拷到上一次的 js，页面看着
 # 完全正常、代码是旧的」。所以宁可多一层包装，每一步都 echo，产物还要过两道断言。
@@ -20,7 +21,7 @@ cd "$(dirname "$0")"
 export MOON_CC=clang MOON_AR=ar MOON_LD=clang
 export MOON_HOME="${MOON_HOME:-$PWD/.sandbox/moonhome}"
 
-echo "== 0/3 清 dist/ =="
+echo "== 0/4 清 dist/ =="
 # **不能只增不减**：摘掉的依赖会以旧文件的形式留在 dist 里 —— mdi 字体、
 # dsh-skin.css 这些已经不再生成的东西留着，验收「产物里没有」时就会假通过。
 # 这一步必须在 build-styles 之前：app.css 就是写进 dist/assets 的。
@@ -28,15 +29,15 @@ rm -rf dist
 mkdir -p dist/assets/licenses
 
 echo
-echo "== 1/3 编样式（precss）=="
+echo "== 1/4 编样式（precss）=="
 moon run cmd/build-styles --target native
 
 echo
-echo "== 2/3 编客户端应用（--target js --release）=="
+echo "== 2/4 编客户端应用（--target js --release）=="
 moon build cmd/app --target js --release
 
 echo
-echo "== 3/3 拷产物到 dist/ =="
+echo "== 3/4 拷产物到 dist/ =="
 app_js="_build/js/release/build/cmd/app/app.js"
 if [ ! -f "$app_js" ]; then
   echo "找不到产物 $app_js —— 第 2 步没跑成，或产物布局变了" >&2
@@ -52,6 +53,24 @@ fi
 cp "$app_js" dist/assets/app.js
 cp vendor/licenses/mdi-NOTICE.md dist/assets/licenses/
 cp web/index.html dist/index.html
+
+echo
+echo "== 4/4 预压缩静态资源（gzip -9 -n -k）=="
+# 后端静态服务（backend/dist_static）在 Accept-Encoding 含 gzip、且同名 .gz 真在时直接发 .gz，
+# 首屏那个 1.5MB 的 app.js 因此走压缩版；.gz 不在就照旧发原文件。
+# 压缩链刻意不依赖 Node：系统 gzip 就够（前端构建链本来就只有 moon 与 shell）。
+#   -9  最大压缩
+#   -n  不写时间戳与原文件名，同内容每次产出逐字节一致（能比对、能被缓存复用）
+#   -k  保留原文件（原文件仍要发，是回退路径）
+#   -f  重跑时覆盖旧 .gz，不交互
+for asset in dist/assets/app.js dist/assets/app.css; do
+  gzip -9 -n -k -f "$asset"
+  # 只判「文件在不在」不够：.gz 是空文件时后端会照样发出去，页面直接白屏
+  if [ ! -s "$asset.gz" ]; then
+    echo "预压缩没产出 $asset.gz" >&2
+    exit 1
+  fi
+done
 
 echo
 echo "产物："
