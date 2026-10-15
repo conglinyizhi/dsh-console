@@ -250,3 +250,62 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
   }
   { profile: name, dir, mode: "hard-delete", trash_path: "", confirm: given }
 }
+
+///|
+/// 写备注的结果。
+pub struct NoteOutcome {
+  profile : String
+  dir : String
+  /// 备注文件路径：<profile 目录>/.dsh-note.txt
+  path : String
+  /// true = 这次是「空串」语义，文件被删掉了（本来就没有也算）
+  removed : Bool
+  /// 落盘后的字符数；removed 时为 0
+  chars : Int
+}
+
+///|
+/// 设一个 profile 的备注（第二轮契约第二节）。
+///   text 非空 -> 原子写进 <profile 目录>/.dsh-note.txt（覆盖旧内容）
+///   text 为空串 -> 删掉那个文件
+///
+/// 名字先过白名单，再确认拼出来的目录就是 <profilesRoot>/<name> —— 目录穿越在这里被挡掉：
+/// 白名单不接受斜杠、"." 、".."，所以「解析到 profilesRoot 之外」的名字根本走不到这一步。
+pub async fn set_profile_note(profile : String, text : String) -> NoteOutcome raise ActionError {
+  let name = @json.trim_both(profile)
+  validate_profile_name(name)
+  let root = profiles_root()
+  let dir = @json.join_path(root, name)
+  // 防目录穿越的第二道：白名单已经保证 name 是单段（无斜杠、不是 . / ..），
+  // 这里再确认拼出来的路径确实在 profilesRoot 里面，两道都留着。
+  if !dir.has_prefix(root + "/") || dir == root {
+    fail("bad-params", "profile 名解析到了 profilesRoot 之外：" + dir)
+  }
+  if !@json.is_dir(dir) {
+    fail("not-found", "profile 目录不存在：" + dir)
+  }
+  let path = @json.join_path(dir, @profiles.note_file_name)
+  if text == "" {
+    // 空串 = 删文件。本来就没有这个文件也算成：这一步是幂等的，不给前端制造无谓的 not-found
+    if @json.exists(path) {
+      match @fsx.remove_file(path) {
+        Ok(_) => ()
+        Err(e) => fail("io-error", e)
+      }
+    }
+    return { profile: name, dir, path, removed: true, chars: 0 }
+  }
+  let chars = text.length()
+  if chars > @profiles.note_max_chars {
+    fail(
+      "bad-params",
+      "备注太长：" + chars.to_string() + " 字符，上限 " +
+      @profiles.note_max_chars.to_string() + " 字符",
+    )
+  }
+  match @fsx.write_text_atomic(path, text) {
+    Ok(_) => ()
+    Err(e) => fail("io-error", e)
+  }
+  { profile: name, dir, path, removed: false, chars }
+}

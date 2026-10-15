@@ -1,10 +1,12 @@
 // 归档记录：archive.json —— 只记一条「这个 profile 已归档」，不动磁盘上的 profile。
+//
+// 第二轮契约：归档不再有「已合并」标记，记录只剩 { profile, archivedAt }。
+// 旧文件里残留的 merged 字段一律忽略：读侧只取自己认识的键，多出来的键不报错。
 
 ///|
-/// 一条归档。merged 表示成果是否已回灌主线。
+/// 一条归档。
 pub(all) struct ArchiveRecord {
   profile : String
-  merged : Bool
   archived_at : String
 }
 
@@ -18,7 +20,6 @@ pub struct LoadedArchive {
 pub fn archive_json(r : ArchiveRecord) -> @json.JsonVal {
   @json.JObj([
     ("profile", @json.JStr(r.profile)),
-    ("merged", @json.JBool(r.merged)),
     ("archivedAt", @json.JStr(r.archived_at)),
   ])
 }
@@ -31,15 +32,9 @@ fn archive_of(json : Json) -> ArchiveRecord? {
   }
   match profile {
     Some(name) =>
+      // 这里只认 profile / archivedAt：旧文件里带的 merged（或任何别的键）不读、不校验、不报错
       Some({
         profile: name,
-        merged: match field_of(json, "merged") {
-          Some(v) => match as_bool(v) {
-            Some(b) => b
-            None => false
-          }
-          None => false
-        },
         archived_at: match field_of(json, "archivedAt") {
           Some(v) => match as_string(v) {
             Some(s) => s

@@ -4,7 +4,7 @@ dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版�
 
 - **只读（GET，纯只读）**：`runtime` / `profiles` / `logs` / `processes` / `instances`
   —— 形状与已退役的 Node 版中间件（`../server/`，见 git 0448ba4 可取回）**逐字段一致**，这一层一个字段都不动
-- **写（第三批新增）**：`POST /api/local/action`（八个动作）、`GET/PUT /api/local/settings`、
+- **写（第三批新增）**：`POST /api/local/action`（九个动作）、`GET/PUT /api/local/settings`、
   `GET /api/local/console`（运行时登记与归档的只读出口）
   —— 契约见 `../design/write-api-contract.md`
 
@@ -16,8 +16,11 @@ dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版�
 
 第一批落地四个只读接口；第二批补齐 `logs` / `processes` / `instances`，并修掉两处硬编码
 （`nodeVersion` 伪造、`consoleVersion` 编译期固化）。第三批（A 形态）让后端**接管前端静态服务**，
-并把实例探测从串行提到 **8 路并发**。第四批（本轮）加上**可写层**：
-八个动作真的起停进程 / 动 profile 目录，四项设置真的接到探测、端口分配、起停与日志缺省上。
+并把实例探测从串行提到 **8 路并发**。第四批加上**可写层**：
+动作真的起停进程 / 动 profile 目录，各项设置真的接到探测、端口分配、起停与日志缺省上。
+第四批第二轮（本轮，契约「追加契约」那一节）改三处：**归档去掉 `merged`**（旧文件仍能读）、
+**每个 profile 的备注**（`/api/local/profiles` 新增 `note` / `noteSource`，新动作 `set-profile-note`，
+落点 `<profile 目录>/.dsh-note.txt`）、**派生结果写明拷贝口径**（已拷 N 个文件、未拷 node_modules）。
 
 ## 依赖
 
@@ -184,6 +187,9 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 - `missing`：两处都没有的 bundle 名
 - `patch.lines`：`cordis.patch.yml` 去掉末尾单个换行后的行数；文件不存在时 `{exists:false, lines:0}`
 - `lock`：`pnpm-lock.yaml` 的存在性与 mtime（ISO8601，毫秒 3 位）；不存在给 `{exists:false, mtime:null}`
+- `note` / `noteSource`（第二轮新增的**加字段**，旧消费者忽略即可）：备注正文与来源。
+  备注放在 `<profile 目录>/.dsh-note.txt`，读到给原文 + `"文件"`；没有这个文件给 `""` + `"默认"`；
+  有文件读不动给 `""` + `"默认（<路径> 读取失败：…）"`（与设置的 `sources` 同一套口径，读不到就说读不到）
 
 ### `GET /api/local/logs?source=...&tail=...`
 
@@ -195,7 +201,7 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 | --- | --- |
 | `host` | `~/.dsh/logs/retry-control/host.log` |
 | `audit` | `~/.dsh/linxi-guard-audit.jsonl` |
-| `instance:<实例 id>` | 该实例 DSH_HOME 下 `logs/` 里按 mtime 最新的一个可读日志文件 |
+| `instance:<实例 id>` | 该实例 DSH_HOME 下 `logs/` 里挑出来的一个可读日志文件（挑法见下） |
 
 `tail` 口径（与 Node 版 `parseTail` 逐条对齐）：
 
@@ -375,16 +381,17 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
 **对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
 
-### 八个动作
+### 九个动作
 
 | action | 真实做的事 | 关键边界 |
 | --- | --- | --- |
 | `start-instance` | `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`，等它答出 dsh web 签名才算起成功 | 同 profile 已在跑 → `conflict`（message 里有 pid 与端口）；端口占用 → `conflict`；起不来 → 收掉子进程，message 给「参数被拒」的人话诊断（见「哪些 profile 能起成常驻实例」）或日志尾部 |
 | `stop-instance` | SIGTERM → 等 `process.stopGraceMs` → 仍在则 SIGKILL | 目标必须在运行登记或进程表里认得出是 dsh，否则 `not-found`（不误杀别的 pid） |
 | `restart-instance` | 先停后起，端口与 profile 沿用原来的 | 认不出 profile → `not-found` |
-| `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到） | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来 |
+| `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到） | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来。结果里写明口径：**「已拷 N 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可」**（`outcome.filesCopied` 是真实拷过去的文件数，`outcome.note` 与顶层 `note` 都是这句话） |
 | `rename-profile` | 改磁盘上的目录名 | 空名 / 非法字符 / 重名 / 正在运行 都拒 |
-| `archive-profile` | 往 `archive.json` 追加一条（`merged` 表示成果是否已回灌主线） | **不动磁盘上的 profile** |
+| `set-profile-note` | 写备注：非空 `text` 原子写进 `<profile 目录>/.dsh-note.txt`（覆盖旧的）；**空串 = 删掉那个文件** | 名字先过白名单、再确认解析到 `profilesRoot` 之内（**目录穿越拒 `bad-params`**）；目录不存在 `not-found`；超过 2000 字符 `bad-params`；写不动 `io-error`。`text` 不 trim（前后空格是用户写的），**缺 `text` 键 ≠ 空串**：缺键 `bad-params` |
+| `archive-profile` | 往 `archive.json` 追加一条 `{ profile, archivedAt }` | **不动磁盘上的 profile**；同一个 profile 已在归档区 → `conflict` |
 | `unarchive-profile` | 删掉那条记录 | 没有这条 → `not-found` |
 | `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
 
@@ -481,7 +488,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | 文件 | 内容 | 写时机 |
 | --- | --- | --- |
 | `runtime.json` | 控制台**自己起过**的实例：`{ pid, port, home, profile, startedAt, logPath, detached }` | 起实例成功 / 停止 / 重启 |
-| `archive.json` | 归档记录：`{ profile, merged, archivedAt }` | 归档 / 取消归档 |
+| `archive.json` | 归档记录：`{ profile, archivedAt }`（第二轮删掉了 `merged`；**旧文件里带 `merged` 仍能读**，那个键被忽略） | 归档 / 取消归档 |
 | `audit.jsonl` | 每个动作一行：`{ at, action, params, ok, code, message, outcome }`，**只追加、不轮转** | 每个动作（含失败与 403）、以及 settings 的 PUT |
 
 外部已有的实例不写进 `runtime.json`。对账（pid 已消失就清理）发生在**动作里**，不发生在 GET：
@@ -495,7 +502,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 GET /api/local/console → { ok, readOnly:true, readAt, data:{
   stateDir, settingsPath, runtimePath, archivePath, auditPath, trashDir,
   runtime:[{ pid, port, home, profile, startedAt, logPath, detached, alive }],
-  archive:[{ profile, merged, archivedAt }],
+  archive:[{ profile, archivedAt }],
   notes:[] } }
 ```
 
@@ -533,6 +540,7 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 | 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（只追加） | `store/audit.mbt` |
 | 回收站 | `$XDG_STATE_HOME/dsh-console/trash/<profile>-<毫秒>/` | `actions/profile_fs.mbt`（`deleteToTrash=true`） |
 | profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
+| profile 备注 | `<profile 目录>/.dsh-note.txt`（空串语义 = 删掉它） | `actions/profile_fs.mbt`（`set-profile-note`） |
 | 实例日志 | `<该实例 DSH_HOME>/logs/console-<profile>-<port>.log` | `actions/instance.mbt`（spawn 时重定向 stdout/stderr） |
 
 三份状态文件都是**原子写**（同目录临时文件 + `rename`）；`audit.jsonl` 只 append。

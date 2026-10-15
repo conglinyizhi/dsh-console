@@ -114,16 +114,23 @@ fn optional_int(params : Json, key : String) -> Int? {
 }
 
 ///|
-/// 取一个可选布尔参数。
-fn optional_bool(params : Json, key : String) -> Bool? {
-  match @json.json_field(params, key) {
+/// 取备注文本。与 require_string 的区别只有一个但在这一轮是关键的：
+/// 空串在这里是合法取值（= 删掉备注文件），所以不 trim、不把空串当缺参。
+/// 缺 key 或不是字符串仍然拒绝 —— 那不是「清空」，是调用方写错了。
+fn require_note_text(params : Json) -> String raise ActionError {
+  match @json.json_field(params, "text") {
     Some(v) =>
-      match v {
-        True => Some(true)
-        False => Some(false)
-        _ => None
+      match @json.json_string(v) {
+        Some(s) => s
+        None => {
+          fail("bad-params", "text 要是字符串（空串表示删掉备注）")
+          abort("unreachable: fail 一定抛错")
+        }
       }
-    None => None
+    None => {
+      fail("bad-params", "缺少参数 text（空串表示删掉备注）")
+      abort("unreachable: fail 一定抛错")
+    }
   }
 }
 
@@ -213,6 +220,14 @@ pub async fn run_action(
         optional_string(params, "newName"),
         optional_int(params, "port"),
       )
+      // 这一轮的派生口径要写在结果里，不能只写在文档里：整目录拷贝，但排除 node_modules，
+      // 文件数是这一趟真实拷过去的个数（node_modules 整棵不在其中）。
+      let mut copy_note = "已拷 " + outcome.files.to_string() +
+        " 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可"
+      let other_skipped = outcome.skipped.filter(fn(s) { s != "node_modules" })
+      if other_skipped.length() > 0 {
+        copy_note = copy_note + "（另有跳过：" + other_skipped.join("、") + "）"
+      }
       let fields : Array[(String, @json.JsonVal)] = [
         ("profile", @json.JStr(outcome.profile)),
         ("newName", @json.JStr(outcome.new_name)),
@@ -220,6 +235,7 @@ pub async fn run_action(
         ("filesCopied", @json.jint(outcome.files)),
         ("dirsCreated", @json.jint(outcome.dirs)),
         ("skipped", @json.jstr_array(outcome.skipped)),
+        ("note", @json.JStr(copy_note)),
       ]
       match outcome.started {
         Some(s) => fields.push(("started", spawn_outcome_json(s)))
@@ -228,10 +244,7 @@ pub async fn run_action(
       @json.JObj([
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj(fields)),
-        (
-          "note",
-          @json.JStr("派生只复制 profile 自己的文件（跳过 node_modules：那是安装产物，提升目录仍解析得到）"),
-        ),
+        ("note", @json.JStr(copy_note)),
       ])
     }
     "rename-profile" => {
@@ -249,12 +262,33 @@ pub async fn run_action(
         ])),
       ])
     }
+    "set-profile-note" => {
+      // text 是用户原话，不 trim：前后空格是用户写的，不是噪声；空串是「删掉备注」的语义
+      let outcome = set_profile_note(require_string(params, "profile"), require_note_text(params))
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("profile", @json.JStr(outcome.profile)),
+          ("dir", @json.JStr(outcome.dir)),
+          ("path", @json.JStr(outcome.path)),
+          ("removed", @json.JBool(outcome.removed)),
+          ("chars", @json.jint(outcome.chars)),
+          ("maxChars", @json.jint(@profiles.note_max_chars)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            if outcome.removed {
+              "备注已清空（空串 = 删掉 " + @profiles.note_file_name + "）"
+            } else {
+              "备注写进 " + outcome.path + "（" + outcome.chars.to_string() + " 字符）"
+            },
+          ),
+        ),
+      ])
+    }
     "archive-profile" => {
       let profile = require_string(params, "profile")
-      let merged = match optional_bool(params, "merged") {
-        Some(v) => v
-        None => false
-      }
       let loaded = @store.load_archive()
       for r in loaded.entries {
         if r.profile == profile {
@@ -263,7 +297,6 @@ pub async fn run_action(
       }
       let record : @store.ArchiveRecord = {
         profile,
-        merged,
         archived_at: @json.iso_from_epoch_ms(@async.now()),
       }
       let entries = loaded.entries.copy()
@@ -276,7 +309,6 @@ pub async fn run_action(
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj([
           ("profile", @json.JStr(profile)),
-          ("merged", @json.JBool(merged)),
           ("archivedAt", @json.JStr(record.archived_at)),
           ("archivePath", @json.JStr(paths.archive)),
           ("diskUntouched", @json.JBool(true)),

@@ -5,12 +5,42 @@
 // 每个 profile：
 //   { name, dir, isCurrent, packageName, bundles: { declared, installed,
 //     installedInProfile, installedHoisted, missing }, patch: { exists, lines },
-//     lock: { exists, mtime } }
+//     lock: { exists, mtime }, note, noteSource }
 // 读不到的字段给 null / 0 / []，不编造。
+//
+// note / noteSource 是第二轮契约新增的加字段（旧消费者忽略即可）：
+// 备注放在 <profile 目录>/.dsh-note.txt，读到了给原文 + "文件"；
+// 没有这个文件给空串 + "默认"；有文件读不动给空串 + "默认（原因）"——
+// 与设置那边的 sources 口径一致，读不到就说读不到，不编内容。
 
 ///|
 /// 扫描时跳过的目录（与 Node 版 SKIP_DIRS 一致，不做递归）。
 let skip_dirs : Array[String] = ["node_modules", ".git", ".cache"]
+
+///|
+/// profile 备注文件名（第二轮契约）：<profile 目录>/.dsh-note.txt。
+/// 放在目录里的理由只有一个 —— 派生是整目录拷贝、改名是整目录改名，备注跟着走。
+pub let note_file_name : String = ".dsh-note.txt"
+
+///|
+/// 备注长度上限。按 UTF-16 码元数（String::length）算，写侧与读侧同一把尺子。
+pub let note_max_chars : Int = 2000
+
+///|
+/// 读一个 profile 目录里的备注，返回 (备注文本, 来源)。
+///   有文件且读得动 -> (原文, "文件")
+///   没有这个文件   -> ("", "默认")
+///   有文件读不动   -> ("", "默认（读取失败：…）")
+pub async fn read_profile_note(dir : String) -> (String, String) noraise {
+  let path = @json.join_path(dir, note_file_name)
+  if !@json.exists(path) {
+    return ("", "默认")
+  }
+  match @json.read_text_file(path) {
+    Ok(text) => (text, "文件")
+    Err(e) => ("", "默认（" + path + " 读取失败：" + e + "）")
+  }
+}
 
 ///|
 /// 按 UTF-16 码元逐位比较，等同 JS 的 `a < b` 字符串序。
@@ -153,6 +183,8 @@ async fn describe_profile(
     }
   }
 
+  let (note, note_source) = read_profile_note(dir)
+
   let lock_exists = @json.exists(@json.join_path(dir, "pnpm-lock.yaml"))
   let lock_mtime = if lock_exists {
     @json.mtime_ms(@json.join_path(dir, "pnpm-lock.yaml"))
@@ -182,6 +214,8 @@ async fn describe_profile(
       ("exists", @json.JBool(patch_exists)),
       ("lines", @json.jint(patch_lines)),
     ])),
+    ("note", @json.JStr(note)),
+    ("noteSource", @json.JStr(note_source)),
     ("lock", @json.JObj([
       ("exists", @json.JBool(lock_exists)),
       (

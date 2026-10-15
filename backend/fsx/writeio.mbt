@@ -3,7 +3,7 @@
 // 与 json/fsio.mbt（只读入口）分开是有意的：只读那套是接口的形状，一个字段都不动；
 // 这里只管写，而且写的目标只允许三类（README「读写分层」一节逐条列了）：
 //   1. $XDG_STATE_HOME/dsh-console/ 下的 settings.json / runtime.json / archive.json / audit.jsonl
-//   2. 动作直接作用的 profile 目录（派生 / 重命名 / 删除进回收站）
+//   2. 动作直接作用的 profile 目录（派生 / 重命名 / 删除进回收站 / 写备注 .dsh-note.txt）
 //   3. 被启动实例自己 DSH_HOME 下的 logs/console-<profile>-<port>.log
 //
 // 失败一律给 Result[_, String]，不抛异常：调用方按错误码映射成人话再回给前端。
