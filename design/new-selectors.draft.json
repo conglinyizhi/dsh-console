@@ -7,8 +7,6 @@
  "dotSlot": ".dsh-dot-slot",
  "kind": ".dsh-kind",
  "name": ".dsh-name",
- "splitMain": ".dsh-split > .dsh-btn:not(.split-caret)",
- "splitCaret": ".dsh-split > .split-caret",
  "menuTrigger": "[aria-haspopup=\"menu\"]",
  "menu": "[data-name=\"row-menu\"]",
  "lvError": ".dsh-lv-error",

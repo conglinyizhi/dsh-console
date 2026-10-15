@@ -108,32 +108,10 @@ await press('Enter', 13)
 await sleep(350)
 out.rename.afterEnter = await evalJs("(() => ({ dialogOpen: !!document.querySelector('#dsh-rename-input'), names: [...document.querySelectorAll('[data-name=instance-card]')].map(c => c.dataset.instance), activeLabel: document.activeElement.getAttribute('aria-label') || '' }))()")
 
-// ── 四点六、两段式按钮几何与「只加深自己那一半」 ──
-out.split = await evalJs("(() => { const split = document.querySelector('.dsh-split'); const main = split.querySelector('.dsh-split-main'); const caret = split.querySelector('.split-caret'); const m = getComputedStyle(main); const c = getComputedStyle(caret); const mr = main.getBoundingClientRect(); const cr = caret.getBoundingClientRect(); return { mainRadius: [m.borderTopLeftRadius, m.borderTopRightRadius, m.borderBottomRightRadius, m.borderBottomLeftRadius].join(' '), mainBorderRightWidth: m.borderRightWidth, caretRadius: [c.borderTopLeftRadius, c.borderTopRightRadius, c.borderBottomRightRadius, c.borderBottomLeftRadius].join(' '), caretBorderLeft: c.borderLeftWidth + ' ' + c.borderLeftColor, caretWidth: cr.width, mainWidth: mr.width, mainLeft: Math.round(mr.left * 100) / 100, caretLeft: Math.round(cr.left * 100) / 100, mainHeight: mr.height } })()")
-
-// 悬停态用 CSS.forcePseudoState 定住再量：headless 里 Input.dispatchMouseEvent 的 hover 不可靠。
-await send('DOM.enable')
-await send('CSS.enable')
-const doc = await send('DOM.getDocument', { depth: -1 })
-const forceHover = async (selector) => {
-  const found = await send('DOM.querySelector', { nodeId: doc.result.root.nodeId, selector })
-  if (!found.result?.nodeId) return false
-  await send('CSS.forcePseudoState', { nodeId: found.result.nodeId, forcedPseudoClasses: ['hover'] })
-  await sleep(120)
-  return true
-}
-const clearHover = async (selector) => {
-  const found = await send('DOM.querySelector', { nodeId: doc.result.root.nodeId, selector })
-  if (!found.result?.nodeId) return
-  await send('CSS.forcePseudoState', { nodeId: found.result.nodeId, forcedPseudoClasses: [] })
-  await sleep(100)
-}
-await forceHover('.dsh-split .split-caret')
-out.split.hoverCaret = await evalJs("(() => { const s = document.querySelector('.dsh-split'); return { caretFilter: getComputedStyle(s.querySelector('.split-caret')).filter, mainFilter: getComputedStyle(s.querySelector('.dsh-split-main')).filter } })()")
-await clearHover('.dsh-split .split-caret')
-await forceHover('.dsh-split .dsh-split-main')
-out.split.hoverMain = await evalJs("(() => { const s = document.querySelector('.dsh-split'); return { caretFilter: getComputedStyle(s.querySelector('.split-caret')).filter, mainFilter: getComputedStyle(s.querySelector('.dsh-split-main')).filter } })()")
-await clearHover('.dsh-split .dsh-split-main')
+// ── 四点六、两段式按钮几何 ── **已退役（2026-10-15，使用者决定）**
+// 分段按钮撤了：「启动 ▾」的形状暗示有多种启动方式，而实际只有一种。
+// 现在已停止卡是「启动」+「重启」+ 独立「⋯」（与运行中卡一致）。
+// **这是有意识放弃的基线，不是回归** —— 不再量，也别拿它当红灯。
 await forceHover('.dsh-field')
 out.fieldHover = await evalJs("(() => { const f = document.querySelector('.dsh-field'); const card = f.closest('.dsh-case'); return { beforeBg: getComputedStyle(f, '::before').backgroundColor, beforeInset: getComputedStyle(f, '::before').inset, cardBg: getComputedStyle(card).backgroundColor } })()")
 await clearHover('.dsh-field')

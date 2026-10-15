@@ -15,7 +15,9 @@ await send('Page.enable'); await send('Runtime.enable')
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
 await send('Page.navigate', { url: baseUrl }); await wait(4500)
 // 打开停止卡的 ▾ 菜单 → 重命名
-await ev(`(() => { const c = [...document.querySelectorAll('[data-name="instance-card"]')].find((e) => e.querySelector('[data-name="sub-line"][data-status="stopped"]')); (c.querySelector('.split-caret') || c.querySelectorAll('button')[1]).click() })()`)
+// 入口用 [aria-haspopup="menu"]（选择器映射里的 menuTrigger）—— 曾经用 `.split-caret || buttons[1]` 兜底，
+  // 分段按钮撤掉之后那个兜底会点到「重启」，菜单开不了、框也开不了，于是四条判定变成「没框所以关着」的假通过 ✗
+await ev(`(() => { const c = [...document.querySelectorAll('[data-name="instance-card"]')].find((e) => e.querySelector('[data-name="sub-line"][data-status="stopped"]')); const t = c && c.querySelector('[aria-haspopup="menu"]'); if (!t) return 'no-trigger'; t.click(); return 'clicked' })()`)
 await wait(800)
 await ev(`(() => { const it = [...document.querySelectorAll('[data-name="row-menu"] button, [data-name="row-menu"] [role=menuitem]')].find((e) => e.textContent.trim() === '重命名'); if (it) it.click() })()`)
 await wait(900)
@@ -44,7 +46,9 @@ const clickTest = await evAsync(`(async () => {
   const openRename = async () => {
     const c = [...document.querySelectorAll('[data-name="instance-card"]')].find((e) => e.textContent.includes('启动'))
     if (!c) return false
-    ;(c.querySelector('.split-caret') || c.querySelectorAll('button')[1]).click()
+    const t = c.querySelector('[aria-haspopup="menu"]')
+    if (!t) return false
+    t.click()
     await wait(700)
     const it = [...document.querySelectorAll('[data-name="row-menu"] button, [data-name="row-menu"] [role=menuitem]')].find((e) => e.textContent.trim() === '重命名')
     if (!it) return false
@@ -71,5 +75,10 @@ console.log('SUMMARY ' + JSON.stringify({
   onTop: d.hitAtDialogCenter && d.hitAtDialogCenter.inDialog === true,
   closedByCancel: t.closedByCancel === true,
   closedByScrim: t.closedByScrim === true,
+  // 前置条件：入口真的把框开出来过。没有这一条，入口坏掉时四条会全绿（假通过）
+  opened: t.opened1 === true && t.opened2 === true,
+  ok: t.opened1 === true && t.opened2 === true &&
+    d.centeredInViewport === true && !!(d.hitAtDialogCenter && d.hitAtDialogCenter.inDialog) &&
+    t.closedByCancel === true && t.closedByScrim === true,
 }))
 chrome.kill(); process.exit(0)

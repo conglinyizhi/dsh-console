@@ -56,7 +56,13 @@ if (inv) {
   add('无横向溢出', String(vueInv?.overflow?.overflowX ?? false), String(inv.overflow?.overflowX), inv.overflow?.overflowX === false)
   add('状态点跨卡对齐', String(vueInv?.invariants?.dotXsAllEqual), String(inv.invariants?.dotXsAllEqual), inv.invariants?.dotXsAllEqual === true)
   add('按钮组右缘贴内容右缘', '全 0', JSON.stringify(inv.invariants?.actionsDeltas), (inv.invariants?.actionsDeltas ?? [1]).every((d) => d === 0))
-  add('两段式无缝', String(vueInv?.split?.gap ?? 0), String(inv.split?.gap), inv.split ? inv.split.gap === 0 : false)
+  // 「两段式无缝」退役（2026-10-15，使用者决定）：
+  // 那条是照 Vue 版的「启动 ▾」分段按钮录的（gap 0 / 左右半圆角 6 0 0 6 与 0 6 6 0）。
+  // 分段按钮的形状暗示"有多种启动方式可选"，而我们只有一种 —— 已改成「启动」+ 独立的「⋯」，
+  // 与运行中卡一致。**这是有意识放弃的基线，不是回归**；探针若拿不到分段元素，这里不再当成失败。
+  if (inv.split) {
+    add('两段式无缝（该形态已弃用，仍存在则顺带一量）', String(vueInv?.split?.gap ?? 0), String(inv.split.gap), inv.split.gap === 0)
+  }
   add('菜单锚点 top+6', String(vueInv?.menu?.deltaTop ?? 6), String(inv.menu?.deltaTop), inv.menu?.deltaTop === 6)
   add('菜单锚点 right 对齐', String(vueInv?.menu?.deltaRight ?? 0), String(inv.menu?.deltaRight), inv.menu?.deltaRight === 0)
   add('菜单落焦第一项', String(vueInv?.menu?.activeIsFirstItem), String(inv.menu?.activeIsFirstItem), inv.menu?.activeIsFirstItem === true)
@@ -105,10 +111,14 @@ if (anim) {
 
 if (dlg) {
   // 这一组是「看得见但用不了」的克星：位置不对/被遮罩盖住，键盘能过但鼠标点不到。
-  add('对话框居中', 'true', String(dlg.centered), dlg.centered === true)
-  add('对话框在最上层可点', 'true', String(dlg.onTop), dlg.onTop === true)
-  add('取消键能关', 'true', String(dlg.closedByCancel), dlg.closedByCancel === true)
-  add('点遮罩能关', 'true', String(dlg.closedByScrim), dlg.closedByScrim === true)
+  // **但先说前置条件**：入口必须真的把框开出来过。
+  // 否则「没框所以框关着」会让后面四条全绿 —— 那是假通过，比红灯危险 ✗
+  const opened = dlg.opened === true
+  add('对话框入口能开框（后面四条的判据）', 'true', String(opened), opened)
+  add('对话框居中', 'true', String(dlg.centered), opened && dlg.centered === true)
+  add('对话框在最上层可点', 'true', String(dlg.onTop), opened && dlg.onTop === true)
+  add('取消键能关', 'true', String(dlg.closedByCancel), opened && dlg.closedByCancel === true)
+  add('点遮罩能关', 'true', String(dlg.closedByScrim), opened && dlg.closedByScrim === true)
 }
 if (cc) {
   // 这是**候选发现器**，不是判决器：无规则的类未必是缺陷（容器、继承样式的 span 都属正常）。
