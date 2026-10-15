@@ -190,6 +190,79 @@ fn params_for_row(model : Model, row_id : String, kind : String) -> String {
 }
 
 ///|
+/// 这一行对应的日志来源。
+///
+/// 日志来源的取值是 `instance:<实例 id>`，而卡片上的 id 是自己的口径
+/// （运行中 `port:<端口>`、已停止 `profile:<名>`），两者不是一回事 ——
+/// 所以这里按 instances 读数翻译，**不拼字符串**：拿端口或 profile 名去对，
+/// 对上了才用那只实例的 id（日志接口只认白名单里的来源，拼错了它直接拒）。
+/// 对上不止一只（同名 profile 起了多次）就取第一只，够用。
+///
+/// 返回 None = 这只 profile 现在没有在跑的实例：日志页的来源下拉只列运行中的实例，
+/// 没有能读的实例日志可用。这时由调用方把这句话说清楚，不硬切过去。
+fn log_source_for_row(model : Model, row : Row) -> String? {
+  let facts = match model.instances {
+    Some(instances) => instances.instances
+    None => return None
+  }
+  for fact in facts {
+    if matches_source_row(fact, row) {
+      return Some("instance:" + fact.id)
+    }
+  }
+  None
+}
+
+///|
+/// 一只实例是不是这张卡对应的那一只：运行中按端口认，已停止按 profile 名认。
+fn matches_source_row(fact : InstanceFact, row : Row) -> Bool {
+  match row.port_value {
+    Some(port) => fact.port == port
+    None =>
+      match (row.profile_name, fact.profile) {
+        (Some(name), Some(used)) => used == name
+        _ => false
+      }
+  }
+}
+
+///|
+/// 打开工作目录 / 编辑配置：POST open-path。
+///
+/// 目标只有 profile 名与 kind 两个参数 —— **路径不由前端给**（契约里的硬要求），
+/// 后端按枚举目标自己解析，前端连一个 path 字段都不拼。
+/// 走 send_action 的同一条通道：这一行置忙、回执进 action_notice，
+/// 失败时把后端给的 code 与 message 原样贴出来（not-found / io-error / not-authorized…），
+/// 本地不放行、不假装打开成功。
+fn open_path_action(
+  model : Model,
+  row_id : String,
+  kind : String,
+  label : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let pairs = match find_row(model.rows, row_id) {
+    None => []
+    Some(row) =>
+      match row.profile_name {
+        Some(name) => [
+          ("profile", json_text_literal(name)),
+          ("kind", json_text_literal(kind)),
+        ]
+        None => []
+      }
+  }
+  send_action(
+    { ..model, menu_open: "" },
+    row_id,
+    "open-path",
+    label + " " + row_name(model, row_id),
+    params_of(pairs),
+    emit,
+  )
+}
+
+///|
 /// 一个写动作：发请求，并把这一行置成忙碌（同一行不会连点两次）。
 /// 目标读不到就只在本地说一句，不发请求。
 fn send_action(
@@ -1081,6 +1154,44 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             params_for_row(model, id, "profile"),
             emit,
           )
+        // 查看日志：切到日志页（这里是状态切页，**不开新页面**），来源设成这一行对应的实例，
+        // 内容打开即读一次再滚到底（不靠"上一次读过的还在"，换来源必须真读一次）。
+        Logs =>
+          match find_row(model.rows, id) {
+            None => (model, @cmd.none)
+            Some(row) =>
+              match log_source_for_row(model, row) {
+                Some(source) => (
+                  {
+                    ..model,
+                    page: Logs,
+                    menu_open: "",
+                    log_source: source,
+                    // 这是用户自己挑的来源，rebuild 的缺省推导不许再压过它
+                    log_user_picked: true,
+                    log_loaded: true,
+                  },
+                  @cmd.batch([
+                    load_logs(source, log_tail_of(model), emit),
+                    scroll_bottom_after_render("dsh-log-box"),
+                  ]),
+                )
+                // 没有在跑的实例可读：留在总览页把原因说清，不切到一个空日志页
+                None => (
+                  {
+                    ..model,
+                    menu_open: "",
+                    act_notice: "查看日志 " + row.name +
+                      "：这只 profile 现在没有在跑的实例，没有 instance:<id> 这个来源可读",
+                    act_notice_ok: false,
+                  },
+                  @cmd.none,
+                )
+              }
+          }
+        // 打开工作目录 / 编辑配置：都走 POST open-path，只有 kind 不同（cli 端不给路径）
+        Dir => open_path_action(model, id, "dir", "打开工作目录", emit)
+        Config => open_path_action(model, id, "config", "编辑配置", emit)
         _ => (model, @cmd.none)
       }
     DeleteOpen(id, return_id) => (
