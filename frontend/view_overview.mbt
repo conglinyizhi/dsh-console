@@ -367,29 +367,16 @@ fn ident_block(row : Row) -> @html.Html {
 }
 
 ///|
-/// 「访问地址」那一行的悬停：这一栏显示的永远是**裸地址**（人读的），
-/// 悬停里说清带令牌的那条地址有没有、令牌是从哪读来的、读不到是为什么。
-///
-/// 令牌原值不写进悬停：它在读数里（webUrl），要看要复制走菜单那两项。
+/// 「访问地址」那一行的悬停：这一栏只说这一行自己（在不在监听、监听在哪），
+/// **不提令牌** —— 带令牌的地址走「打开 Web UI」与菜单里的「复制带令牌的地址」。
+/// 这一栏是给人读的地址，不是进去用的入口。
 fn url_hint(row : Row) -> String {
-  match row.web_url {
-    Some(_) =>
-      "带令牌的地址已读到（菜单「在新标签页打开」与「复制带令牌的地址」用的就是它）。令牌来源：" +
-      row.web_url_source
-    None =>
-      if row.web_url_source == "" {
-        ""
-      } else if row.url == "" || row.url == "—" {
-        // 这一行压根没有地址（已停止的 profile）：只讲为什么没有令牌，不硬扯 401
-        "读不到带令牌的地址：" + row.web_url_source
-      } else {
-        "读不到带令牌的地址：" + row.web_url_source + "。裸地址 " + row.url +
-        " 直接打开是 401 —— 从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。"
-      }
+  match row.status {
+    Stopped => "这只 profile 现在没有在跑，所以没有可访问的地址"
+    Starting => "实例正在起来，端口还没开始监听"
+    Running => "这只实例正在 " + row.url + " 上监听（要进去用「打开 Web UI」）"
   }
 }
-
-///|
 /// 「打开 Web UI」按钮的悬停：点下去会发生什么，先说在前面。
 fn open_ui_hint(row : Row) -> String {
   match row.web_url {

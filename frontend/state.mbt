@@ -752,7 +752,7 @@ fn profile_rows(
       profile_hint: "磁盘上真实存在的 profile 目录名：" + fact.name,
       home: dsh_home,
       home_hint: "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）",
-      url: "—",
+      url: "已停用，无法访问",
       // 这只 profile 现在没有在跑的实例：没有地址可握手，也就没有令牌可读
       web_url: None,
       web_url_source: "这只 profile 现在没有在运行的实例，没有访问地址可握手",
