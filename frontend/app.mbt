@@ -1626,7 +1626,14 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
       if model.menu_open == id {
         ({ ..model, menu_open: "" }, @cmd.none)
       } else {
-        ({ ..model, menu_open: id }, focus_first_after_render(menu_id(id), ".dsh-menu-item"))
+        (
+          { ..model, menu_open: id },
+          // 顺序有意义：先量锚点（可能翻上去、可能钳高度），几何定了再落焦第一项
+          @cmd.batch([
+            flip_after_render(menu_id(id)),
+            focus_first_after_render(menu_id(id), ".dsh-menu-item"),
+          ]),
+        )
       }
     MenuClose => ({ ..model, menu_open: "" }, @cmd.none)
     MenuCloseBack(id) => (

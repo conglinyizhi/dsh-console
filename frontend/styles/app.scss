@@ -504,6 +504,7 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-menu-overlay { position: fixed; inset: 0; z-index: 20; }
 .dsh-menu {
+  /* 默认向下：top = 按钮组底 + 6px、right 贴按钮组右缘 —— 这两条是既有不变量，不动 */
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
   min-width: 152px; padding: 4px;
   display: flex; flex-direction: column;
@@ -511,8 +512,22 @@ select { appearance: none; -webkit-appearance: none; }
   border: 1px solid $line-strong;
   border-radius: $radius-sm;
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+  /* 兜底：窗口再矮，菜单也不许整个越过视口 —— 放不下就在自己里面滚。
+     翻到上面那一侧、而那一侧也不够高时，由 dom.mbt 的 js_menu_flip 按该侧的
+     实际可用高度再钳一次（内联 max-height，量之前会先清掉）。 */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
+/* 行尾空间不够时向上折（js_menu_flip 量的，结论写在 data-flip 上）：
+   菜单**底边**贴按钮组顶 − 6px，右缘不动。用 bottom 而不是算 top，
+   面板高度变了也不用重算 —— 这就是「折上去」的表达方式。 */
+.dsh-menu[data-flip="up"] { top: auto; bottom: calc(100% + 6px); }
 .dsh-menu-item {
+  /* flex: none —— 菜单是 column flex，钳了 max-height 之后项会**被压扁**而不是溢出：
+     压扁了就没有可滚的内容，兜底的「内部滚动」形同虚设（7 项挤进 139px，
+     每项剩 19px）。定死高度，放不下就老老实实溢出，交给 .dsh-menu 的 overflow-y。 */
+  flex: none;
   display: flex; align-items: center; gap: 8px;
   height: 30px; padding: 0 9px;
   border: 0; border-radius: 5px; background: transparent;
@@ -528,7 +543,7 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-menu-item.danger,
 .dsh-menu-item.danger:hover,
 .dsh-menu-item.danger:focus-visible { color: $danger; }
-.dsh-menu-sep { height: 1px; margin: 4px 6px; background: $line-strong; }
+.dsh-menu-sep { flex: none; height: 1px; margin: 4px 6px; background: $line-strong; }
 .dsh-btn {
   height: 30px; padding: 0 8px;
   display: inline-flex; align-items: center; gap: 6px;

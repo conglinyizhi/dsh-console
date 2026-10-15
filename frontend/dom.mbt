@@ -237,6 +237,58 @@ fn focus_first_after_render(container_id : String, selector : String) -> @cmd.Cm
 }
 
 ///|
+/// 行菜单的锚点矫正：量一次，下面放不下就向上折，结论写回 data-flip。
+///
+/// 为什么要等渲染落地再量：菜单高度由项数与文字换行决定（运行中 12 项、已停止 8 项），
+/// 这个高度在 CSS 里写不出来，只能在 DOM 落地之后量。调用时机是 after_render ——
+/// 与 DOM 补丁在同一个 rAF 回调里跑完，浏览器还没画，不会先闪一帧向下的菜单。
+///
+/// 约束盒取的不是 window，而是**最近一层会裁剪的祖先**：主区 .dsh-main 是
+/// overflow-y: auto，绝对定位的下拉一旦探出它的可视盒就被裁掉 —— 视口里明明还有地方，
+/// 菜单却看不见。所以先找裁剪盒，再与视口取交。
+///
+/// 返回 'up' / 'down'（同一个结论也写在 data-flip 上），探针直接读得到。
+extern "js" fn js_menu_flip(id : String) -> String =
+  #| id => {
+  #|   const menu = document.getElementById(id)
+  #|   const anchor = menu && menu.parentElement
+  #|   if (!menu || !anchor) return ''
+  #|   const MARGIN = 8       // 与屏边的留白
+  #|   const GAP = 6          // 与按钮组之间的缝，与 CSS 的 calc(100% + 6px) 同源
+  #|   const MIN_USABLE = 80  // 极端矮窗的保底：宁可略出界，也不留一条点不到的缝
+  #|   // 量之前先清掉上一次的内联钳制，否则第二次量拿的是钳过的高度，越钳越小
+  #|   menu.style.maxHeight = ''
+  #|   const contentH = menu.scrollHeight
+  #|   let clip = null
+  #|   for (let p = menu.parentElement; p; p = p.parentElement) {
+  #|     const cs = getComputedStyle(p)
+  #|     if (cs.overflowY !== 'visible' || cs.overflowX !== 'visible') { clip = p.getBoundingClientRect(); break }
+  #|   }
+  #|   const vh = window.innerHeight || document.documentElement.clientHeight
+  #|   const limitTop = Math.max(0, clip ? clip.top : 0)
+  #|   const limitBottom = Math.min(vh, clip ? clip.bottom : vh)
+  #|   // 锚点 = 按钮组（.dsh-actions，菜单的定位祖先），不是触发按钮：
+  #|   // 向下时 top 与右缘、向上时 bottom 与右缘，都是对着它量的
+  #|   const box = anchor.getBoundingClientRect()
+  #|   const spaceDown = limitBottom - MARGIN - (box.bottom + GAP)
+  #|   const spaceUp = box.top - GAP - (limitTop + MARGIN)
+  #|   const fitsDown = box.bottom + GAP + contentH <= limitBottom - MARGIN
+  #|   // 两边都放不下时挑空间大的那一侧：此时「上面放得下」必然蕴含 spaceUp > spaceDown
+  #|   const dir = fitsDown ? 'down' : (spaceUp >= spaceDown ? 'up' : 'down')
+  #|   const avail = dir === 'up' ? spaceUp : spaceDown
+  #|   if (avail < contentH) menu.style.maxHeight = Math.max(avail, MIN_USABLE) + 'px'
+  #|   menu.dataset.flip = dir
+  #|   return dir
+  #| }
+
+///|
+fn flip_after_render(menu_id : String) -> @cmd.Cmd {
+  @cmd.custom_cmd(fn(_scheduler) {
+    js_menu_flip(menu_id) |> ignore
+  }, kind=@cmd.after_render)
+}
+
+///|
 fn scroll_bottom_after_render(id : String) -> @cmd.Cmd {
   @cmd.custom_cmd(fn(_scheduler) { js_scroll_bottom_id(id) }, kind=@cmd.after_render)
 }

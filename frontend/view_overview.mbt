@@ -83,7 +83,11 @@ fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
 
 ///|
 /// 下拉菜单。锚点挂在按钮组容器上（.dsh-actions 是 position: relative），
-/// 所以右缘与按钮组右缘、进而与卡片内容盒右缘对齐；top = 按钮组底 + 6px。
+/// 所以右缘与按钮组右缘、进而与卡片内容盒右缘对齐；默认向下，top = 按钮组底 + 6px。
+///
+/// 行尾空间不够时改向上折（底边贴按钮组顶 − 6px）：这个判断只能在 DOM 落地后量，
+/// 由 dom.mbt 的 js_menu_flip 在 after_render 里做一次，结论写在 data-flip 上，
+/// 向上时的定位在 app.scss 的 .dsh-menu[data-flip="up"]。
 fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   let running = row.status is Running
   let entries = if running { running_menu(row) } else { stopped_menu(row.deletable) }

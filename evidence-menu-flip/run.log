@@ -1,0 +1,33 @@
+ 通过  A 第一张卡 data-flip=down               期望 down                   实测 down
+ 通过  A 第一张卡 menu.top - 按钮组底 = 6          期望 6                      实测 6
+ 通过  A 第一张卡右缘对齐                          期望 0                      实测 0
+ 通过  A 第一张卡落焦第一项                         期望 true                   实测 true
+ 通过  A 截图                                期望 shot                   实测 1-first-card-down.png
+ 通过  B 最后一张卡 data-flip=up                期望 up                     实测 up
+ 通过  B menu.top ≥ 0                      期望 true                   实测 479.8
+ 通过  B menu.bottom ≤ 视口高                 期望 true                   实测 708.8 ≤ 900
+ 通过  B 右缘仍对齐（翻上去不动右缘）                    期望 0                      实测 0
+ 通过  B menu.bottom = 按钮组顶 - 6            期望 6                      实测 6
+ 通过  B 每项都可点到                            期望 []                     实测 []
+ 通过  B 截图                                期望 shot                   实测 2-last-card-flip-up.png
+ 通过  C 滚动后仍贴着按钮组（deltaBottom 不变）         期望 6                      实测 6
+ 通过  C 滚动后右缘不变                           期望 0                      实测 0
+ 通过  D Esc 关闭                            期望 true                   实测 true
+ 通过  D 焦点回触发元素                           期望 true                   实测 true
+ 通过  D 点菜单外关闭                            期望 true                   实测 true
+ 通过  E(500) data-flip=up                 期望 up                     实测 up
+ 通过  E(500) menu.top ≥ 0                 期望 true                   实测 79.8
+ 通过  E(500) menu.bottom ≤ 视口高            期望 true                   实测 308.8 ≤ 500
+ 通过  E(500) 每项都能点到                       期望 []                     实测 []
+ 通过  E 截图                                期望 shot                   实测 3-short-500-last-card.png
+ 通过  F(320) menu.top ≥ 0                 期望 true                   实测 170.8
+ 通过  F(320) menu.bottom ≤ 视口高            期望 true                   实测 312 ≤ 320
+ 通过  F(320) 逐项滚到位后可点                     期望 true                   实测 true
+ 通过  F(320) 菜单内部真能滚（不是把项压扁）              期望 true                   实测 scrollable=true 项高=[30,30,30,30,30,30,30]
+ 通过  F 截图                                期望 shot                   实测 4-tiny-320-internal-scroll.png
+ 通过  G 重渲染后菜单还开着                         期望 true                   实测 true
+ 通过  G 重渲染后 data-flip 没被抹掉               期望 up                     实测 up
+ 通过  G 重渲染后仍在视口内                         期望 true                   实测 top=479.8 bottom=708.8 vh=900
+
+判定 30 项：通过 30，失败 0
+SUMMARY {"verdict":"PASS","failed":[]}
