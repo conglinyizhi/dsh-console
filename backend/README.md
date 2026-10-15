@@ -119,6 +119,15 @@ curl -X PUT http://127.0.0.1:5390/api/local/settings \
 **解析失败不静默**：`DSH_CONSOLE_DIST` 指向不存在的目录时，启动日志写清原因，
 非 `/api/local` 的 `GET` / `HEAD` 返回 `503` + `text/plain` 说明（不是 200 空白页），API 照常可用。
 
+**预压缩（gzip）**：前端构建链的最后一步用系统 `gzip -9 -n -k` 给 `app.js` / `app.css`
+各压一份同名 `.gz`（见 `frontend/build.sh`；压缩链不引入 Node，也不为它写一套 MoonBit 压缩实现）。
+静态中间件外层挂了一层 `gzip_middleware`：**GET / HEAD**、请求头 `Accept-Encoding` 认 gzip
+（认 `gzip` 与 `*`，`gzip;q=0` 算明确拒绝）、且原文件与同名 `.gz` 都是普通文件 —— 三条同时成立才发 `.gz`，
+带上 `Content-Encoding: gzip` 与 `Vary: Accept-Encoding`，`Content-Type` 仍是原文件那个。
+其余情形（含 `.gz` 不存在、路径带 `%` 转义、读不动）原样交给下一层：**`.gz` 缺失不是错误，不会变成 404**，
+没预压缩的资源照旧发原文件。只走静态资源这条路 —— 中间件链最外层还是 `api_gate`，`/api/local` 的响应（JSON，不预压缩）碰不到它。
+本机实测：`app.js` 1529782 字节 → `app.js.gz` 174243 字节。
+
 静态服务的文件访问走 moonback `unstable_static` 的 `kind` / `open(ReadOnly)`，本工程没有新增写调用点。
 
 ## 已实现的接口
@@ -212,6 +221,35 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 实例来源找不到时回结构化错误：`unknown-instance`；实例日志目录没有可读文件回 `no-log-file`；
 实例没暴露 DSH_HOME 时回退 `~/.dsh` 并如实回 `homeSource`。
+
+**实例日志怎么挑**（挑错会让日志页默认显示一份没用的日志，所以口径写在这里）：
+
+1. 候选 = 该实例 DSH_HOME 的 `logs/` 目录下（含至多 3 层子目录）`.log` / `.jsonl` / `.txt` 普通文件
+2. 排序层级（数字小的在前）：
+
+   | 层级 | 是什么 |
+   | --- | --- |
+   | 0 | 这条实例自己的日志，且有内容 |
+   | 1 | `host.log`，且有内容 |
+   | 2 | 别的文件，且有内容 |
+   | 3 | 这条实例自己的日志，但空 |
+   | 4 | `host.log`，但空 |
+   | 5 | 别的文件，且空 |
+
+3. 同层级按 mtime 降序，mtime 相同按路径升序（结果稳定可复现）
+4. 「这条实例自己的日志」= 运行登记里这条实例的 `logPath`；登记里没有就按控制台的命名约定
+   `console-<profile>-<port>.log` 拼一个。两个都拿不到（外部起的实例）就没有这一档
+
+**为什么不是「mtime 最新的那个」**：一次**失败的启动**也会在同一个 `logs/` 目录里留下
+`console-<profile>-<port>.log`，而且它通常比还在跑的实例那份新。只按 mtime 一刀切，日志页默认来源
+（前端取 `instance:<第一个实例>`）显示的就是这份失败日志 —— 它对使用者没有信息量，
+「日志能不能滚」这类判定也无从谈起。
+
+**为什么 host 日志单独占一档**：只有本控制台起的实例才会把输出重定向到 `console-<profile>-<port>.log`。
+外部起的（比如手敲 `dsh --profile web --no-open`）没有这一份，它名下的 `logs/` 里能读到的就只剩
+别人的失败残留与 host 日志；这时 host 日志是这台机器上唯一持续在写、能反映真实活动的记录，
+比一份死掉的失败残留有用得多 —— 这也正是「没有能用的实例日志就回退 host 日志」这条口径。
+分档之后空文件仍然排在有内容的后面而不是被丢掉：全空时如实回 0 行；选中的理由写在响应字段 `pickedBy` 里。
 
 ### `GET /api/local/processes`
 
@@ -357,6 +395,10 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
    **dsh web 签名**（401 + `dsh web authentication required`，或页里有 `__DSH_BOOT__`）。
 2. **僵尸进程的 kill(pid,0) 也成功**。判活不能只看 `kill(pid,0)`，还要看 `/proc/<pid>/stat` 的状态位，
    `Z` 按死处理；否则停止动作会一直报「SIGKILL 之后仍然在」。
+3. **判死之后还得 wait 一次**。`Z` 被判成死，但「死了又没被 wait」的子进程仍然挂在控制台名下
+   （`ps -o pid,stat,cmd --ppid <控制台pid>` 里一堆 `Z`），控制台退出才被回收 —— 长跑的控制台每失败一次攒一个。
+   收尾的 `reap_after_failure` 因此在每条「子进程已经不在」的分支上都补了一次 `wait_pid`
+   （只对已经死掉的 pid 调，不会阻塞；不是自己的子进程时报 `ECHILD`，吞掉）。
 
 ### 哪些 profile 能起成常驻实例
 
