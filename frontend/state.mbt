@@ -21,6 +21,8 @@ priv enum ActionKey {
   Restart
   Tab
   CopyUrl
+  /// 复制带令牌的地址：只在真有 webUrl 时出现（读不到令牌就不摆这一项）
+  CopyTokenUrl
   Fork
   Rename
   /// 编辑这只 profile 的备注（POST set-profile-note）
@@ -103,6 +105,11 @@ struct Row {
   profile_hint : String
   home_hint : String
   url : String
+  /// 带令牌的访问地址（能直接过握手）。None = 读不到令牌 ——
+  /// 「打开 Web UI」这时**不打开任何标签页**，把原因与裸地址说清就停。
+  web_url : String?
+  /// 令牌从哪来 / 为什么读不到：卡上「访问地址」那行的悬停与提示条都用这一句
+  web_url_source : String
   plugin_count : String
   plugin_detail : String
   deletable : Bool
@@ -271,6 +278,8 @@ priv enum Msg {
   SettingToggle(String, Bool)
   // 写动作的回执：row_id / action / label / 原始响应
   HttpDone(String, String, String, Result[String, Error])
+  // 复制到剪贴板的回执：那一项的名字（动作 + 行名）/ 传输层拿回来的那段 JSON
+  CopyDone(String, Result[String, Error])
   Noop
 }
 
@@ -628,6 +637,9 @@ fn running_rows(
       },
       home_hint: fact.dsh_home_source,
       url: fact.url,
+      // 带令牌的地址来自后端（按实例端口对出来的那一条），前端不自己拼、也不缓存
+      web_url: fact.web_url,
+      web_url_source: fact.web_url_source,
       plugin_count: match profile_fact {
         Some(item) =>
           "声明 " + item.bundles.declared.to_string() + " · 已装 " +
@@ -741,6 +753,9 @@ fn profile_rows(
       home: dsh_home,
       home_hint: "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）",
       url: "—",
+      // 这只 profile 现在没有在跑的实例：没有地址可握手，也就没有令牌可读
+      web_url: None,
+      web_url_source: "这只 profile 现在没有在运行的实例，没有访问地址可握手",
       plugin_count: "声明 " + fact.bundles.declared.to_string() + " · 已装 " +
         fact.bundles.installed.to_string(),
       plugin_detail: if missing.length() > 0 {
@@ -831,6 +846,8 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     home: "—",
     home_hint: "磁盘上没有这只 profile",
     url: "—",
+    web_url: None,
+    web_url_source: "磁盘上没有这只 profile 的目录，没有实例可读，也没有令牌",
     plugin_count: "—",
     plugin_detail: "",
     deletable: true,
@@ -861,7 +878,9 @@ fn demo_running() -> Array[Row] {
       tone: Accent, status: Running, uptime: Some(138), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "main", home: "/Users/you/.dsh/work-main",
-      url: "http://127.0.0.1:8100", plugin_count: "5 个", plugin_detail: "",
+      url: "http://127.0.0.1:8100", web_url: None,
+      web_url_source: "演示数据：端口 8100 上没有真实实例，读不到令牌",
+      plugin_count: "5 个", plugin_detail: "",
       deletable: false, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
@@ -871,7 +890,9 @@ fn demo_running() -> Array[Row] {
       tone: Violet, status: Running, uptime: Some(42), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "dev", home: "/Users/you/.dsh/plugin-dev",
-      url: "http://127.0.0.1:8200", plugin_count: "2 个（开发中）", plugin_detail: "",
+      url: "http://127.0.0.1:8200", web_url: None,
+      web_url_source: "演示数据：端口 8200 上没有真实实例，读不到令牌",
+      plugin_count: "2 个（开发中）", plugin_detail: "",
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
@@ -887,7 +908,9 @@ fn demo_stopped() -> Array[Row] {
       tone: Violet, status: Stopped, uptime: Some(0), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "staging", home: "/Users/you/.dsh/staging",
-      url: "http://127.0.0.1:8300", plugin_count: "3 个", plugin_detail: "",
+      url: "http://127.0.0.1:8300", web_url: None,
+      web_url_source: "演示数据：端口 8300 上没有真实实例，读不到令牌",
+      plugin_count: "3 个", plugin_detail: "",
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",

@@ -1,0 +1,14 @@
+「访问地址」那一行的悬停取证：title 是浏览器原生提示，headless 截图抓不到它，
+所以从 DOM 的 title 属性与无障碍树（Accessibility.getPartialAXTree 的 description）两头读。
+
+卡片 web :3080  值: http://127.0.0.1:3080/
+  title        : 读不到带令牌的地址：外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址。裸地址 http://127.0.0.1:3080/ 直接打开是 401 —— 从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。
+  AX description: 读不到带令牌的地址：外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址。裸地址 http://127.0.0.1:3080/ 直接打开是 401 —— 从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。
+
+卡片 review-dev :8400  值: http://127.0.0.1:8400/
+  title        : 带令牌的地址已读到（菜单「在新标签页打开」与「复制带令牌的地址」用的就是它）。令牌来源：runtime.json 的 logPath（~/.dsh/logs/console-review-dev-8400.log）：整份文件 150 字节都读了，里面有 :8400/?token= 的地址
+  AX description: 带令牌的地址已读到（菜单「在新标签页打开」与「复制带令牌的地址」用的就是它）。令牌来源：runtime.json 的 logPath（~/.dsh/logs/console-review-dev-8400.log）：整份文件 150 字节都读了，里面有 :8400/?token= 的地址
+
+卡片 headless  值: —
+  title        : 读不到带令牌的地址：这只 profile 现在没有在运行的实例，没有访问地址可握手
+  AX description: 读不到带令牌的地址：这只 profile 现在没有在运行的实例，没有访问地址可握手

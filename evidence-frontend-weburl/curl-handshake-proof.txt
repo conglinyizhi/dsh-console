@@ -1,0 +1,7 @@
+时间：2026-10-15 17:02:58
+baseline：裸地址 vs 带令牌地址
+ 1) 裸地址     GET http://127.0.0.1:8400/          → 401
+ 2) webUrl 首响应（不跟随）                          → 303   Location: http://127.0.0.1:8400/
+ 3) webUrl -L（带 cookie）                          → 200   最终 http://127.0.0.1:8400/   跳 1 次   39167 字节
+ 4) 落地页标题                                       → <title>DeepSeek Harness</title>
+webUrl（原值）：http://127.0.0.1:8400/?token=Os5u_q5rJ2BfT_KEcS_VL6HFYtEikUeID4Hw_DqnKHg

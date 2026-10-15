@@ -1,0 +1,110 @@
+{
+ "baseUrl": "http://127.0.0.1:5390",
+ "fields": [
+  {
+   "card": "web :3080",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（入口包）",
+     "title": "入口包 package.json 的 version 字段：~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/package.json"
+    },
+    {
+     "label": "Profile",
+     "value": "web",
+     "title": "PID 18795 的 cmdline：--profile web"
+    },
+    {
+     "label": "访问地址",
+     "value": "http://127.0.0.1:3080/",
+     "title": "读不到带令牌的地址：外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址。裸地址 http://127.0.0.1:3080/ 直接打开是 401 —— 从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID 18795）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 13 · 已装 10",
+     "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle"
+    }
+   ],
+   "axNode": {
+    "role": "generic",
+    "name": "",
+    "description": "读不到带令牌的地址：外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址。裸地址 http://127.0.0.1:3080/ 直接打开是 401 —— 从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。"
+   }
+  },
+  {
+   "card": "review-dev :8400",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（入口包）",
+     "title": "入口包 package.json 的 version 字段：~/.local/share/pnpm/global/5/node_modules/@deepseek-ai/dsh/package.json"
+    },
+    {
+     "label": "Profile",
+     "value": "review-dev",
+     "title": "PID 415689 的 cmdline：--profile review-dev"
+    },
+    {
+     "label": "访问地址",
+     "value": "http://127.0.0.1:8400/",
+     "title": "带令牌的地址已读到（菜单「在新标签页打开」与「复制带令牌的地址」用的就是它）。令牌来源：runtime.json 的 logPath（~/.dsh/logs/console-review-dev-8400.log）：整份文件 150 字节都读了，里面有 :8400/?token= 的地址"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "$DSH_HOME 环境变量（PID 415689 的 environ）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 15 · 已装 12",
+     "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle"
+    }
+   ],
+   "axNode": {
+    "role": "generic",
+    "name": "",
+    "description": "带令牌的地址已读到（菜单「在新标签页打开」与「复制带令牌的地址」用的就是它）。令牌来源：runtime.json 的 logPath（~/.dsh/logs/console-review-dev-8400.log）：整份文件 150 字节都读了，里面有 :8400/?token= 的地址"
+   }
+  },
+  {
+   "card": "headless",
+   "fields": [
+    {
+     "label": "DSH 版本 / 来源",
+     "value": "0.2.0-rc.2（本机已安装）",
+     "title": "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+    },
+    {
+     "label": "Profile",
+     "value": "headless",
+     "title": "磁盘上真实存在的 profile 目录名：headless"
+    },
+    {
+     "label": "访问地址",
+     "value": "—",
+     "title": "读不到带令牌的地址：这只 profile 现在没有在运行的实例，没有访问地址可握手"
+    },
+    {
+     "label": "DSH_HOME",
+     "value": "~/.dsh",
+     "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+    },
+    {
+     "label": "插件数量",
+     "value": "声明 2 · 已装 2",
+     "title": "headless 声明的插件都已安装"
+    }
+   ],
+   "axNode": {
+    "role": "generic",
+    "name": "",
+    "description": "读不到带令牌的地址：这只 profile 现在没有在运行的实例，没有访问地址可握手"
+   }
+  }
+ ]
+}

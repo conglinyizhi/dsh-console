@@ -263,6 +263,139 @@ fn open_path_action(
 }
 
 ///|
+/// 打开 Web UI / 在新标签页打开：两处都开**带令牌的那一条地址**（webUrl），
+/// 也就是 dsh 启动横幅里那条能直接过首次握手的地址。
+///
+/// webUrl 读不到时**一个标签页都不开**：裸地址打开就是一个 401 页面，
+/// 「给了链接但用不了」比「说清为什么没有链接」更糟。这时把原因与裸地址一起给人 ——
+/// 他从启动它的那个终端里抄 ?token=… 自己拼，比点进一个 401 再回头找原因快。
+///
+/// 开没开成要看 js_open_url 的返回值：被弹窗拦截也要说清，不报一句空的「已打开」。
+fn open_web_ui(
+  model : Model,
+  row_id : String,
+  label : String,
+) -> (Model, @cmd.Cmd) {
+  let row = match find_row(model.rows, row_id) {
+    None => return (model, @cmd.none)
+    Some(row) => row
+  }
+  match row.web_url {
+    Some(url) => {
+      let outcome = js_open_url(url)
+      let (ok, tail) = if outcome == "ok" {
+        (true, "已在新标签页打开带令牌的地址（能直接过握手，不是 401）")
+      } else if outcome == "blocked" {
+        (false, "浏览器把新标签页拦掉了（弹窗拦截）—— 地址是带令牌的那一条，可以自己去开")
+      } else {
+        (false, "打开新标签页失败（" + outcome + "）")
+      }
+      (
+        {
+          ..model,
+          menu_open: "",
+          act_notice: label + " " + row.name + "：" + tail + "。" + url + "（令牌来源：" +
+            row.web_url_source + "）",
+          act_notice_ok: ok,
+        },
+        @cmd.none,
+      )
+    }
+    None => {
+      let reason = if row.web_url_source == "" {
+        "读不到带令牌的地址，后端也没给原因"
+      } else {
+        row.web_url_source
+      }
+      (
+        {
+          ..model,
+          menu_open: "",
+          act_notice: label + " " + row.name +
+            "：读不到握手令牌，没有打开任何标签页 —— " + reason + "。裸地址 " + row.url +
+            " 直接打开是 401；可以从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。",
+          act_notice_ok: false,
+        },
+        @cmd.none,
+      )
+    }
+  }
+}
+
+///|
+/// 两条复制菜单：裸地址与带令牌的地址。
+///
+/// 复制的是读数里的原值（裸地址就是卡上那一行显示的、带令牌的就是 webUrl），
+/// 前端不拼地址、不改写。成没成由剪贴板那一次调用的回执说了算（CopyDone），
+/// 这里只负责把要复制的文本挑出来、没有内容时说清为什么。
+fn copy_url_action(
+  model : Model,
+  row_id : String,
+  label : String,
+  with_token : Bool,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let row = match find_row(model.rows, row_id) {
+    None => return (model, @cmd.none)
+    Some(row) => row
+  }
+  let text = if with_token {
+    match row.web_url {
+      Some(url) => url
+      None => ""
+    }
+  } else if row.url == "—" {
+    ""
+  } else {
+    row.url
+  }
+  if text == "" {
+    let why = if with_token {
+      if row.web_url_source == "" {
+        "读不到带令牌的地址"
+      } else {
+        "读不到带令牌的地址（" + row.web_url_source + "）"
+      }
+    } else {
+      "这一行的读数里没有访问地址"
+    }
+    return (
+      {
+        ..model,
+        menu_open: "",
+        act_notice: label + " " + row.name + "：" + why + "，没有可复制的内容",
+        act_notice_ok: false,
+      },
+      @cmd.none,
+    )
+  }
+  (
+    { ..model, menu_open: "", act_notice: "" },
+    copy_cmd(label + " " + row.name, text, emit),
+  )
+}
+
+///|
+/// 剪贴板回执 → (成功?, 给用户看的一句话)。
+/// 传输层给的是 { ok, how, error }：ok=true 时写出走的是哪条路，
+/// ok=false 时把两个失败原因都带上（clipboard 的 reject 原因 + execCommand 的结果）。
+fn parse_copy_result(text : String) -> (Bool, String) {
+  let root = try @json.parse(text) catch {
+    _ => return (false, "剪贴板调用返回的不是合法 JSON")
+  }
+  guard root is Json::Object(obj) else {
+    return (false, "剪贴板调用返回的不是 JSON 对象")
+  }
+  if bool_field(obj, "ok") {
+    let how = str_field(obj, "how")
+    (true, if how == "" { "已写入剪贴板" } else { "已写入剪贴板（" + how + "）" })
+  } else {
+    let why = str_field(obj, "error")
+    (false, if why == "" { "剪贴板写入失败，没有给出原因" } else { "剪贴板写入失败：" + why })
+  }
+}
+
+///|
 /// 一个写动作：发请求，并把这一行置成忙碌（同一行不会连点两次）。
 /// 目标读不到就只在本地说一句，不发请求。
 fn send_action(
@@ -1189,10 +1322,17 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                 )
               }
           }
+        // 打开 Web UI（卡上的主按钮）与「在新标签页打开」（行菜单）是同一件事：
+        // 开带令牌的 webUrl。读不到令牌就不开标签页，把原因与裸地址说清（见 open_web_ui）。
+        OpenUi => open_web_ui(model, id, "打开 Web UI")
+        Tab => open_web_ui(model, id, "在新标签页打开")
+        // 两条复制：裸地址（卡上「访问地址」那一行的原值）与带令牌的地址（webUrl）
+        CopyUrl => copy_url_action(model, id, "复制访问地址", false, emit)
+        CopyTokenUrl => copy_url_action(model, id, "复制带令牌的地址", true, emit)
         // 打开工作目录 / 编辑配置：都走 POST open-path，只有 kind 不同（cli 端不给路径）
         Dir => open_path_action(model, id, "dir", "打开工作目录", emit)
         Config => open_path_action(model, id, "config", "编辑配置", emit)
-        _ => (model, @cmd.none)
+        // 没有兜底分支了：ActionKey 的每一项上面都接上了（以前那行兜底会把这个事实藏起来）
       }
     DeleteOpen(id, return_id) => (
       { ..model, confirm_id: id, confirm_return: return_id },
@@ -1397,6 +1537,18 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           )
         }
       }
+    }
+    // 剪贴板回执：只说这一枪的真实结局（写进去了 / 两条路都失败），
+    // 复制成功不改任何读数，所以这里不刷新列表。
+    CopyDone(label, res) => {
+      let (ok, note) = match res {
+        Ok(text) => parse_copy_result(text)
+        Err(err) => (false, "剪贴板调用没发出去（" + describe(err) + "）")
+      }
+      (
+        { ..model, act_notice: label + "：" + note, act_notice_ok: ok },
+        @cmd.none,
+      )
     }
     Noop => (model, @cmd.none)
   }

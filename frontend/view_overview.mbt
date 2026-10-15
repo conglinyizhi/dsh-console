@@ -21,6 +21,7 @@ fn action_name(key : ActionKey) -> String {
     Restart => "restart"
     Tab => "tab"
     CopyUrl => "copy-url"
+    CopyTokenUrl => "copy-token-url"
     Fork => "fork"
     Rename => "rename"
     Note => "note"
@@ -35,17 +36,24 @@ fn action_name(key : ActionKey) -> String {
 
 ///|
 /// 运行中：重命名 / 派生 / 归档靠上，运维三项沉底；删除只给可删实例。
-fn running_menu(deletable : Bool) -> Array[MenuEntry] {
+///
+/// 菜单里那两项「打开」用的都是**带令牌的地址**：裸地址在 dsh 上是 401，
+/// 菜单拿它去开新标签就是给了个点了不能用的链接。
+fn running_menu(row : Row) -> Array[MenuEntry] {
   let items : Array[MenuEntry] = [
     MItem(Tab, "open-in-new", "在新标签页打开", false),
     MItem(CopyUrl, "link-variant", "复制访问地址", false),
-    MSep,
-    MItem(Rename, "rename-outline", "重命名", false),
-    MItem(Note, "note-text-outline", "编辑备注", false),
-    MItem(Fork, "source-fork", "派生开发副本", false),
-    MItem(Archive, "archive-outline", "归档", false),
   ]
-  if deletable {
+  // 带令牌的地址只有真读到时才有这一项：读不到令牌就不摆一个「复制空串」出来
+  if row.web_url is Some(_) {
+    items.push(MItem(CopyTokenUrl, "key-variant", "复制带令牌的地址", false))
+  }
+  items.push(MSep)
+  items.push(MItem(Rename, "rename-outline", "重命名", false))
+  items.push(MItem(Note, "note-text-outline", "编辑备注", false))
+  items.push(MItem(Fork, "source-fork", "派生开发副本", false))
+  items.push(MItem(Archive, "archive-outline", "归档", false))
+  if row.deletable {
     items.push(MItem(Delete, "delete-outline", "删除", true))
   }
   items.push(MSep)
@@ -78,7 +86,7 @@ fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
 /// 所以右缘与按钮组右缘、进而与卡片内容盒右缘对齐；top = 按钮组底 + 6px。
 fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   let running = row.status is Running
-  let entries = if running { running_menu(row.deletable) } else { stopped_menu(row.deletable) }
+  let entries = if running { running_menu(row) } else { stopped_menu(row.deletable) }
   let items : Array[@html.Html] = []
   for entry in entries {
     match entry {
@@ -148,6 +156,10 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
         // 主色随色调走（运行中蓝 / profile 紫）：填充色由 .dsh-btn.primary 读 --btn-bg 给
         class="dsh-btn primary" + tone,
         type_="button",
+        // 令牌读不到时按钮**照样可点**：点下去先把原因说清，不给一个点了 401 的链接
+        attrs=@html.Attrs::build()
+          .data_set("name", "open-web-ui")
+          .title(open_ui_hint(row)),
         on_click=emit(RowAction(row.id, OpenUi)),
         [icon("open-in-new"), @html.span("打开 Web UI")],
       ),
@@ -364,6 +376,43 @@ fn ident_block(row : Row) -> @html.Html {
 }
 
 ///|
+/// 「访问地址」那一行的悬停：这一栏显示的永远是**裸地址**（人读的），
+/// 悬停里说清带令牌的那条地址有没有、令牌是从哪读来的、读不到是为什么。
+///
+/// 令牌原值不写进悬停：它在读数里（webUrl），要看要复制走菜单那两项。
+fn url_hint(row : Row) -> String {
+  match row.web_url {
+    Some(_) =>
+      "带令牌的地址已读到（菜单「在新标签页打开」与「复制带令牌的地址」用的就是它）。令牌来源：" +
+      row.web_url_source
+    None =>
+      if row.web_url_source == "" {
+        ""
+      } else if row.url == "" || row.url == "—" {
+        // 这一行压根没有地址（已停止的 profile）：只讲为什么没有令牌，不硬扯 401
+        "读不到带令牌的地址：" + row.web_url_source
+      } else {
+        "读不到带令牌的地址：" + row.web_url_source + "。裸地址 " + row.url +
+        " 直接打开是 401 —— 从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。"
+      }
+  }
+}
+
+///|
+/// 「打开 Web UI」按钮的悬停：点下去会发生什么，先说在前面。
+fn open_ui_hint(row : Row) -> String {
+  match row.web_url {
+    Some(_) => "在新标签页打开带令牌的地址（" + row.url + " 这条裸地址打开是 401）"
+    None =>
+      if row.web_url_source == "" {
+        "读不到握手令牌，点了不会打开标签页"
+      } else {
+        "读不到握手令牌（" + row.web_url_source + "），点了不会打开标签页"
+      }
+  }
+}
+
+///|
 /// 一张实例卡：两行卡头 + 字段区。
 fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let tile_class = match row.tone {
@@ -388,7 +437,7 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       @html.ul(class="dsh-fields", [
         field("label-outline", "DSH 版本 / 来源", row.version, row.version_hint),
         field("layers-outline", "Profile", row.profile, row.profile_hint),
-        field("link-variant", "访问地址", row.url, ""),
+        field("link-variant", "访问地址", row.url, url_hint(row)),
         field("home-outline", "DSH_HOME", row.home, row.home_hint),
         field("puzzle-outline", "插件数量", row.plugin_count, row.plugin_detail),
       ]),

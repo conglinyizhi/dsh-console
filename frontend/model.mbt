@@ -258,6 +258,11 @@ pub(all) struct InstanceFact {
   /// 后端把登记结果并进 instances 的这个字段上（见 README「还缺什么」一节）；
   /// 字段不在就是 false —— 宁可少一个标记，也不拿 profile 名字去猜。
   console_started : Bool
+  /// 带令牌的完整地址（`http://<host>:<port>/?token=…`），新标签页打开它才能过首次握手。
+  /// null / 字段不在 = 读不到令牌：这时**不拿裸地址冒充**（裸地址打开就是一个 401 页面）。
+  web_url : String?
+  /// 令牌从哪来，或为什么读不到（后端原样给；这一版后端还没这个字段时也补一句人话）。
+  web_url_source : String
 } derive(Eq)
 
 pub extend InstanceFact with Eq::{ not_equal, equal }
@@ -317,6 +322,8 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
       process_reason: str_field(reason, "message"),
       console_started: bool_field(fact, "consoleStarted") ||
         bool_field(fact, "startedByConsole"),
+      web_url: opt_str_field(fact, "webUrl"),
+      web_url_source: web_url_source_of(fact),
     })
   }
   Ok({
@@ -327,6 +334,22 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
     signature_ids,
     instances: list,
   })
+}
+
+///|
+/// webUrl 那对字段的来源说明：后端给了 webUrlSource 就用它（它就是「令牌从哪来 / 为什么读不到」）。
+///
+/// 两个字段都不在时（这一版后端还没这一轮的能力）现编一句 —— 「读不到令牌」这件事
+/// 不能只留一个空串：那句原因正是按钮与悬停要展示的东西，空着就成了没有理由的失败。
+fn web_url_source_of(fact : Map[String, Json]) -> String {
+  let source = str_field(fact, "webUrlSource")
+  if source != "" {
+    return source
+  }
+  match fact.get("webUrl") {
+    Some(Json::String(_)) => ""
+    _ => "instances 读数里这一条没有 webUrl / webUrlSource 字段（后端没给这两个字段）"
+  }
 }
 
 // ── GET /api/local/processes ────────────────────────────────

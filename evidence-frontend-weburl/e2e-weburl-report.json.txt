@@ -1,0 +1,234 @@
+第四轮端到端取证（没有注入，全部走真后端）
+baseUrl: http://127.0.0.1:5390   injectedResponses(注入次数): 0
+
+卡片 web :3080 状态 running | 菜单里有「复制带令牌的地址」: false
+卡片 review-dev :8400 状态 running | 菜单里有「复制带令牌的地址」: true
+卡片 headless 状态 stopped | 菜单里有「复制带令牌的地址」: false
+
+{
+ "step": "有 webUrl 的卡：菜单项",
+ "card": "review-dev :8400",
+ "menu": {
+  "open": true,
+  "items": [
+   {
+    "text": "在新标签页打开",
+    "action": "tab",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "复制访问地址",
+    "action": "copy-url",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "复制带令牌的地址",
+    "action": "copy-token-url",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "重命名",
+    "action": "rename",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "编辑备注",
+    "action": "note",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "派生开发副本",
+    "action": "fork",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "归档",
+    "action": "archive",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "查看日志",
+    "action": "logs",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "打开工作目录",
+    "action": "dir",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "编辑配置",
+    "action": "config",
+    "disabled": false,
+    "icon": "14"
+   }
+  ]
+ }
+}
+{
+ "step": "点「复制访问地址」",
+ "clicked": {
+  "clicked": true,
+  "at": {
+   "x": 904,
+   "y": 415.6875
+  }
+ }
+}
+{
+ "step": "复制访问地址的回执",
+ "notice": {
+  "text": "复制访问地址 review-dev :8400：已写入剪贴板（navigator.clipboard）",
+  "ok": "true"
+ },
+ "clipboard": "http://127.0.0.1:8400/"
+}
+{
+ "step": "点「复制带令牌的地址」",
+ "clicked": {
+  "clicked": true,
+  "at": {
+   "x": 904,
+   "y": 494.875
+  }
+ }
+}
+{
+ "step": "复制带令牌地址的回执",
+ "notice": {
+  "text": "复制带令牌的地址 review-dev :8400：已写入剪贴板（navigator.clipboard）",
+  "ok": "true"
+ },
+ "clipboard": "http://127.0.0.1:8400/?token=Os5u_q5rJ2BfT_KEcS_VL6HFYtEikUeID4Hw_DqnKHg"
+}
+{
+ "step": "点卡上「打开 Web UI」",
+ "clicked": {
+  "clicked": true,
+  "at": {
+   "x": 757.5,
+   "y": 393.875
+  }
+ }
+}
+{
+ "step": "打开后：新标签与提示",
+ "newTargets": [
+  {
+   "url": "http://127.0.0.1:8400/",
+   "how": "Target.targetInfoChanged"
+  }
+ ],
+ "windowOpenArgs": [
+  "http://127.0.0.1:8400/?token=Os5u_q5rJ2BfT_KEcS_VL6HFYtEikUeID4Hw_DqnKHg"
+ ],
+ "notice": {
+  "text": "打开 Web UI review-dev :8400：已在新标签页打开带令牌的地址（能直接过握手，不是 401）。http://127.0.0.1:8400/?token=Os5u_q5rJ2BfT_KEcS_VL6HFYtEikUeID4Hw_DqnKHg（令牌来源：runtime.json 的 logPath（~/.dsh/logs/console-review-dev-8400.log）：整份文件 150 字节都读了，里面有 :8400/?token= 的地址）",
+  "ok": "true"
+ },
+ "openUrlProbe": {
+  "url": "http://127.0.0.1:8400/?token=Os5u_q5rJ2BfT_KEcS_VL6HFYtEikUeID4Hw_DqnKHg",
+  "status": 303,
+  "location": "./"
+ },
+ "newTabDocumentResponses": [],
+ "newTabState": "{\"url\":\"http://127.0.0.1:8400/\",\"title\":\"DeepSeek Harness\",\"readyState\":\"complete\",\"responseStatus\":200,\"type\":\"navigate\"}"
+}
+{
+ "step": "没有 webUrl 的卡：菜单项",
+ "card": "web :3080",
+ "menu": {
+  "open": true,
+  "items": [
+   {
+    "text": "在新标签页打开",
+    "action": "tab",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "复制访问地址",
+    "action": "copy-url",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "重命名",
+    "action": "rename",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "编辑备注",
+    "action": "note",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "派生开发副本",
+    "action": "fork",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "归档",
+    "action": "archive",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "查看日志",
+    "action": "logs",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "打开工作目录",
+    "action": "dir",
+    "disabled": false,
+    "icon": "14"
+   },
+   {
+    "text": "编辑配置",
+    "action": "config",
+    "disabled": false,
+    "icon": "14"
+   }
+  ]
+ }
+}
+{
+ "step": "点同一个「打开 Web UI」",
+ "clicked": {
+  "clicked": true,
+  "at": {
+   "x": 757.5,
+   "y": 229.25
+  }
+ }
+}
+{
+ "step": "打开后：新标签与提示",
+ "newTargets": [],
+ "notice": {
+  "text": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址。裸地址 http://127.0.0.1:3080/ 直接打开是 401；可以从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。",
+  "ok": "false"
+ }
+}
+{
+ "step": "访问地址那一行的悬停",
+ "hover": {
+  "x": 529,
+  "y": 334.4375,
+  "title": "读不到带令牌的地址：外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址。裸地址 http://127.0.0.1:3080/ 直接打开是 401 —— 从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。"
+ }
+}

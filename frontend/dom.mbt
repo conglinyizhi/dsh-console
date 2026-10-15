@@ -48,6 +48,79 @@ fn set_control_after_render(id : String, value : String) -> @cmd.Cmd {
 }
 
 ///|
+/// 新标签页打开一个地址，回一句结局：'ok' / 'blocked' / 'error: …'。
+///
+/// 为什么要回结局：带令牌的地址是这一轮的重点，而「点开了没有」不许猜 ——
+/// 浏览器拦弹窗时 window.open 给 null（被拦和没被拦长得一样，只有返回值能分）。
+/// 不用 window.open(url, '_blank', 'noopener')：那样返回值恒为 null，
+/// 「被拦了」与「开了」就分不出来了；改成开完再把 opener 抹掉。
+extern "js" fn js_open_url(url : String) -> String =
+  #| url => {
+  #|   try {
+  #|     const w = window.open(url, '_blank')
+  #|     if (!w) return 'blocked'
+  #|     try { w.opener = null } catch (e) {}
+  #|     return 'ok'
+  #|   } catch (e) {
+  #|     return 'error: ' + String((e && e.message) || e)
+  #|   }
+  #| }
+
+///|
+/// 写剪贴板，回一段 JSON：{ ok, how, error }。
+///
+/// 先 navigator.clipboard（唯一「知道成没成」的正路：它 reject 就说得出原因），
+/// 它不在或拒了就退到 execCommand 那条老路 —— 两条都失败时如实回 ok:false，
+/// **不假装复制成功**（提示条上那句「已复制」必须对应真写进去的东西）。
+extern "js" fn js_copy_text(text : String) -> @js.Promise =
+  #| text => (async () => {
+  #|   let clipboardError = ''
+  #|   try {
+  #|     if (navigator.clipboard && navigator.clipboard.writeText) {
+  #|       await navigator.clipboard.writeText(text)
+  #|       return JSON.stringify({ ok: true, how: 'navigator.clipboard' })
+  #|     }
+  #|     clipboardError = '这个环境里没有 navigator.clipboard'
+  #|   } catch (e) {
+  #|     clipboardError = String((e && e.message) || e)
+  #|   }
+  #|   try {
+  #|     const ta = document.createElement('textarea')
+  #|     ta.value = text
+  #|     ta.setAttribute('readonly', '')
+  #|     ta.style.position = 'fixed'
+  #|     ta.style.top = '-1000px'
+  #|     document.body.appendChild(ta)
+  #|     ta.select()
+  #|     const ok = document.execCommand('copy')
+  #|     document.body.removeChild(ta)
+  #|     if (ok) return JSON.stringify({ ok: true, how: 'document.execCommand' })
+  #|     return JSON.stringify({ ok: false, how: '', error: clipboardError + '；document.execCommand 也返回 false' })
+  #|   } catch (e) {
+  #|     return JSON.stringify({
+  #|       ok: false, how: '',
+  #|       error: clipboardError + '；' + String((e && e.message) || e),
+  #|     })
+  #|   }
+  #| })()
+
+///|
+/// 复制这一枪：回执走 CopyDone（成功与失败都要有话说，不吞）。
+fn copy_cmd(
+  label : String,
+  text : String,
+  emit : @cmd.Emit[Msg],
+) -> @cmd.Cmd {
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(CopyDone(label, res)) },
+    async fn() {
+      let text : String = js_copy_text(text).wait().cast()
+      text
+    },
+  )
+}
+
+///|
 /// 查询串编码，与 Vue 版的 encodeURIComponent 同一口径。
 extern "js" fn js_encode_uri_component(text : String) -> String =
   #| text => encodeURIComponent(text)
