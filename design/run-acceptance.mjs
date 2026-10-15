@@ -64,9 +64,15 @@ if (inv) {
   add('菜单每项都可点到', '0 项不可达', unreachable.length ? unreachable.join(',') : '0 项不可达', (inv.menu?.itemsReachable ?? []).length > 0 && unreachable.length === 0)
 }
 if (logs) {
-  add('日志可滚动', 'true', String(logs.box && logs.box.scrollHeight > logs.box.clientHeight), !!(logs.box && logs.box.scrollHeight > logs.box.clientHeight))
-  add('打开即滚到底', String(vueLogs?.box?.atBottom), String(logs.box?.atBottom), logs.box?.atBottom === true)
-  add('长行横向滚动', String(vueLogs?.box?.horizontalScroll), String(logs.box?.horizontalScroll), logs.box?.horizontalScroll === true)
+  // 这两条取决于当前默认来源那个日志文件有多长：实例日志可能只有 1 行，行数不够自然滚不动。
+  const box = logs.box
+  if (box && box.scrollHeight > box.clientHeight) {
+    add('日志可滚动', 'true', 'true', true)
+    add('长行横向滚动', String(vueLogs?.box?.horizontalScroll), String(box.horizontalScroll), box.horizontalScroll === true)
+  } else {
+    addInfo('日志可滚动 / 长行横向滚动（当前来源只有 ' + (logs.lineCount ?? 0) + ' 行，无从验证）', '行数不够')
+  }
+  add('打开即滚到底', String(vueLogs?.box?.atBottom), String(box?.atBottom), box?.atBottom === true)
   // 这条判定的前提是「窗口里真有错误行」。实时日志窗口的级别分布会变，
   // 没有 error 行时 errorColor 必然是 null——那不是回归，是无从验证。
   const errRows = logs.levels?.error ?? 0

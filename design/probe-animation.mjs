@@ -35,6 +35,9 @@ const before = await send('Runtime.evaluate', { expression: `(() => {
   })
 })()`, returnByValue: true })
 
+// 接上真引擎之后，点「启动」会真的拉起一只实例——先记下已有端口，测完把新起的停掉
+const portsBefore = JSON.parse(await ev(`JSON.stringify((await (await fetch('/api/local/instances')).json()).data.instances.map((i) => i.port))`) || '[]')
+
 const clicked = await send('Runtime.evaluate', { expression: `(() => {
   const b = [...document.querySelectorAll('button')].find((e) => e.textContent.trim().replace(/\s+/g, '').startsWith(${JSON.stringify(btnText)}))
   if (!b) return 'not-found'
@@ -51,7 +54,25 @@ const after = await send('Runtime.evaluate', { expression: `(() => {
   })
 })()`, returnByValue: true })
 
-const data = { baseUrl, before: JSON.parse(before.result?.result?.value ?? '{}'), clicked: clicked.result?.result?.value, after: JSON.parse(after.result?.result?.value ?? '{}') }
+// 收尾：停掉本次新起的实例（只停新出现的端口，既有的一律不碰）
+let cleanup = { stopped: [] }
+try {
+  const now = JSON.parse(await ev(`JSON.stringify((await (await fetch('/api/local/instances')).json()).data.instances.map((i) => i.port))`) || '[]')
+  for (const p of now) {
+    if (portsBefore.includes(p)) continue
+    const r = await ev(`(async () => {
+      const res = await fetch('/api/local/action', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'X-DSH-Console': '1' },
+        body: JSON.stringify({ action: 'stop-instance', params: { port: ${p} } }),
+      })
+      return res.status + ' ' + (await res.text()).slice(0, 120)
+    })()`)
+    cleanup.stopped.push({ port: p, result: r })
+  }
+} catch (e) { cleanup.error = String(e).slice(0, 120) }
+
+const data = { baseUrl, portsBefore, cleanup, before: JSON.parse(before.result?.result?.value ?? '{}'), clicked: clicked.result?.result?.value, after: JSON.parse(after.result?.result?.value ?? '{}') }
 writeFileSync(outJson, JSON.stringify(data, null, 1))
 console.log(JSON.stringify(data, null, 1))
 chrome.kill()

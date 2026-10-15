@@ -14,7 +14,7 @@ await send('Page.enable'); await send('Runtime.enable')
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
 await send('Page.navigate', { url: baseUrl }); await wait(4500)
 // 打开停止卡的 ▾ 菜单 → 重命名
-await ev(`(() => { const c = [...document.querySelectorAll('[data-name="instance-card"]')].find((e) => e.textContent.includes('启动')); (c.querySelector('.split-caret') || c.querySelectorAll('button')[1]).click() })()`)
+await ev(`(() => { const c = [...document.querySelectorAll('[data-name="instance-card"]')].find((e) => e.querySelector('[data-name="sub-line"][data-status="stopped"]')); (c.querySelector('.split-caret') || c.querySelectorAll('button')[1]).click() })()`)
 await wait(800)
 await ev(`(() => { const it = [...document.querySelectorAll('[data-name="row-menu"] button, [data-name="row-menu"] [role=menuitem]')].find((e) => e.textContent.trim() === '重命名'); if (it) it.click() })()`)
 await wait(900)
