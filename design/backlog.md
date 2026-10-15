@@ -43,10 +43,10 @@
 
 ## 悬着的验证（不是功能，是「我说不准」的事）
 
-### A. `detach=true` 的承诺：「控制台死了实例还在」
-- 后端 worker 报过一条对不上的观察：它 kill 测试控制台时，实例也跟着没了；而 README 记的是「SIGKILL 控制台后实例仍在监听」
-- 验法：起一只实例 → SIGKILL 控制台 → 看实例端口是否仍应答（401 即活着）
-- **为什么没验**：要 SIGKILL 使用者正在用的 5390，属于「危险/打扰」操作；使用者离开前要求尽量避免 —— 等他回来再做
+### A. `detach=true` 的承诺：「控制台死了实例还在」 —— **已验，是真的** ✓
+- 结论（2026-10-15）：起临时控制台（5388，隔离状态目录）→ 用它起实例（review-dev @8400）→ **SIGKILL 控制台** → 实例端口仍应答 401、进程状态 `Sl` ✓**实例活着**
+- 那个 worker 报的「实例也跟着没了」是**这套 harness 的假象** ✗：它的 job 管理器会清整棵进程树；正常的 SIGKILL 不会带走实例
+- 验法本身也记一笔：**别拿使用者正在用的控制台做这种测试** —— 另起一只、隔离状态目录、用完清理
 
 ### B. 「编辑配置」在没有 `cordis.patch.yml` 时的分支
 - 本机三只 profile 都有 patch，真后端复现不出 `not-found`；目前只有**桩回执**验过（worker 自己标明了「这条是桩验，不是真跑」）
@@ -65,4 +65,6 @@
 ## 杂项
 
 - `dsh-console/evidence-frontend-menu/` 与 `evidence-frontend-weburl/` 放在了仓库根（不是 `design/`）；要不要挪进 `design/` 待定
+- 验收的 `probe-animation` 会点「启动」，若点到起不来的 profile（如 headless）会留下 `~/.dsh/logs/console-headless-84xx.log` 一份 1 行日志 ✗——探针已会停掉自己起的实例，**但起失败留下的日志它清不掉**；跑完验收扫一眼 `~/.dsh/logs/` 即可
+- 路由是**路径式**（`/settings/safety`）；敲 hash 式地址（`#/settings`）会落到 `/`（本应用不产生这种地址）。要不要把 hash 当别名认，待定
 - fork 目前**排除 `node_modules`**（整目录拷贝会几百 MB）；使用者说过「整个 profile 目录」，此处与字面有出入，等他确认
