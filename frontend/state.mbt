@@ -7,6 +7,7 @@
 pub(all) enum Page {
   Overview
   Logs
+  Settings
   About
 } derive(Eq)
 
@@ -102,6 +103,13 @@ struct Row {
   deletable : Bool
   /// 有值即表示已归档，移出运行/停止两个分组
   archived_at : String?
+  /// 写动作的目标：磁盘上的 profile 目录名。读不到就是 None ——
+  /// 这时动作先在本地说清「没有可用的目标」，不发请求（也不拿演示数据里的名字去删真东西）。
+  profile_name : String?
+  /// 写动作的目标：实例端口（停止 / 重启按端口认）
+  port_value : Int?
+  /// 运行时登记（runtime.json）里有这一条 → 由本控制台启动
+  console_started : Bool
 } derive(Eq)
 
 pub extend Row with Eq::{ not_equal, equal }
@@ -114,11 +122,13 @@ pub let start_delay_ms : Int = 2500
 pub let restart_lock_ms : Int = 900
 
 ///|
-/// 派生副本的端口探测上限：最多往后试 20 个（与 Vue 版的 portProbe.ts 一致）。
-pub let port_probe_limit : Int = 20
+/// 控件里正在编辑的文本。键与文本分开存，保存成功或失败都要能把它清掉。
+struct SettingDraft {
+  key : String
+  text : String
+} derive(Eq)
 
-///|
-pub let demo_archived_at : String = "2026-10-14 13:05"
+pub extend SettingDraft with Eq::{ not_equal, equal }
 
 ///|
 struct Model {
@@ -136,6 +146,7 @@ struct Model {
   tag_instances : SourceTag
   tag_profiles : SourceTag
   tag_archived : SourceTag
+  tag_settings : SourceTag
   // 三个读数是否都落地了：都落地才拼一次列表（Vue 版是 Promise.all 之后拼）
   read_runtime : Bool
   read_profiles : Bool
@@ -151,11 +162,42 @@ struct Model {
   confirm_id : String
   confirm_return : String
   archived_open : Bool
-  // 派生：正在探测的端口
-  probe_id : String
-  probe_base : Int
-  probe_offset : Int
-  probe_skipped : Int
+  /// 用户手动折过归档区没有：折过之后就不再被 ui.archiveOpenByDefault 覆盖
+  archived_user_toggled : Bool
+  // 设置页
+  settings_loaded : Bool
+  settings_loading : Bool
+  settings : SettingsFacts?
+  settings_error : String
+  settings_status : Int
+  settings_status_text : String
+  settings_endpoint_missing : Bool
+  settings_group : String
+  /// 控件里正在编辑的文本（键 → 草稿）：保存失败要把草稿退回已保存的值
+  settings_draft : Array[SettingDraft]
+  settings_saving : String
+  /// 正在保存的那个键准备写入的值（回执里没带新值时按它记账）
+  settings_pending : SettingValue?
+  settings_feedback : String
+  settings_feedback_ok : Bool
+  // 写动作（POST /api/local/action）
+  /// 正在等响应的启动动作所在的行；空串表示没有
+  act_pending : String
+  /// 这一次启动的响应到了没有
+  act_response : Bool
+  /// 启动的展示计时到了没有（等待态至少显示 start_delay_ms）
+  act_tick : Bool
+  act_ok : Bool
+  act_note : String
+  /// 页面上那条动作结果提示
+  act_notice : String
+  act_notice_ok : Bool
+  /// 启动等待态里那句提示要用的动作名（回执与计时是两条路，各自都拿得到它）
+  act_label : String
+  // 控制台自己的状态读数（GET /api/local/console）：运行时登记 + 归档记录
+  console : ConsoleFacts?
+  console_error : String
+  read_console : Bool
   // 日志页
   log_source : String
   log_user_picked : Bool
@@ -173,6 +215,7 @@ pub extend Model with Eq::{ not_equal, equal }
 priv enum Msg {
   RuntimeText(Result[String, Error])
   ProfilesText(Result[String, Error])
+  ConsoleText(Result[String, Error])
   InstancesText(Result[String, Error])
   LogsText(Result[String, Error])
   Navigate(Page)
@@ -191,7 +234,16 @@ priv enum Msg {
   ToggleArchived
   LogSourcePicked(String)
   LogRefresh
-  ProbeTick(String, Bool)
+  // 设置页
+  SettingsText(Result[String, Error])
+  SettingsSaved(String, Result[String, Error])
+  SettingsRetry
+  SettingsGroupPicked(String)
+  SettingDraft(String, String)
+  SettingCommit(String, String)
+  SettingToggle(String, Bool)
+  // 写动作的回执：row_id / action / label / 原始响应
+  HttpDone(String, String, String, Result[String, Error])
   Noop
 }
 
@@ -209,9 +261,8 @@ fn initial_model() -> Model {
     tag_runtime: demo_tag("本地只读接口还没返回"),
     tag_instances: demo_tag("本地只读接口还没返回"),
     tag_profiles: demo_tag("本地只读接口还没返回"),
-    tag_archived: demo_tag(
-      "归档区本轮不接真实数据：磁盘上没有「归档记录」这种概念，这组一直是前端演示",
-    ),
+    tag_archived: demo_tag("归档记录还没读到"),
+    tag_settings: demo_tag("设置页还没打开过"),
     read_runtime: false,
     read_profiles: false,
     read_instances: false,
@@ -227,10 +278,31 @@ fn initial_model() -> Model {
     // 归档区默认折叠：这一组目前固定是演示数据，短时间用不上；
     // 折叠起来不占视线，功能本身留着（展开即可用），比删掉合适。
     archived_open: false,
-    probe_id: "",
-    probe_base: 0,
-    probe_offset: 0,
-    probe_skipped: -1,
+    archived_user_toggled: false,
+    settings_loaded: false,
+    settings_loading: false,
+    settings: None,
+    settings_error: "",
+    settings_status: 0,
+    settings_status_text: "",
+    settings_endpoint_missing: false,
+    settings_group: "instance",
+    settings_draft: [],
+    settings_saving: "",
+    settings_pending: None,
+    settings_feedback: "",
+    settings_feedback_ok: false,
+    act_pending: "",
+    act_response: false,
+    act_tick: false,
+    act_ok: false,
+    act_note: "",
+    act_notice: "",
+    act_notice_ok: false,
+    act_label: "",
+    console: None,
+    console_error: "",
+    read_console: false,
     log_source: "host",
     log_user_picked: false,
     log_loaded: false,
@@ -259,12 +331,33 @@ fn fallback_tag(detail : String) -> SourceTag {
   { kind: Fallback, label: "演示数据 · 真实读取失败", detail }
 }
 
+
 // ── 拉取 ────────────────────────────────────────────────────
 
 ///|
 fn load(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   @cmd.batch([
     @http.get("/api/local/runtime").expect_text(emit.map(fn(res) { RuntimeText(res) })),
+    load_console(emit),
+    load_readings(emit),
+  ])
+}
+
+///|
+/// GET /api/local/console：运行时登记 + 归档记录。卡片上的「由本控制台启动」与归档区
+/// 都按这份读数来；它读不到不影响别的读数，只是少这两处标记。
+fn load_console(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @http.get("/api/local/console").expect_text(emit.map(fn(res) { ConsoleText(res) }))
+}
+
+///|
+/// profiles + instances 两个读数。写动作成功之后单独重发这一对：
+/// 「刷新读数」刷新的是这两份，runtime 不随动作变。
+///
+/// 重发之前要把 read_profiles / read_instances 重新置回未落地（见 app.mbt 的 refresh_readings）——
+/// 否则先回来的那一份会拿着旧的另一份把列表拼一次，而 built 已经是 true，后回来的那份就白读了。
+fn load_readings(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.batch([
     @http.get("/api/local/profiles").expect_text(emit.map(fn(res) { ProfilesText(res) })),
     @http.get("/api/local/instances").expect_text(emit.map(fn(res) { InstancesText(res) })),
   ])
@@ -272,9 +365,24 @@ fn load(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 
 ///|
 /// 日志页的读数：尾部 200 行，上限由接口负责截断并说明。
-fn load_logs(source : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  let query = "/api/local/logs?source=" + js_encode_uri_component(source) + "&tail=200"
+fn load_logs(source : String, tail : Int, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  let query = "/api/local/logs?source=" + js_encode_uri_component(source) + "&tail=" +
+    tail.to_string()
   @http.get(query).expect_text(emit.map(fn(res) { LogsText(res) }))
+}
+
+///|
+/// 日志页默认尾部行数：设置读到就用设置里的 logs.defaultTail，读不到用契约缺省 200。
+/// 这一项是「真能配置」的：它在日志页的请求串上真的生效，不是只显示一个数字。
+fn log_tail_of(model : Model) -> Int {
+  match model.settings {
+    Some(facts) =>
+      match lookup_setting(facts.values, "logs.defaultTail") {
+        Some(VInt(n)) => n
+        _ => 200
+      }
+    None => 200
+  }
 }
 
 ///|
@@ -388,10 +496,32 @@ fn process_note(fact : InstanceFact) -> String {
 }
 
 ///|
+/// 这一条是不是本控制台起的：runtime.json 的登记里有同一个端口，且那个 pid 还活着。
+/// 只看端口不够 —— 登记过、后来那个 pid 退了端口被别人接走的情况也长得一样。
+fn console_started(console : ConsoleFacts?, port : Int) -> Bool {
+  match console {
+    None => false
+    Some(facts) => {
+      let mut found = false
+      for entry in facts.runtime {
+        if entry.port == port && entry.alive {
+          found = true
+        }
+      }
+      found
+    }
+  }
+}
+
+///|
 /// 正在运行的实例 = 监听端口 + HTTP 签名探测到的真实实例（不是 /proc 进程，也不是磁盘上的 profile）。
 /// 实例的 Profile / DSH_HOME / DSH 版本 / 运行时长来自「端口 → socket inode → PID」这条 join；
 /// 任一项拿不到就写「未知」，并把后端给的原因挂在悬停说明上 —— 不编值，也不留一个干巴巴的未知。
-fn running_rows(facts : Array[InstanceFact], profiles : Array[ProfileFact]) -> Array[Row] {
+fn running_rows(
+  facts : Array[InstanceFact],
+  profiles : Array[ProfileFact],
+  console : ConsoleFacts?,
+) -> Array[Row] {
   facts.map(fn(fact) {
     let profile_fact = match fact.profile {
       Some(name) => {
@@ -483,6 +613,9 @@ fn running_rows(facts : Array[InstanceFact], profiles : Array[ProfileFact]) -> A
       },
       deletable: false,
       archived_at: None,
+      profile_name: fact.profile,
+      port_value: Some(fact.port),
+      console_started: fact.console_started || console_started(console, fact.port),
     }
   })
 }
@@ -576,12 +709,103 @@ fn profile_rows(
       },
       deletable: true,
       archived_at: None,
+      profile_name: Some(fact.name),
+      port_value: None,
+      console_started: false,
     })
   }
   rows
 }
 
-// ── 演示数据（真实读取失败时兜底；归档区一直是演示） ─────────
+///|
+/// 归档区的行：按 console 读数里的归档记录，把对应的 profile 行标上归档时间。
+/// 行是按 profiles 读数重建的，归档记录在另一份读数里，所以每次重建都要重新标。
+/// 磁盘上已经没有那只 profile 的记录另外补一行（记录要看得见，也才能取消归档）。
+fn apply_archived_marks(model : Model, rows : Array[Row]) -> Array[Row] {
+  let archive = match model.console {
+    Some(facts) => facts.archive
+    None => []
+  }
+  if archive.length() == 0 {
+    return rows
+  }
+  let marked = rows.map(fn(row) {
+    match row.profile_name {
+      None => row
+      Some(name) => {
+        let mut stamp = ""
+        for record in archive {
+          if record.profile == name {
+            stamp = record.archived_at
+          }
+        }
+        if stamp == "" {
+          row
+        } else {
+          { ..row, archived_at: Some(stamp) }
+        }
+      }
+    }
+  })
+  for record in archive {
+    let mut listed = false
+    for row in marked {
+      match row.profile_name {
+        Some(name) =>
+          if name == record.profile {
+            listed = true
+          }
+        None => ()
+      }
+    }
+    if !listed {
+      marked.push(archived_orphan(record))
+    }
+  }
+  marked
+}
+
+///|
+/// 归档记录在、磁盘上的 profile 目录不在时的那一行：只为了让人看见这条记录并撤掉它。
+fn archived_orphan(record : ConsoleArchive) -> Row {
+  {
+    id: "archived:" + record.profile,
+    name: record.profile,
+    kind: "已归档 · 磁盘上没有这只 profile",
+    kind_hint: "archive.json 里有这只 profile 的归档记录，但 profiles 读数里没有对应的目录",
+    tone: Violet,
+    status: Stopped,
+    uptime: Some(0),
+    uptime_hint: "",
+    port_note: "",
+    idle_note: "",
+    note: "",
+    busy: false,
+    version: "—",
+    version_hint: "磁盘上没有这只 profile，没有版本可读",
+    profile: record.profile,
+    profile_hint: "archive.json 里的记录：" + record.profile,
+    home: "—",
+    home_hint: "磁盘上没有这只 profile",
+    url: "—",
+    plugin_count: "—",
+    plugin_detail: "",
+    deletable: true,
+    archived_at: Some(record.archived_at),
+    profile_name: Some(record.profile),
+    port_value: None,
+    console_started: false,
+  }
+}
+
+// ── 演示数据（真实读取失败时兜底） ─────────────────────────
+//
+// 这些行**没有写动作的目标**：profile_name / port_value 都是 None。
+// 以前它们只是一排假读数，点了删除也只是从列表里消失；现在菜单上的按钮会真的
+// POST /api/local/action，拿演示数据里的名字（main / dev / staging）去打真东西是不行的 ——
+// 所以演示行的动作一律先在本地说清「读不到目标」，不发请求。
+//
+// 归档区不再是演示：它显示的只有本轮点过「归档」的行（见 app.mbt 的 apply_action_effect）。
 
 ///|
 fn demo_running() -> Array[Row] {
@@ -593,6 +817,7 @@ fn demo_running() -> Array[Row] {
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "main", home: "/Users/you/.dsh/work-main",
       url: "http://127.0.0.1:8100", plugin_count: "5 个", plugin_detail: "",
       deletable: false, archived_at: None,
+      profile_name: None, port_value: None, console_started: false,
     },
     {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
@@ -601,6 +826,7 @@ fn demo_running() -> Array[Row] {
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "dev", home: "/Users/you/.dsh/plugin-dev",
       url: "http://127.0.0.1:8200", plugin_count: "2 个（开发中）", plugin_detail: "",
       deletable: true, archived_at: None,
+      profile_name: None, port_value: None, console_started: false,
     },
   ]
 }
@@ -615,20 +841,7 @@ fn demo_stopped() -> Array[Row] {
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "staging", home: "/Users/you/.dsh/staging",
       url: "http://127.0.0.1:8300", plugin_count: "3 个", plugin_detail: "",
       deletable: true, archived_at: None,
-    },
-  ]
-}
-
-///|
-fn demo_archived() -> Array[Row] {
-  [
-    {
-      id: "old-experiment", name: "old-experiment", kind: "插件开发（试验）", kind_hint: "",
-      tone: Violet, status: Stopped, uptime: Some(0), uptime_hint: "",
-      port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "dev", home: "/Users/you/.dsh/old-experiment",
-      url: "http://127.0.0.1:8400", plugin_count: "1 个（开发中）", plugin_detail: "",
-      deletable: true, archived_at: Some(demo_archived_at),
+      profile_name: None, port_value: None, console_started: false,
     },
   ]
 }

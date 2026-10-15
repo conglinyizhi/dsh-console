@@ -41,10 +41,14 @@ fn default_log_source(model : Model) -> String {
 }
 
 ///|
-/// 三个读数都落地之后拼一次：运行中（真实探测）/ 已停止（磁盘上的 profile）/ 归档区（演示）。
+/// 三个读数都落地之后拼一次：运行中（真实探测）/ 已停止（磁盘上的 profile）/ 归档区（本轮点过归档的行）。
 /// 任一读失败，对应的那一组退回演示数据，并保持自己的数据源标记。
 fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
-  if model.built || !(model.read_runtime && model.read_profiles && model.read_instances) {
+  if model.built ||
+    !(model.read_runtime &&
+      model.read_profiles &&
+      model.read_instances &&
+      model.read_console) {
     return (model, @cmd.none)
   }
   let profile_list = match model.profiles {
@@ -52,7 +56,7 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     None => []
   }
   let running = match model.instances {
-    Some(facts) => running_rows(facts.instances, profile_list)
+    Some(facts) => running_rows(facts.instances, profile_list, model.console)
     None => demo_running()
   }
   // 已停止组要排除「正被某个运行中实例用着」的 profile——同一个东西不能既运行中又已停止
@@ -72,9 +76,9 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   for row in stopped {
     rows.push(row)
   }
-  for row in demo_archived() {
-    rows.push(row)
-  }
+  // 归档区不是演示数据了：它由本轮真的点过「归档」的动作产生（archive.json 没有读接口，
+  // 所以这份记录只在这次会话里有效）。行是按读数重建的，重建之后要把归档标记标回去。
+  let rows = apply_archived_marks(model, rows)
   let source = if model.log_user_picked {
     model.log_source
   } else {
@@ -82,7 +86,10 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   }
   // 日志页已经开着、而默认来源刚刚才定下来：补一次读取，别让下拉与内容对不上
   let cmd = if model.page is Logs && source != model.log_source {
-    @cmd.batch([load_logs(source, emit), scroll_bottom_after_render("dsh-log-box")])
+    @cmd.batch([
+      load_logs(source, log_tail_of(model), emit),
+      scroll_bottom_after_render("dsh-log-box"),
+    ])
   } else {
     @cmd.none
   }
@@ -105,177 +112,575 @@ fn row_name(model : Model, id : String) -> String {
 }
 
 ///|
-/// 启动：先留在原分组显示等待态，再落成运行中（前端演示，不拉起真实进程）。
-fn start_row(model : Model, id : String, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
-  (
-    map_rows(model, id, fn(row) { { ..row, status: Starting, busy: true } }),
-    @cmd.delay(emit(StartTick(id)), start_delay_ms),
-  )
+/// 把若干 (键, 已渲染好的 JSON 值) 拼成 params 对象。空数组给空串 —— 调用方据此
+/// 判定「这一行没有可用的目标」，在本地说清而不是发一个空 params 出去。
+fn params_of(pairs : Array[(String, String)]) -> String {
+  if pairs.length() == 0 {
+    return ""
+  }
+  let buf = StringBuilder()
+  buf.write_char('{')
+  let mut first = true
+  for pair in pairs {
+    let (key, value) = pair
+    if !first {
+      buf.write_char(',')
+    }
+    buf.write_string(json_text_literal(key))
+    buf.write_char(':')
+    buf.write_string(value)
+    first = false
+  }
+  buf.write_char('}')
+  buf.to_string()
 }
 
 ///|
-/// 派生副本的编号：在 plugin-dev-N 里取第一个没被占用的号。
-/// 按 id 判断占用而不是按 name，改名不会把 id 让出去，也就不会派生出重号。
-fn next_fork_index(rows : Array[Row]) -> Int {
-  let mut index = 2
-  let mut used = true
-  while used {
-    used = false
-    for row in rows {
-      if row.id == "plugin-dev-" + index.to_string() {
-        used = true
+/// 目标 profile 的参数。读不到目录名就给空数组：写动作一律以读数为准，
+/// 不拿演示数据里那个名字去打真实的东西。
+fn profile_pairs(row : Row) -> Array[(String, String)] {
+  match row.profile_name {
+    Some(name) => [("profile", json_text_literal(name))]
+    None => []
+  }
+}
+
+///|
+/// 目标端口的参数（停止 / 重启按端口认）。
+fn port_pairs(row : Row) -> Array[(String, String)] {
+  match row.port_value {
+    Some(port) => [("port", port.to_string())]
+    None => []
+  }
+}
+
+///|
+/// 按行取动作目标：kind = "port" 取端口，其余取 profile。
+fn params_for_row(model : Model, row_id : String, kind : String) -> String {
+  match find_row(model.rows, row_id) {
+    None => ""
+    Some(row) =>
+      if kind == "port" {
+        params_of(port_pairs(row))
+      } else {
+        params_of(profile_pairs(row))
       }
-    }
-    if used {
-      index = index + 1
-    }
   }
-  index
 }
 
 ///|
-/// url 尾部的端口号：http://127.0.0.1:8200 → 8200。读不出给 0。
-fn port_of_url(url : String) -> Int {
-  let mut last = -1
-  let mut i = 0
-  for c in url {
-    if c == ':' {
-      last = i
-    }
-    i = i + 1
+/// 一个写动作：发请求，并把这一行置成忙碌（同一行不会连点两次）。
+/// 目标读不到就只在本地说一句，不发请求。
+fn send_action(
+  model : Model,
+  id : String,
+  action : String,
+  label : String,
+  params : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  if params == "" {
+    (
+      {
+        ..model,
+        act_notice: label +
+          "：这一行的读数里没有可用的目标（profile 目录名或端口读不到），没有发请求",
+        act_notice_ok: false,
+      },
+      @cmd.none,
+    )
+  } else {
+    let busy = map_rows(model, id, fn(row) { { ..row, busy: true } })
+    (
+      { ..busy, act_notice: "" },
+      action_cmd(id, action, label, action_body(action, params), emit),
+    )
   }
-  if last < 0 {
-    return 0
-  }
-  let digits = url[last + 1:].to_owned()
-  let mut value = 0
-  for c in digits {
-    if c >= '0' && c <= '9' {
-      value = value * 10 + (c.to_int() - 48)
-    } else {
-      return 0
-    }
-  }
-  value
 }
 
 ///|
-/// 派生基线：现有实例里最大的端口号 + 1。
-fn next_port(rows : Array[Row]) -> Int {
-  let mut max = 0
-  for row in rows {
-    let port = port_of_url(row.url)
-    if port > max {
-      max = port
-    }
+/// 删除的参数。契约：safety.deleteToTrash=false 时**必须**带 confirm=DELETE，否则 bad-params。
+/// 设置还没读到（没打开过设置页）时按「可能要硬删」处理，也带上它 ——
+/// 少带一次的代价是删不掉并弹一个 bad-params，多带一次的代价只是一个多余字段。
+/// 明确读到 deleteToTrash=true（进回收站）时才不带。
+fn delete_pairs(model : Model, row_id : String) -> Array[(String, String)] {
+  let base = match find_row(model.rows, row_id) {
+    None => []
+    Some(row) => profile_pairs(row)
   }
-  max + 1
+  if base.length() == 0 {
+    return base
+  }
+  if setting_bool_of(model, "safety.deleteToTrash") == Some(true) {
+    base
+  } else {
+    let pairs = base.copy()
+    pairs.push(("confirm", json_text_literal("DELETE")))
+    pairs
+  }
 }
 
 ///|
-/// 探一个候选端口：resolve 说明有人应答（占用），reject 说明这一次没听到（按空闲处理）。
-fn probe_cmd(id : String, port : Int, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(res : Result[Bool, Error]) {
-      let busy = match res {
-        Ok(value) => value
-        Err(_) => false
-      }
-      emit(ProbeTick(id, busy))
-    },
-    async fn() {
-      let busy : Bool = js_probe_port_busy(port).wait().cast()
-      busy
-    },
-  )
-}
-
-///|
-/// 派生开发副本：新实例 plugin-dev-N，端口从「当前最大 +1」往下探（最多 20 个）。
-fn fork(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
-  let index = next_fork_index(model.rows)
-  let name = "plugin-dev-" + index.to_string()
-  let base = next_port(model.rows)
-  let row : Row = {
-    id: name,
-    name,
-    kind: "插件开发（试验）",
-    kind_hint: "",
-    tone: Violet,
-    status: Starting,
-    uptime: Some(0),
-    uptime_hint: "",
-    port_note: "端口 " + base.to_string() + " · 正在探测",
-    idle_note: "",
-    note: "",
-    busy: true,
-    version: "0.2.0-rc.2（本地源码）",
-    version_hint: "派生副本是界面演示，版本不是真实读数",
-    profile: "dev",
-    profile_hint: "派生副本是界面演示，profile 不是真实读数",
-    home: "/Users/you/.dsh/" + name,
-    home_hint: "派生副本是界面演示，DSH_HOME 不是真实读数",
-    url: "http://127.0.0.1:0",
-    plugin_count: "1 个（开发中）",
-    plugin_detail: "",
-    deletable: true,
-    archived_at: None,
+/// 启动：先留在原分组显示等待态（状态点在动、三个按钮禁用），再按回执落定。
+///
+/// 等待态有下限（start_delay_ms）：真实请求可能 50ms 就回来了，但「启动中…」一闪而过
+/// 比多等两秒更难用。回执与计时都到齐才收尾，收尾不等于宣布成功 ——
+/// 成功的证据是重读 instances 之后那张真的运行中卡。
+fn start_instance(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let params = params_of(profile_pairs(row))
+  let label = "启动 " + row.name
+  if params == "" {
+    return (
+      {
+        ..model,
+        act_notice: label + "：读数里没有 profile 目录名，没有发请求",
+        act_notice_ok: false,
+      },
+      @cmd.none,
+    )
   }
-  let rows = model.rows.map(fn(existing) { existing })
-  rows.push(row)
+  let busy = map_rows(model, row.id, fn(item) { { ..item, status: Starting, busy: true } })
   (
-    { ..model, rows, probe_id: name, probe_base: base, probe_offset: 0, probe_skipped: -1 },
+    {
+      ..busy,
+      act_pending: row.id,
+      act_label: label,
+      act_response: false,
+      act_tick: false,
+      act_ok: false,
+      act_note: "",
+      act_notice: "",
+    },
     @cmd.batch([
-      @cmd.delay(emit(StartTick(name)), start_delay_ms),
-      probe_cmd(name, base, emit),
+      action_cmd(row.id, "start-instance", label, action_body("start-instance", params), emit),
+      @cmd.delay(emit(StartTick(row.id)), start_delay_ms),
     ]),
   )
 }
 
 ///|
-/// 端口探测的下一步：占用就往后试，20 个都被占用时给一个没探测过的号并说清。
-fn probe_step(model : Model, id : String, busy : Bool, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
-  if model.probe_id != id {
+/// 启动收尾：回执与计时都到齐才动。
+fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  if model.act_pending == "" || !model.act_response || !model.act_tick {
     return (model, @cmd.none)
   }
-  let port = model.probe_base + model.probe_offset
-  let skipped = if model.probe_skipped < 0 { port } else { model.probe_skipped }
-  if busy {
-    let offset = model.probe_offset + 1
-    if offset < port_probe_limit {
+  let id = model.act_pending
+  let label = model.act_label
+  let ok = model.act_ok
+  let note = model.act_note
+  let cleared = map_rows(
+    { ..model, act_pending: "", act_response: false, act_tick: false, act_label: "" },
+    id,
+    fn(row) { { ..row, busy: false, status: Stopped, port_note: "" } },
+  )
+  if ok {
+    refresh_readings({ ..cleared, act_notice: label + "：" + note, act_notice_ok: true }, emit)
+  } else {
+    ({ ..cleared, act_notice: label + "失败：" + note, act_notice_ok: false }, @cmd.none)
+  }
+}
+
+///|
+/// 写动作成功之后刷新读数：重发 profiles + instances。
+/// 两份都先置回「未落地」再发 —— 否则先回来的那一份会拿着旧的另一份拼一次列表，
+/// 而那时 built 已经是 true，后回来的那一份就白读了（卡上还是动作前的老样子）。
+fn refresh_readings(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  (
+    { ..model, built: false, read_profiles: false, read_instances: false, read_console: false },
+    @cmd.batch([load_readings(emit), load_console(emit)]),
+  )
+}
+
+///|
+/// 动作回执 → (成功?, 给用户看的一句话)。失败一律把后端给的码与消息带上，不吞。
+fn interpret_http(res : Result[String, Error]) -> (Bool, String) {
+  match res {
+    Err(err) => (false, "请求没发出去（" + describe(err) + "）")
+    Ok(text) => {
+      let got = parse_http_result(text)
+      if got.status == 0 {
+        (false, "请求失败（" + got.transport_error + "）")
+      } else if got.status >= 200 && got.status < 300 {
+        match open_envelope(got.body) {
+          Ok(data) => (true, success_note(data))
+          Err(reason) =>
+            (
+              false,
+              "HTTP " + got.status.to_string() + " · 响应不是约定的成功壳：" + reason,
+            )
+        }
+      } else {
+        (false, failure_note(got))
+      }
+    }
+  }
+}
+
+///|
+/// 成功回执里那句「这次到底发生了什么」：优先用 note，其次把 outcome 摊平。
+fn success_note(data : Map[String, Json]) -> String {
+  let note = str_field(data, "note")
+  if note != "" {
+    return note
+  }
+  match data.get("outcome") {
+    Some(Json::Object(outcome)) => {
+      let parts : Array[String] = []
+      for entry in outcome.iter() {
+        let (key, value) = entry
+        parts.push(key + "=" + outcome_value_text(value))
+      }
+      if parts.length() > 0 {
+        join_with(parts, " · ")
+      } else {
+        "完成（outcome 是空的）"
+      }
+    }
+    Some(other) => outcome_value_text(other)
+    None => "完成（回执里没有 note / outcome）"
+  }
+}
+
+///|
+fn outcome_value_text(value : Json) -> String {
+  match value {
+    Json::String(text) => text
+    Json::Number(n, ..) => n.to_int().to_string()
+    Json::True => "true"
+    Json::False => "false"
+    Json::Null => "null"
+    other => other.stringify()
+  }
+}
+
+///|
+/// 失败回执：状态行 + 后端错误壳里的 code / message。
+/// 后端还没提供接口时（例如 404 的空响应体）到这里也要说清「响应体不是约定的错误壳」。
+fn failure_note(got : HttpResult) -> String {
+  let head = http_status_text(got)
+  let root = try @json.parse(got.body) catch {
+    _ => return head + " · 响应体不是合法 JSON（后端可能还没提供这个接口）"
+  }
+  guard root is Json::Object(obj) else {
+    return head + " · 响应外壳不是 JSON 对象"
+  }
+  match obj.get("error") {
+    Some(Json::Object(err)) => {
+      let code = str_field(err, "code")
+      let message = str_field(err, "message")
+      if code == "" && message == "" {
+        head
+      } else if code == "" {
+        head + " · " + message
+      } else if message == "" {
+        head + " · " + code
+      } else {
+        head + " · " + code + "：" + message
+      }
+    }
+    _ => head + " · 响应里没有 error 对象"
+  }
+}
+
+// ── 设置页的状态转移 ────────────────────────────────────────
+
+///|
+fn put_draft(drafts : Array[SettingDraft], key : String, text : String) -> Array[SettingDraft] {
+  let out = drafts.filter(fn(draft) { draft.key != key })
+  out.push({ key, text })
+  out
+}
+
+///|
+fn drop_draft(drafts : Array[SettingDraft], key : String) -> Array[SettingDraft] {
+  drafts.filter(fn(draft) { draft.key != key })
+}
+
+///|
+/// 控件在 DOM 上的 id（view_settings.mbt 建控件时用同一个口径）。
+fn setting_control_id(key : String) -> String {
+  "dsh-setting-" + key
+}
+
+///|
+/// 这一项当前已保存的值在界面上的文本（控件要退回的那一个）。
+fn setting_stored_text(model : Model, key : String) -> String {
+  match model.settings {
+    None => ""
+    Some(facts) =>
+      match setting_by_key(key) {
+        None => ""
+        Some(def) =>
+          match setting_current(facts, def) {
+            Some(value) => setting_value_text(value)
+            None => ""
+          }
+      }
+  }
+}
+
+///|
+fn setting_label(key : String) -> String {
+  match setting_by_key(key) {
+    Some(def) => def.label
+    None => key
+  }
+}
+
+///|
+/// 归档区默认展开只在那一次生效：用户自己折过之后就不再覆盖他的选择。
+fn default_archive_open(model : Model, facts : SettingsFacts) -> Bool {
+  if model.archived_user_toggled {
+    model.archived_open
+  } else {
+    match lookup_setting(facts.values, "ui.archiveOpenByDefault") {
+      Some(VBool(on)) => on
+      _ => model.archived_open
+    }
+  }
+}
+
+///|
+/// GET /api/local/settings 的结果落地。404 / 501 与别的失败分开记：
+/// 前者是「后端还没提供这个接口」，页面要照实说。
+fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, @cmd.Cmd) {
+  let base = { ..model, settings_loading: false, settings_loaded: true }
+  match res {
+    Err(err) => {
+      let reason = "请求没发出去（" + describe(err) + "）"
       (
-        { ..model, probe_offset: offset, probe_skipped: skipped },
-        probe_cmd(id, model.probe_base + offset, emit),
-      )
-    } else {
-      let fallback = model.probe_base + port_probe_limit
-      let note = model.probe_base.to_string() + " 起 20 个都被占用，暂用 " +
-        fallback.to_string() + "（未探测）"
-      (
-        map_rows(
-          { ..model, probe_id: "" },
-          id,
-          fn(row) { { ..row, url: "http://127.0.0.1:" + fallback.to_string(), port_note: note } },
-        ),
+        {
+          ..base,
+          settings: None,
+          settings_status: 0,
+          settings_status_text: "",
+          settings_error: reason,
+          settings_endpoint_missing: false,
+          tag_settings: fallback_tag("GET /api/local/settings " + reason),
+        },
         @cmd.none,
       )
     }
-  } else {
-    let note = if model.probe_skipped < 0 {
-      "端口 " + port.to_string() + " · 已探测未被占用"
-    } else {
-      skipped.to_string() + " 被占用，改用 " + port.to_string()
+    Ok(text) => {
+      let got = parse_http_result(text)
+      if got.status == 0 {
+        let reason = "请求失败（" + got.transport_error + "）"
+        (
+          {
+            ..base,
+            settings: None,
+            settings_status: 0,
+            settings_status_text: "",
+            settings_error: reason,
+            settings_endpoint_missing: false,
+            tag_settings: fallback_tag("GET /api/local/settings " + reason),
+          },
+          @cmd.none,
+        )
+      } else if got.status >= 200 && got.status < 300 {
+        match parse_settings(got.body) {
+          Ok(facts) => {
+            let count = facts.values.length().to_string()
+            (
+              {
+                ..base,
+                settings: Some(facts),
+                settings_status: got.status,
+                settings_status_text: got.status_text,
+                settings_error: "",
+                settings_endpoint_missing: false,
+                tag_settings: real_tag(
+                  "GET /api/local/settings 读到 " + count + " 个键 · " + local_time_now() + " 读取",
+                ),
+                archived_open: default_archive_open(base, facts),
+              },
+              @cmd.none,
+            )
+          }
+          Err(reason) => {
+            let detail = http_status_text(got) + " · 响应不是约定的成功壳：" + reason
+            (
+              {
+                ..base,
+                settings: None,
+                settings_status: got.status,
+                settings_status_text: got.status_text,
+                settings_error: detail,
+                settings_endpoint_missing: false,
+                tag_settings: fallback_tag("GET /api/local/settings " + detail),
+              },
+              @cmd.none,
+            )
+          }
+        }
+      } else {
+        let missing = got.status == 404 || got.status == 501
+        let detail = (if missing {
+          "后端还没有这个接口。"
+        } else {
+          "后端返回了错误。"
+        }) + failure_note(got)
+        (
+          {
+            ..base,
+            settings: None,
+            settings_status: got.status,
+            settings_status_text: got.status_text,
+            settings_error: detail,
+            settings_endpoint_missing: missing,
+            tag_settings: fallback_tag(
+              "GET /api/local/settings → " + http_status_text(got),
+            ),
+          },
+          @cmd.none,
+        )
+      }
     }
-    (
-      map_rows(
-        { ..model, probe_id: "" },
-        id,
-        fn(row) { { ..row, url: "http://127.0.0.1:" + port.to_string(), port_note: note } },
-      ),
-      @cmd.none,
-    )
   }
 }
+
+///|
+/// 提交一个数字 / 枚举控件：先本地校验（越界不发请求，先说清哪里不对），再 PUT。
+fn commit_setting(
+  model : Model,
+  key : String,
+  text : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  match setting_by_key(key) {
+    None => (model, @cmd.none)
+    Some(def) =>
+      match setting_parse_input(def, text) {
+        Err(reason) => {
+          let back = setting_stored_text(model, key)
+          (
+            {
+              ..model,
+              settings_draft: drop_draft(model.settings_draft, key),
+              settings_feedback: def.label + " 没保存：" + reason,
+              settings_feedback_ok: false,
+            },
+            set_control_after_render(setting_control_id(key), back),
+          )
+        }
+        Ok(value) => commit_setting_value(model, key, value, emit)
+      }
+  }
+}
+
+///|
+/// 开关走这里（没有草稿）；数字与枚举校验通过之后也走这里。
+/// 草稿先留着：保存回来之前控件上还是用户填的那个值，成功失败再决定去留。
+fn commit_setting_value(
+  model : Model,
+  key : String,
+  value : SettingValue,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  match setting_by_key(key) {
+    None => (model, @cmd.none)
+    Some(def) =>
+      (
+        {
+          ..model,
+          settings_saving: key,
+          settings_pending: Some(value),
+          settings_feedback: "正在保存 " + def.label + " …",
+          settings_feedback_ok: true,
+        },
+        settings_put_cmd(key, settings_put_body(key, value), emit),
+      )
+  }
+}
+
+///|
+/// 保存结果落地：成功用后端回的新值更新这一项（PUT 回的壳与 GET 同形就用它，
+/// 不然按提交值算并把来源写成「文件」）；失败把草稿退回已保存的值并显示后端给的原因。
+fn settings_saved_state(
+  model : Model,
+  key : String,
+  res : Result[String, Error],
+) -> (Model, @cmd.Cmd) {
+  let label = setting_label(key)
+  let (ok, note) = interpret_http(res)
+  let drafts = drop_draft(model.settings_draft, key)
+  if !ok {
+    let back = setting_stored_text(model, key)
+    return (
+      {
+        ..model,
+        settings_saving: "",
+        settings_pending: None,
+        settings_draft: drafts,
+        settings_feedback: label + " 没保存：" + note,
+        settings_feedback_ok: false,
+      },
+      set_control_after_render(setting_control_id(key), back),
+    )
+  }
+  let facts = merge_saved(model, key, res)
+  let value_text = match model.settings_pending {
+    Some(value) => setting_value_text(value)
+    None => "已保存"
+  }
+  (
+    {
+      ..model,
+      settings: Some(facts),
+      settings_saving: "",
+      settings_pending: None,
+      settings_draft: drafts,
+      settings_feedback: label + " 已保存：" + value_text + "（来源 文件）",
+      settings_feedback_ok: true,
+      tag_settings: real_tag(
+        "PUT /api/local/settings " + key + " · " + local_time_now() + " 写入",
+      ),
+    },
+    @cmd.none,
+  )
+}
+
+///|
+/// 保存成功之后这一项的取值：后端回了同形的壳就以它为准，否则记下提交的值。
+fn merge_saved(model : Model, key : String, res : Result[String, Error]) -> SettingsFacts {
+  let base = match model.settings {
+    Some(facts) => facts
+    None => { values: [], defaults: [], sources: [] }
+  }
+  let from_body = match res {
+    Ok(text) => {
+      let got = parse_http_result(text)
+      match parse_settings(got.body) {
+        Ok(facts) => Some(facts)
+        Err(_) => None
+      }
+    }
+    Err(_) => None
+  }
+  match from_body {
+    Some(facts) =>
+      match lookup_setting(facts.values, key) {
+        Some(_) => facts
+        None => put_setting(base, key, model.settings_pending)
+      }
+    None => put_setting(base, key, model.settings_pending)
+  }
+}
+
+///|
+fn put_setting(facts : SettingsFacts, key : String, value : SettingValue?) -> SettingsFacts {
+  match value {
+    None => facts
+    Some(value) => {
+      let values = facts.values.filter(fn(item) { item.key != key })
+      values.push({ key, value })
+      let sources = facts.sources.filter(fn(item) { item.key != key })
+      sources.push({ key, value: VText("文件") })
+      { values, defaults: facts.defaults, sources }
+    }
+  }
+}
+
 
 // ── 更新 ───────────────────────────────────────────────────
 
@@ -361,6 +766,50 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             profiles_error: reason,
             tag_profiles: fallback_tag("/api/local/profiles 读取失败：" + reason),
             read_profiles: true,
+          }
+        }
+      }
+      rebuild(next, emit)
+    }
+    ConsoleText(res) => {
+      // 这一份读不到不算致命：卡片上的「由本控制台启动」与归档区会缺，别的读数照旧。
+      // read_console 照样置 true —— 它挡住的是「列表拼装」，不该为一份读数卡住整页。
+      let time = local_time_now()
+      let next = match res {
+        Ok(text) =>
+          match parse_console(text) {
+            Ok(facts) => {
+              let archived = facts.archive.length()
+              let registered = facts.runtime.length()
+              {
+                ..model,
+                console: Some(facts),
+                console_error: "",
+                tag_archived: real_tag(
+                  "GET /api/local/console 读 " + facts.archive_path + "：" +
+                  archived.to_string() + " 条归档记录；runtime.json 里 " +
+                  registered.to_string() + " 条登记 · " + time + " 读取",
+                ),
+                read_console: true,
+              }
+            }
+            Err(reason) =>
+              {
+                ..model,
+                console: None,
+                console_error: reason,
+                tag_archived: fallback_tag("/api/local/console 读取失败：" + reason),
+                read_console: true,
+              }
+          }
+        Err(err) => {
+          let reason = "本地只读接口不可达（" + describe(err) + "）"
+          {
+            ..model,
+            console: None,
+            console_error: reason,
+            tag_archived: fallback_tag("/api/local/console 读取失败：" + reason),
+            read_console: true,
           }
         }
       }
@@ -477,33 +926,68 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           scroll_bottom_after_render("dsh-log-box")
         } else {
           @cmd.batch([
-            load_logs(model.log_source, emit),
+            load_logs(model.log_source, log_tail_of(model), emit),
             scroll_bottom_after_render("dsh-log-box"),
           ])
         }
         ({ ..next, log_loaded: true }, cmd)
+      } else if page is Settings {
+        // 设置是懒加载：只在第一次进设置页时发 GET。
+        // 别在应用启动时顺手读它 —— 后端还没提供这个接口时，
+        // 每次打开总览都会在控制台里留一条 404，而「控制台零问题」是验收项。
+        if model.settings_loaded || model.settings_loading {
+          (next, @cmd.none)
+        } else {
+          (
+            { ..next, settings_loading: true, settings_error: "" },
+            settings_get_cmd(emit),
+          )
+        }
       } else {
         (next, @cmd.none)
       }
     }
     RowAction(id, key) =>
       match key {
+        // 行内的启动 / 停止 / 重启都是真实动作（POST /api/local/action）：
+        // 启动要等回执 + 展示下限，其余的动作直接把这一行置忙等回执。
         Toggle =>
           match find_row(model.rows, id) {
             None => (model, @cmd.none)
             Some(row) =>
               if row.status is Running {
-                (map_rows(model, id, fn(item) { { ..item, status: Stopped } }), @cmd.none)
+                send_action(
+                  model,
+                  id,
+                  "stop-instance",
+                  "停止 " + row.name,
+                  params_of(port_pairs(row)),
+                  emit,
+                )
               } else if row.status is Stopped {
-                start_row(model, id, emit)
+                start_instance(model, row, emit)
               } else {
                 (model, @cmd.none)
               }
           }
-        Restart => (
-          { ..model, restarting: id },
-          @cmd.delay(emit(RestartTick), restart_lock_ms),
-        )
+        Restart =>
+          match find_row(model.rows, id) {
+            None => (model, @cmd.none)
+            Some(row) => {
+              let (next, cmd) = send_action(
+                model,
+                id,
+                "restart-instance",
+                "重启 " + row.name,
+                params_of(port_pairs(row)),
+                emit,
+              )
+              (
+                { ..next, restarting: id },
+                @cmd.batch([cmd, @cmd.delay(emit(RestartTick), restart_lock_ms)]),
+              )
+            }
+          }
         Rename => (
           {
             ..model,
@@ -517,21 +1001,33 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
           { ..model, confirm_id: id, confirm_return: trigger_id(id) },
           focus_after_render("dsh-confirm-ok"),
         )
-        Archive => (
-          map_rows(model, id, fn(row) { { ..row, archived_at: Some(demo_archived_at) } }),
-          @cmd.none,
-        )
-        Unarchive => (
-          map_rows(
+        Archive =>
+          send_action(
             model,
             id,
-            fn(row) { { ..row, archived_at: None, status: Stopped } },
-          ),
-          @cmd.none,
-        )
-        Fork => fork(model, emit)
-        // 归档行上的删除：触发元素是那一行自己的删除键，不是菜单触发器
-
+            "archive-profile",
+            "归档 " + row_name(model, id),
+            params_for_row(model, id, "profile"),
+            emit,
+          )
+        Unarchive =>
+          send_action(
+            model,
+            id,
+            "unarchive-profile",
+            "取消归档 " + row_name(model, id),
+            params_for_row(model, id, "profile"),
+            emit,
+          )
+        Fork =>
+          send_action(
+            model,
+            id,
+            "fork-profile",
+            "派生 " + row_name(model, id),
+            params_for_row(model, id, "profile"),
+            emit,
+          )
         _ => (model, @cmd.none)
       }
     DeleteOpen(id, return_id) => (
@@ -549,65 +1045,133 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
       { ..model, menu_open: "" },
       focus_after_render(trigger_id(id)),
     )
-    StartTick(id) => {
-      let cleared = map_rows(model, id, fn(row) { { ..row, busy: false, port_note: "" } })
-      let next = match find_row(cleared.rows, id) {
-        Some(row) =>
-          if row.archived_at is None && row.status is Starting {
-            map_rows(cleared, id, fn(item) { { ..item, status: Running, uptime: Some(0) } })
-          } else {
-            cleared
-          }
-        None => cleared
+    // 启动的展示下限到了：等回执一起收尾（收尾里不伪造成「运行中」——
+    // 真的起来了的那张卡由重读 instances 给出）
+    StartTick(id) =>
+      if model.act_pending == id {
+        finish_start({ ..model, act_tick: true }, emit)
+      } else {
+        (model, @cmd.none)
       }
-      (next, @cmd.none)
-    }
     RestartTick => ({ ..model, restarting: "" }, @cmd.none)
     RenameInput(text) => ({ ..model, rename_draft: text }, @cmd.none)
+    // 改名不再是改一个显示字符串：它 POST rename-profile，改的是磁盘上的目录名。
+    // 对话框照旧先关（语义没变），结果由提示条给出。
     RenameConfirm => {
       let draft = model.rename_draft.trim().to_owned()
+      let id = model.rename_id
+      let return_id = model.rename_return
       if draft.length() == 0 {
         (model, @cmd.none)
       } else {
-        let updated = map_rows(model, model.rename_id, fn(row) { { ..row, name: draft } })
-        (
-          { ..updated, rename_id: "", rename_draft: "" },
-          focus_after_render(model.rename_return),
+        let old = row_name(model, id)
+        let params = match find_row(model.rows, id) {
+          None => ""
+          Some(row) =>
+            match row.profile_name {
+              None => ""
+              Some(name) =>
+                params_of([
+                  ("profile", json_text_literal(name)),
+                  ("newName", json_text_literal(draft)),
+                ])
+            }
+        }
+        let cleared = { ..model, rename_id: "", rename_draft: "" }
+        let (next, cmd) = send_action(
+          cleared,
+          id,
+          "rename-profile",
+          "重命名 " + old + " → " + draft,
+          params,
+          emit,
         )
+        (next, @cmd.batch([cmd, focus_after_render(return_id)]))
       }
     }
     RenameCancel => (
       { ..model, rename_id: "", rename_draft: "" },
       focus_after_render(model.rename_return),
     )
+    // 删除也是真实动作：POST delete-profile。删掉的行由重读 profiles 之后消失，
+    // 不在这里先手动抹掉 —— 后端失败时列表不该少一行。
     DeleteConfirm => {
       let target = model.confirm_id
-      (
-        {
-          ..model,
-          rows: model.rows.filter(fn(row) { row.id != target }),
-          confirm_id: "",
-        },
-        focus_after_render(model.confirm_return),
+      let return_id = model.confirm_return
+      let (next, cmd) = send_action(
+        { ..model, confirm_id: "" },
+        target,
+        "delete-profile",
+        "删除 " + row_name(model, target),
+        params_of(delete_pairs(model, target)),
+        emit,
       )
+      (next, @cmd.batch([cmd, focus_after_render(return_id)]))
     }
     DeleteCancel => (
       { ..model, confirm_id: "" },
       focus_after_render(model.confirm_return),
     )
-    ToggleArchived => ({ ..model, archived_open: !model.archived_open }, @cmd.none)
+    // 手动折过就记一笔：ui.archiveOpenByDefault 之后不再覆盖用户的选择
+    ToggleArchived => (
+      { ..model, archived_open: !model.archived_open, archived_user_toggled: true },
+      @cmd.none,
+    )
     LogSourcePicked(value) => (
       { ..model, log_source: value, log_user_picked: true, log_loaded: true },
-      @cmd.batch([load_logs(value, emit), scroll_bottom_after_render("dsh-log-box")]),
+      @cmd.batch([
+        load_logs(value, log_tail_of(model), emit),
+        scroll_bottom_after_render("dsh-log-box"),
+      ]),
     )
     LogRefresh => (
       model,
       @cmd.batch([
-        load_logs(model.log_source, emit),
+        load_logs(model.log_source, log_tail_of(model), emit),
         scroll_bottom_after_render("dsh-log-box"),
       ]),
     )
-    ProbeTick(id, busy) => probe_step(model, id, busy, emit)
+    // ── 设置页 ─────────────────────────────────────────────
+    SettingsText(res) => settings_loaded_state(model, res)
+    SettingsRetry => (
+      { ..model, settings_loading: true, settings_error: "", settings_loaded: false },
+      settings_get_cmd(emit),
+    )
+    SettingsGroupPicked(id) => ({ ..model, settings_group: id }, @cmd.none)
+    SettingDraft(key, text) => (
+      { ..model, settings_draft: put_draft(model.settings_draft, key, text) },
+      @cmd.none,
+    )
+    SettingCommit(key, text) => commit_setting(model, key, text, emit)
+    SettingToggle(key, next) => commit_setting_value(model, key, VBool(next), emit)
+    SettingsSaved(key, res) => settings_saved_state(model, key, res)
+    // ── 写动作的回执 ───────────────────────────────────────
+    // 启动走「回执 + 展示下限」两条腿；其余动作拿到回执就落定，
+    // 成功的动作一律重读 profiles / instances（刷新的是读数，不是弹个提示）。
+    HttpDone(row_id, action, label, res) => {
+      let (ok, note) = interpret_http(res)
+      if action == "start-instance" && model.act_pending == row_id {
+        finish_start(
+          { ..model, act_response: true, act_ok: ok, act_note: note, act_label: label },
+          emit,
+        )
+      } else {
+        let cleared = map_rows(model, row_id, fn(row) { { ..row, busy: false } })
+        if ok {
+          // 本地不猜结果：归档记录与运行时登记都在后端的读数里，
+          // 重读 console / profiles / instances 之后界面自己会变
+          refresh_readings(
+            { ..cleared, act_notice: label + "：" + note, act_notice_ok: true },
+            emit,
+          )
+        } else {
+          (
+            { ..cleared, act_notice: label + "失败：" + note, act_notice_ok: false },
+            @cmd.none,
+          )
+        }
+      }
+    }
     Noop => (model, @cmd.none)
   }
 }

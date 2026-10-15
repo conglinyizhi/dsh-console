@@ -38,7 +38,10 @@ fn about_view(model : Model) -> @html.Html {
             class="dsh-para",
             "面向个人本机使用的 DSH 控制台，用来查看这台机器上的 DeepSeek Harness 实例。",
           ),
-          @html.p(class="dsh-para", "只读本机 ~/.dsh；页面上的动作均为演示。"),
+          @html.p(
+            class="dsh-para",
+            "读数只读本机 ~/.dsh；动作（启动 / 停止 / 重启 / 派生 / 归档 / 重命名 / 删除）走 POST /api/local/action，会真的作用于本机实例与 profile。",
+          ),
         ],
       ),
       @html.div(

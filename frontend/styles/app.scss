@@ -172,38 +172,10 @@ select { appearance: none; -webkit-appearance: none; }
   background: $ok;
 }
 
-// ── 顶栏（NavTopBar.vue） ──
-.dsh-topbar {
-  flex: none;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 0 22px;
-  border-bottom: 1px solid $line;
-  background: $bg;
-}
-.dsh-topbar-spacer {
-  flex: 1;
-}
-.dsh-settings {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid $line-strong;
-  border-radius: $radius-sm;
-  background: transparent;
-  color: $text-mid;
-  font-size: 12.5px;
-  cursor: pointer;
-}
-.dsh-settings:hover {
-  background: $panel-soft;
-  color: $text;
-}
+// ── 顶栏：没有了 ──
+// 「设置」搬进侧栏之后顶栏只剩一条 44px 的空带子（它当时就为那一个按钮存在），
+// 所以整条去掉，内容区直接顶到窗口上沿。顶栏的 .dsh-settings / .dsh-topbar 两条规则
+// 跟着一起删：留着就是没有 DOM 对应的死样式。
 
 // ── 数据源徽标（SourceBadge.vue） ──
 .dsh-badge {
@@ -345,9 +317,12 @@ select { appearance: none; -webkit-appearance: none; }
   /* 标题行 + 副标题行，行间距 2px，两行同一起点、左对齐 */
   min-width: 0; display: flex; flex-direction: column; gap: 2px;
 }
-.dsh-title-line { min-width: 0; }
+/* 标题行：名字 + 「由本控制台启动」标记。做成一行 flex，标记跟在名字后面；
+   名字自己带省略号，所以给它 min-width: 0，窄窗口下先省略名字而不是把标记挤出去 */
+.dsh-title-line { min-width: 0; display: flex; align-items: center; gap: 8px; }
 .dsh-name {
   display: block;
+  min-width: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px; font-weight: 600; line-height: 22px; color: $text;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -971,3 +946,367 @@ select { appearance: none; -webkit-appearance: none; }
 
 // 徽标里的文字：Vue 版的 SourceBadge 没给 .label 单独写规则，补一条不换行的。
 .dsh-badge-label { white-space: nowrap; }
+
+// ── 卡片上的「由本控制台启动」标记 ──────────────────────────
+// 依据是 runtime.json 的登记（只记控制台自己起过的实例），所以它是**事实标记**，
+// 不是状态标记：外部起的实例不会带上它，带上它的都是这一台控制台起的。
+//
+// 文字走 ::after 的 content：卡片的 textContent 里因此没有「启动」两个字。
+// 这是为了不撞 design/probe-dialog.mjs 选卡的方式（它按 textContent.includes('启动')
+// 找「已停止」那张卡）—— 卡里多一段含「启动」的文字会让探针选中运行中的卡，
+// 再点到旁边那颗「停止」。语义没丢：aria-label 与 title 是同一句话。
+.dsh-console-mark::after {
+  content: "由本控制台启动";
+}
+.dsh-console-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid rgba($ok-rgb, 0.4);
+  border-radius: 999px;
+  background: rgba($ok-rgb, 0.1);
+  color: $ok;
+  font-size: 10.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+// ── 动作结果提示条（总览页顶部） ────────────────────────────
+// 失败一律把后端给的原因写在这里（conflict / not-authorized / spawn-failed …），
+// 所以这条不能被折叠、也不能自动消失。
+.dsh-notice {
+  margin: 0;
+  padding: 8px 11px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+  font-size: 12px;
+  line-height: 1.6;
+  color: $text-mid;
+  word-break: break-word;
+}
+.dsh-notice.ok {
+  border-color: rgba($ok-rgb, 0.4);
+  background: rgba($ok-rgb, 0.1);
+  color: $text;
+}
+.dsh-notice.err {
+  border-color: rgba($danger-rgb, 0.42);
+  background: rgba($danger-rgb, 0.12);
+  color: $text;
+}
+
+// ── 设置页（左索引 + 右条目） ──────────────────────────────
+.dsh-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 22px 24px;
+  min-height: 100%;
+}
+.dsh-settings-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dsh-settings-note {
+  margin: 0;
+  font-size: 11.5px;
+  color: $text-dim;
+}
+.dsh-settings-body {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+.dsh-settings-index {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: $panel;
+  border: 1px solid $line;
+  border-radius: $radius;
+}
+.dsh-settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-mid;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.dsh-settings-tab:hover {
+  background: $panel-soft;
+  color: $text;
+}
+.dsh-settings-tab.active {
+  background: $accent-soft;
+  color: $text;
+}
+.dsh-settings-tab-icon {
+  display: flex;
+  flex: none;
+  color: $text-dim;
+}
+.dsh-settings-tab.active .dsh-settings-tab-icon {
+  color: $accent;
+}
+.dsh-settings-tab-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsh-settings-tab-count {
+  flex: none;
+  font-size: 10.5px;
+  color: $text-dim;
+}
+.dsh-settings-panel {
+  min-width: 0;
+  padding: 13px 15px 14px;
+  background: $panel;
+  border: 1px solid $line;
+  border-radius: $radius;
+}
+.dsh-settings-panel-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text;
+}
+.dsh-settings-panel-note {
+  margin: 4px 0 12px;
+  font-size: 11.5px;
+  color: $text-dim;
+}
+.dsh-settings-rows {
+  display: flex;
+  flex-direction: column;
+}
+.dsh-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid $line;
+}
+.dsh-setting:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+.dsh-setting-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dsh-setting-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.dsh-setting-name {
+  font-size: 12.5px;
+  color: $text;
+}
+.dsh-setting-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  color: $text-dim;
+}
+.dsh-setting-desc {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: $text-dim;
+}
+.dsh-setting-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: $text-mid;
+}
+.dsh-setting-current {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.dsh-setting-source {
+  padding: 0 6px;
+  border: 1px solid $line-strong;
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: $text-mid;
+}
+.dsh-setting-default {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: $text-dim;
+}
+.dsh-setting-sep {
+  color: $text-dim;
+}
+.dsh-setting-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+.dsh-setting-input {
+  width: 104px;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+  color: $text;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+.dsh-setting-input:hover {
+  border-color: $accent;
+}
+.dsh-setting-input:focus-visible {
+  outline: 2px solid $accent;
+  outline-offset: -1px;
+}
+.dsh-setting-saving {
+  font-size: 11px;
+  color: $text-dim;
+  white-space: nowrap;
+}
+/* 开关：一个 button，语义走 role=switch + aria-checked（原生 checkbox 的皮在各浏览器
+   差别太大，而这套样式表里表单控件的默认皮已经全被 reset 掉了） */
+.dsh-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 10px 0 8px;
+  border: 1px solid $line-strong;
+  border-radius: 999px;
+  background: $panel-soft;
+  color: $text-dim;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dsh-switch.on {
+  border-color: rgba($ok-rgb, 0.45);
+  background: rgba($ok-rgb, 0.12);
+  color: $ok;
+}
+.dsh-switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dsh-switch-knob {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 50%;
+  background: $text-dim;
+}
+.dsh-switch.on .dsh-switch-knob {
+  background: $ok;
+}
+.dsh-switch-text {
+  min-width: 1.2em;
+  text-align: center;
+}
+/* 保存反馈：成功与失败各一条，失败里带后端给的原因 */
+.dsh-settings-feedback {
+  margin: 0;
+  padding: 7px 11px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: $text-mid;
+  word-break: break-word;
+}
+.dsh-settings-feedback.ok {
+  border-color: rgba($ok-rgb, 0.4);
+  background: rgba($ok-rgb, 0.1);
+  color: $text;
+}
+.dsh-settings-feedback.err {
+  border-color: rgba($danger-rgb, 0.42);
+  background: rgba($danger-rgb, 0.12);
+  color: $text;
+}
+.dsh-settings-hint {
+  padding: 14px 15px;
+  border: 1px dashed $line-strong;
+  border-radius: $radius;
+  font-size: 12px;
+  color: $text-dim;
+}
+/* 接口不在时的整块说明：不显示条目，也不拿缺省值冒充当前值 */
+.dsh-settings-error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 15px 15px;
+  border: 1px solid rgba($warn-rgb, 0.42);
+  border-radius: $radius;
+  background: rgba($warn-rgb, 0.08);
+}
+.dsh-settings-error-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: $warn;
+}
+.dsh-settings-error-status {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: $text;
+}
+.dsh-settings-error-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: $text-mid;
+}
+.dsh-settings-error-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.dsh-settings-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-mid;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dsh-settings-retry:hover:not(:disabled) {
+  background: $panel-soft;
+  color: $text;
+}
+.dsh-settings-retry:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

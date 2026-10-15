@@ -322,7 +322,30 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       @html.div(class="dsh-case-head", [
         @html.span(class=tile_class, [icon(tile_icon, size=20)]),
         @html.div(class="dsh-ident", [
-          @html.div(class="dsh-title-line", [@html.span(class="dsh-name", row.name)]),
+          @html.div(class="dsh-title-line", [
+            @html.span(class="dsh-name", row.name),
+            // 标记的文字走 CSS 的 content（见 styles/app.scss 的 .dsh-console-mark::after）：
+            // 卡片的 textContent 里因此没有「启动」两个字。这不是为了好看 ——
+            // design/probe-dialog.mjs 是用 textContent.includes('启动') 找「已停止」那张卡的，
+            // 卡里多一段含「启动」的文字会让它选中运行中的卡，进而点到旁边那颗「停止」。
+            // 语义没丢：aria-label 与 title 都是同一句话。
+            if row.console_started {
+              @html.span(
+                class="dsh-console-mark",
+                attrs=@html.Attrs::build()
+                  .data_set("name", "console-mark")
+                  .data_set("mark", "console-started")
+                  .role("img")
+                  .aria_label("由本控制台启动")
+                  .title(
+                    "由本控制台启动：这一条在 $XDG_STATE_HOME/dsh-console/runtime.json 的登记里。登记只记控制台自己起的，外部实例不写进去",
+                  ),
+                [icon("play", size=11)],
+              )
+            } else {
+              @html.nothing
+            },
+          ]),
           sub_line(row),
         ]),
         instance_actions(row, model, emit),
@@ -347,8 +370,20 @@ fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.span(class="dsh-archive-stamp-label", "归档时间"),
       @html.span(
         class="dsh-archive-stamp-value",
+        // 记录里的时间是后端给的 ISO（UTC）：显示成浏览器本地的 MM-DD HH:MM，
+        // 原值留在悬停里。解析不出来就照原样显示，不吞。
+        attrs=@html.Attrs::build().title(
+          match row.archived_at {
+            Some(stamp) => stamp
+            None => "归档时间读不到"
+          },
+        ),
         match row.archived_at {
-          Some(stamp) => stamp
+          Some(stamp) =>
+            match js_short_time(stamp) {
+              "" => stamp
+              short => short
+            }
           None => "—"
         },
       ),
@@ -456,15 +491,42 @@ fn side_info_panel() -> @html.Html {
 }
 
 ///|
+/// 动作结果提示条：成功与失败各一副脸色，失败里写清后端给的原因（conflict / not-authorized …）。
+/// 动作发不出去（这一行的读数里没有目标）也走这里，所以「没反应」这件事不会发生。
+fn action_notice(model : Model) -> @html.Html {
+  if model.act_notice.length() == 0 {
+    return @html.nothing
+  }
+  let tone = if model.act_notice_ok { " ok" } else { " err" }
+  @html.p(
+    class="dsh-notice" + tone,
+    attrs=@html.Attrs::build()
+      .data_set("name", "action-notice")
+      .data_set("ok", if model.act_notice_ok { "true" } else { "false" }),
+    model.act_notice,
+  )
+}
+
+///|
 /// 删除确认框：打开时焦点落在确认键，Esc 关闭，关闭后焦点回到触发元素。
 fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let name = match find_row(model.rows, model.confirm_id) {
     Some(row) => row.name
     None => model.confirm_id
   }
+  // 删除方式由后端的 safety.deleteToTrash 决定：说清楚这一次会不会落刀。
+  // 硬删时请求里带 confirm=DELETE 的二次确认（契约要求，前端在这里给出来）。
+  let trash = setting_bool_of(model, "safety.deleteToTrash")
+  let mode = match trash {
+    Some(true) => "按当前设置（safety.deleteToTrash 开）移入回收站，还能捞回来。"
+    Some(false) =>
+      "按当前设置（safety.deleteToTrash 关）**硬删除 profile 目录**，不可恢复；请求会带上 confirm=DELETE 的二次确认。"
+    None =>
+      "设置页还没读过，删除方式由后端的 safety.deleteToTrash 决定；如果是硬删，请求会带上 confirm=DELETE。"
+  }
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(class="dsh-dialog-title", "删除实例 " + name + "？"),
-    @html.p(class="dsh-dialog-message", "删除后该实例将从列表移除，本页不连接真实进程。"),
+    @html.p(class="dsh-dialog-message", mode),
     @html.div(class="dsh-dialog-foot", [
       @html.button(
         id="dsh-confirm-ok",
@@ -584,7 +646,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.div(class="dsh-head-text", [
             @html.h1(class="dsh-page-title", "实例总览"),
             source_badge(model.tag_runtime),
-            @html.span(class="dsh-head-note", "动作仍是演示"),
+            @html.span(class="dsh-head-note", "菜单里的动作走 POST /api/local/action"),
           ]),
           @html.button(
             class="dsh-new-btn",
@@ -593,6 +655,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             [@html.span(class="dsh-plus", "＋"), @html.span("新建实例")],
           ),
         ]),
+        action_notice(model),
         section_head("当前运行的实例", running.length(), model.tag_instances),
         @html.div(class="dsh-rows", running_list),
         section_head("已停止的实例", stopped.length(), model.tag_profiles),

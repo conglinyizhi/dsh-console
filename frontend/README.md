@@ -1,7 +1,11 @@
 # dsh-console 前端（rabbita + precss）
 
-三页全量：左侧导航三项（实例总览 / 日志 / 关于）+ 状态切页（没有 URL 路由，刷新回总览）。
-数据全部来自后端五个只读接口，读不到就照实写「未知」/「—」，不编。
+四页全量：左侧导航四项（实例总览 / 日志 / 设置 / 关于）+ 状态切页（没有 URL 路由，刷新回总览）。
+读数全部来自后端五个只读接口，读不到就照实写「未知」/「—」，不编。
+
+写动作走契约里的两个写接口：行内按钮与下拉菜单 → `POST /api/local/action`，
+设置页 → `GET/PUT /api/local/settings`（形状见 `../design/write-api-contract.md`）。
+「设置」原先在顶栏，这一轮搬进侧栏并做成左索引 + 右条目的设置页，顶栏随之取消。
 
 **依赖只有 rabbita 与 precss**：没有组件库、没有图标字体、没有仓库外的模块成员。
 组件 DOM 与类名照 Vue 版（已按清单退役，见 `git log`）逐条对齐，样式与图标都是我们自己的。
@@ -90,12 +94,15 @@ import {
 ├── moon.mod / moon.pkg                模块定义（依赖只有 rabbita / precss / async）
 ├── icons.mbt                          26 个图标的内联 SVG：路径常量 + icon() 助手
 ├── model.mbt                          五个只读接口的数据模型与解析（外壳 → 字段，不做业务推导）
+├── settings.mbt                       设置键表（9 个键 5 个分组）、取值模型、PUT 请求体
+├── api.mbt                            写接口的传输层：fetch + 状态码/响应体，POST action / GET+PUT settings
 ├── state.mbt                          Model / Msg / 行模型 / 演示数据 / 工作流文案
-├── app.mbt                            update 循环：拉取、行操作、对话框、日志、端口探测
-├── clock.mbt                          浏览器本地时刻（页脚「读于 <时刻>」）
-├── dom.mbt                            浏览器副作用 FFI：焦点、滚动、短时刻、端口探测
-├── view_shell.mbt                     外壳：左导航 / 顶栏 / 内容区
+├── app.mbt                            update 循环：拉取、写动作、设置页状态转移、对话框、日志
+├── clock.mbt                          浏览器本地时刻（页脚「读于 <时刻>」/ 归档时间戳）
+├── dom.mbt                            浏览器副作用 FFI：焦点、滚动、短时刻、控件值回写
+├── view_shell.mbt                     外壳：左导航 / 内容区（顶栏已取消）
 ├── view_overview.mbt                  实例总览：卡片、按钮组与菜单、归档区、右栏、两个对话框
+├── view_settings.mbt                  设置页：左索引 + 右条目（数字 / 开关 / 下拉）
 ├── view_logs.mbt                      日志页：原生 select 来源、元信息行、日志区
 ├── view_about.mbt                     关于页：简介 + 版本表
 ├── view_parts.mbt                     共用小件：徽标、分组头、空态、字段行、对话框外壳
@@ -160,9 +167,41 @@ import {
 组件库自带的 transition（按钮背景/阴影、卡片 box-shadow、那条高度为 0 的 loading
 进度条）随库一起去掉了，量「还有没有动效」时结果是 0。
 
+## 写接口这一侧（这一轮新增）
+
+页面上的动作不再是演示，全部落到契约里的两个写接口上：
+
+- **行内按钮与下拉菜单** → `POST /api/local/action`，请求带 `Content-Type: application/json`
+  与 `X-DSH-Console: 1`（自定义头就是契约里的跨源闸门，浏览器不允许跨源带它）。
+  action 与 params 逐条按契约：`start-instance` / `stop-instance` / `restart-instance` /
+  `fork-profile` / `rename-profile` / `archive-profile` / `unarchive-profile` / `delete-profile`。
+  `delete-profile` 在 `safety.deleteToTrash` 不是 true 时带上 `confirm:"DELETE"`。
+- **设置页** → `GET /api/local/settings` 取当前值 / 缺省 / 来源，`PUT` 一次改一个键。
+  改动即保存，成功失败都有反馈，失败显示后端给的 `code: message`。
+- **成功率与失败率不一样对待**：动作成功之后重读 `profiles` + `instances`（刷新读数，不是弹个提示）；
+  失败把后端的原因原样显示在总览页顶部的提示条上，不吞、也不伪装成成功。
+- **目标来自读数**：读不到 profile 目录名或端口时，动作在本地说清「没有可用的目标」并不发请求 ——
+  演示数据里的名字（main / dev / staging）不会被打到真实的东西上。
+- **启动有等待态**：回执与展示下限（`start_delay_ms`）都到齐才收尾；收尾不伪造成「运行中」，
+  真的起来了的那张卡由重读 `instances` 给出。
+
+### 这两处读数从哪来
+
+`runtime.json`（哪些实例是本控制台起的）与 `archive.json`（归档记录）是两份状态文件，
+浏览器读不到文件系统。契约里那五个只读接口的形状一个字段都不动，所以后端另开了一个
+只读端点 `GET /api/local/console` 把它们如实读出去，前端按这份读数办两件事：
+
+- **卡片上的「由本控制台启动」**：按 `runtime` 里的 port 匹配，且那条登记的 pid 还活着。
+  只看端口不够 —— 登记过、后来那个 pid 退了、端口被别人接走的情况长得一样。
+- **归档区**：按 `archive` 里的记录标出对应的 profile 行，行上的归档时间就是记录里的
+  `archivedAt`（显示成浏览器本地的 MM-DD HH:MM，原值留在悬停里）。磁盘上已经没有那只
+  profile 的记录另补一行，好让人看见并撤掉它。
+
+这一份读数读不到不影响别的页面：卡片上少一个标记，归档区空着，其余照常。
+
 ## 这一版没做的
 
-- 卡片上的动作都是**演示**：点了不发请求，本页不接写接口、不拉起真实进程。
+- 归档区没有读接口（见上），所以它不是「真实的归档清单」，是本次会话的记录。
 - 没有水合、没有 SSR。控件的交互都走 rabbita 的事件，不需要额外的 behaviors 脚本。
 - `dist/assets/app.js` 1.35 MB（未压缩，gzip 约 150 KB）。后端不发 `Content-Encoding: gzip`，
   回环访问下可接受；构建链刻意不依赖 Node，所以没有加一道压缩步骤。

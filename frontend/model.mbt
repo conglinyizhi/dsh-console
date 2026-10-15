@@ -247,6 +247,10 @@ pub(all) struct InstanceFact {
   /// 进程级原因码：port-join / port-arg / process-gone / fd-unreadable / cmdline-unreadable / unscanned
   process_reason_code : String
   process_reason : String
+  /// 运行时登记（$XDG_STATE_HOME/dsh-console/runtime.json）里有这一条 → 由本控制台启动。
+  /// 后端把登记结果并进 instances 的这个字段上（见 README「还缺什么」一节）；
+  /// 字段不在就是 false —— 宁可少一个标记，也不拿 profile 名字去猜。
+  console_started : Bool
 } derive(Eq)
 
 pub extend InstanceFact with Eq::{ not_equal, equal }
@@ -304,6 +308,8 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
       dsh_home_source: str_field(fact, "dshHomeSource"),
       process_reason_code: str_field(reason, "code"),
       process_reason: str_field(reason, "message"),
+      console_started: bool_field(fact, "consoleStarted") ||
+        bool_field(fact, "startedByConsole"),
     })
   }
   Ok({
@@ -435,5 +441,85 @@ pub fn parse_logs(text : String) -> Result[LogsFacts, String] {
     truncated: bool_field(data, "truncated"),
     truncated_note: opt_str_field(data, "truncatedNote"),
     tail_note: opt_str_field(data, "tailNote"),
+  })
+}
+
+// ── GET /api/local/console ──────────────────────────────────
+
+///|
+/// 运行时登记里的一条：控制台自己起过的实例（runtime.json）。
+pub(all) struct ConsoleRuntime {
+  pid : Int
+  port : Int
+  profile : String
+  alive : Bool
+} derive(Eq)
+
+pub extend ConsoleRuntime with Eq::{ not_equal, equal }
+
+///|
+/// 一条归档记录（archive.json）：只记「这只 profile 已归档」，磁盘上的目录不动。
+pub(all) struct ConsoleArchive {
+  profile : String
+  merged : Bool
+  archived_at : String
+} derive(Eq)
+
+pub extend ConsoleArchive with Eq::{ not_equal, equal }
+
+///|
+/// 控制台自己的状态读数。这一份不在契约里那五个只读接口之列：
+/// runtime.json / archive.json 是两份状态文件，浏览器读不到文件系统，
+/// 后端为此单开了一个只读端点（GET /api/local/console）。
+pub(all) struct ConsoleFacts {
+  state_dir : String
+  settings_path : String
+  archive_path : String
+  runtime : Array[ConsoleRuntime]
+  archive : Array[ConsoleArchive]
+  notes : Array[String]
+} derive(Eq)
+
+pub extend ConsoleFacts with Eq::{ not_equal, equal }
+
+///|
+pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
+  let data = match open_envelope(text) {
+    Ok(data) => data
+    Err(reason) => return Err(reason)
+  }
+  let runtime : Array[ConsoleRuntime] = []
+  for item in arr_field(data, "runtime") {
+    guard item is Json::Object(entry) else { continue }
+    runtime.push({
+      pid: int_or(entry, "pid", 0),
+      port: int_or(entry, "port", 0),
+      profile: str_field(entry, "profile"),
+      alive: bool_field(entry, "alive"),
+    })
+  }
+  let archive : Array[ConsoleArchive] = []
+  for item in arr_field(data, "archive") {
+    guard item is Json::Object(entry) else { continue }
+    archive.push({
+      profile: str_field(entry, "profile"),
+      merged: bool_field(entry, "merged"),
+      archived_at: str_field(entry, "archivedAt"),
+    })
+  }
+  let notes : Array[String] = []
+  for note in arr_field(data, "notes") {
+    match note {
+      Json::String(text) => notes.push(text)
+      _ => ()
+    }
+  }
+  Ok({
+    state_dir: str_field(data, "stateDir"),
+    settings_path: str_field(data, "settingsPath"),
+    archive_path: str_field(data, "archivePath"),
+    runtime,
+    archive,
+    notes,
   })
 }

@@ -1,6 +1,9 @@
-// 应用外壳：左侧导航三项 + 顶栏 + 内容区。
+// 应用外壳：左侧导航四项 + 内容区。
 //
 // 导航是状态切页（没有 URL 路由，刷新回到总览）。页脚「本机运行，仅限回环访问」在导航栏底部。
+//
+// 「设置」从顶栏搬到侧栏（这一轮）：顶栏当时只有那一个按钮，按钮一走顶栏就成了
+// 一条 44px 的空带子，所以整条顶栏一起去掉，内容区直接顶到窗口上沿。
 //
 // 外壳自建，不套现成的抽屉/顶栏组件：以前试过 md2 的 navigation_drawer / app_bar，
 // 那两个把 position: fixed、z-index、side 偏移写成了**内联样式**，而这套外壳是文档流里的
@@ -29,6 +32,7 @@ fn nav_key(page : Page) -> String {
   match page {
     Overview => "overview"
     Logs => "logs"
+    Settings => "settings"
     About => "about"
   }
 }
@@ -43,6 +47,7 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.nav(class="dsh-nav", [
       nav_item(Overview, model.page, "实例总览", "view-grid-outline", emit),
       nav_item(Logs, model.page, "日志", "text-box-outline", emit),
+      nav_item(Settings, model.page, "设置", "cog-outline", emit),
       nav_item(About, model.page, "关于", "shield-outline", emit),
     ]),
     @html.p(class="dsh-side-foot", [
@@ -53,31 +58,15 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 顶栏：标题 + 设置按钮（当前无行为）。
-fn top_bar() -> @html.Html {
-  @html.header(class="dsh-topbar", attrs=@html.Attrs::build().data_set("name", "top-bar"), [
-    @html.span(class="dsh-topbar-spacer", @html.nothing),
-    @html.button(
-      class="dsh-settings",
-      type_="button",
-      attrs=@html.Attrs::build().data_set("name", "settings"),
-      [icon("cog-outline"), @html.span("设置")],
-    ),
-  ])
-}
-
-///|
 fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let body = match model.page {
     Overview => overview_view(model, emit)
     Logs => logs_view(model, emit)
+    Settings => settings_view(model, emit)
     About => about_view(model)
   }
   @html.div(class="dsh-shell", [
     side_nav(model, emit),
-    @html.div(class="dsh-workbench", [
-      top_bar(),
-      @html.main_(class="dsh-main", [body]),
-    ]),
+    @html.div(class="dsh-workbench", [@html.main_(class="dsh-main", [body])]),
   ])
 }

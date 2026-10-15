@@ -24,6 +24,18 @@ extern "js" fn js_scroll_bottom_id(id : String) -> Unit =
   #| id => { const el = document.getElementById(id); if (el) el.scrollTop = el.scrollHeight; }
 
 ///|
+/// 把控件上的值写回 DOM。用在「保存失败要把草稿退回去」这一处：
+/// 只靠 vdom 的 value 属性未必会落到真实节点上（用户改过的值是直接写在 DOM 上的，
+/// 而 diff 只比上一次渲染的属性），所以失败之后显式写一次，控件上不会留着没保存的数。
+extern "js" fn js_set_control_value(id : String, value : String) -> Unit =
+  #| (id, value) => { const el = document.getElementById(id); if (el && 'value' in el) el.value = value; }
+
+///|
+fn set_control_after_render(id : String, value : String) -> @cmd.Cmd {
+  @cmd.custom_cmd(fn(_scheduler) { js_set_control_value(id, value) }, kind=@cmd.after_render)
+}
+
+///|
 /// 查询串编码，与 Vue 版的 encodeURIComponent 同一口径。
 extern "js" fn js_encode_uri_component(text : String) -> String =
   #| text => encodeURIComponent(text)
@@ -37,13 +49,6 @@ extern "js" fn js_short_time(iso : String) -> String =
   #|   const p = (n) => String(n).padStart(2, '0');
   #|   return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
   #| }
-
-///|
-/// 派生副本时的端口探测（前端演示动作的一部分：只发 no-cors 请求探活，不改任何真实进程）。
-/// resolve 说明对端有东西在应答 → 占用；reject（拒绝连接 / 超时）→ 这一次没听到应答。
-extern "js" fn js_probe_port_busy(port : Int) -> @js.Promise =
-  #| port => fetch('http://127.0.0.1:' + port + '/', { mode: 'no-cors', signal: AbortSignal.timeout(600) })
-  #|   .then(() => true, () => false)
 
 ///|
 /// 渲染完成之后再聚焦：菜单打开要落到第一项，关闭要把焦点还给触发元素。
