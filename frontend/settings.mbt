@@ -164,7 +164,7 @@ let settings_table : Array[SettingDef] = [
     key: "safety.deleteToTrash",
     group: "safety",
     label: "删除进回收站",
-    desc: "开：删 profile 时移入回收站，还能捞回来；关：直接硬删，请求里必须带 confirm=DELETE 的二次确认。",
+    desc: "开：删除时移入回收站，可以捞回来；关：直接删除，无法恢复。",
     kind: CBool,
     fallback: VBool(true),
   },
@@ -213,7 +213,7 @@ fn setting_fallback_text(def : SettingDef) -> String {
       "，候选 " +
       join_with(options.map(fn(n) { n.to_string() }), " / ")
   }
-  "契约缺省 " + setting_value_text(def.fallback) + range
+  "出厂缺省 " + setting_value_text(def.fallback) + range
 }
 
 ///|
@@ -373,6 +373,25 @@ fn setting_bool_of(model : Model, key : String) -> Bool? {
       match lookup_setting(facts.values, key) {
         Some(VBool(value)) => Some(value)
         _ => None
+      }
+  }
+}
+
+///|
+/// 生效的删除方式：这一次删除会不会把 profile 移进回收站。
+///
+/// 两个来源，按新鲜度排：
+///   1. 设置页读到的那一份（用户可能刚在这里改过）；
+///   2. 控制台状态里的生效值（GET /api/local/console，页面加载时就读了）。
+/// 两个都没有才是真读不到 —— 那种情况界面只写「暂时读不到删除方式」，
+/// 不解释「为什么读不到」（懒加载、缓存状态这些是说给实现者听的）。
+fn delete_to_trash_of(model : Model) -> Bool? {
+  match setting_bool_of(model, "safety.deleteToTrash") {
+    Some(value) => Some(value)
+    None =>
+      match model.console {
+        Some(facts) => facts.delete_to_trash
+        None => None
       }
   }
 }

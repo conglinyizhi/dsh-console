@@ -679,15 +679,13 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Some(row) => row.name
     None => model.confirm_id
   }
-  // 删除方式由后端的 safety.deleteToTrash 决定：说清楚这一次会不会落刀。
-  // 硬删时请求里带 confirm=DELETE 的二次确认（契约要求，前端在这里给出来）。
-  let trash = setting_bool_of(model, "safety.deleteToTrash")
-  let mode = match trash {
-    Some(true) => "按当前设置（safety.deleteToTrash 开）移入回收站，还能捞回来。"
-    Some(false) =>
-      "按当前设置（safety.deleteToTrash 关）**硬删除 profile 目录**，不可恢复；请求会带上 confirm=DELETE 的二次确认。"
-    None =>
-      "设置页还没读过，删除方式由后端的 safety.deleteToTrash 决定；如果是硬删，请求会带上 confirm=DELETE。"
+  // 删除方式只说一件事：**删了会怎样、能不能捞回来**。
+  // 键名（safety.deleteToTrash）、请求参数（confirm=DELETE）、「设置页还没读过」这类
+  // 缓存状态一律不进来 —— 那些是说给改这个工具的人听的，不是给用它的人听的。
+  let mode = match delete_to_trash_of(model) {
+    Some(true) => "删除后移入回收站，可以捞回来。"
+    Some(false) => "删除后无法恢复。"
+    None => "暂时读不到删除方式。"
   }
   // 删之前先看清这一只是干什么用的：有备注就把备注摆在确认框里，没有就不占位
   let note = match find_row(model.rows, model.confirm_id) {
@@ -918,7 +916,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         loading_block(
           "running-loading",
           "正在读取实例读数…",
-          "GET /api/local/instances 与 /api/local/profiles 还没返回。读数回来之前这里显示的是加载态；空态只在真读到空的时候出现。",
+          "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
         ),
       )
     } else {
@@ -934,7 +932,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         loading_block(
           "stopped-loading",
           "正在读取 profile 读数…",
-          "GET /api/local/profiles 还没返回。读数回来之前这里显示的是加载态。",
+          "profile 的读数还在路上，这里先摆加载态。",
         ),
       )
     } else {
@@ -957,7 +955,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.div(class="dsh-head-text", [
             @html.h1(class="dsh-page-title", "实例总览"),
             source_badge(model.tag_runtime, ["overview", "head", "source-badge"]),
-            @html.span(class="dsh-head-note", "菜单里的动作走 POST /api/local/action"),
+            @html.span(class="dsh-head-note", "菜单里的动作会真的作用到本机实例与 profile"),
           ]),
           @html.button(
             class="dsh-new-btn",

@@ -670,7 +670,7 @@ async fn read_instance_logs(
   }
   // 优先用检测结果里的 DSH_HOME；实例没暴露就回退到 dsh 的默认位置，并写明来源
   let (home, home_source) = match instance.dsh_home {
-    Some(h) if h != "" => (h, "instances 接口的 DSH_HOME")
+    Some(h) if h != "" => (h, "实例自身的 DSH_HOME")
     _ => @runtime.resolve_dsh_home()
   }
   let logs_dir = @json.join_path(home, instance_logs_dir)

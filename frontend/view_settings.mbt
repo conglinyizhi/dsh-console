@@ -138,7 +138,7 @@ fn setting_select_control(
             value="",
             selected=true,
             disabled=true,
-            [@html.text("接口未返回该键")],
+            [@html.text("没读到")],
           ),
         )
     }
@@ -174,11 +174,11 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
   }
   let value_text = match current {
     Some(value) => setting_value_text(value)
-    None => "接口未返回该键"
+    None => "没读到"
   }
   let source_text = match facts {
     Some(got) => setting_source(got, def)
-    None => "接口未返回该键"
+    None => "没读到"
   }
   let control = match def.kind {
     CNum(min, max, unit) => setting_number_control(model, def, min, max, unit, emit)
@@ -253,7 +253,7 @@ fn setting_default_short(model : Model, def : SettingDef) -> String {
     Some(facts) =>
       match lookup_setting(facts.defaults, def.key) {
         Some(value) => setting_value_text(value)
-        None => "接口未返回该键"
+        None => "没读到"
       }
     None => "—"
   }
@@ -319,11 +319,12 @@ fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let missing = model.settings_endpoint_missing
   let title = if missing {
-    "后端还没提供 /api/local/settings"
+    "这一版还没有设置这一页"
   } else {
-    "设置接口没能读到"
+    "设置没能读到"
   }
-  let status_line = if model.settings_status > 0 {
+  // 状态行是排查用的（端点、状态码），收进悬停：正文只说「读不到」这件事本身
+  let detail = if model.settings_status > 0 {
     "GET /api/local/settings → HTTP " +
     model.settings_status.to_string() +
     " " +
@@ -331,8 +332,13 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   } else {
     "GET /api/local/settings 的请求没发出去"
   }
+  let status_line = if missing {
+    "这台控制台还没提供设置这一页要的读数。"
+  } else {
+    "读设置这一步没能完成。"
+  }
   let hint = if missing {
-    "接口不在时这一页不显示任何条目：契约里的缺省值不是当前值，拿它顶上就是编读数。"
+    "读不到时不摆任何条目：把猜出来的缺省值当成当前值填上去，比空着更容易误导。"
   } else {
     model.settings_error
   }
@@ -341,7 +347,11 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     attrs=mark("settings-error", ["settings", "error"]),
     [
       @html.h2(class="dsh-settings-error-title", title),
-      @html.p(class="dsh-settings-error-status", status_line),
+      @html.p(
+        class="dsh-settings-error-status",
+        attrs=@html.Attrs::build().title(detail),
+        status_line,
+      ),
       @html.p(class="dsh-settings-error-hint", hint),
       @html.div(class="dsh-settings-error-foot", [
         @html.button(
@@ -379,7 +389,7 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.div(
       class="dsh-settings-hint",
       attrs=mark("settings-loading", ["settings", "loading"]),
-      "正在读 GET /api/local/settings …",
+      "正在读设置…",
     )
   } else if model.settings_error.length() > 0 {
     settings_error_panel(model, emit)

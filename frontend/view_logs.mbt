@@ -123,7 +123,7 @@ fn logs_meta(model : Model) -> String {
       None => "窗口已截断"
     })
   } else {
-    "尾部 " + rows + "（请求 " + got.effective_tail.to_string() + "）"
+    "尾部 " + rows + "（按 " + got.effective_tail.to_string() + " 行取）"
   }
   let home_part = if got.kind == "instance" {
     match got.home_source {
@@ -201,8 +201,7 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     loading_block(
       "log-loading",
       "正在读取日志…",
-      "GET /api/local/logs?source=" + model.log_source +
-      " 还没返回。回来之前这里显示的是加载态。",
+      "日志还在读，这里先摆加载态。",
     )
   } else if lines.length() > 0 {
     @html.div(

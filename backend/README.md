@@ -647,6 +647,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 ```
 GET /api/local/console → { ok, readOnly:true, readAt, data:{
   stateDir, settingsPath, runtimePath, archivePath, auditPath, trashDir,
+  deleteToTrash, deleteToTrashSource,
   runtime:[{ pid, port, home, profile, startedAt, logPath, detached, alive }],
   archive:[{ profile, archivedAt }],
   notes:[] } }
@@ -654,6 +655,11 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 
 前端用它标出「由本控制台启动」的实例、渲染归档区；动作成功后重新拉一遍读数即可（`instances` 里
 控制台起的实例与手工起的实例一视同仁，签名与 `processReason` 都照旧）。
+
+`deleteToTrash` 是**生效值**（与删除动作在 `store/settings.mbt` 读的是同一处），
+`deleteToTrashSource` 说它来自文件还是默认（取值与 `/api/local/settings` 的 `sources` 同一套：
+「文件」/「默认」/「默认（…原因…）」）。加这两个字段的理由：设置是懒加载的，而删除确认框
+在打开之前就得说清「删了会怎样」—— 让确认框去解释「为什么还不知道」是说给实现者听的话。
 
 ## 读写分层与写盘边界
 

@@ -380,7 +380,7 @@ fn open_web_ui(
     }
     None => {
       let reason = if row.web_url_source == "" {
-        "读不到带令牌的地址，后端也没给原因"
+        "读不到带令牌的地址，也没有说明原因"
       } else {
         row.web_url_source
       }
@@ -390,7 +390,7 @@ fn open_web_ui(
           menu_open: "",
           act_notice: label + " " + row.name +
             "：读不到握手令牌，没有打开任何标签页 —— " + reason + "。裸地址 " + row.url +
-            " 直接打开是 401；可以从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。",
+            " 直接打开会被挡在门外；可以从启动它的那个终端里，把启动横幅里带令牌的完整地址抄过来。",
           act_notice_ok: false,
         },
         @cmd.none,
@@ -488,7 +488,7 @@ fn send_action(
       {
         ..model,
         act_notice: label +
-          "：这一行的读数里没有可用的目标（profile 目录名或端口读不到），没有发请求",
+          "：这一行的读数里没有可用的目标（profile 目录名或端口读不到），这一步没有执行",
         act_notice_ok: false,
       },
       @cmd.none,
@@ -504,9 +504,12 @@ fn send_action(
 
 ///|
 /// 删除的参数。契约：safety.deleteToTrash=false 时**必须**带 confirm=DELETE，否则 bad-params。
-/// 设置还没读到（没打开过设置页）时按「可能要硬删」处理，也带上它 ——
+/// 读不到删除方式时按「可能要硬删」处理，也带上它 ——
 /// 少带一次的代价是删不掉并弹一个 bad-params，多带一次的代价只是一个多余字段。
-/// 明确读到 deleteToTrash=true（进回收站）时才不带。
+/// 明确读到「进回收站」时才不带。
+///
+/// 走 delete_to_trash_of 与确认框同一处取值：两边各判一次，迟早在
+/// 「框里说进回收站、请求却按硬删发」这种地方分叉。
 fn delete_pairs(model : Model, row_id : String) -> Array[(String, String)] {
   let base = match find_row(model.rows, row_id) {
     None => []
@@ -515,7 +518,7 @@ fn delete_pairs(model : Model, row_id : String) -> Array[(String, String)] {
   if base.length() == 0 {
     return base
   }
-  if setting_bool_of(model, "safety.deleteToTrash") == Some(true) {
+  if delete_to_trash_of(model) == Some(true) {
     base
   } else {
     let pairs = base.copy()
@@ -555,7 +558,7 @@ fn start_instance(
     return (
       {
         ..model,
-        act_notice: label + "：读数里没有 profile 目录名，没有发请求",
+        act_notice: label + "：读数里没有 profile 目录名，这一步没有执行",
         act_notice_ok: false,
       },
       @cmd.none,
@@ -674,7 +677,7 @@ fn start_tab_block_reason(rows : Array[Row], profile : String) -> String {
           if row.web_url_source != "" {
             return row.web_url_source
           }
-          return "后端没给读不到令牌的原因"
+          return "读数里没有说明读不到令牌的原因"
         }
       None => ()
     }
@@ -809,18 +812,18 @@ fn refresh_readings(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
 /// 动作回执 → (成功?, 给用户看的一句话)。失败一律把后端给的码与消息带上，不吞。
 fn interpret_http(res : Result[String, Error]) -> (Bool, String) {
   match res {
-    Err(err) => (false, "请求没发出去（" + describe(err) + "）")
+    Err(err) => (false, "这一步没发出去（" + describe(err) + "）")
     Ok(text) => {
       let got = parse_http_result(text)
       if got.status == 0 {
-        (false, "请求失败（" + got.transport_error + "）")
+        (false, "这一步失败了（" + got.transport_error + "）")
       } else if got.status >= 200 && got.status < 300 {
         match open_envelope(got.body) {
           Ok(data) => (true, success_note(data))
           Err(reason) =>
             (
               false,
-              "HTTP " + got.status.to_string() + " · 响应不是约定的成功壳：" + reason,
+              "HTTP " + got.status.to_string() + " · 回执不是约定的格式：" + reason,
             )
         }
       } else {
@@ -873,10 +876,10 @@ fn outcome_value_text(value : Json) -> String {
 fn failure_note(got : HttpResult) -> String {
   let head = http_status_text(got)
   let root = try @json.parse(got.body) catch {
-    _ => return head + " · 响应体不是合法 JSON（后端可能还没提供这个接口）"
+    _ => return head + " · 回执不是合法 JSON（这一版可能还没有这个动作）"
   }
   guard root is Json::Object(obj) else {
-    return head + " · 响应外壳不是 JSON 对象"
+    return head + " · 回执不是 JSON 对象"
   }
   match obj.get("error") {
     Some(Json::Object(err)) => {
@@ -892,7 +895,7 @@ fn failure_note(got : HttpResult) -> String {
         head + " · " + code + "：" + message
       }
     }
-    _ => head + " · 响应里没有 error 对象"
+    _ => head + " · 回执里没有失败原因"
   }
 }
 
@@ -1235,7 +1238,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
               }
           }
         Err(err) => {
-          let reason = "本地只读接口不可达（" + describe(err) + "）"
+          let reason = "读不到本机数据（" + describe(err) + "）"
           {
             ..model,
             runtime: None,
@@ -1273,7 +1276,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
               }
           }
         Err(err) => {
-          let reason = "本地只读接口不可达（" + describe(err) + "）"
+          let reason = "读不到本机数据（" + describe(err) + "）"
           {
             ..model,
             profiles: None,
@@ -1317,7 +1320,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
               }
           }
         Err(err) => {
-          let reason = "本地只读接口不可达（" + describe(err) + "）"
+          let reason = "读不到本机数据（" + describe(err) + "）"
           {
             ..model,
             console: None,
@@ -1357,7 +1360,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
               }
           }
         Err(err) => {
-          let reason = "本地只读接口不可达（" + describe(err) + "）"
+          let reason = "读不到本机数据（" + describe(err) + "）"
           {
             ..model,
             instances: None,
@@ -1738,7 +1741,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             (
               {
                 ..model,
-                note_error: "这一行的读数里没有 profile 目录名，保存不了 —— 没有目标就不发请求",
+                note_error: "这一行的读数里没有 profile 目录名，保存不了 —— 没有目标就什么都没做",
               },
               @cmd.none,
             )

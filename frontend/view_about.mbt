@@ -11,7 +11,7 @@ fn version_rows(model : Model) -> Array[@html.Html] {
       if model.read_runtime {
         [kv_row("读取状态", "读取失败", model.runtime_error)]
       } else {
-        [kv_row("读取状态", "正在读取…", "GET /api/local/runtime 还没返回")]
+        [kv_row("读取状态", "正在读取…", "本机读数还没返回")]
       }
     Some(facts) =>
       [
@@ -46,7 +46,7 @@ fn about_view(model : Model) -> @html.Html {
           ),
           @html.p(
             class="dsh-para",
-            "读数只读本机 ~/.dsh；动作（启动 / 停止 / 重启 / 派生 / 归档 / 重命名 / 编辑备注 / 删除）走 POST /api/local/action，会真的作用于本机实例与 profile。",
+            "读数只读本机 ~/.dsh；动作（启动 / 停止 / 重启 / 派生 / 归档 / 重命名 / 编辑备注 / 删除）会真的作用到本机实例与 profile，不是预览。",
           ),
         ],
       ),
@@ -58,7 +58,7 @@ fn about_view(model : Model) -> @html.Html {
           @html.div(class="dsh-kv", version_rows(model)),
           @html.p(
             class="dsh-foot",
-            "读于 " + model.runtime_time + " · 来源 GET /api/local/runtime",
+            "读于 " + model.runtime_time + " · 读自本机",
           ),
         ],
       ),

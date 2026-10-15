@@ -5,6 +5,27 @@
 // 所以这里另开一个只读端点把它们如实读出去；它本身不写任何东西（alive 是读 /proc 判的）。
 
 ///|
+/// 生效的删除方式与它的来源（文件 / 默认）。
+///
+/// 为什么在这里出一份：设置是**懒加载**的（设置页打开过才读 GET /api/local/settings），
+/// 而删除确认框在打开之前就得说清「删了会怎样」。这个端点是「控制台自身状态」的出口，
+/// 页面加载时本来就会读，把生效值摆在这儿，前端不必先读过设置也能知道。
+///
+/// 值取自 @store.load_settings()，与删除动作（actions/profile_fs.mbt）用的是同一处 ——
+/// 两处各算一遍迟早会分叉，分叉出来就是「确认框说进回收站、动作却硬删」。
+async fn delete_mode_fields() -> Array[(String, @json.JsonVal)] noraise {
+  let loaded = @store.load_settings()
+  let source = match loaded.sources.get(@store.key_safety_delete_to_trash) {
+    Some(s) => s
+    None => "默认"
+  }
+  [
+    ("deleteToTrash", @json.JBool(loaded.values.safety_delete_to_trash)),
+    ("deleteToTrashSource", @json.JStr(source)),
+  ]
+}
+
+///|
 /// 控制台状态响应。
 async fn console_payload() -> @json.JsonVal noraise {
   let paths = @store.state_paths()
@@ -36,17 +57,22 @@ async fn console_payload() -> @json.JsonVal noraise {
     Some(n) => notes.push(n)
     None => ()
   }
-  @json.JObj([
+  let fields : Array[(String, @json.JsonVal)] = [
     ("stateDir", @json.JStr(paths.dir)),
     ("settingsPath", @json.JStr(paths.settings)),
     ("runtimePath", @json.JStr(paths.runtime)),
     ("archivePath", @json.JStr(paths.archive)),
     ("auditPath", @json.JStr(paths.audit)),
     ("trashDir", @json.JStr(paths.trash)),
-    ("runtime", @json.JArr(runtime)),
-    ("archive", @json.JArr(archived)),
-    ("notes", @json.jstr_array(notes)),
-  ])
+  ]
+  // 生效的删除方式摆在 trashDir 旁边：一处说「进回收站落到哪」，一处说「现在是不是进回收站」
+  for pair in delete_mode_fields() {
+    fields.push(pair)
+  }
+  fields.push(("runtime", @json.JArr(runtime)))
+  fields.push(("archive", @json.JArr(archived)))
+  fields.push(("notes", @json.jstr_array(notes)))
+  @json.JObj(fields)
 }
 
 ///|

@@ -53,7 +53,10 @@ await send('Runtime.evaluate', { expression: `(() => {
 })()`, returnByValue: true })
 await new Promise((r) => setTimeout(r, 2500))
 
-const expr = `(() => {
+// 这里必须是 async：下面的 instancesAtRead 用 await 取「同一时刻的在跑实例」。
+// 写成同步 IIFE 的话整段表达式的求值结果是 undefined（语法错），落盘的 JSON 就成了 {}——
+// 探针会「跑完、退出码 0、什么都没量到」，两条日志判定跟着假红/假绿。修于 2026-10-15。
+const expr = `(async () => {
   const S = ${JSON.stringify(SEL)}
   const R = (el) => { const r = el.getBoundingClientRect(); return { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1) } }
   const box = document.querySelector(S.box)
@@ -86,19 +89,22 @@ const expr = `(() => {
     select: sel ? {
       value: sel.value,
       options: [...sel.options].map((o) => ({ text: o.textContent.trim(), value: o.value, disabled: o.disabled })),
-      // 同一时刻的在跑实例列表：判定要拿它比，不能拿"判定时"的实时值——那是另一个时刻 ✗
-      instancesAtRead: await (async () => {
-        try {
-          const r = await fetch('/api/local/instances')
-          const j = await r.json()
-          return (j?.data?.instances ?? []).map((i) => i.port)
-        } catch (e) { return null }
-      })(),
     } : null,
     meta: document.querySelector(S.meta)?.textContent.trim() ?? null,
+    // 同一时刻的在跑实例列表：判定要拿它比，不能拿"判定时"的实时值——那是另一个时刻 ✗
+    // 它必须挂在顶层：run-acceptance 读的是 logs.instancesAtRead，
+    // 塞进 select 里就成了 undefined，判定会静默降级成「无从推算期望」的信息行。
+    instancesAtRead: await (async () => {
+      try {
+        const r = await fetch('/api/local/instances')
+        const j = await r.json()
+        return (j?.data?.instances ?? []).map((i) => i.port)
+      } catch (e) { return null }
+    })(),
   })
 })()`
-const out = await send('Runtime.evaluate', { expression: expr, returnByValue: true })
+// awaitPromise：表达式是 async IIFE，不加这个参数拿到的是 Promise 而不是它的值
+const out = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })
 const data = JSON.parse(out.result?.result?.value ?? '{}')
 writeFileSync(outJson, JSON.stringify(data, null, 1))
 console.log(JSON.stringify({ overflow: data.overflow, box: data.box && { scrollHeight: data.box.scrollHeight, clientHeight: data.box.clientHeight, atBottom: data.box.atBottom, horizontalScroll: data.box.horizontalScroll, whiteSpace: data.box.whiteSpace }, lineCount: data.lineCount, levels: data.levels, options: data.select?.options?.length, optionsDetail: data.select?.options, meta: data.meta?.slice(0, 90), instancesAtRead: data.instancesAtRead }, null, 1))

@@ -65,6 +65,18 @@ fn bool_field(obj : Map[String, Json], key : String) -> Bool {
 }
 
 ///|
+/// 布尔或缺失：字段不在 / 不是布尔都是 None。
+/// 与 bool_field 的区别是「明确给了 false」与「根本没这个字段」分得开 ——
+/// 删除方式这种「不知道就不能乱说」的读数必须分开，不能把没给读成 false。
+fn opt_bool_field(obj : Map[String, Json], key : String) -> Bool? {
+  match obj.get(key) {
+    Some(Json::True) => Some(true)
+    Some(Json::False) => Some(false)
+    _ => None
+  }
+}
+
+///|
 fn arr_field(obj : Map[String, Json], key : String) -> Array[Json] {
   match obj.get(key) {
     Some(Json::Array(items)) => items
@@ -94,12 +106,12 @@ fn envelope_error(envelope : Map[String, Json]) -> String {
   match envelope.get("error") {
     Some(Json::Object(err)) =>
       match (str_field(err, "code"), str_field(err, "message")) {
-        ("", "") => "接口返回 ok=false"
+        ("", "") => "读数报告了失败"
         (code, "") => code
         ("", message) => message
         (code, message) => code + ": " + message
       }
-    _ => "接口返回 ok=false"
+    _ => "读数报告了失败"
   }
 }
 
@@ -110,10 +122,10 @@ fn envelope_error(envelope : Map[String, Json]) -> String {
 /// 界面直接展示，不吞。
 fn open_envelope(text : String) -> Result[Map[String, Json], String] {
   let root = try @json.parse(text) catch {
-    _ => return Err("响应不是合法 JSON")
+    _ => return Err("回执不是合法 JSON")
   }
   guard root is Json::Object(envelope) else {
-    return Err("响应外壳不是 JSON 对象")
+    return Err("回执不是 JSON 对象")
   }
   match envelope.get("ok") {
     Some(Json::True) => ()
@@ -121,7 +133,7 @@ fn open_envelope(text : String) -> Result[Map[String, Json], String] {
   }
   match envelope.get("data") {
     Some(Json::Object(data)) => Ok(data)
-    _ => Err("响应里没有 data 对象")
+    _ => Err("回执里没有读数")
   }
 }
 
@@ -256,7 +268,7 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       dir_mtime_source: if has_key(fact, "dirMtimeMs") || has_key(fact, "dirMtimeSource") {
         str_field(fact, "dirMtimeSource")
       } else {
-        "profiles 读数里没有 dirMtimeMs 字段（后端这一版还没给）"
+        "profiles 读数里没有 dirMtimeMs 字段（这一版还没给）"
       },
     })
   }
@@ -385,7 +397,7 @@ fn web_url_source_of(fact : Map[String, Json]) -> String {
   }
   match fact.get("webUrl") {
     Some(Json::String(_)) => ""
-    _ => "instances 读数里这一条没有 webUrl / webUrlSource 字段（后端没给这两个字段）"
+    _ => "instances 读数里这一条没有 webUrl / webUrlSource 字段（这一版没给这两个字段）"
   }
 }
 
@@ -544,6 +556,13 @@ pub(all) struct ConsoleFacts {
   state_dir : String
   settings_path : String
   archive_path : String
+  /// 生效的删除方式：true = 删了进回收站，false = 硬删。None = 这一版后端没给这个字段。
+  ///
+  /// 为什么从这儿取：设置是懒加载的（进过设置页才有值），而删除确认框在打开之前
+  /// 就得说清「删了会怎样」。这个端点在页面加载时就读了，所以它总能给一个生效值。
+  delete_to_trash : Bool?
+  /// 上面那个值来自文件还是默认（后端原样给）。空串 = 后端没给这一项。
+  delete_to_trash_source : String
   runtime : Array[ConsoleRuntime]
   archive : Array[ConsoleArchive]
   notes : Array[String]
@@ -586,6 +605,9 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     state_dir: str_field(data, "stateDir"),
     settings_path: str_field(data, "settingsPath"),
     archive_path: str_field(data, "archivePath"),
+    // 字段不在就是 None（界面说「暂时读不到删除方式」），不拿 false 顶上
+    delete_to_trash: opt_bool_field(data, "deleteToTrash"),
+    delete_to_trash_source: str_field(data, "deleteToTrashSource"),
     runtime,
     archive,
     notes,
