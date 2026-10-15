@@ -192,6 +192,18 @@ pub async fn read_text_at(
 }
 
 ///|
+/// 文件字节大小（只 stat，不读内容）。取不到返回 None。
+/// 用途：起实例失败时只归因「本次启动新写出来的那段日志」，
+/// 上一次尝试留在同一个日志文件里的行不算这一次的证据。
+pub async fn file_size(path : String) -> Int64? noraise {
+  try {
+    Some(@fs.file_size(path))
+  } catch {
+    _ => None
+  }
+}
+
+///|
 /// 文件 mtime，毫秒。取不到返回 None（对应 Node statSync 抛异常的那一支）。
 /// @fs.mtime 返回 (秒, 纳秒)，这里按毫秒截断，与 JS 的 Date 精度一致。
 pub async fn mtime_ms(path : String) -> Int64? noraise {

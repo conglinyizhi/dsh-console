@@ -341,7 +341,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 
 | action | 真实做的事 | 关键边界 |
 | --- | --- | --- |
-| `start-instance` | `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`，等它答出 dsh web 签名才算起成功 | 同 profile 已在跑 → `conflict`（message 里有 pid 与端口）；端口占用 → `conflict`；起不来 → 收掉子进程 + 日志尾部写进 message |
+| `start-instance` | `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`，等它答出 dsh web 签名才算起成功 | 同 profile 已在跑 → `conflict`（message 里有 pid 与端口）；端口占用 → `conflict`；起不来 → 收掉子进程，message 给「参数被拒」的人话诊断（见「哪些 profile 能起成常驻实例」）或日志尾部 |
 | `stop-instance` | SIGTERM → 等 `process.stopGraceMs` → 仍在则 SIGKILL | 目标必须在运行登记或进程表里认得出是 dsh，否则 `not-found`（不误杀别的 pid） |
 | `restart-instance` | 先停后起，端口与 profile 沿用原来的 | 认不出 profile → `not-found` |
 | `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到） | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来 |
@@ -357,6 +357,46 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
    **dsh web 签名**（401 + `dsh web authentication required`，或页里有 `__DSH_BOOT__`）。
 2. **僵尸进程的 kill(pid,0) 也成功**。判活不能只看 `kill(pid,0)`，还要看 `/proc/<pid>/stat` 的状态位，
    `Z` 按死处理；否则停止动作会一直报「SIGKILL 之后仍然在」。
+
+### 哪些 profile 能起成常驻实例
+
+起实例的 argv 是 `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`。
+这里有一条容易踩的事实：**dsh 启动器只认 `--profile`，其余参数原样转给该 profile 的 app**
+（`dsh --help`：`Usage: dsh [--profile] <name> [options] [app-args...]`）。
+`--no-open` / `--port` 是 **app 的参数**——`dsh web --help` 里才列着它们，`dsh --help` 里没有。
+
+所以能不能起成常驻实例，取决于这只 profile 的 app 认不认这两个参数：
+
+| profile 的形状 | 例子 | 起实例的结果 |
+| --- | --- | --- |
+| 服务型 app（bundles 里有 `@deepseek-ai/dsh-web-app`） | `web`、`review-dev` | 认这两个参数，起得来：等它答出 dsh web 签名，返回 pid / 端口 / 日志路径 |
+| 非服务型 app | `headless`（`@deepseek-ai/dsh-headless`：答一个任务、打印结果、退出） | 不认：子进程立刻回 `error: unknown option '--no-open'` 并以退出码 1 结束 |
+
+**判断不看 profile 名字，只看事实。** 起失败时只读*本次启动新写出来的那段日志*
+（同一个日志文件是追加写的，spawn 前记下文件大小，上一次尝试留下的行不算这一次的证据），
+看里面有没有「不认识的选项」这类行（`unknown option` / `unknown argument` /
+`unrecognized option` / `unrecognized argument` / `unknown flag` / `unexpected argument` /
+`invalid option`）。被点名的选项还得是**我们传下去的那几个**（`--no-open` / `--port`）：
+别人报别人的名字，就不往服务参数上归因（`--profile` 是启动器自己的，不算）。
+
+**失败时用户看到什么**（错误码仍是契约里那七个之一 `spawn-failed`，HTTP 500，没有新增错误码）：
+
+- **命中「参数被拒」**：给一句人话 + 证据 + pid / 日志路径 + 后续建议，
+  **不把日志尾巴当正文丢出去**：
+
+  ```json
+  {"ok":false,"readOnly":false,"readAt":"2026-10-15T07:40:00.000Z","error":{
+    "code":"spawn-failed",
+    "message":"profile headless 的 app 不接受服务参数（--no-open），它不是服务型 profile，起不成常驻实例。子进程已经退出（pid 4321，日志 /home/u/.dsh/logs/console-headless-8400.log）。日志里写着：error: unknown option '--no-open'。要跑这种 profile，按它自己的用法跑一次（dsh --profile headless …），别拿它起常驻实例"}}
+  ```
+
+- **没命中**（启动就崩、bundle 解析不了、profile 自身有毛病等）：维持原来的形状 ——
+  `实例没起来（pid …，日志 …）：<收尾说明>；日志尾部：…`，尾部的口径同样是**本次启动新写出来的那几行**。
+  那时日志尾巴就是最好的证据，如实贴出来比套一句结论有用。
+  实测负例（bundles 里挂一个不存在的包）：message 如实给出
+  `dsh: cannot resolve profile bundle …`，没有被误判成「服务参数被拒」。
+
+`restart-instance` 与 `fork-profile` 带 port 时走的是同一条起实例路径，诊断一致。
 
 ### `process.detach` 的两种语义
 
@@ -428,8 +468,8 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 
 - 全部读访问集中在 `json/fsio.mbt`、`json/env.mbt`、`json/tailread.mbt`、`json/version.mbt`：
   `@fs.read_file`、`@fs.exists`、`@fs.kind`、`@fs.readdir`、`@fs.mtime`、`@fs.realpath`、
-  `@fs.open(ReadOnly)` + `File::read_at`，以及 `read_link`（`readlink(2)`，只读链接目标）与
-  `list_dir_result`。`json/` 里**没有任何写 / 建 / 删 / 改名 / 建进程调用**（自测 grep 0 命中，
+  `@fs.open(ReadOnly)` + `File::read_at`、`@fs.file_size`（只 stat 大小），以及 `read_link`
+  （`readlink(2)`，只读链接目标）与 `list_dir_result`。`json/` 里**没有任何写 / 建 / 删 / 改名 / 建进程调用**（自测 grep 0 命中，
   见下面「自测怎么核对」）
 - 凭据类文件（`.credentials.yaml` / `.env` / `.npmrc`）在 `read_text_file` / `read_some_at` 里按 basename 硬拦：
   只判断存在，绝不读内容

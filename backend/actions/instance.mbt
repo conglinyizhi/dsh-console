@@ -4,6 +4,16 @@
 //   node <包目录>/lib/bin.js --profile <名> --no-open [--port <端口>]
 // 包目录走 runtime 包里那条安装目录规则（与 /api/local/runtime 的 dshPackageDir 同源）。
 //
+// 那条 argv 里有一件必须说清的事：**dsh 启动器只认 --profile，其余参数原样转给该 profile 的 app**
+// （dsh --help：Usage: dsh [--profile] <name> [options] [app-args...]）。
+// 所以 --no-open / --port 是 **app 的参数**，不是启动器的（dsh web --help 里才列着它们）。
+// 一只 profile 能不能起成常驻实例，取决于它的 app 认不认这两个参数：
+//   · 服务型 app（bundles 里有 @deepseek-ai/dsh-web-app，如 web / review-dev）→ 认，起得来；
+//   · 非服务型 app（如 headless：答一个任务就打印结果然后退出）→ 不认，立刻回
+//     error: unknown option '--no-open' 并退出。
+// 判断**不看 profile 名字，只看事实**：这次启动新写出来的日志里有没有「不认识的选项」这类行。
+// 命中就把事实翻译成人话（见 detect_arg_rejection / arg_rejection_message），不把日志尾巴丢出去。
+//
 // 端口、进程、信号的口径：
 //   · 端口从 instance.basePort 起找第一个空闲（空闲 = /proc/net/tcp(6) 里任何状态都没占）；
 //   · 起完要等到真的 LISTEN 才算成功，超时或子进程提前退出都算失败，并把子进程收掉；
@@ -25,6 +35,33 @@ let kill_wait_ms : Int = 3000
 ///|
 /// 从 basePort 起最多试多少个端口。
 let port_scan_limit : Int = 200
+
+///|
+/// 传下去的 argv 里，属于「服务型 app 才认」的那几个参数。
+/// --profile 不在此列：那是 dsh 启动器自己的，启动器一定认。
+pub let service_args : Array[String] = ["--no-open", "--port"]
+
+///|
+/// 「这个 app 不认识我们的参数」在日志里的特征词（比对前先小写）。
+/// 认的是事实，不是 profile 名字。
+let arg_reject_markers : Array[String] = [
+  "unknown option",
+  "unknown argument",
+  "unrecognized option",
+  "unrecognized argument",
+  "unknown flag",
+  "unexpected argument",
+  "invalid option",
+]
+
+///|
+/// 一次「参数被拒」的归因证据。
+pub struct ArgRejection {
+  /// 被点名的服务参数（--no-open / --port 里命中的那几个；一个都没点名就是空数组）
+  flags : Array[String]
+  /// 日志里那一行的原文，贴进诊断里供核对
+  evidence : String
+}
 
 ///|
 /// 起实例用的入口。
@@ -273,19 +310,130 @@ pub async fn dsh_signature_ready(port : Int) -> Bool noraise {
 }
 
 ///|
-/// 日志尾部若干行（失败时贴给前端看，别让人猜）。
-pub async fn log_tail(path : String, lines : Int) -> String noraise {
-  let read = try {
-    @json.read_tail_lines(path, lines)
-  } catch {
-    _ => return ""
+/// 本次启动新写进日志的那一段（最多 64KB）。
+/// from 是 spawn 之前记下的文件大小：同一个日志文件是追加写的，
+/// 上一次尝试留下的行不该算进这一次的归因。读不到就给空串（拿不到证据就不归因）。
+async fn fresh_log_text(path : String, from : Int64) -> String noraise {
+  let size = match @json.file_size(path) {
+    Some(s) => s
+    None => return ""
   }
-  let buf = StringBuilder()
-  for line in read.raw_lines {
-    buf.write_string(line)
-    buf.write_string(" / ")
+  if size <= from {
+    return ""
   }
-  @json.trim_both(buf.to_string())
+  let span = size - from
+  let cap : Int64 = 65536L
+  let len = (if span > cap { cap } else { span }).to_int()
+  match @json.read_text_at(path, from, len) {
+    Ok(t) => t
+    Err(_) => ""
+  }
+}
+
+///|
+/// 文本末尾 n 个非空行，用 " / " 连起来（贴进失败信息用）。
+fn tail_text_lines(text : String, lines : Int) -> String {
+  let kept : Array[String] = []
+  for line in text.split("\n") {
+    let trimmed = @json.trim_both(@json.owned(line))
+    if trimmed != "" {
+      kept.push(trimmed)
+    }
+  }
+  let start = if kept.length() > lines { kept.length() - lines } else { 0 }
+  let tail = kept[start:].to_owned()
+  tail.join(" / ")
+}
+
+///|
+/// 一行里出现的长选项（-- 开头，到非 [A-Za-z0-9_-] 为止）。
+/// 用来判断被拒的那个选项是不是我们传下去的：别人报别人的名字，不该算在我们头上。
+fn long_options_in(line : String) -> Array[String] {
+  let out : Array[String] = []
+  let n = line.length()
+  let mut i = 0
+  while i + 1 < n {
+    if line.unsafe_get(i).unsafe_to_char() == '-' &&
+      line.unsafe_get(i + 1).unsafe_to_char() == '-' {
+      let buf = StringBuilder()
+      buf.write_string("--")
+      let mut j = i + 2
+      while j < n {
+        let ch = line.unsafe_get(j).unsafe_to_char()
+        let code = ch.to_int()
+        let is_word = (code >= 48 && code <= 57) || (code >= 65 && code <= 90) ||
+          (code >= 97 && code <= 122) || ch == '-' || ch == '_'
+        if !is_word {
+          break
+        }
+        buf.write_char(ch)
+        j = j + 1
+      }
+      let token = buf.to_string()
+      if token.length() > 2 && !out.contains(token) {
+        out.push(token)
+      }
+      i = j
+    } else {
+      i = i + 1
+    }
+  }
+  out
+}
+
+///|
+/// 从「本次启动新写出来的日志」里找参数被拒的证据。
+///
+/// 判据是事实，不是 profile 名字：有一行在说不认识某个选项，且被点名的那个选项
+/// 不是别人的（我们只往下传 --no-open / --port，--profile 是启动器自己的）。
+/// 认不出来就返回 None —— 那时按「日志尾部」如实交代，不硬套服务参数的结论。
+pub fn detect_arg_rejection(text : String) -> ArgRejection? {
+  for line in text.split("\n") {
+    let raw = @json.owned(line)
+    let probe = @json.to_lower(raw)
+    let rejected = arg_reject_markers.any(fn(m) { @json.index_of(probe, m) is Some(_) })
+    if !rejected {
+      continue
+    }
+    let named : Array[String] = []
+    for flag in service_args {
+      if @json.index_of(probe, flag) is Some(_) {
+        named.push(flag)
+      }
+    }
+    let mut foreign = false
+    for opt in long_options_in(probe) {
+      if opt != "--profile" && !service_args.contains(opt) {
+        foreign = true
+      }
+    }
+    if foreign {
+      continue
+    }
+    return Some({ flags: named, evidence: @json.trim_both(raw) })
+  }
+  None
+}
+
+///|
+/// 参数被拒时的人话诊断：说清「这只 profile 不是服务型」，带上证据与 pid / 日志路径，
+/// 不把日志尾巴当正文丢出去。
+pub fn arg_rejection_message(
+  profile : String,
+  pid : Int,
+  log_path : String,
+  rejection : ArgRejection,
+  detail : String,
+) -> String {
+  let flags = if rejection.flags.length() > 0 {
+    rejection.flags.join("、")
+  } else {
+    "--no-open/--port"
+  }
+  "profile " + profile + " 的 app 不接受服务参数（" + flags +
+  "），它不是服务型 profile，起不成常驻实例。" + detail + "（pid " + pid.to_string() + "，日志 " +
+  log_path + "）。日志里写着：" + rejection.evidence + "。要跑这种 profile，按它自己的用法跑一次" +
+  "（dsh --profile " + profile + " …），别拿它起常驻实例"
 }
 
 ///|
@@ -373,10 +521,16 @@ pub async fn start_instance(
     command.script,
     "--profile",
     name,
+    // 下面两个是 app 的参数（dsh 启动器只认 --profile，其余原样转给 app）：
+    // 服务型 app 认，非服务型 app 会回 unknown option 然后退出。事实由日志给出，不靠 profile 名字猜。
     "--no-open",
     "--port",
     chosen.to_string(),
   ]
+  let log_offset = match @json.file_size(log_path) {
+    Some(s) => s
+    None => 0L
+  }
   let pid = match spawn_child(
     command,
     args,
@@ -414,12 +568,24 @@ pub async fn start_instance(
   if !listening {
     let detail = reap_after_failure(pid)
     let _ = @store.remove_by_pid(pid)
-    let tail = log_tail(log_path, 5)
-    fail(
-      "spawn-failed",
-      "实例没起来（pid " + pid.to_string() + "，日志 " + log_path + "）：" + detail +
-      (if tail == "" { "" } else { "；日志尾部：" + tail }),
-    )
+    // 只归因这一次启动新写出来的日志（同一个日志文件是追加写的，旧行不算证据）
+    let fresh = fresh_log_text(log_path, log_offset)
+    match detect_arg_rejection(fresh) {
+      Some(rejection) =>
+        // 参数被这个 app 拒了：它不是服务型 profile。这条事实比「日志尾巴」有用得多
+        fail(
+          "spawn-failed",
+          arg_rejection_message(name, pid, log_path, rejection, detail),
+        )
+      None => {
+        let tail = tail_text_lines(fresh, 5)
+        fail(
+          "spawn-failed",
+          "实例没起来（pid " + pid.to_string() + "，日志 " + log_path + "）：" + detail +
+          (if tail == "" { "" } else { "；日志尾部：" + tail }),
+        )
+      }
+    }
   }
   let boot_ms = (@async.now() - began).to_int()
   {
