@@ -1,3 +1,4 @@
+const CDP_PORT = 9300 + (process.pid % 600) // 按进程取，并行跑不抢端口
 // 独立验证器：node verify-frontend.mjs <baseUrl> [截图前缀]
 // 用途：不依赖任何 worker 的自证，直接量页面。可对 Vue 版与新前端通用。
 import { spawn } from 'node:child_process'
@@ -5,13 +6,13 @@ import { writeFileSync } from 'node:fs'
 
 const [baseUrl, shotPrefix, jsonOut] = process.argv.slice(2)
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
-  '--hide-scrollbars', '--remote-debugging-port=9334', '--user-data-dir=/tmp/chrome-verify',
+  '--hide-scrollbars', '--remote-debugging-port=' + CDP_PORT, '--user-data-dir=/tmp/chrome-probe-' + process.pid,
   '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
 
 let page = null
 for (let i = 0; i < 40 && !page; i++) {
   try {
-    const list = await (await fetch('http://127.0.0.1:9334/json')).json()
+    const list = await (await fetch('http://127.0.0.1:' + CDP_PORT + '/json')).json()
     page = list.find((t) => t.type === 'page')
   } catch {}
   if (!page) await new Promise((r) => setTimeout(r, 250))

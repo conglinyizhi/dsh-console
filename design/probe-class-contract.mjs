@@ -1,3 +1,4 @@
+const CDP_PORT = 9300 + (process.pid % 600) // 按进程取，并行跑不抢端口
 // 类名契约探针：DOM 里用到的每个 class，在全部样式表里必须有对应规则。
 // 浏览器侧代码在 class-contract-page.js，原样注入（避免多层转义把它弄坏）。
 import { spawn } from 'node:child_process'
@@ -7,9 +8,9 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const baseUrl = process.argv[2]
 const expr = readFileSync(join(here, 'class-contract-page.js'), 'utf8')
-const chrome = spawn('chromium', ['--headless','--no-sandbox','--disable-gpu','--disable-extensions','--hide-scrollbars','--remote-debugging-port=9343','--user-data-dir=/tmp/chrome-cc3','--window-size=1280,900','about:blank'], { stdio: 'ignore' })
+const chrome = spawn('chromium', ['--headless','--no-sandbox','--disable-gpu','--disable-extensions','--hide-scrollbars','--remote-debugging-port=' + CDP_PORT,'--user-data-dir=/tmp/chrome-probe-' + process.pid,'--window-size=1280,900','about:blank'], { stdio: 'ignore' })
 let page = null
-for (let i = 0; i < 40 && !page; i++) { try { const l = await (await fetch('http://127.0.0.1:9343/json')).json(); page = l.find(t => t.type === 'page') } catch {} if (!page) await new Promise(r => setTimeout(r, 250)) }
+for (let i = 0; i < 40 && !page; i++) { try { const l = await (await fetch('http://127.0.0.1:' + CDP_PORT + '/json')).json(); page = l.find(t => t.type === 'page') } catch {} if (!page) await new Promise(r => setTimeout(r, 250)) }
 const ws = new WebSocket(page.webSocketDebuggerUrl); let id = 0; const pend = new Map()
 ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id) } }
 await new Promise(r => { ws.onopen = r })

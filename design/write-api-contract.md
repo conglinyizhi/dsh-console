@@ -76,3 +76,26 @@ PUT /api/local/settings   body { values:{...} }  → 校验后落盘并返回新
 - 下拉菜单各按钮接 `POST /api/local/action`：启动 / 停止 / 重启 / 派生 / 归档 / 取消归档 / 重命名 / 删除；**动作成功后要刷新读数**（不是只弹个提示）
 - 失败要显示后端给的具体原因（conflict / not-authorized / spawn-failed…），**不许吞掉**
 - 「由本控制台启动」的实例在卡上标出来（读 runtime.json 的登记）
+
+---
+
+# 追加契约（第二轮：备注 / 归档去标记 / 派生口径）
+
+## 一、归档不再有「已合并」标记（使用者的决定）
+- `archive-profile` 的参数里**去掉 `merged`**；归档记录只剩 `{ profile, archivedAt }`
+- `GET /api/local/console` 的 `archive[]` **去掉 `merged` 字段**
+- 已经存在、带着 `merged` 的旧 archive.json **要能读**（忽略该字段，不许因此报错）
+
+## 二、每个 profile 的备注（新功能）
+使用者原话：「每个 profile 允许用户额外编辑备注来记录这个是干啥用的」。
+
+- **存放**：`<profile 目录>/.dsh-note.txt`（纯文本 UTF-8，上限 2000 字符）。放**目录里**的理由：派生是整目录拷贝，备注跟着走；改名、搬走都不丢。
+- **读**：`GET /api/local/profiles` 的每个 profile **新增 `note` 字段**（无备注给空串；读不到给空串并在 `noteSource` 里写原因）。这是**加字段**，旧消费者忽略即可。
+- **写**：`POST /api/local/action` 新增动作 `set-profile-note`，params `{ profile, text }`；`text` 为空串表示**删掉那个文件**。
+- **校验**：profile 必须解析到 `<profilesRoot>/<name>` 之内（防目录穿越）；超长拒绝（`bad-params`）；写失败给 `io-error`。
+- **必做的实测**：写完备注之后**用这只 profile 起一次实例，确认 dsh 照常起来**（profile 目录里多一个文件不能把 dsh 弄坏）。这一条验不过就换存放位置，并在报告里说明。
+
+## 三、派生的口径
+- 现状：整目录拷贝，**排除 `node_modules`**。使用者说「整个 profile 目录」，但全拷一次是几百 MB/几万文件 ✗
+- **本轮保持排除 `node_modules`**，但要在派生结果里**写明**「已拷 N 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可」
+- **备注文件必须跟着拷过去**（它在目录里，天然会跟着 ✓ 但要实测证明）

@@ -1,3 +1,4 @@
+const CDP_PORT = 9300 + (process.pid % 600) // 按进程取，并行跑不抢端口
 // 逐条对账用：把验收清单里的几何不变量与交互在真实 DOM 上量一遍。
 //   node design/measure-parity.mjs <baseUrl>
 // 与 verify-frontend.mjs 的分工：那个管「有没有横向溢出 / 控制台报错 / 真数据在不在」，
@@ -7,13 +8,13 @@ import { spawn } from 'node:child_process'
 
 const baseUrl = process.argv[2] ?? 'http://127.0.0.1:5390'
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
-  '--hide-scrollbars', '--remote-debugging-port=9335', '--user-data-dir=/tmp/chrome-measure',
+  '--hide-scrollbars', '--remote-debugging-port=' + CDP_PORT, '--user-data-dir=/tmp/chrome-probe-' + process.pid,
   '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
 
 let page = null
 for (let i = 0; i < 40 && !page; i++) {
   try {
-    const list = await (await fetch('http://127.0.0.1:9335/json')).json()
+    const list = await (await fetch('http://127.0.0.1:' + CDP_PORT + '/json')).json()
     page = list.find((t) => t.type === 'page')
   } catch {}
   if (!page) await new Promise((r) => setTimeout(r, 250))

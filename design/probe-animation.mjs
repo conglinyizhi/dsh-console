@@ -1,3 +1,4 @@
+const CDP_PORT = 9300 + (process.pid % 600) // 按进程取，并行跑不抢端口
 // 动效探针（选择器无关）：node probe-animation.mjs <baseUrl> <outJson> [按钮文字]
 // 点「启动」让卡片进入启动等待态，然后扫描全页哪些元素在跑动画。
 import { spawn } from 'node:child_process'
@@ -5,11 +6,11 @@ import { writeFileSync } from 'node:fs'
 const [baseUrl, outJson, btnText = '启动'] = process.argv.slice(2)
 
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
-  '--hide-scrollbars', '--remote-debugging-port=9337', '--user-data-dir=/tmp/chrome-anim',
+  '--hide-scrollbars', '--remote-debugging-port=' + CDP_PORT, '--user-data-dir=/tmp/chrome-probe-' + process.pid,
   '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
 let page = null
 for (let i = 0; i < 40 && !page; i++) {
-  try { const l = await (await fetch('http://127.0.0.1:9337/json')).json(); page = l.find((t) => t.type === 'page') } catch {}
+  try { const l = await (await fetch('http://127.0.0.1:' + CDP_PORT + '/json')).json(); page = l.find((t) => t.type === 'page') } catch {}
   if (!page) await new Promise((r) => setTimeout(r, 250))
 }
 const ws = new WebSocket(page.webSocketDebuggerUrl)
@@ -18,6 +19,11 @@ const pending = new Map()
 ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id) } }
 await new Promise((r) => { ws.onopen = r })
 const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })) })
+// 求值助手：awaitPromise 让页面里的 async 体（收尾停实例那段）真的等到结果
+const ev = async (expression) => {
+  const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
+  return r.result?.result?.value
+}
 await send('Page.enable')
 await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false })
 await send('Page.navigate', { url: baseUrl })

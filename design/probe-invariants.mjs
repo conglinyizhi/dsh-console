@@ -1,3 +1,4 @@
+const CDP_PORT = 9300 + (process.pid % 600) // 按进程取，并行跑不抢端口
 // 几何不变量探针：node probe-invariants.mjs <baseUrl> <outJson> [profile]
 //
 // profile 可以是内置名（vue），也可以是一份 JSON 文件路径 —— 里面就是选择器映射，
@@ -27,13 +28,13 @@ if (!SEL) {
 }
 
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
-  '--hide-scrollbars', '--remote-debugging-port=9335', '--user-data-dir=/tmp/chrome-inv',
+  '--hide-scrollbars', '--remote-debugging-port=' + CDP_PORT, '--user-data-dir=/tmp/chrome-probe-' + process.pid,
   '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
 
 let page = null
 for (let i = 0; i < 40 && !page; i++) {
   try {
-    const list = await (await fetch('http://127.0.0.1:9335/json')).json()
+    const list = await (await fetch('http://127.0.0.1:' + CDP_PORT + '/json')).json()
     page = list.find((t) => t.type === 'page')
   } catch {}
   if (!page) await new Promise((r) => setTimeout(r, 250))

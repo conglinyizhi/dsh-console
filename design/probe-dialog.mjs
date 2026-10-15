@@ -1,8 +1,9 @@
+const CDP_PORT = 9300 + (process.pid % 600) // 按进程取，并行跑不抢端口
 import { spawn } from 'node:child_process'
 const baseUrl = process.argv[2]
-const chrome = spawn('chromium', ['--headless','--no-sandbox','--disable-gpu','--disable-extensions','--hide-scrollbars','--remote-debugging-port=9348','--user-data-dir=/tmp/chrome-dlg','--window-size=1440,900','about:blank'], { stdio: 'ignore' })
+const chrome = spawn('chromium', ['--headless','--no-sandbox','--disable-gpu','--disable-extensions','--hide-scrollbars','--remote-debugging-port=' + CDP_PORT,'--user-data-dir=/tmp/chrome-probe-' + process.pid,'--window-size=1440,900','about:blank'], { stdio: 'ignore' })
 let page = null
-for (let i = 0; i < 40 && !page; i++) { try { const l = await (await fetch('http://127.0.0.1:9348/json')).json(); page = l.find((t) => t.type === 'page') } catch {} if (!page) await new Promise((r) => setTimeout(r, 250)) }
+for (let i = 0; i < 40 && !page; i++) { try { const l = await (await fetch('http://127.0.0.1:' + CDP_PORT + '/json')).json(); page = l.find((t) => t.type === 'page') } catch {} if (!page) await new Promise((r) => setTimeout(r, 250)) }
 const ws = new WebSocket(page.webSocketDebuggerUrl); let id = 0; const pend = new Map()
 ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id) } }
 await new Promise((r) => { ws.onopen = r })

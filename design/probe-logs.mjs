@@ -1,3 +1,4 @@
+const CDP_PORT = 9300 + (process.pid % 600) // 按进程取，并行跑不抢端口
 // 日志页不变量探针：node probe-logs.mjs <baseUrl> <outJson> [侧栏文字]
 import { spawn } from 'node:child_process'
 import { writeFileSync, readFileSync } from 'node:fs'
@@ -13,11 +14,11 @@ if (!SEL) {
 }
 
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
-  '--hide-scrollbars', '--remote-debugging-port=9336', '--user-data-dir=/tmp/chrome-logs',
+  '--hide-scrollbars', '--remote-debugging-port=' + CDP_PORT, '--user-data-dir=/tmp/chrome-probe-' + process.pid,
   '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
 let page = null
 for (let i = 0; i < 40 && !page; i++) {
-  try { const l = await (await fetch('http://127.0.0.1:9336/json')).json(); page = l.find((t) => t.type === 'page') } catch {}
+  try { const l = await (await fetch('http://127.0.0.1:' + CDP_PORT + '/json')).json(); page = l.find((t) => t.type === 'page') } catch {}
   if (!page) await new Promise((r) => setTimeout(r, 250))
 }
 const ws = new WebSocket(page.webSocketDebuggerUrl)
