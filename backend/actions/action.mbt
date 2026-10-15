@@ -287,6 +287,37 @@ pub async fn run_action(
         ),
       ])
     }
+    "open-path" => {
+      // 这个动作的参数只有 profile 与 kind：多一个键就拒，免得有人塞个 path 还以为它生效了
+      ensure_only_keys(params, ["profile", "kind"])
+      let outcome = open_path(
+        require_string(params, "profile"),
+        optional_string(params, "kind"),
+      )
+      let how = match outcome.exit_code {
+        Some(code) =>
+          "；" + outcome.opener + "（pid " + outcome.pid.to_string() + "）已经退出，退出码 " +
+          code.to_string()
+        None => "；" + outcome.opener + "（pid " + outcome.pid.to_string() + "）还在跑，没等它"
+      }
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("what", @json.JStr(outcome.what)),
+          ("path", @json.JStr(outcome.path)),
+          ("opener", @json.JStr(outcome.opener)),
+          ("pid", @json.jint(outcome.pid)),
+          ("exitCode", @json.int_or_null(outcome.exit_code)),
+          ("detail", @json.JStr(outcome.detail)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            "用 " + outcome.opener + " 打开 " + outcome.path + "（直接 exec，不经 shell）" + how,
+          ),
+        ),
+      ])
+    }
     "archive-profile" => {
       let profile = require_string(params, "profile")
       let loaded = @store.load_archive()

@@ -112,7 +112,7 @@ pub struct Target {
 
 ///|
 /// 在 PATH 里找一个可执行文件（只做存在性判断，不执行任何东西）。
-async fn find_in_path(name : String) -> String? noraise {
+pub async fn find_in_path(name : String) -> String? noraise {
   let path = match @json.env_value("PATH") {
     Some(p) => p
     None => return None
@@ -660,6 +660,17 @@ let console_group : Ref[@async.TaskGroup[Unit]?] = { val: None }
 /// 登记主任务组（main 起服务前调用一次）。
 pub fn set_console_group(group : @async.TaskGroup[Unit]) -> Unit {
   console_group.val = Some(group)
+}
+
+///|
+/// 挂一只不挡路的收尾任务（open-path 用它等 xdg-open 退出，见 open_path.mbt）。
+/// no_wait：控制台退出时不必等它 —— 那条路上的子进程本来也随控制台一起走。
+/// 没有任务组（比如被当库调用）就什么也不做，调用方按「没人收尸」的风险自负。
+pub fn spawn_reaper(task : async () -> Unit) -> Unit {
+  match console_group.val {
+    Some(group) => group.spawn_bg(task, no_wait=true)
+    None => ()
+  }
 }
 
 ///|

@@ -4,7 +4,7 @@ dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版�
 
 - **只读（GET，纯只读）**：`runtime` / `profiles` / `logs` / `processes` / `instances`
   —— 形状与已退役的 Node 版中间件（`../server/`，见 git 0448ba4 可取回）**逐字段一致**，这一层一个字段都不动
-- **写（第三批新增）**：`POST /api/local/action`（九个动作）、`GET/PUT /api/local/settings`、
+- **写（第三批新增）**：`POST /api/local/action`（十个动作）、`GET/PUT /api/local/settings`、
   `GET /api/local/console`（运行时登记与归档的只读出口）
   —— 契约见 `../design/write-api-contract.md`
 
@@ -18,9 +18,12 @@ dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版�
 （`nodeVersion` 伪造、`consoleVersion` 编译期固化）。第三批（A 形态）让后端**接管前端静态服务**，
 并把实例探测从串行提到 **8 路并发**。第四批加上**可写层**：
 动作真的起停进程 / 动 profile 目录，各项设置真的接到探测、端口分配、起停与日志缺省上。
-第四批第二轮（本轮，契约「追加契约」那一节）改三处：**归档去掉 `merged`**（旧文件仍能读）、
+第四批第二轮改三处：**归档去掉 `merged`**（旧文件仍能读）、
 **每个 profile 的备注**（`/api/local/profiles` 新增 `note` / `noteSource`，新动作 `set-profile-note`，
 落点 `<profile 目录>/.dsh-note.txt`）、**派生结果写明拷贝口径**（已拷 N 个文件、未拷 node_modules）。
+第四批第三轮（本轮，契约「追加契约（第三轮）」那一节）补上三个空壳菜单项里的后端能力：
+新动作 **`open-path`**（打开目录 / 打开配置）——参数只有 profile 名与一个枚举 `kind`，
+目标路径由后端自己拼（**没有路径参数这回事**），交给 `xdg-open` 直接 exec。
 
 ## 依赖
 
@@ -381,7 +384,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
 **对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
 
-### 九个动作
+### 十个动作
 
 | action | 真实做的事 | 关键边界 |
 | --- | --- | --- |
@@ -391,6 +394,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到） | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来。结果里写明口径：**「已拷 N 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可」**（`outcome.filesCopied` 是真实拷过去的文件数，`outcome.note` 与顶层 `note` 都是这句话） |
 | `rename-profile` | 改磁盘上的目录名 | 空名 / 非法字符 / 重名 / 正在运行 都拒 |
 | `set-profile-note` | 写备注：非空 `text` 原子写进 `<profile 目录>/.dsh-note.txt`（覆盖旧的）；**空串 = 删掉那个文件** | 名字先过白名单、再确认解析到 `profilesRoot` 之内（**目录穿越拒 `bad-params`**）；目录不存在 `not-found`；超过 2000 字符 `bad-params`；写不动 `io-error`。`text` 不 trim（前后空格是用户写的），**缺 `text` 键 ≠ 空串**：缺键 `bad-params` |
+| `open-path` | `xdg-open <目标>` 打开一个**枚举目标**：`kind:"dir"`（缺省）= profile 目录，`kind:"config"` = 它的 `cordis.patch.yml`。**直接 exec**（不经 shell、不做任何字符串插值），spawn 完不等它干活 | **params 只认 `profile` 与 `kind`**，多一个键（比如 `path`）就 `bad-params`——客户端给不了路径。名字过白名单 + 解析结果必须落在 profilesRoot 之内（两道，与 `set-profile-note` 同款）；目标不存在 `not-found`；PATH 里没有 `xdg-open` / 没有图形环境（`DISPLAY` 与 `WAYLAND_DISPLAY` 都没设）/ `xdg-open` 起来就非零退出 → `io-error`，message 写清是哪一种 |
 | `archive-profile` | 往 `archive.json` 追加一条 `{ profile, archivedAt }` | **不动磁盘上的 profile**；同一个 profile 已在归档区 → `conflict` |
 | `unarchive-profile` | 删掉那条记录 | 没有这条 → `not-found` |
 | `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
@@ -446,6 +450,39 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
   `dsh: cannot resolve profile bundle …`，没有被误判成「服务参数被拒」。
 
 `restart-instance` 与 `fork-profile` 带 port 时走的是同一条起实例路径，诊断一致。
+
+### `open-path`：只认枚举目标，不接受路径
+
+行菜单里「打开工作目录 / 编辑配置」两项落到这一个动作上。**客户端给不了路径**：
+
+```json
+{"action":"open-path","params":{"profile":"web","kind":"dir"}}
+```
+
+- `kind` 缺省 `"dir"`：目标是 `<profilesRoot>/<名>`；`"config"` 则是它下面的 `cordis.patch.yml`。
+  别的取值 `bad-params`。
+- `params` 里出现 `profile` / `kind` 之外的键一律 `bad-params`。**这是有意的**：塞一个 `path` 进来会被拒，
+  而不是被默默忽略——忽略掉的话，「塞了 path 也成功」看起来就像那条路径生效了。
+- 白名单 + 落点两道校验与 `set-profile-note` 同款：名字只允许字母数字与 `._-`、不以点开头、不是 `.` / `..`，
+  拼出来的路径还得确认带 `profilesRoot/` 前缀。
+- 交给桌面的方式是 **`xdg-open` 直接 exec**：目标路径是 argv 里的一项，没有 shell、没有任何字符串插值，
+  带空格 / 引号 / `$` 的路径也只是这一项的字面量。spawn 之后**不等它干活**。
+
+**打不开如实报 `io-error`，message 写清是哪一种**（不假装成功）：
+
+| 情形 | message 里写什么 |
+| --- | --- |
+| PATH 里没有 `xdg-open` | `PATH 里找不到 xdg-open（这台机器上没装 xdg-utils），打不开 <路径>` |
+| 没有图形环境 | `没有图形环境：DISPLAY 与 WAYLAND_DISPLAY 都没设置，xdg-open 打不开 <路径>…` |
+| `xdg-open` 起来就非零退出 | `xdg-open 起来就退出了（退出码 N），<路径> 没打开；它说：<stderr 尾部>` |
+
+前两种是起进程之前判的。第三种要一条证据：spawn 之后看 600ms，它在这段窗口里退出、且退出码不为 0 才判失败
+（窗口不是「等它干活」——`xdg-open` 打不开时是毫秒级退出，打得开时要么把活交给会话再自己退出（0），要么留着跑）。
+它这几百毫秒的 stderr 落在一个一次性文件 `<状态目录>/open-path-<毫秒>.log` 里，读完随即删掉；
+建不了这个文件就退回 `/dev/null`，记不下它说的话不该让打开动作直接失败。
+
+成功时的 `outcome`：`{ what, path, opener, pid, exitCode, detail }` —— `path` 是**后端算出来的**目标绝对路径，
+`opener` 是实际用的那个 `xdg-open` 的绝对路径，`exitCode` 在它已经退出时给出（还在跑给 `null`）。
 
 ### `process.detach` 的两种语义
 
@@ -529,7 +566,8 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 
 ### 写层：写盘只落在这些路径
 
-写调用点**全部**在 `fsx/writeio.mbt`（唯一的写入口）与 `actions/instance.mbt`（唯一的建进程处）。
+写调用点**全部**在 `fsx/writeio.mbt`（唯一的写入口）与两处建进程处
+（`actions/instance.mbt` 起 dsh 实例、`actions/open_path.mbt` 起 `xdg-open`）。
 它们只被下面这些路径调用，别处不写：
 
 | 写的东西 | 路径 | 谁在写 |
@@ -542,6 +580,7 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 | profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
 | profile 备注 | `<profile 目录>/.dsh-note.txt`（空串语义 = 删掉它） | `actions/profile_fs.mbt`（`set-profile-note`） |
 | 实例日志 | `<该实例 DSH_HOME>/logs/console-<profile>-<port>.log` | `actions/instance.mbt`（spawn 时重定向 stdout/stderr） |
+| 打开窗口 | **控制台自己不写盘**：目标路径交给桌面环境（`xdg-open`），后面开什么窗口是那个会话的事 | `actions/open_path.mbt`（第二处建进程处）。它给 `xdg-open` 的 stderr 落一个一次性捕获文件 `<状态目录>/open-path-<毫秒>.log`，探测窗过了就读出来、**随即删掉**（建不了就退回 `/dev/null`） |
 
 三份状态文件都是**原子写**（同目录临时文件 + `rename`）；`audit.jsonl` 只 append。
 
@@ -558,7 +597,7 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 
 ```bash
 cd dsh-console/backend
-# 写调用点只在两个文件里
+# 写调用点与建进程处只在三个文件里：fsx/writeio.mbt、actions/instance.mbt、actions/open_path.mbt
 grep -rn '@fs\.write_file\|@fs\.mkdir\|@fs\.rename\|@fs\.remove\|@fs\.rmdir\|@process\.spawn\|spawn_orphan' --include=*.mbt . | grep -v .mooncakes | grep -v _build
 # 只读层干净（无输出）
 grep -rn 'write_file\|mkdir\|rename\|remove\|rmdir\|spawn' json/*.mbt json/*.c
