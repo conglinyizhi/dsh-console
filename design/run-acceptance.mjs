@@ -84,7 +84,10 @@ const addInfo = (name, got) => rows.push({ name, want: '（信息，非判定）
 if (v) {
   add('无横向溢出', 'false', String(v.overflowX), v.overflowX === false)
   add('控制台零问题', '0', String(v.consoleIssueCount), v.consoleIssueCount === 0)
-  add('真数据标记', 'true', String(v.markers?.['真实数据']), v.markers?.['真实数据'] === true)
+  // 「真实数据」是迁移期的历史标签（旧前端 vs 新前端并存时标真假的），现在全页都是真读数，它就是噪声 ✗
+  // 这条判定反过来：**页面不该再出现它** —— 这样它再也回不来。
+  // 但「读数失败」的标记必须还在（见下一条「无读取失败标记」的相反面）：删了它，失败就会伪装成正常 ✗
+  add('页面不出现「真实数据」标记', 'false', String(v.markers?.['真实数据']), v.markers?.['真实数据'] !== true)
   add('无读取失败标记', 'false', String(v.markers?.['读取失败']), v.markers?.['读取失败'] === false)
 }
 
