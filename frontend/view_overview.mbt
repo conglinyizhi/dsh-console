@@ -340,7 +340,7 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
                   .title(
                     "由本控制台启动：这一条在 $XDG_STATE_HOME/dsh-console/runtime.json 的登记里。登记只记控制台自己起的，外部实例不写进去",
                   ),
-                [icon("play", size=11)],
+                [icon("play", size=11), @html.text("由本控制台启动")],
               )
             } else {
               @html.nothing

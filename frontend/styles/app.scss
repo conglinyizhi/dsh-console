@@ -951,13 +951,8 @@ select { appearance: none; -webkit-appearance: none; }
 // 依据是 runtime.json 的登记（只记控制台自己起过的实例），所以它是**事实标记**，
 // 不是状态标记：外部起的实例不会带上它，带上它的都是这一台控制台起的。
 //
-// 文字走 ::after 的 content：卡片的 textContent 里因此没有「启动」两个字。
-// 这是为了不撞 design/probe-dialog.mjs 选卡的方式（它按 textContent.includes('启动')
-// 找「已停止」那张卡）—— 卡里多一段含「启动」的文字会让探针选中运行中的卡，
-// 再点到旁边那颗「停止」。语义没丢：aria-label 与 title 是同一句话。
-.dsh-console-mark::after {
-  content: "由本控制台启动";
-}
+// 文字是真的文本节点（曾经塞在 ::after 的 content 里，为的是不撞验收探针选卡的方式——
+// **那是为了让测试通过而改产品，不该有**。探针已改成按 data-status 选卡，文字回到 DOM）。
 .dsh-console-mark {
   flex: none;
   display: inline-flex;
