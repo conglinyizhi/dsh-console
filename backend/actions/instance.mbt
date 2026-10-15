@@ -263,6 +263,22 @@ pub async fn process_alive(pid : Int) -> Bool noraise {
 }
 
 ///|
+/// 收掉一个「已经不在」的子进程：waitpid 一次，把它从僵尸状态里摘掉。
+///
+/// 为什么必须 wait：僵尸进程在 kill(pid, 0) 眼里还活着，process_alive 靠 /proc 的
+/// 状态位把 Z 判成死 —— 判死之后如果就此返回，这个子进程既死了又没被 wait，
+/// 就一直挂在控制台名下（PPID 是控制台）。长跑的控制台每失败一次攒一个。
+/// 只对已经死掉的 pid 调（调用点都先过了 process_alive），不会阻塞；
+/// 不是我们的子进程时 waitpid 直接报 ECHILD，吞掉即可。
+async fn reap_dead_child(pid : Int) -> Unit noraise {
+  try {
+    let _ = @process.wait_pid(pid)
+  } catch {
+    _ => ()
+  }
+}
+
+///|
 /// 尽力回收我们起的僵尸子进程（不是我们的子进程时 wait 会直接报错，吞掉即可）。
 async fn reap_ours(pid : Int) -> Unit noraise {
   let registry = @store.load_registry()
@@ -605,12 +621,16 @@ pub async fn start_instance(
 /// 起不来时收子进程：SIGTERM 短等，仍在就 SIGKILL。返回一句人话说明。
 async fn reap_after_failure(pid : Int) -> String noraise {
   if !process_alive(pid) {
+    // 子进程自己退出了（app 不认参数、入口不存在等都是这一支）——正是要 wait 的那一支：
+    // process_alive 把 Z 判成死，但没 wait 的话它就是一只挂在控制台名下的僵尸。
+    reap_dead_child(pid)
     return "子进程已经退出"
   }
   let _ = @fsx.send_signal(pid, @fsx.sigterm)
   let began = @async.now()
   while (@async.now() - began).to_int() < 2000 {
     if !process_alive(pid) {
+      reap_dead_child(pid)
       return "子进程没监听端口，已 SIGTERM 收掉"
     }
     @async.sleep(50)
@@ -619,6 +639,7 @@ async fn reap_after_failure(pid : Int) -> String noraise {
   let kill_began = @async.now()
   while (@async.now() - kill_began).to_int() < kill_wait_ms {
     if !process_alive(pid) {
+      reap_dead_child(pid)
       return "子进程没监听端口，SIGTERM 无效后 SIGKILL 收掉"
     }
     @async.sleep(50)
