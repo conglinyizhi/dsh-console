@@ -147,7 +147,13 @@ if (logs) {
     add('来源下拉含固定来源', 'host + audit', vals.filter((v) => v === 'host' || v === 'audit').join(' + ') || '无',
       vals.includes('host') && vals.includes('audit'))
   }
-  add('元信息含目录依据', 'true', String(!!(logs.meta && logs.meta.includes('目录依据'))), !!(logs.meta && logs.meta.includes('目录依据')))
+  // 「目录依据」只在来源是实例时才渲染（来源是 host 时后端给 kind=fixed，没有 homeSource）。
+  // 验收把来源钉死成 host（为了让判据不随在跑实例增删而变），所以这里判一条与来源无关的，
+  // 目录依据如实记为信息 —— 验不了就说验不了，不留假红灯 ✗
+  add('元信息含来源与路径', 'true', String(!!(logs.meta && logs.meta.includes('行') && logs.meta.includes('/'))),
+    !!(logs.meta && logs.meta.includes('行') && logs.meta.includes('/')))
+  addInfo('目录依据（只在实例来源渲染；本轮验收量的是 host 来源）',
+    logs.meta && logs.meta.includes('目录依据') ? '出现了' : '未出现（预期）')
 }
 if (anim) {
   add('点击前无可见动效', String(vueAnim?.before?.visibleCount ?? 0), String(anim.before?.visibleCount), anim.before?.visibleCount === 0)

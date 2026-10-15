@@ -222,3 +222,58 @@ webUrlSource: string          // 令牌从哪来，或为什么读不到（见�
 - 提示条：贴派生成功后提示条的实际文案
 - `node design/run-acceptance.mjs <baseUrl>`：**判定项全过**（现在 28 条判定 + 2 条信息）
 - 收尾干净：测试派生的 profile 删掉、`~/.dsh/logs/console-*.log` 清掉、runtime.json 回 `[]`
+---
+
+# 追加契约（第六轮：回收站）
+
+使用者原话：「回收站呢？」（配图：删除 `web-dev` 的回执说 `mode=trash`、给了 `trashPath`，但界面上没有任何回收站入口）
+
+## 现状（已核实）
+- 删除进回收站是**真的**：`~/.local/state/dsh-console/trash/web-dev-1792070484767/`，108 个文件都在 ✓
+- 但**没有任何界面能看到或恢复它** ✗ —— 所以确认框那句「删除后移入回收站，可以捞回来」目前是**一个没有把手的承诺** ✗
+- 另外那条删完的回执把 `mode=trash · trashPath=… · hardDeleted=false` 直接摊在界面上 ✗（上一轮刚清过同类泄漏，这处漏了）
+
+## 一、后端
+
+### 读：回收站条目
+`GET /api/local/console` 的 data 加 `trash: [{ dir, profile, deletedAtMs, fileCount, bytes }]`
+- 目录名形如 `<profile>-<epochMs>`；**profile 名本身可能含 `-`** ✗ 所以按**最后一个** `-` 切分，切不出来就 profile 给原目录名、deletedAtMs 给 null
+- `bytes` 递归求和；读不到给 null 并说明（别编 ✗）
+
+### 写：两个动作
+1. `restore-from-trash`，params `{ dir }`
+   - 把 `trash/<dir>` **移回** `~/.dsh/profiles/<profile>`
+   - **目标已存在时必须拒绝** ✗（`conflict`，message 说清「已经有同名的 profile 了，先改名或删掉它」）
+   - `dir` 必须解析到 trash 目录之内（防穿越，与既有两道校验同款）
+   - 成功后 outcome 给：恢复到的路径、文件数
+2. `purge-trash-item`，params `{ dir }`，**必须带 `{ confirm: "PURGE" }`** ✗
+   - 真删掉那份；缺 confirm 给 `bad-params`
+   - 与 `delete-profile` 的硬删同一风险等级 ✓ 守卫与审计照旧 ✓
+
+## 二、前端
+
+1. **侧栏加「回收站」**（与实例总览 / 日志 / 设置 / 关于 并列），路由 `/trash` ✓
+   - 列表：每行 = profile 名 + 删除时间 + 文件数 + 体积 + 两个按钮（**恢复**、**彻底删除**）
+   - 真正删之前弹确认框 ✓（走既有那套 `dialog()` 居中/层级/点击口径 ✗ 别另起一套）
+   - 空态：「回收站是空的」（**不是加载态** ✗ 两种要分清 ✓）
+   - 恢复成功/失败都要有反馈；失败要显示后端给的具体原因（尤其 `conflict` 那条）
+2. **删完的回执改成人话**：
+   - 回收站：「`web-dev` 已移入回收站，可以从**回收站**里恢复。」（带上入口在哪 ✓）
+   - 硬删：「`web-dev` 已删除，无法恢复。」
+   - 路径、mode、hardDeleted 这些**收进悬停** ✗ 不许摊在正文
+3. 卡片行菜单的「删除」仍在原位不动 ✓
+
+## 三、验收（贴证据）
+- 两端构建 0 error（后端 `moon build --target native`；前端 `build.sh` / `check.sh`）
+- **真链路**：拿一个**测试 profile**（自己在隔离 DSH_HOME 里造 ✗ **别碰使用者的 profile**）走完整一圈：
+  删除 → 出现在回收站列表（贴 DOM 文本）→ 恢复 → 回到 profile 列表（贴两侧状态）→ 再删一次 → 彻底删除 → 列表回到空 + 磁盘上真没了
+- **`conflict` 分支**：回收站里留一份、先建一个同名 profile、再点恢复 → 必须拒绝并说明原因（贴原文）
+- **穿越负例**：`dir` 塞 `../profiles/web` → 必须 `bad-params`
+- 回执文案：回收站与硬删两种各贴实际文本；证明正文里**没有路径/mode 这些**（悬停里有 ✓）
+- `node design/run-acceptance.mjs http://127.0.0.1:5390/`：判定项全过（现在 28 条；日志那两条我知道还挂着我自己的一个探针问题，**不用你管** ✓）
+
+## 四、环境与提交
+- 5390 上跑着控制台（**别 kill、别重启**）；测试全在隔离的 DSH_HOME / XDG_STATE_HOME 里做 ✓
+- **别动使用者的 `~/.dsh/profiles` 与 `~/.local/state/dsh-console`** ✗（他的 `web-dev` 还在回收站里，别碰那一份）
+- 机器现在偏慢，长命令留足超时；成规模的代码用 write 落文件
+- **显式路径提交**，中文描述 ≤30 字；先读 `~/.agents/skills/git-commit/SKILL.md` 并跑自检脚本

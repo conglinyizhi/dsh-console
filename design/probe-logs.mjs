@@ -106,6 +106,7 @@ const expr = `(async () => {
 // awaitPromise：表达式是 async IIFE，不加这个参数拿到的是 Promise 而不是它的值
 const out = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })
 const data = JSON.parse(out.result?.result?.value ?? '{}')
+
 writeFileSync(outJson, JSON.stringify(data, null, 1))
 console.log(JSON.stringify({ overflow: data.overflow, box: data.box && { scrollHeight: data.box.scrollHeight, clientHeight: data.box.clientHeight, atBottom: data.box.atBottom, horizontalScroll: data.box.horizontalScroll, whiteSpace: data.box.whiteSpace }, lineCount: data.lineCount, levels: data.levels, options: data.select?.options?.length, optionsDetail: data.select?.options, meta: data.meta?.slice(0, 90), instancesAtRead: data.instancesAtRead }, null, 1))
 chrome.kill()
