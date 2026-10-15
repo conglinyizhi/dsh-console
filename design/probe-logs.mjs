@@ -80,6 +80,6 @@ const expr = `(() => {
 const out = await send('Runtime.evaluate', { expression: expr, returnByValue: true })
 const data = JSON.parse(out.result?.result?.value ?? '{}')
 writeFileSync(outJson, JSON.stringify(data, null, 1))
-console.log(JSON.stringify({ overflow: data.overflow, box: data.box && { scrollHeight: data.box.scrollHeight, clientHeight: data.box.clientHeight, atBottom: data.box.atBottom, horizontalScroll: data.box.horizontalScroll, whiteSpace: data.box.whiteSpace }, lineCount: data.lineCount, levels: data.levels, options: data.select?.options?.length, meta: data.meta?.slice(0, 90) }, null, 1))
+console.log(JSON.stringify({ overflow: data.overflow, box: data.box && { scrollHeight: data.box.scrollHeight, clientHeight: data.box.clientHeight, atBottom: data.box.atBottom, horizontalScroll: data.box.horizontalScroll, whiteSpace: data.box.whiteSpace }, lineCount: data.lineCount, levels: data.levels, options: data.select?.options?.length, optionsDetail: data.select?.options, meta: data.meta?.slice(0, 90) }, null, 1))
 chrome.kill()
 process.exit(0)

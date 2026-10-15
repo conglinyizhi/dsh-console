@@ -99,3 +99,84 @@ PUT /api/local/settings   body { values:{...} }  → 校验后落盘并返回新
 - 现状：整目录拷贝，**排除 `node_modules`**。使用者说「整个 profile 目录」，但全拷一次是几百 MB/几万文件 ✗
 - **本轮保持排除 `node_modules`**，但要在派生结果里**写明**「已拷 N 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可」
 - **备注文件必须跟着拷过去**（它在目录里，天然会跟着 ✓ 但要实测证明）
+---
+
+# 追加契约（第三轮：补齐三个空壳菜单项）
+
+现状（已核实）：行菜单里 `查看日志` / `打开工作目录` / `编辑配置` **没有后端能力、前端也没有处理分支**，点了落到兜底什么也不做。使用者点名了这三项。
+其余九个动作（start/stop/restart/fork/rename/set-profile-note/archive/unarchive/delete）都已经是真的，**本轮不许动它们的语义**。
+
+## 一、后端新增动作 `open-path`（打开目录 / 打开配置）
+
+```
+POST /api/local/action
+{ "action": "open-path", "params": { "profile": "<名>", "kind": "dir" | "config" } }
+kind 缺省 "dir"（profile 目录）；"config" 指向该 profile 的 cordis.patch.yml
+→ { ok:true, data:{ action, outcome:{ what, path, opener, pid? }, note } }
+```
+
+**安全要求（这条是硬要求）**：
+- **只接受枚举目标，绝不接受客户端给的路径** —— 没有 `path` 参数这回事 ✗
+- profile 名走既有白名单校验；解析出的路径必须落在 profilesRoot 之内（两道，与 set-profile-note 同款）
+- 用 `xdg-open` 直接 exec（**不经 shell**，不做任何字符串插值 ✗），detached、不等它退出
+- 目标不存在 → `not-found`；打不开（没有 xdg-open / 无 DISPLAY）→ `io-error`，message 里写清是哪种（**别假装成功**）
+- 只读层不动；这仍走 `POST /api/local/action` 与既有守卫（`X-DSH-Console` + Origin）
+
+## 二、前端三个菜单项接上
+
+| 菜单项 | 行为 |
+| --- | --- |
+| 查看日志 | **切到日志页，并把来源设成这只实例**（`instance:<id>` 这套已有），打开即滚到底。**不要新开页面** |
+| 打开工作目录 | `open-path` + `kind:"dir"`；成功/失败都要有反馈（失败显示后端给的原因） |
+| 编辑配置 | `open-path` + `kind:"config"`；profile 没有 `cordis.patch.yml` 时显示后端给的 `not-found` 原因 |
+
+三项都要**真跑一遍贴证据**；`打开工作目录`/`编辑配置` 在无图形环境下会失败，那就**如实贴出失败提示**并在报告里说明环境限制，不许写成成功。
+---
+
+# 追加契约（第四轮：带握手令牌的访问地址）
+
+使用者原话：「启动某个实验 profile 的时候，我们能通过 webui 来启动新的标签页吗？因为首次握手需要控制台打印的 key」
+
+## 事实（已核实）
+- dsh web 的首次握手是 URL 里的 `?token=<key>`；不带就是 **401**（实测 `GET http://127.0.0.1:3080/` → 401）
+- 控制台起实例时把它的 stdout/stderr 重定向到 `~/.dsh/logs/console-<profile>-<port>.log`，**dsh 启动横幅里有带 token 的完整地址**（worker 证据：`dsh web: http://127.0.0.1:8462/?token=…`）
+- **外部起的实例**（例如使用者手动起的 3080）：token 打在启动它的那个终端里，控制台可读的文件里**没有** ✗
+
+## 一、后端：每个实例补一个「能直接握手的地址」
+
+`GET /api/local/instances` 的每个实例**加两个字段**（加字段，旧消费者忽略即可）：
+
+```
+webUrl:       string | null   // 带 token 的完整地址；读不到就是 null
+webUrlSource: string          // 令牌从哪来，或为什么读不到（见下）
+```
+
+**取值顺序（找到就停）**：
+1. 运行时登记里那条记录（`runtime.json` 的 `logPath`）指向的日志文件里找 `http://<host>:<port>/?token=<串>`
+2. `~/.dsh/logs/console-<profile>-<port>.log`
+3. `~/.dsh/logs/` 下有界扫描（**只扫最近改动的前 20 个 .log**，每份**只读尾部 200 行**）里提到 `:<port>/?token=` 的行
+
+**硬要求**：
+- **读不到就给 null，不许编** ✗；`webUrlSource` 写清是哪种来源或哪种读不到（`外部实例：令牌在启动它的终端里` / `日志里没有带令牌的地址` / `日志文件不存在` …）
+- 端口必须与实例端口一致（别把别的实例的令牌贴上来 ✗）
+- host 用该实例自己的 host（现在实例的 url 字段里就有）
+- **令牌不进审计** ✗：`audit.jsonl` 里不许出现 token 原值（记动作与 profile 就够）
+- 每次读都现算（token 可能每次启动都变 ✗ 不许缓存）
+- 只读层其余字段一个都不许动
+
+## 二、前端
+
+- 卡片上的「打开 Web UI」与行菜单的「在新标签页打开」**都用 `webUrl`**（有就用带令牌的）
+- 「访问地址」那一行显示的仍是裸地址（人读的），但**悬停里给出 webUrl 的来源或为什么读不到**
+- `webUrl` 为 null 时：按钮仍可点，但**先提示读不到令牌的原因**，并把裸地址给出来（让人能从启动它的终端里自己拼）——**不许给一个点了 401 的链接还装作能用** ✗
+- 「复制访问地址」复制裸地址；**另加一条「复制带令牌的地址」**（有 webUrl 时才出现）
+
+## 三、验收
+
+- 起一只实例 → 贴出 instances 响应里该实例的 `webUrl` 与 `webUrlSource`，并**用 curl 证明这个地址能过握手**（`GET <webUrl>` 不再是 401，贴状态码）
+- 停掉再起 → token 变了的话，贴出两次 webUrl 不同（证明是现算的）
+- 外部实例（使用者那只 3080）→ `webUrl: null` + 原因写明「令牌在启动它的终端里」
+- 审计文件里 grep token 原值 → **0 命中**
+- 读不到的分支：把实例日志删掉再读 → null + 对应原因（不许崩）
+- `node design/run-acceptance.mjs <baseUrl>`：判定项全过
+- **显式路径提交**（并行期间），中文描述 ≤30 字

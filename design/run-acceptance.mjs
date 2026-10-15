@@ -81,7 +81,20 @@ if (logs) {
   } else {
     addInfo('级别配色（窗口里 0 条 error 行，无从验证）', 'error 行 ' + errRows)
   }
-  add('来源下拉项数', String(vueLogs?.select?.options?.length ?? 4), String(logs.select?.options?.length), logs.select?.options?.length === (vueLogs?.select?.options?.length ?? 4))
+  // 下拉项数取决于当时有几只实例在跑 —— 基线里那个 4 是「1 只实例 + 分隔 + 宿主 + 审计」，
+  // 拿它当固定期望是错的（并行起一只实例就会挂）。改成从实时数据推期望。
+  const live = await fetch(baseUrl.replace(/\/$/, '') + '/api/local/instances')
+    .then((r) => r.json()).then((j) => j?.data?.instances ?? []).catch(() => null)
+  const opts = logs.select?.options ?? []
+  const vals = opts.map((o) => o.value)
+  const instOpts = vals.filter((v) => typeof v === 'string' && v.startsWith('instance:'))
+  if (live === null) {
+    addInfo('来源下拉（读不到实例列表，无从推算期望）', String(opts.length) + ' 项')
+  } else {
+    add('来源下拉含全部在跑实例', live.length + ' 只', instOpts.length + ' 项', instOpts.length >= live.length)
+    add('来源下拉含固定来源', 'host + audit', vals.filter((v) => v === 'host' || v === 'audit').join(' + ') || '无',
+      vals.includes('host') && vals.includes('audit'))
+  }
   add('元信息含目录依据', 'true', String(!!(logs.meta && logs.meta.includes('目录依据'))), !!(logs.meta && logs.meta.includes('目录依据')))
 }
 if (anim) {
