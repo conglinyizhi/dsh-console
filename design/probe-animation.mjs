@@ -61,9 +61,19 @@ const after = await send('Runtime.evaluate', { expression: `(() => {
 })()`, returnByValue: true })
 
 // 收尾：停掉本次新起的实例（只停新出现的端口，既有的一律不碰）
-let cleanup = { stopped: [] }
+// 实例起来要 1~2 秒，点完立刻轮询会「看不到新实例」→ 它就留着不走了 ✗
+// 这里等到「它真的出现」再停（有界 8 秒），才算真的收尾。
+let cleanup = { stopped: [], waitedMs: 0, appeared: [] }
 try {
-  const now = JSON.parse(await ev(`JSON.stringify((await (await fetch('/api/local/instances')).json()).data.instances.map((i) => i.port))`) || '[]')
+  const t0 = Date.now()
+  let now = []
+  while (Date.now() - t0 < 8000) {
+    now = JSON.parse(await ev(`JSON.stringify((await (await fetch('/api/local/instances')).json()).data.instances.map((i) => i.port))`) || '[]')
+    if (now.some((p) => !portsBefore.includes(p))) break
+    await new Promise((r) => setTimeout(r, 500))
+  }
+  cleanup.waitedMs = Date.now() - t0
+  cleanup.appeared = now.filter((p) => !portsBefore.includes(p))
   for (const p of now) {
     if (portsBefore.includes(p)) continue
     const r = await ev(`(async () => {

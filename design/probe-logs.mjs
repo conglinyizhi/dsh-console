@@ -40,6 +40,19 @@ await send('Runtime.evaluate', { expression: `(() => {
 })()`, returnByValue: true })
 await new Promise((r) => setTimeout(r, 3000))
 
+// 显式把来源选成 host：默认来源会跟着「当前谁在跑」变（实例一起来就变成那只实例的日志），
+// 那样判定量的就不是同一件事 ✗ 钉死来源，判据才与实例增删无关。
+await send('Runtime.evaluate', { expression: `(() => {
+  const sel = document.querySelector('select')
+  if (!sel) return 'no-select'
+  const opt = [...sel.options].find((o) => o.value === 'host')
+  if (!opt) return 'no-host-option'
+  sel.value = 'host'
+  sel.dispatchEvent(new Event('change', { bubbles: true }))
+  return 'picked-host'
+})()`, returnByValue: true })
+await new Promise((r) => setTimeout(r, 2500))
+
 const expr = `(() => {
   const S = ${JSON.stringify(SEL)}
   const R = (el) => { const r = el.getBoundingClientRect(); return { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1) } }
@@ -73,6 +86,14 @@ const expr = `(() => {
     select: sel ? {
       value: sel.value,
       options: [...sel.options].map((o) => ({ text: o.textContent.trim(), value: o.value, disabled: o.disabled })),
+      // 同一时刻的在跑实例列表：判定要拿它比，不能拿"判定时"的实时值——那是另一个时刻 ✗
+      instancesAtRead: await (async () => {
+        try {
+          const r = await fetch('/api/local/instances')
+          const j = await r.json()
+          return (j?.data?.instances ?? []).map((i) => i.port)
+        } catch (e) { return null }
+      })(),
     } : null,
     meta: document.querySelector(S.meta)?.textContent.trim() ?? null,
   })
@@ -80,6 +101,6 @@ const expr = `(() => {
 const out = await send('Runtime.evaluate', { expression: expr, returnByValue: true })
 const data = JSON.parse(out.result?.result?.value ?? '{}')
 writeFileSync(outJson, JSON.stringify(data, null, 1))
-console.log(JSON.stringify({ overflow: data.overflow, box: data.box && { scrollHeight: data.box.scrollHeight, clientHeight: data.box.clientHeight, atBottom: data.box.atBottom, horizontalScroll: data.box.horizontalScroll, whiteSpace: data.box.whiteSpace }, lineCount: data.lineCount, levels: data.levels, options: data.select?.options?.length, optionsDetail: data.select?.options, meta: data.meta?.slice(0, 90) }, null, 1))
+console.log(JSON.stringify({ overflow: data.overflow, box: data.box && { scrollHeight: data.box.scrollHeight, clientHeight: data.box.clientHeight, atBottom: data.box.atBottom, horizontalScroll: data.box.horizontalScroll, whiteSpace: data.box.whiteSpace }, lineCount: data.lineCount, levels: data.levels, options: data.select?.options?.length, optionsDetail: data.select?.options, meta: data.meta?.slice(0, 90), instancesAtRead: data.instancesAtRead }, null, 1))
 chrome.kill()
 process.exit(0)

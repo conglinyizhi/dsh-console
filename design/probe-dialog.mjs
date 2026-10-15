@@ -17,9 +17,9 @@ await send('Page.navigate', { url: baseUrl }); await wait(4500)
 // 打开停止卡的 ▾ 菜单 → 重命名
 // 入口用 [aria-haspopup="menu"]（选择器映射里的 menuTrigger）—— 曾经用 `.split-caret || buttons[1]` 兜底，
   // 分段按钮撤掉之后那个兜底会点到「重启」，菜单开不了、框也开不了，于是四条判定变成「没框所以关着」的假通过 ✗
-await ev(`(() => { const c = [...document.querySelectorAll('[data-name="instance-card"]')].find((e) => e.querySelector('[data-name="sub-line"][data-status="stopped"]')); const t = c && c.querySelector('[aria-haspopup="menu"]'); if (!t) return 'no-trigger'; t.click(); return 'clicked' })()`)
+await ev(`(() => { const c = [...document.querySelectorAll('[data-name^="instance-card"]')].find((e) => e.querySelector('[data-name^="sub-line"][data-status="stopped"]')); const t = c && c.querySelector('[aria-haspopup="menu"]'); if (!t) return 'no-trigger'; t.click(); return 'clicked' })()`)
 await wait(800)
-await ev(`(() => { const it = [...document.querySelectorAll('[data-name="row-menu"] button, [data-name="row-menu"] [role=menuitem]')].find((e) => e.textContent.trim() === '重命名'); if (it) it.click() })()`)
+await ev(`(() => { const it = [...document.querySelectorAll('[data-name^="row-menu"] button, [data-name^="row-menu"] [role=menuitem]')].find((e) => e.textContent.trim() === '重命名'); if (it) it.click() })()`)
 await wait(900)
 const out = await ev(`(() => {
   const R = (e) => { const r = e.getBoundingClientRect(); return { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1) } }
@@ -44,13 +44,13 @@ console.log(out)
 const clickTest = await evAsync(`(async () => {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms))
   const openRename = async () => {
-    const c = [...document.querySelectorAll('[data-name="instance-card"]')].find((e) => e.textContent.includes('启动'))
+    const c = [...document.querySelectorAll('[data-name^="instance-card"]')].find((e) => e.textContent.includes('启动'))
     if (!c) return false
     const t = c.querySelector('[aria-haspopup="menu"]')
     if (!t) return false
     t.click()
     await wait(700)
-    const it = [...document.querySelectorAll('[data-name="row-menu"] button, [data-name="row-menu"] [role=menuitem]')].find((e) => e.textContent.trim() === '重命名')
+    const it = [...document.querySelectorAll('[data-name^="row-menu"] button, [data-name^="row-menu"] [role=menuitem]')].find((e) => e.textContent.trim() === '重命名')
     if (!it) return false
     it.click(); await wait(700)
     return !!document.querySelector('.dsh-dialog-card')

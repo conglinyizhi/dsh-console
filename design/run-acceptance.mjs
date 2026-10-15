@@ -18,6 +18,17 @@ const j = (p) => existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null
 const errs = []
 if (run('verify-frontend.mjs', [baseUrl, prefix + '-verify.png', prefix + '-verify.json'])) errs.push('verify-frontend 失败')
 if (run('probe-invariants.mjs', [baseUrl, prefix + '-inv.json', profile])) errs.push('probe-invariants 失败')
+// 动效探针会点「启动」真拉起一只实例。收尾放在 Node 侧：
+// 无头浏览器页面里的 fetch 实测不可靠（两次都拿不到数据），Node 这边稳。
+// 先记下起跑时就在跑的端口，收尾时只停这一轮新起来的。
+const apiBase = baseUrl.replace(/\/$/, '')
+const listPorts = async () => {
+  try {
+    const j = await (await fetch(apiBase + '/api/local/instances')).json()
+    return (j?.data?.instances ?? []).map((i) => i.port)
+  } catch (e) { return [] }
+}
+const portsBefore = await listPorts()
 if (run('probe-logs.mjs', [baseUrl, prefix + '-logs.json', '日志', profile])) errs.push('probe-logs 失败')
 if (run('probe-animation.mjs', [baseUrl, prefix + '-anim.json', '启动'])) errs.push('probe-animation 失败')
 const dlgOut = spawnSync('node', [join(here, 'probe-dialog.mjs'), baseUrl], { encoding: 'utf8', timeout: 180000 })
@@ -30,6 +41,31 @@ if (!dlg) errs.push('对话框探针没给出 SUMMARY')
 const ccOut = spawnSync('node', [join(here, 'probe-class-contract.mjs'), baseUrl], { encoding: 'utf8', timeout: 180000 })
 let cc = null
 try { cc = JSON.parse((ccOut.stdout || '').trim().split('\n').pop()) } catch (e) { errs.push('类名契约探针输出无法解析') }
+// 收尾：等这一轮新起来的实例真的出现（有界 8 秒）再停掉，起跑时就在跑的一只不碰。
+// 不这么做会两个后果：别人的机器上留一只实例 ✗；日志页默认来源被它带偏 ✗
+const cleanup = { waitedMs: 0, appeared: [], stopped: [] }
+try {
+  const t0 = Date.now()
+  let now = await listPorts()
+  while (Date.now() - t0 < 8000 && !now.some((p) => !portsBefore.includes(p))) {
+    await new Promise((r) => setTimeout(r, 500))
+    now = await listPorts()
+  }
+  cleanup.waitedMs = Date.now() - t0
+  cleanup.appeared = now.filter((p) => !portsBefore.includes(p))
+  for (const p of cleanup.appeared) {
+    try {
+      const r = await fetch(apiBase + '/api/local/action', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'X-DSH-Console': '1' },
+        body: JSON.stringify({ action: 'stop-instance', params: { port: p } }),
+      })
+      cleanup.stopped.push({ port: p, status: r.status })
+    } catch (e) { cleanup.stopped.push({ port: p, error: String(e).slice(0, 60) }) }
+  }
+} catch (e) { cleanup.error = String(e).slice(0, 80) }
+if (cleanup.appeared.length) console.log('收尾：本轮新起的实例 ' + cleanup.appeared.join(',') + ' 已停（等了 ' + cleanup.waitedMs + 'ms）')
+
 if (errs.length) console.log('探针执行问题: ' + errs.join(' / '))
 
 const v = j(prefix + '-verify.json')
@@ -99,8 +135,8 @@ if (logs) {
   }
   // 下拉项数取决于当时有几只实例在跑 —— 基线里那个 4 是「1 只实例 + 分隔 + 宿主 + 审计」，
   // 拿它当固定期望是错的（并行起一只实例就会挂）。改成从实时数据推期望。
-  const live = await fetch(baseUrl.replace(/\/$/, '') + '/api/local/instances')
-    .then((r) => r.json()).then((j) => j?.data?.instances ?? []).catch(() => null)
+  // 用探针抓取那一刻记下的实例数（同一时刻），不再另起一次 fetch —— 那会拿到"另一个时刻"的数据 ✗
+  const live = logs.instancesAtRead ?? null
   const opts = logs.select?.options ?? []
   const vals = opts.map((o) => o.value)
   const instOpts = vals.filter((v) => typeof v === 'string' && v.startsWith('instance:'))

@@ -20,22 +20,22 @@ const out = {}
 // 1) 菜单：Esc 关闭 + 焦点回触发元素
 await ev(`document.querySelector('[aria-haspopup="menu"]').click()`)
 await wait(600)
-out.menuOpened = await ev(`!!document.querySelector('[data-name="row-menu"]')`)
+out.menuOpened = await ev(`!!document.querySelector('[data-name^="row-menu"]')`)
 await key('Escape'); await wait(600)
-out.menuClosedByEsc = await ev(`!document.querySelector('[data-name="row-menu"]')`)
+out.menuClosedByEsc = await ev(`!document.querySelector('[data-name^="row-menu"]')`)
 out.focusBackToTrigger = await ev(`document.activeElement === document.querySelector('[aria-haspopup="menu"]')`)
 
 // 2) 菜单：点外关闭
 await ev(`document.querySelector('[aria-haspopup="menu"]').click()`); await wait(600)
-const before = await ev(`!!document.querySelector('[data-name="row-menu"]')`)
-await ev(`document.querySelector('[data-name="menu-overlay"]') ? document.querySelector('[data-name="menu-overlay"]').click() : document.body.click()`)
+const before = await ev(`!!document.querySelector('[data-name^="row-menu"]')`)
+await ev(`document.querySelector('[data-name^="menu-overlay"]') ? document.querySelector('[data-name^="menu-overlay"]').click() : document.body.click()`)
 await wait(600)
 out.menuOpened2 = before
-out.menuClosedByOutside = await ev(`!document.querySelector('[data-name="row-menu"]')`)
+out.menuClosedByOutside = await ev(`!document.querySelector('[data-name^="row-menu"]')`)
 
 // 3) 重命名对话框
 await ev(`document.querySelector('[aria-haspopup="menu"]').click()`); await wait(600)
-const clicked = await ev(`(() => { const it = [...document.querySelectorAll('[data-name="row-menu"] button, [data-name="row-menu"] [role=menuitem]')].find(e => e.textContent.trim() === '重命名'); if (!it) return 'no-item'; it.click(); return 'clicked' })()`)
+const clicked = await ev(`(() => { const it = [...document.querySelectorAll('[data-name^="row-menu"] button, [data-name^="row-menu"] [role=menuitem]')].find(e => e.textContent.trim() === '重命名'); if (!it) return 'no-item'; it.click(); return 'clicked' })()`)
 out.renameItemClicked = clicked
 await wait(800)
 out.dialogOpen = await ev(`!!document.querySelector('.dsh-dialog-card, [class*=dialog]')`)
