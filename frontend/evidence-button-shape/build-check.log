@@ -1,0 +1,25 @@
+改后在本机跑 frontend/check.sh（内含 build.sh）的完整关键行：
+
+== moon check --target js ==
+Warning: Dependency `hackwaly/moonback@0.8.1` is deprecated: Use moonbitlang/moonback instead
+Finished. moon: no work to do
+== 0/4 清 dist/ ==
+== 1/4 编样式（precss）==
+Warning: Dependency `hackwaly/moonback@0.8.1` is deprecated: Use moonbitlang/moonback instead
+wrote dist/assets/app.css (28757 bytes)
+== 2/4 编客户端应用（--target js --release）==
+Warning: Dependency `hackwaly/moonback@0.8.1` is deprecated: Use moonbitlang/moonback instead
+Finished. moon: ran 3 tasks, now up to date
+== 3/4 拷产物到 dist/ ==
+== 4/4 预压缩静态资源（gzip -9 -n -k）==
+产物：
+dist:
+总计 16
+dist/assets:
+总计 1796
+-rw-r--r-- 1 clyzhi clyzhi   28757 10月15日 17:20 app.css
+-rw-r--r-- 1 clyzhi clyzhi    4366 10月15日 17:20 app.css.gz
+-rw-r--r-- 1 clyzhi clyzhi 1598638 10月15日 17:20 app.js
+-rw-r--r-- 1 clyzhi clyzhi  181264 10月15日 17:20 app.js.gz
+drwxr-xr-x 2 clyzhi clyzhi    4096 10月15日 17:20 licenses
+check 通过。

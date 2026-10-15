@@ -1,0 +1,44 @@
+一、按钮组构成（每张卡的直接子节点）
+  改前 [running] web :3080: 子节点 4 个 → <button dsh-btn primary accent>「打开 Web UI」 + <button dsh-btn>「停止」 + <button dsh-btn>「重启」 + <button dsh-btn icon-only>「图标」
+       按钮组右缘 1141 / 内容盒右缘 1141 → Δ0
+  改后 [running] web :3080: 子节点 4 个 → <button dsh-btn primary accent>「打开 Web UI」 + <button dsh-btn>「停止」 + <button dsh-btn>「重启」 + <button dsh-btn icon-only>「图标」
+       按钮组右缘 1141 / 内容盒右缘 1141 → Δ0
+  改前 [stopped] headless: 子节点 2 个 → <div dsh-split violet>[启动 | 图标] + <button dsh-btn>「重启」
+       按钮组右缘 1141 / 内容盒右缘 1141 → Δ0
+  改后 [stopped] headless: 子节点 3 个 → <button dsh-btn primary violet>「启动」 + <button dsh-btn>「重启」 + <button dsh-btn icon-only>「图标」
+       按钮组右缘 1141 / 内容盒右缘 1141 → Δ0
+  改前 [stopped] review-dev: 子节点 2 个 → <div dsh-split violet>[启动 | 图标] + <button dsh-btn>「重启」
+       按钮组右缘 1141 / 内容盒右缘 1141 → Δ0
+  改后 [stopped] review-dev: 子节点 3 个 → <button dsh-btn primary violet>「启动」 + <button dsh-btn>「重启」 + <button dsh-btn icon-only>「图标」
+       按钮组右缘 1141 / 内容盒右缘 1141 → Δ0
+
+二、两类卡的 ⋯ 按钮逐项对照（类名 / 矩形 / 圆角 / 内边距）
+  改前 已停止卡入口: 类名="dsh-btn primary split-caret" x=1045 y=356.8 w=26 h=30 right=1071 bottom=386.8 radius=0px 6px 6px 0px padding=0px
+  改前 运行中卡入口: 类名="dsh-btn icon-only" x=1111 y=126.7 w=30 h=30 right=1141 bottom=156.7 radius=6px padding=0px
+  改前 两者一致: false
+  改后 已停止卡入口: 类名="dsh-btn icon-only" x=1111 y=356.8 w=30 h=30 right=1141 bottom=386.8 radius=6px padding=0px
+  改后 运行中卡入口: 类名="dsh-btn icon-only" x=1111 y=126.7 w=30 h=30 right=1141 bottom=156.7 radius=6px padding=0px
+  改后 两者一致: true
+
+三、已停止卡菜单（点开后的条目与顺序）
+  改前:
+  查看日志
+  打开工作目录
+  编辑配置
+  --- 分隔 ---
+  重命名
+  编辑备注
+  归档
+  删除
+  改后:
+  查看日志
+  打开工作目录
+  编辑配置
+  --- 分隔 ---
+  重命名
+  编辑备注
+  归档
+  删除
+  逐条一致: true（8 行 vs 8 行）
+  菜单锚点 改前 top+6 right0 / 改后 top+6 right0
+  落焦第一项 改前 true / 改后 true；Esc 收起 改前 true / 改后 true

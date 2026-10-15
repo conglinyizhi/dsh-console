@@ -431,7 +431,8 @@ select { appearance: none; -webkit-appearance: none; }
 
 // ── 行内按钮组与下拉菜单（InstanceActions.vue） ──
 .dsh-actions {
-  /* 运行中：打开 Web UI / 停止 / 重启 / ⋯；已停止：启动（两段式）/ 重启。
+  /* 运行中：打开 Web UI / 停止 / 重启 / ⋯；已停止：启动 / 重启 / ⋯。
+     两种状态同一个骨架，只有第一颗按钮的语义随状态翻转。
      菜单挂在这个容器上，右缘贴卡片内容盒右缘 */
   position: relative;
   justify-self: end;
@@ -466,7 +467,6 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-menu-item.danger:hover,
 .dsh-menu-item.danger:focus-visible { color: $danger; }
 .dsh-menu-sep { height: 1px; margin: 4px 6px; background: $line-strong; }
-.dsh-caret { transform: rotate(90deg); opacity: 0.8; }
 .dsh-btn {
   height: 30px; padding: 0 8px;
   display: inline-flex; align-items: center; gap: 6px;
@@ -483,20 +483,14 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-btn.primary:hover { filter: brightness(1.08); }
 .dsh-btn.icon-only { width: 30px; padding: 0; justify-content: center; }
 /* 主色底随实例色调：运行中卡蓝（accent）、已停止的 profile 卡紫（violet） */
-.dsh-split.accent,
 .dsh-btn.primary.accent { --btn-bg: $accent; }
-.dsh-split.violet,
 .dsh-btn.primary.violet { --btn-bg: $violet; }
-/* split button：两半同底色；右半的 border-left 就是分隔线，圆角各只留外侧两角 */
-.dsh-split { display: inline-flex; }
-.dsh-split-main { border-right-width: 0; border-radius: $radius-sm 0 0 $radius-sm; }
-.dsh-split > .dsh-btn.split-caret {
-  min-width: 26px; padding: 0; justify-content: center;
-  border-left: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 0 $radius-sm $radius-sm 0;
-}
-/* 悬停只加深指针所在的那一半 */
-.dsh-split > .dsh-btn.primary:hover { filter: brightness(0.88); }
+/* 这里原来还有一组「分段按钮」的规则：左半主按钮 + 右半 caret 开菜单，
+   两半拼成一颗、各自只留外侧圆角、中间拿 border-left 当分隔线、悬停只加深一半。
+   它们随形态一起删掉了，不是留着不用 —— 已停止卡的启动方式只有一种，
+   而分段的形状在暗示"有多个变体可选"；控件的形状要和真实语义一致，
+   于是启动恢复成普通主色按钮，更多动作归行尾独立的 ⋯（.dsh-btn.icon-only）。
+   死规则留着，下一次改动会被照着抄。 */
 .dsh-dot-danger { width: 7px; height: 7px; border-radius: 50%; background: $danger; }
 
 // ── 右栏信息面板（SideInfoPanel.vue） ──

@@ -1,0 +1,353 @@
+{
+ "label": "改前（旧产物）",
+ "baseUrl": "http://127.0.0.1:5390/",
+ "url": "http://127.0.0.1:5390/",
+ "trigger": {
+  "name": "headless",
+  "cls": "dsh-btn primary split-caret",
+  "rect": {
+   "x": 1045,
+   "y": 356.8,
+   "w": 26,
+   "h": 30,
+   "right": 1071,
+   "bottom": 386.8
+  },
+  "cx": 1058,
+  "cy": 371.8,
+  "radius": "0px 6px 6px 0px",
+  "padding": "0px"
+ },
+ "runningTrigger": {
+  "name": "web :3080",
+  "cls": "dsh-btn icon-only",
+  "rect": {
+   "x": 1111,
+   "y": 126.7,
+   "w": 30,
+   "h": 30,
+   "right": 1141,
+   "bottom": 156.7
+  },
+  "radius": "6px",
+  "padding": "0px"
+ },
+ "layout": {
+  "cards": [
+   {
+    "name": "web :3080",
+    "status": "running",
+    "actionsRight": 1141,
+    "contentRight": 1141,
+    "actionsDelta": 0,
+    "actionsChildren": [
+     {
+      "tag": "button",
+      "cls": "dsh-btn primary accent",
+      "text": "打开 Web UI",
+      "buttons": [
+       "打开 Web UI"
+      ]
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "停止",
+      "buttons": [
+       "停止"
+      ]
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "重启",
+      "buttons": [
+       "重启"
+      ]
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn icon-only",
+      "text": "",
+      "buttons": [
+       ""
+      ]
+     }
+    ],
+    "buttons": [
+     {
+      "tag": "button",
+      "cls": "dsh-btn primary accent",
+      "text": "打开 Web UI",
+      "aria": null,
+      "haspopup": null,
+      "rect": {
+       "x": 863,
+       "y": 126.7,
+       "w": 109,
+       "h": 30,
+       "right": 972,
+       "bottom": 156.7
+      },
+      "radius": "6px",
+      "padding": "0px 8px",
+      "gapSiblingPx": "6px"
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "停止",
+      "aria": null,
+      "haspopup": null,
+      "rect": {
+       "x": 978,
+       "y": 126.7,
+       "w": 57,
+       "h": 30,
+       "right": 1035,
+       "bottom": 156.7
+      },
+      "radius": "6px",
+      "padding": "0px 8px",
+      "gapSiblingPx": "6px"
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "重启",
+      "aria": null,
+      "haspopup": null,
+      "rect": {
+       "x": 1041,
+       "y": 126.7,
+       "w": 64,
+       "h": 30,
+       "right": 1105,
+       "bottom": 156.7
+      },
+      "radius": "6px",
+      "padding": "0px 8px",
+      "gapSiblingPx": "6px"
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn icon-only",
+      "text": "",
+      "aria": "更多操作（web :3080）",
+      "haspopup": "menu",
+      "rect": {
+       "x": 1111,
+       "y": 126.7,
+       "w": 30,
+       "h": 30,
+       "right": 1141,
+       "bottom": 156.7
+      },
+      "radius": "6px",
+      "padding": "0px",
+      "gapSiblingPx": "6px"
+     }
+    ]
+   },
+   {
+    "name": "headless",
+    "status": "stopped",
+    "actionsRight": 1141,
+    "contentRight": 1141,
+    "actionsDelta": 0,
+    "actionsChildren": [
+     {
+      "tag": "div",
+      "cls": "dsh-split violet",
+      "text": null,
+      "buttons": [
+       "启动",
+       ""
+      ]
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "重启",
+      "buttons": [
+       "重启"
+      ]
+     }
+    ],
+    "buttons": [
+     {
+      "tag": "button",
+      "cls": "dsh-btn primary dsh-split-main",
+      "text": "启动",
+      "aria": null,
+      "haspopup": null,
+      "rect": {
+       "x": 983,
+       "y": 356.8,
+       "w": 62,
+       "h": 30,
+       "right": 1045,
+       "bottom": 386.8
+      },
+      "radius": "6px 0px 0px 6px",
+      "padding": "0px 8px",
+      "gapSiblingPx": "6px"
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn primary split-caret",
+      "text": "",
+      "aria": "启动菜单（headless）",
+      "haspopup": "menu",
+      "rect": {
+       "x": 1045,
+       "y": 356.8,
+       "w": 26,
+       "h": 30,
+       "right": 1071,
+       "bottom": 386.8
+      },
+      "radius": "0px 6px 6px 0px",
+      "padding": "0px",
+      "gapSiblingPx": "6px"
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "重启",
+      "aria": null,
+      "haspopup": null,
+      "rect": {
+       "x": 1077,
+       "y": 356.8,
+       "w": 64,
+       "h": 30,
+       "right": 1141,
+       "bottom": 386.8
+      },
+      "radius": "6px",
+      "padding": "0px 8px",
+      "gapSiblingPx": "6px"
+     }
+    ]
+   },
+   {
+    "name": "review-dev",
+    "status": "stopped",
+    "actionsRight": 1141,
+    "contentRight": 1141,
+    "actionsDelta": 0,
+    "actionsChildren": [
+     {
+      "tag": "div",
+      "cls": "dsh-split violet",
+      "text": null,
+      "buttons": [
+       "启动",
+       ""
+      ]
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "重启",
+      "buttons": [
+       "重启"
+      ]
+     }
+    ],
+    "buttons": [
+     {
+      "tag": "button",
+      "cls": "dsh-btn primary dsh-split-main",
+      "text": "启动",
+      "aria": null,
+      "haspopup": null,
+      "rect": {
+       "x": 983,
+       "y": 550.8,
+       "w": 62,
+       "h": 30,
+       "right": 1045,
+       "bottom": 580.8
+      },
+      "radius": "6px 0px 0px 6px",
+      "padding": "0px 8px",
+      "gapSiblingPx": "6px"
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn primary split-caret",
+      "text": "",
+      "aria": "启动菜单（review-dev）",
+      "haspopup": "menu",
+      "rect": {
+       "x": 1045,
+       "y": 550.8,
+       "w": 26,
+       "h": 30,
+       "right": 1071,
+       "bottom": 580.8
+      },
+      "radius": "0px 6px 6px 0px",
+      "padding": "0px",
+      "gapSiblingPx": "6px"
+     },
+     {
+      "tag": "button",
+      "cls": "dsh-btn",
+      "text": "重启",
+      "aria": null,
+      "haspopup": null,
+      "rect": {
+       "x": 1077,
+       "y": 550.8,
+       "w": 64,
+       "h": 30,
+       "right": 1141,
+       "bottom": 580.8
+      },
+      "radius": "6px",
+      "padding": "0px 8px",
+      "gapSiblingPx": "6px"
+     }
+    ]
+   }
+  ]
+ },
+ "menu": {
+  "opened": true,
+  "cardName": "headless",
+  "triggerAriaExpanded": "true",
+  "rect": {
+   "x": 989,
+   "y": 392.8,
+   "w": 152,
+   "h": 229,
+   "right": 1141,
+   "bottom": 621.8
+  },
+  "deltaTop": 6,
+  "deltaRight": 0,
+  "activeIsFirstItem": true,
+  "items": [
+   "查看日志",
+   "打开工作目录",
+   "编辑配置",
+   "--- 分隔 ---",
+   "重命名",
+   "编辑备注",
+   "归档",
+   "删除"
+  ],
+  "cardRect": {
+   "x": 212,
+   "y": 335.8,
+   "w": 946,
+   "h": 173,
+   "right": 1158,
+   "bottom": 508.8
+  },
+  "menuClosedByEscape": true
+ }
+}

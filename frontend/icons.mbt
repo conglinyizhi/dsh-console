@@ -45,7 +45,7 @@
 //   archive-outline            菜单「归档」14
 //   check                      徽标「真实数据」12
 //   chevron-down               归档区折叠开关（展开态）14
-//   chevron-right              折叠开关（折叠态）14 / 流程箭头 14 / 两段式 caret 12
+//   chevron-right              折叠开关（折叠态）14 / 流程箭头 14
 //   cog-outline                顶栏「设置」14
 //   cube-outline               已停止空态 26
 //   delete-outline             菜单「删除」14 / 归档行「删除」14
@@ -59,7 +59,7 @@
 //   link-variant               菜单「复制访问地址」14 / 字段「访问地址」14
 //   note-text-outline          菜单「编辑备注」14 / 对话框标题旁 14
 //   open-in-new                「打开 Web UI」14 / 卡片底板 20 / 流程入口 16
-//   play                       两段式「启动」13
+//   play                       「启动」13 / 徽标「由本控制台启动」11
 //   puzzle-outline             profile 卡底板 20 / 字段「插件数量」14
 //   refresh                    「重启」14 / 日志页「刷新」13
 //   rename-outline             菜单「重命名」14
@@ -117,11 +117,11 @@ fn icon_path(name : String) -> String {
 /// `size` 是边长（px），同时就是元素的盒子 —— 对应 Vue 版 AppIcon 的
 /// `:width` / `:height` 两个属性。默认 14：菜单项、字段行、行内按钮都是这个值。
 ///
-/// `class` 只在需要额外变换时给（例如「两段式」的 caret 要转 90°）。
-fn icon(name : String, size? : Int = 14, class? : String = "") -> @html.Html {
-  let extra = if class == "" { "dsh-icon" } else { "dsh-icon " + class }
+/// 这里没有 `class` 参数了：原来唯一的调用方是分段按钮右半那个要转 90° 的 caret，
+/// 那个形态已经撤掉（见 view_overview.mbt 的 instance_actions）。需要额外变换时再加回来。
+fn icon(name : String, size? : Int = 14) -> @html.Html {
   @svg.svg(
-    class=extra,
+    class="dsh-icon",
     width=size,
     height=size,
     view_box="0 0 24 24",

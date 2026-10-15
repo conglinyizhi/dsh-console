@@ -64,7 +64,7 @@ fn running_menu(row : Row) -> Array[MenuEntry] {
 }
 
 ///|
-/// 已停止：下拉入口在「启动」右半的 caret 上；可删实例也能直接把删除放进菜单。
+/// 已停止：菜单从行尾独立的 ⋯ 打开（与运行中卡同一个入口）；可删实例才多一条「删除」。
 fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
   let items : Array[MenuEntry] = [
     MItem(Logs, "text-box-outline", "查看日志", false),
@@ -141,8 +141,8 @@ fn restart_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
 }
 
 ///|
-/// 行内按钮组。启动等待态（status=starting）：整行按钮禁用，含两段式的两半 ——
-/// caret 也 disabled，所以菜单根本开不出来。
+/// 行内按钮组。启动等待态（status=starting）：整行按钮禁用，行尾的 ⋯ 也 disabled ——
+/// 触发按钮点不动，菜单根本开不出来。
 fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let running = row.status is Running
   let tone = match row.tone {
@@ -173,51 +173,42 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
         [@html.i(class="dsh-dot-danger", @html.nothing), @html.span("停止")],
       ),
     )
-    parts.push(restart_button(row, model, emit))
+  } else {
+    // 启动：普通主色按钮（原来分段按钮的左半）。
+    // 分段形态在这里被**有意识地去掉**：我们只有一种启动方式，而"一颗按钮 + 一个 caret"
+    // 的形状在暗示"有多个变体可选"。控件的形状应该和它的真实语义一致 ——
+    // 更多动作归行尾独立的 ⋯，于是已停止卡与运行中卡是同一个骨架，
+    // 只有第一颗按钮的语义随状态翻转。
     parts.push(
       @html.button(
-        class="dsh-btn icon-only",
+        class="dsh-btn primary" + tone,
         type_="button",
         disabled=row.busy,
-        attrs=@html.Attrs::build()
-          .id(trigger_id(row.id))
-          .aria_haspopup("menu")
-          .aria_expanded(if model.menu_open == row.id { "true" } else { "false" })
-          .aria_label("更多操作（" + row.name + "）"),
-        on_click=emit(MenuToggle(row.id)),
-        [icon("dots-horizontal", size=16)],
+        on_click=emit(RowAction(row.id, Toggle)),
+        [
+          icon("play", size=13),
+          @html.span(if row.status is Starting { "启动中…" } else { "启动" }),
+        ],
       ),
     )
-  } else {
-    // 两段式：左半启动、右半只开菜单；分隔线是右半的 border-left，圆角各只留外侧两角
-    parts.push(
-      @html.div(class="dsh-split" + tone, [
-        @html.button(
-          class="dsh-btn primary dsh-split-main",
-          type_="button",
-          disabled=row.busy,
-          on_click=emit(RowAction(row.id, Toggle)),
-          [
-            icon("play", size=13),
-            @html.span(if row.status is Starting { "启动中…" } else { "启动" }),
-          ],
-        ),
-        @html.button(
-          class="dsh-btn primary split-caret",
-          type_="button",
-          disabled=row.busy,
-          attrs=@html.Attrs::build()
-            .id(trigger_id(row.id))
-            .aria_haspopup("menu")
-            .aria_expanded(if model.menu_open == row.id { "true" } else { "false" })
-            .aria_label("启动菜单（" + row.name + "）"),
-          on_click=emit(MenuToggle(row.id)),
-          [icon("chevron-right", size=12, class="dsh-caret")],
-        ),
-      ]),
-    )
-    parts.push(restart_button(row, model, emit))
   }
+  parts.push(restart_button(row, model, emit))
+  // 行尾 ⋯：两种状态共用这一段代码，类名 / 尺寸 / 圆角 / 间距因此逐项一致；
+  // 只有点开之后的内容随状态分叉（running_menu / stopped_menu）。
+  parts.push(
+    @html.button(
+      class="dsh-btn icon-only",
+      type_="button",
+      disabled=row.busy,
+      attrs=@html.Attrs::build()
+        .id(trigger_id(row.id))
+        .aria_haspopup("menu")
+        .aria_expanded(if model.menu_open == row.id { "true" } else { "false" })
+        .aria_label("更多操作（" + row.name + "）"),
+      on_click=emit(MenuToggle(row.id)),
+      [icon("dots-horizontal", size=16)],
+    ),
+  )
   // 菜单挂在按钮组容器**里面**：.dsh-actions 是它的定位祖先（position: relative），
   // 这样 top = 按钮组底 + 6px、right: 0 才对得上卡片内容盒右缘。
   if model.menu_open == row.id {

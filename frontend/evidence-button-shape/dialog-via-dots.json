@@ -1,0 +1,40 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "trigger": {
+  "name": "headless",
+  "cls": "dsh-btn icon-only",
+  "cx": 1126,
+  "cy": 371.828125
+ },
+ "open1": {
+  "menuOpen": true,
+  "clicked": "clicked",
+  "dialog": true
+ },
+ "geometry": {
+  "dialog": true,
+  "rect": {
+   "x": 540,
+   "y": 432.2,
+   "w": 360,
+   "h": 135.7
+  },
+  "viewport": {
+   "vw": 1440,
+   "vh": 1000
+  },
+  "centered": true,
+  "hitInDialog": true,
+  "scrimPresent": true,
+  "title": "重命名实例 headless",
+  "inputValue": "headless"
+ },
+ "closedByCancel": true,
+ "open2": {
+  "menuOpen": true,
+  "clicked": "clicked",
+  "dialog": true
+ },
+ "closedByScrim": true,
+ "focusBack": "trigger"
+}
