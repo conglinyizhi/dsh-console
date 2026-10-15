@@ -323,6 +323,43 @@ environ 里也**没有任何 DSH_***，靠命令行认不出它监听哪个端�
 **HTTP 签名探测保留**：它既是「这端口真的是 DSH web」的交叉校验，也是 `/proc` 侧读不到时的回退口径。
 两边都读不到才是真的读不到。
 
+**带令牌的访问地址（第四轮加字段）**
+
+dsh web 的首次握手看 URL 里的 `?token=<key>`，不带就是 401。控制台把实例的 stdout/stderr
+重定向到 `<该实例 DSH_HOME>/logs/console-<profile>-<port>.log`，启动横幅
+`dsh web: http://127.0.0.1:<端口>/?token=<串>` 就落在那里。所以 `instances[]` 每个实例
+**新增两个字段**（其余字段一个都没动，旧消费者忽略即可）：
+
+| 字段 | 类型 | 口径 |
+| --- | --- | --- |
+| `webUrl` | string / null | 能直接握手的完整地址；读不到就是 `null`，**绝不编** |
+| `webUrlSource` | string | 令牌来自哪份文件的哪一段，或为什么读不到 |
+
+取值顺序（找到就停，实现见 `instances/weburl.mbt`）：
+
+1. `runtime.json` 里这条实例登记的 `logPath`（先按 pid 对，再按端口对；**不按 profile 找**，
+   同名 profile 的历史登记可能指着一份别的日志）
+2. 按控制台命名约定拼出来的实例日志 `console-<profile>-<port>.log`（先该实例自己的 `DSH_HOME`，
+   再 dsh 默认的 `~/.dsh`）
+3. dsh 日志目录下的有界扫描：最近改动的 **20 份 .log**，每份**只读尾部 200 行**，找提到
+   `:<端口>/?token=` 的行
+
+几条硬口径：
+
+- **端口必须与该实例一致**：匹配串就是 `:<该实例的端口>/?token=`，所以不会把别的实例的令牌
+  贴上来；host 取该实例自己的 `url`（`http://127.0.0.1:<端口>/`）
+- **令牌原值不进审计**：`audit.jsonl` 里只有动作与 profile（实测 grep 令牌 → 0 命中），
+  `webUrlSource` 里也只写文件与段落，不带令牌
+- **每次现算、不缓存**：token 每次启动都会变，同一个 `instances` 请求里现读现拼；
+  同一个日志文件里有多条横幅时取**最后**那条（追加写，越靠后越是当前这次启动的）
+- **读不到就说读不到**：外部实例（手动起的，例如 3080）没有这份日志，令牌打在启动它的终端里 ——
+  回 `null` + 「外部实例：令牌在启动它的终端里……」，不给一个点了 401 的链接
+- **有界读，够不着也不猜**：自己那份日志先读尾部 256KB；没命中且窗口没盖到文件开头时补读开头
+  64KB，**只有「开头 + 尾部」能盖住整份文件才采信开头那一段** —— 中间有缺口时开头那个令牌可能
+  已经被后一次启动换掉了，宁可回 `null` 并写明「中间 N 字节没读」
+- 这一层仍然是**纯只读**：只做 `file_size` / `read_at` / `readdir` / `mtime` 与注册表读取，
+  不写盘、不建进程
+
 ## 响应外壳与状态码
 
 成功：
@@ -692,5 +729,6 @@ backend/
 ├── logs/logs.mbt               # GET /api/local/logs
 ├── processes/processes.mbt     # GET /api/local/processes
 ├── processes/procjoin.mbt      # 端口 → socket inode → PID → Profile/DSH_HOME/版本/时长
-└── instances/instances.mbt     # GET /api/local/instances
+├── instances/instances.mbt     # GET /api/local/instances
+└── instances/weburl.mbt        # 带令牌的访问地址（webUrl / webUrlSource）
 ```

@@ -581,6 +581,9 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
   }
   let instances : Array[@json.JsonVal] = []
   for item in report.instances {
+    // 带令牌的访问地址（契约第四轮）：每次现算，不缓存 —— token 每次启动都可能变。
+    // 读不到就是 null，原因写在 webUrlSource 里（见 weburl.mbt）。
+    let web = lookup_web_url(item)
     instances.push(@json.JObj([
       ("id", @json.JStr(item.id)),
       ("port", @json.jint(item.port)),
@@ -609,6 +612,8 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
         ("code", @json.JStr(item.process_reason_code)),
         ("message", @json.JStr(item.process_reason)),
       ])),
+      ("webUrl", @json.str_or_null(web.url)),
+      ("webUrlSource", @json.JStr(web.source)),
     ]))
   }
   @json.JObj([
