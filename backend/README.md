@@ -1,19 +1,23 @@
-# dsh-console 本地只读接口后端（MoonBit）
+# dsh-console 本地接口后端（MoonBit）
 
-dsh-console 前端的只读本地接口，用 **MoonBit + moonback** 重写的一版后端。
+dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版后端。接口分两层：
+
+- **只读（GET，纯只读）**：`runtime` / `profiles` / `logs` / `processes` / `instances`
+  —— 形状与已退役的 Node 版中间件（`../server/`，见 git 0448ba4 可取回）**逐字段一致**，这一层一个字段都不动
+- **写（第三批新增）**：`POST /api/local/action`（八个动作）、`GET/PUT /api/local/settings`、
+  `GET /api/local/console`（运行时登记与归档的只读出口）
+  —— 契约见 `../design/write-api-contract.md`
 
 - 默认只监听 `127.0.0.1:5390`（自测隔离可用 `DSH_CONSOLE_BACKEND_HOST` / `DSH_CONSOLE_BACKEND_PORT` 覆盖）
 - **一个进程一个端口**：同一个端口既答 `/api/local/*`，也服务前端构建产物 `dist/`
   （静态根可用 `DSH_CONSOLE_DIST` 指定）
-- 接口只答 `GET`，其它方法一律 405
-- 只读文件系统：不写文件、不建目录、不删改、不创建进程
-- JSON 响应形状与已退役的 Node 版中间件（`../server/`，见 git 0448ba4 可取回）**逐字段一致**。
-  前端走的是同源相对路径 `/api/local/...`，所以「接入」不需要改 base URL：开发期由 Vite 代理到本服务，
-  生产期由本服务同时供 `dist/` 与接口（一个进程、一个端口、同源）
+- 只读接口只答 `GET`（其它方法 405）；写动作只走 `POST /api/local/action`，且必须带 `X-DSH-Console: 1`
+- 前端走的是同源相对路径 `/api/local/...`，所以「接入」不需要改 base URL
 
-第二批补齐 `logs` / `processes` / `instances` 三个接口，并修掉两处硬编码
-（`nodeVersion` 伪造、`consoleVersion` 编译期固化）。五个只读接口全部落地。
-第三批（A 形态，终局形态）让后端**接管前端静态服务**，并把实例探测从串行提到 **8 路并发**。
+第一批落地四个只读接口；第二批补齐 `logs` / `processes` / `instances`，并修掉两处硬编码
+（`nodeVersion` 伪造、`consoleVersion` 编译期固化）。第三批（A 形态）让后端**接管前端静态服务**，
+并把实例探测从串行提到 **8 路并发**。第四批（本轮）加上**可写层**：
+八个动作真的起停进程 / 动 profile 目录，四项设置真的接到探测、端口分配、起停与日志缺省上。
 
 ## 依赖
 
@@ -75,6 +79,20 @@ GET http://127.0.0.1:5390/api/local/profiles
 GET http://127.0.0.1:5390/api/local/logs?source=host&tail=200
 GET http://127.0.0.1:5390/api/local/processes
 GET http://127.0.0.1:5390/api/local/instances
+GET http://127.0.0.1:5390/api/local/settings
+GET http://127.0.0.1:5390/api/local/console
+```
+
+写动作（本机 curl 直连没有 Origin，只需要那个自定义头）：
+
+```bash
+curl -X POST http://127.0.0.1:5390/api/local/action \
+  -H 'Content-Type: application/json' -H 'X-DSH-Console: 1' \
+  -d '{"action":"start-instance","params":{"profile":"web"}}'
+
+curl -X PUT http://127.0.0.1:5390/api/local/settings \
+  -H 'Content-Type: application/json' -H 'X-DSH-Console: 1' \
+  -d '{"values":{"instance.basePort":8500,"logs.defaultTail":50}}'
 ```
 
 ## 静态服务：一个进程一个端口接管前端
@@ -104,6 +122,9 @@ GET http://127.0.0.1:5390/api/local/instances
 静态服务的文件访问走 moonback `unstable_static` 的 `kind` / `open(ReadOnly)`，本工程没有新增写调用点。
 
 ## 已实现的接口
+
+只读五个（形状与 Node 版逐字段一致）+ 写侧三条（`POST /api/local/action`、`GET/PUT /api/local/settings`、
+`GET /api/local/console`，见「可写层」一节）。
 
 ### `GET /api/local/runtime`
 
@@ -171,7 +192,7 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 | 输入 | 行为 |
 | --- | --- |
-| 没给 / 空串 | 缺省 200 |
+| 没给 / 空串 | 缺省取设置 `logs.defaultTail`（缺省 200） |
 | 非数字 / 小于等于 0 | **400 `bad-tail`**（`tail 只接受正整数`） |
 | 大于 1000 | 收敛到 1000，响应里额外带 `tailNote`（`tail 超过上限 1000，按 1000 返回`） |
 
@@ -208,10 +229,10 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 - 读 `/proc/net/tcp` 与 `/proc/net/tcp6`，筛 `st=0A`（LISTEN）且本地地址是 loopback
   （`127.0.0.1` / `::1` / `::ffff:127.0.0.1`，`/proc/net` 里按小端十六进制写）的端口
-- 去重、升序、**上限 40**（超了截断并在响应里说明）
-- 对每个候选端口发一次 `GET http://127.0.0.1:<端口>/`：超时 500ms、不跟随重定向、
+- 去重、升序、**候选上限取设置 `probe.maxCandidates`（缺省 40）**（超了截断并在响应里说明）
+- 对每个候选端口发一次 `GET http://127.0.0.1:<端口>/`：超时取设置 `probe.timeoutMs`（缺省 500ms）、不跟随重定向、
   **只读前 8KB** 响应体
-- **8 路并发**（与 Node 版 `PROBE_CONCURRENCY` 同数，`probe.concurrency` 如实回 `8`）：
+- **并发取设置 `probe.concurrency`（缺省 8，与 Node 版 `PROBE_CONCURRENCY` 同数）**，响应里回的就是生效值：
   结果顺序仍按端口升序——`@async.all` 按下标收集，谁先回来不影响排序。
   真实并发 = `min(8, 候选数)`。40 个黑洞端口实测：串行 17.1s → 8 路 2.52s
 - 两条签名判据（命中的 id 回显在响应里）：
@@ -288,24 +309,172 @@ environ 里也**没有任何 DSH_***，靠命令行认不出它监听哪个端�
 
 每个响应都带 `Content-Type: application/json; charset=utf-8`、`Cache-Control: no-store`、`X-Local-Api: read-only`。
 
-## 只读铁律
+写侧的壳与上面对称，只是 `readOnly` 为 `false`、`X-Local-Api: read-write`：
 
-- 全部文件访问集中在 `json/fsio.mbt`、`json/env.mbt`、`json/tailread.mbt`、`json/version.mbt`，只有这些调用：
+```json
+{"ok":true,"readOnly":false,"readAt":"2026-10-15T07:17:44.588Z","data":{"action":"start-instance","outcome":{}}}
+{"ok":false,"readOnly":false,"readAt":"…","error":{"code":"conflict","message":"profile web-dev 已经在跑（PID 278412，端口 8400）…"}}
+```
+
+`GET /api/local/settings` 与 `GET /api/local/console` 是只读端点，走只读壳（`readOnly:true`）。
+
+## 可写层（第四批，本轮）
+
+契约是 `../design/write-api-contract.md`，实现全在 `actions/` 与 `fsx/` 两个包里。
+
+### 写动作只有一个入口
+
+```
+POST /api/local/action
+Headers（必须）: X-DSH-Console: 1 ；Origin 只能缺省或本机回环（http://127.0.0.1 / http://localhost / http://[::1]）
+Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时另带 "confirm":"DELETE"
+```
+
+守卫顺序：方法 → 解析 body → 守卫 → 执行 → 审计 → 应答。**解析在守卫前是有意的**：解析没有副作用，
+先回「body 不对」比先回 403 更好排查。守卫不过回 `403 not-authorized`，其余按码给状态：
+`unknown-action`/`bad-params` 400、`not-found` 404、`conflict` 409、`spawn-failed`/`stop-failed`/`io-error` 500。
+
+为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
+**对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
+
+### 八个动作
+
+| action | 真实做的事 | 关键边界 |
+| --- | --- | --- |
+| `start-instance` | `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`，等它答出 dsh web 签名才算起成功 | 同 profile 已在跑 → `conflict`（message 里有 pid 与端口）；端口占用 → `conflict`；起不来 → 收掉子进程 + 日志尾部写进 message |
+| `stop-instance` | SIGTERM → 等 `process.stopGraceMs` → 仍在则 SIGKILL | 目标必须在运行登记或进程表里认得出是 dsh，否则 `not-found`（不误杀别的 pid） |
+| `restart-instance` | 先停后起，端口与 profile 沿用原来的 | 认不出 profile → `not-found` |
+| `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到） | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来 |
+| `rename-profile` | 改磁盘上的目录名 | 空名 / 非法字符 / 重名 / 正在运行 都拒 |
+| `archive-profile` | 往 `archive.json` 追加一条（`merged` 表示成果是否已回灌主线） | **不动磁盘上的 profile** |
+| `unarchive-profile` | 删掉那条记录 | 没有这条 → `not-found` |
+| `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
+
+起实例的两条实测细节（都在代码注释里）：
+
+1. **端口 ≠ 可服务**。服务先 bind、路由后挂载，中间那几百毫秒 `GET /` 回的是 404。
+   只等端口会让只读的 `instances` 接口在这一刻认不出刚起的实例。所以等的是
+   **dsh web 签名**（401 + `dsh web authentication required`，或页里有 `__DSH_BOOT__`）。
+2. **僵尸进程的 kill(pid,0) 也成功**。判活不能只看 `kill(pid,0)`，还要看 `/proc/<pid>/stat` 的状态位，
+   `Z` 按死处理；否则停止动作会一直报「SIGKILL 之后仍然在」。
+
+### `process.detach` 的两种语义
+
+- `true`：`spawn_orphan`，完全脱离控制台。控制台正常退出、被 SIGTERM、被 SIGKILL，它都活着
+  （实测：控制台 SIGKILL 之后实例仍在听端口，`GET /` 仍回 401）。
+- `false`：实例挂在**控制台主任务组**上（`@process.spawn(group, …, no_wait=true)`，
+  `cancel_handler = graceful_cancel(timeout=stopGraceMs)`）。控制台退出时由运行时的结构化并发收掉它
+  （实测：控制台 SIGTERM 之后实例消失）。
+
+> 为什么不是「`app.serve` 之后写收尾代码」：moonbitlang/async 在全局取消信号之后会把信号重新抬起来交给
+> 默认处理，实测控制台退出码 143，`serve` 之后的语句**一句都跑不到**。因此 detach=false 只能挂在任务组上。
+
+### 设置（每一项都接到真实行为上）
+
+`GET /api/local/settings` → `{ ok, readOnly:true, readAt, data:{ path, values, defaults, sources, note } }`；
+`PUT /api/local/settings` body `{ "values": { … } }` → 校验后**原子写**（同目录临时文件 + rename），返回新值。
+
+| key | 缺省 | 接到哪（都实测过） |
+| --- | --- | --- |
+| `probe.timeoutMs` | 500 | 实例签名探测的单口超时（`instances.probe.timeoutMs` 回显的就是生效值） |
+| `probe.concurrency` | 8 | 探测并发（`instances.probe.concurrency` 回显） |
+| `probe.maxCandidates` | 40 | 候选端口上限（`instances.candidateLimit` 回显，超了照旧截断并带 `truncatedNote`） |
+| `instance.basePort` | 8400 | 起实例 / 派生时找空闲端口的起点（实测改 8500 后新实例就在 8500） |
+| `process.detach` | true | 起实例是否脱离控制台（见上一节） |
+| `process.stopGraceMs` | 5000 | 停止时 SIGTERM 到 SIGKILL 的宽限（实测 grace=0 → 直接 SIGKILL，`sigkillSent:true`；grace=5000 → 只发 SIGTERM） |
+| `logs.defaultTail` | 200 | 日志接口不带 tail 参数时的缺省（实测 50 → 回 50 行，500 → 回 500 行；显式 tail 不受影响） |
+| `ui.archiveOpenByDefault` | false | 前端读 `GET /api/local/settings` 决定归档区默认展开（后端负责存取与回显） |
+| `safety.deleteToTrash` | true | 删除进回收站还是硬删（见上表） |
+
+取值范围（越界即 `bad-params`，不静默夹取）：`probe.timeoutMs` 50..60000、`probe.concurrency` 1..64、
+`probe.maxCandidates` 1..1000、`instance.basePort` 1..65535、`process.stopGraceMs` 0..600000、
+`logs.defaultTail` 1..1000（布尔键只认布尔）。
+
+**读不到就用缺省，坏文件不让接口挂掉**：`settings.json` 不存在 → 全部按缺省、`sources` 全是「默认」；
+读不动 / 解析失败 / 某一项取值非法 → 那一项按缺省，原因写进 `sources` 的对应键
+（形如 `"默认（<路径> 里的值不可用：超出取值范围 …）"`），文件级问题另放在 `data.note`。
+
+### 运行时登记、归档与审计
+
+| 文件 | 内容 | 写时机 |
+| --- | --- | --- |
+| `runtime.json` | 控制台**自己起过**的实例：`{ pid, port, home, profile, startedAt, logPath, detached }` | 起实例成功 / 停止 / 重启 |
+| `archive.json` | 归档记录：`{ profile, merged, archivedAt }` | 归档 / 取消归档 |
+| `audit.jsonl` | 每个动作一行：`{ at, action, params, ok, code, message, outcome }`，**只追加、不轮转** | 每个动作（含失败与 403）、以及 settings 的 PUT |
+
+外部已有的实例不写进 `runtime.json`。对账（pid 已消失就清理）发生在**动作里**，不发生在 GET：
+`GET /api/local/console` 只读，它给每条登记标一个 `alive`（按 `/proc/<pid>/stat` 判，僵尸算死）。
+
+### 前端怎么拿到登记与归档
+
+只读那五个接口的形状不能动，所以另开了一个只读端点：
+
+```
+GET /api/local/console → { ok, readOnly:true, readAt, data:{
+  stateDir, settingsPath, runtimePath, archivePath, auditPath, trashDir,
+  runtime:[{ pid, port, home, profile, startedAt, logPath, detached, alive }],
+  archive:[{ profile, merged, archivedAt }],
+  notes:[] } }
+```
+
+前端用它标出「由本控制台启动」的实例、渲染归档区；动作成功后重新拉一遍读数即可（`instances` 里
+控制台起的实例与手工起的实例一视同仁，签名与 `processReason` 都照旧）。
+
+## 读写分层与写盘边界
+
+接口分两层之后，「只读」这件事换了个说法：**只读接口那一层仍然是纯只读，写能力全部收在两个新包里**。
+
+### 只读层（一个字段都没动）
+
+- 全部读访问集中在 `json/fsio.mbt`、`json/env.mbt`、`json/tailread.mbt`、`json/version.mbt`：
   `@fs.read_file`、`@fs.exists`、`@fs.kind`、`@fs.readdir`、`@fs.mtime`、`@fs.realpath`、
-  `@fs.file_size`、`@fs.open(ReadOnly)` + `File::read_at`（定位读尾部用），
-  以及 `fsio.mbt` 里新增的 `read_link`（`readlink(2)`，只读链接目标）与 `list_dir_result`
-  （`@fs.readdir` 带上失败原因）。`read_link` 是全工程唯一一处 FFI，
-  落在 `json/fd_link.c` 的 `dsh_console_readlink`：只有一次 `readlink`，没有别的 libc 调用
-- 没有任何写 / 建 / 删 / 改名调用，也没有创建进程
-  （不 import `moonbitlang/async/process` 与 `moonbitlang/async/shell`；
-  `grep` 写 / 建进程关键词在 `.mbt` 与新增的 `.c` 里都是 0 命中）
+  `@fs.open(ReadOnly)` + `File::read_at`，以及 `read_link`（`readlink(2)`，只读链接目标）与
+  `list_dir_result`。`json/` 里**没有任何写 / 建 / 删 / 改名 / 建进程调用**（自测 grep 0 命中，
+  见下面「自测怎么核对」）
 - 凭据类文件（`.credentials.yaml` / `.env` / `.npmrc`）在 `read_text_file` / `read_some_at` 里按 basename 硬拦：
   只判断存在，绝不读内容
-- 环境变量来自 `/proc/self/environ`，是本进程自己的环境，不是子进程
+- 环境变量来自 `/proc/self/environ`，是本进程自己的环境
 - 静态服务（`dist_static/`）只调 `@json.exists` / `@json.is_dir` / `@json.exe_path` / `@json.env_value`，
-  真正读文件的是 moonback `unstable_static` 的 `@fs.kind` 与 `@fs.open(ReadOnly)`：新增的只有**读**，
-  `grep` 写 / spawn 关键词在 `.mbt` 里 0 命中（只有注释里出现过「不 spawn、不写盘」这句话）
-- 唯一的网络动作是**对 127.0.0.1 候选端口发一次 GET**（写死回环地址、写死 GET、读完即断）
+  真正读文件的是 moonback `unstable_static` 的 `@fs.kind` 与 `@fs.open(ReadOnly)`
+- 只读接口里的唯一网络动作是**对 127.0.0.1 候选端口发一次 GET**（写死回环地址、写死 GET、读完即断）
+
+### 写层：写盘只落在这些路径
+
+写调用点**全部**在 `fsx/writeio.mbt`（唯一的写入口）与 `actions/instance.mbt`（唯一的建进程处）。
+它们只被下面这些路径调用，别处不写：
+
+| 写的东西 | 路径 | 谁在写 |
+| --- | --- | --- |
+| 设置 | `$XDG_STATE_HOME/dsh-console/settings.json`（缺省 `~/.local/state/dsh-console/`） | `store/settings.mbt` |
+| 运行登记 | `$XDG_STATE_HOME/dsh-console/runtime.json` | `store/registry.mbt` |
+| 归档记录 | `$XDG_STATE_HOME/dsh-console/archive.json` | `store/archive.mbt` |
+| 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（只追加） | `store/audit.mbt` |
+| 回收站 | `$XDG_STATE_HOME/dsh-console/trash/<profile>-<毫秒>/` | `actions/profile_fs.mbt`（`deleteToTrash=true`） |
+| profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
+| 实例日志 | `<该实例 DSH_HOME>/logs/console-<profile>-<port>.log` | `actions/instance.mbt`（spawn 时重定向 stdout/stderr） |
+
+三份状态文件都是**原子写**（同目录临时文件 + `rename`）；`audit.jsonl` 只 append。
+
+### FFI
+
+全工程两处 C，各自只有一次系统调用族：
+
+- `json/fd_link.c`：`readlink(2)`（只读，端口 → inode → PID 那条 join 用）
+- `fsx/proc_signal.c`：`kill(2)` / `kill(pid,0)` / `getpid(2)`。停止实例要「先 SIGTERM、宽限后 SIGKILL」，
+  判活要 `kill(pid,0)`，而 `@process` 只能操作自己 spawn 出来的句柄，**对任意 PID 没有原语**，
+  本工程也不想为此去 spawn `/bin/kill`。三个函数都不写盘、不建进程、不读文件。
+
+### 自测怎么核对
+
+```bash
+cd dsh-console/backend
+# 写调用点只在两个文件里
+grep -rn '@fs\.write_file\|@fs\.mkdir\|@fs\.rename\|@fs\.remove\|@fs\.rmdir\|@process\.spawn\|spawn_orphan' --include=*.mbt . | grep -v .mooncakes | grep -v _build
+# 只读层干净（无输出）
+grep -rn 'write_file\|mkdir\|rename\|remove\|rmdir\|spawn' json/*.mbt json/*.c
+```
+
+
 
 ## 已知差异（与 Node 版）
 
@@ -368,8 +537,25 @@ backend/
 ├── localapi/
 │   ├── api.mbt                 # 路由分发、查询参数、错误码、方法名、API 优先闸门
 │   ├── respond.mbt             # 响应外壳与响应头
-│   ├── probe.mbt               # 单端口只读探测 + 8 路并发批量探测（保序）
+│   ├── probe.mbt               # 单端口只读探测 + 批量并发探测（保序；超时与并发由设置给）
 │   └── rawhttp.mbt             # 极简 HTTP/1.1 客户端（回环探测专用）
+├── fsx/                        # 写侧基础层（全工程唯一的写入口）
+│   ├── writeio.mbt             # 原子写 / 追加 / 建目录 / 改名 / 删树 / 复制树 / 发信号
+│   └── proc_signal.c           # 唯一另一处 C：kill(2) / kill(pid,0) / getpid(2)
+├── store/                      # 状态文件（$XDG_STATE_HOME/dsh-console）
+│   ├── state.mbt               # 状态目录与 JSON 文件读取（坏文件给原因）
+│   ├── settings.mbt            # 九项设置的键、缺省、取值范围、原子落盘
+│   ├── registry.mbt            # runtime.json：控制台起过的实例
+│   ├── archive.mbt             # archive.json：归档记录
+│   └── audit.mbt               # audit.jsonl：动作审计（只追加）
+├── actions/                    # 可写层（唯一入口 POST /api/local/action）
+│   ├── guard.mbt               # X-DSH-Console + Origin 守卫
+│   ├── respond.mbt             # 写侧响应外壳与错误码 → 状态码
+│   ├── action.mbt              # 动作分发、参数解析、审计、GET /api/local/console
+│   ├── instance.mbt            # 起 / 停 / 重启、端口分配、签名等就绪、进程判活
+│   ├── profile_fs.mbt          # 派生 / 重命名 / 删除（回收站或硬删）
+│   ├── settings_api.mbt        # GET / PUT /api/local/settings
+│   └── console_api.mbt         # GET /api/local/console
 ├── dist_static/
 │   └── dist_static.mbt         # 静态根解析、dist 静态中间件、SPA 回退、解析失败时的 503
 ├── runtime/runtime.mbt         # GET /api/local/runtime

@@ -1,0 +1,20 @@
+{
+  "is-main": false,
+  "import": [
+    "conglinyizhi/dsh-console-backend/json",
+    "conglinyizhi/dsh-console-backend/fsx",
+    "conglinyizhi/dsh-console-backend/store",
+    "conglinyizhi/dsh-console-backend/localapi",
+    "conglinyizhi/dsh-console-backend/runtime",
+    "conglinyizhi/dsh-console-backend/processes",
+    "conglinyizhi/dsh-console-backend/instances",
+    "moonbitlang/async",
+    "moonbitlang/async/process",
+    "moonbitlang/async/stdio",
+    "moonbitlang/moonback",
+    {
+      "path": "moonbitlang/async/socket",
+      "alias": "async_socket"
+    }
+  ]
+}

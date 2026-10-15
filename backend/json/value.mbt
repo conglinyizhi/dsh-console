@@ -37,6 +37,16 @@ pub fn json_array(v : Json?) -> Array[Json] {
 }
 
 ///|
+/// 一个空的 JSON 对象。core 的 JsonObject 在别的包里造不出来（只读类型），
+/// 需要「参数缺省即空对象」的地方统一走这里，省得各处再造一遍。
+pub fn empty_object() -> Json noraise {
+  match json_parse("{}") {
+    Some(j) => j
+    None => abort("unreachable: 空对象字面量一定解析得出来")
+  }
+}
+
+///|
 /// Json 解析文本；失败返回 None（等同 Node 的 try/catch JSON.parse）。
 pub fn json_parse(text : String) -> Json? noraise {
   try {

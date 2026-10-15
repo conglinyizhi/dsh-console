@@ -137,6 +137,16 @@ pub async fn find_installed_dsh() -> DshPackage? noraise {
 }
 
 ///|
+/// 已安装 dsh 的包目录，给「起实例」用：与 /api/local/runtime 的 dshPackageDir 同一条规则
+/// （同一个 find_installed_dsh，多份安装取版本最大的那份）。找不到给 None。
+pub async fn installed_dsh_dir() -> String? noraise {
+  match find_installed_dsh() {
+    Some(d) => Some(d.dir)
+    None => None
+  }
+}
+
+///|
 /// dsh home：优先 DSH_HOME 环境变量，其次 ~/.dsh。
 pub async fn resolve_dsh_home() -> (String, String) noraise {
   match @json.env_value("DSH_HOME") {

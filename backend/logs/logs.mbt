@@ -21,7 +21,7 @@ pub struct LogSource {
 pub let instance_prefix : String = "instance:"
 
 ///|
-/// tail 缺省值与上限（与 Node 版一致）。
+/// tail 缺省值（与 Node 版一致）。真正生效的缺省来自设置 logs.defaultTail，这里是回退值。
 pub let default_tail : Int = 200
 
 ///|
@@ -410,13 +410,16 @@ pub struct TailSpec {
 ///   - 没给 / 空串          -> 缺省 200
 ///   - 非数字 / 小于等于 0  -> bad-tail（400）
 ///   - 大于 1000            -> 收敛到 1000，并带 tailNote
-pub fn parse_tail(raw : String?) -> TailSpec raise @localapi.ReadError {
+pub fn parse_tail(
+  raw : String?,
+  default_tail_value : Int,
+) -> TailSpec raise @localapi.ReadError {
   let text = match raw {
     None => ""
     Some(v) => v
   }
   if text == "" {
-    return { tail: default_tail, note: None }
+    return { tail: default_tail_value, note: None }
   }
   if !@json.is_all_digits(text) {
     raise @localapi.ReadError(code="bad-tail", message="tail 只接受正整数")
@@ -432,6 +435,13 @@ pub fn parse_tail(raw : String?) -> TailSpec raise @localapi.ReadError {
     }
   }
   { tail: value, note: None }
+}
+
+///|
+/// 按设置里的 logs.defaultTail 解析 tail：没给 tail 参数时就用它。
+pub async fn parse_tail_with_settings(raw : String?) -> TailSpec raise @localapi.ReadError {
+  let settings = @store.load_settings().values
+  parse_tail(raw, settings.logs_default_tail)
 }
 
 ///|
@@ -521,7 +531,7 @@ async fn read_instance_logs(
   requested : Int,
   wanted : Int,
 ) -> @json.JsonVal noraise {
-  let report = @instances.instances_report()
+  let report = @instances.instances_report_with_settings()
   let detected = report.instances.length()
   let mut matched : @instances.InstanceSummary? = None
   for item in report.instances {

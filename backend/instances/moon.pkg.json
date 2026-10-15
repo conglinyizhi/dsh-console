@@ -4,6 +4,7 @@
     "conglinyizhi/dsh-console-backend/json",
     "conglinyizhi/dsh-console-backend/localapi",
     "conglinyizhi/dsh-console-backend/processes",
+    "conglinyizhi/dsh-console-backend/store",
     "moonbitlang/async"
   ]
 }

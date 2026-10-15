@@ -51,7 +51,8 @@ let loopback_ipv6 : String = "00000000000000000000000001000000"
 let loopback_ipv6_mapped : String = "0000000000000000FFFF00000100007F"
 
 ///|
-/// 候选端口上限：超了就截断，并在响应里说明。
+/// 候选端口上限的缺省值：超了就截断，并在响应里说明。
+/// 真正生效的值来自设置 probe.maxCandidates，这里只是缺省与回退。
 pub let max_candidates : Int = 40
 
 ///|
@@ -127,6 +128,10 @@ pub struct ProcessSupplement {
 /// 一次扫描的完整快照。logs 接口用 instances 字段找 instance:<id>。
 pub struct InstancesReport {
   per_file : Array[PerFile]
+  /// 这一遍实际用的候选上限 / 单口超时 / 并发（来自设置，回显用）
+  candidate_limit : Int
+  probe_timeout_ms : Int
+  probe_concurrency : Int
   candidates : Array[Int]
   truncated : Bool
   truncated_note : String?
@@ -381,8 +386,24 @@ fn find_supplement(
 }
 
 ///|
+/// 按当前设置跑一次扫描（读接口用）：probe.timeoutMs / probe.concurrency / probe.maxCandidates。
+pub async fn instances_report_with_settings() -> InstancesReport noraise {
+  let settings = @store.load_settings().values
+  instances_report(
+    settings.probe_timeout_ms,
+    settings.probe_concurrency,
+    settings.probe_max_candidates,
+  )
+}
+
+///|
 /// 一次完整扫描：读 /proc/net/tcp(6)、探测候选端口、补进程信息。
-pub async fn instances_report() -> InstancesReport noraise {
+/// 三个探测参数由调用方给（设置里的 probe.*），不再写死。
+pub async fn instances_report(
+  timeout_ms : Int,
+  concurrency : Int,
+  candidate_limit : Int,
+) -> InstancesReport noraise {
   let per_file : Array[PerFile] = []
   let sockets : Array[ListenSocket] = []
   for src in socket_files {
@@ -402,9 +423,9 @@ pub async fn instances_report() -> InstancesReport noraise {
     }
   }
   let unique = dedup_sorted(sockets.map(fn(row) { row.port }))
-  let truncated = unique.length() > max_candidates
+  let truncated = unique.length() > candidate_limit
   let candidates = if truncated {
-    unique[:max_candidates].to_owned()
+    unique[:candidate_limit].to_owned()
   } else {
     unique
   }
@@ -423,7 +444,7 @@ pub async fn instances_report() -> InstancesReport noraise {
   // 探测：只打 loopback，单个 500ms 超时，8 路并发（与 Node 版 PROBE_CONCURRENCY 同数）。
   // 顺序仍是端口升序：probe_ports 按下标返回，谁先回来不影响排序。
   // 候选上限 40、单口 500ms 的口径没动，最坏耗时因此是 ceil(40/8)×500ms = 2.5s（改前 20s）。
-  let settled = @localapi.probe_ports(candidates)
+  let settled = @localapi.probe_ports(candidates, timeout_ms, concurrency)
 
   let (supplement, with_port) = supplement_processes(holders, wanted_inodes.length())
   let instances : Array[InstanceSummary] = []
@@ -512,11 +533,14 @@ pub async fn instances_report() -> InstancesReport noraise {
 
   {
     per_file,
+    candidate_limit,
+    probe_timeout_ms: timeout_ms,
+    probe_concurrency: concurrency,
     candidates,
     truncated,
     truncated_note: if truncated {
       Some(
-        "loopback LISTEN 端口共 \{unique.length()} 个，超过上限 \{max_candidates}，只探测了前 \{max_candidates} 个",
+        "loopback LISTEN 端口共 \{unique.length()} 个，超过上限 \{candidate_limit}，只探测了前 \{candidate_limit} 个",
       )
     } else {
       None
@@ -532,7 +556,7 @@ pub async fn instances_report() -> InstancesReport noraise {
 ///|
 /// 组装 /api/local/instances 的 data 对象。
 pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
-  let report = instances_report()
+  let report = instances_report_with_settings()
   let sources : Array[String] = []
   let per_file : Array[@json.JsonVal] = []
   for item in report.per_file {
@@ -593,7 +617,7 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
     ("perFile", @json.JArr(per_file)),
     ("scope", @json.JStr("loopback（127.0.0.1 / ::1 / ::ffff:127.0.0.1）")),
     ("listenState", @json.JStr("0A（LISTEN）")),
-    ("candidateLimit", @json.jint(max_candidates)),
+    ("candidateLimit", @json.jint(report.candidate_limit)),
     ("truncated", @json.JBool(report.truncated)),
     ("truncatedNote", @json.str_or_null(report.truncated_note)),
     ("candidates", @json.JArr(report.candidates.map(fn(p) { @json.jint(p) }))),
@@ -601,8 +625,8 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
     ("probe", @json.JObj([
       ("method", @json.JStr("GET")),
       ("redirect", @json.JStr("manual")),
-      ("timeoutMs", @json.jint(@localapi.probe_timeout_ms)),
-      ("concurrency", @json.jint(@localapi.probe_concurrency)),
+      ("timeoutMs", @json.jint(report.probe_timeout_ms)),
+      ("concurrency", @json.jint(report.probe_concurrency)),
       ("probed", @json.jint(report.probed)),
       ("reached", @json.jint(report.reached)),
       ("hits", @json.jint(report.instances.length())),

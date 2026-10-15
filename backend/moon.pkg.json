@@ -9,6 +9,7 @@
     "conglinyizhi/dsh-console-backend/processes",
     "conglinyizhi/dsh-console-backend/instances",
     "conglinyizhi/dsh-console-backend/dist_static",
+    "conglinyizhi/dsh-console-backend/actions",
     "moonbitlang/async",
     "moonbitlang/async/stdio",
     "moonbitlang/moonback"
