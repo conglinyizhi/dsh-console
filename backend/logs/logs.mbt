@@ -323,10 +323,11 @@ fn entry(raw : String, parsed : ParsedLine) -> @json.JsonVal {
 }
 
 ///|
-/// 一个候选日志文件。
+/// 一个候选日志文件。bytes 是文件字节数：0 表示这份日志没内容可看。
 priv struct LogCandidate {
   file : String
   mtime_ms : Int64
+  bytes : Int64
 }
 
 ///|
@@ -365,7 +366,13 @@ async fn collect_log_files(root : String) -> Array[LogCandidate] noraise {
         continue
       }
       match @json.mtime_ms(full) {
-        Some(ms) => found.push({ file: full, mtime_ms: ms })
+        Some(ms) => {
+          let bytes = match @json.file_size(full) {
+            Some(n) => n
+            None => 0L // 拿不到大小按「没内容」算，不会因此把它顶到默认来源上
+          }
+          found.push({ file: full, mtime_ms: ms, bytes })
+        }
         None => () // 读不到状态就不收，不猜
       }
     }
@@ -374,17 +381,85 @@ async fn collect_log_files(root : String) -> Array[LogCandidate] noraise {
 }
 
 ///|
-/// mtime 降序；mtime 相同时按路径升序，保证结果稳定可复现。
-fn sort_candidates(items : Array[LogCandidate]) -> Array[LogCandidate] {
-  let sorted = items.copy()
-  sorted.sort_by(fn(a, b) {
-    if a.mtime_ms != b.mtime_ms {
+/// 这条实例自己的日志文件：运行登记里给它记的 logPath 优先（控制台起的实例都有这条），
+/// 其次按控制台的命名约定 console-<profile>-<port>.log 拼一个。
+/// 两个都拿不到给 None —— 那是外部起的实例，它名下没有自己的日志，
+/// 挑选时落到 host 日志那一档（见 candidate_tier）。
+async fn own_log_path(
+  instance : @instances.InstanceSummary,
+  logs_dir : String,
+) -> String? noraise {
+  match instance.pid {
+    Some(pid) =>
+      match @store.find_record(@store.load_registry().entries, Some(pid), None) {
+        Some(record) => return Some(record.log_path)
+        None => ()
+      }
+    None => ()
+  }
+  match instance.profile {
+    Some(name) =>
+      Some(
+        @json.join_path(
+          logs_dir,
+          "console-" + name + "-" + instance.port.to_string() + ".log",
+        ),
+      )
+    None => None
+  }
+}
+
+///|
+/// host 日志的文件名（固定来源 `host` 落在这个名字上：~/.dsh/logs/retry-control/host.log）。
+let host_log_name : String = "host.log"
+
+///|
+/// 挑候选时的层级，见 README「实例日志怎么挑」一节的取舍理由：
+///   0 这条实例自己的日志，且有内容
+///   1 host 日志，且有内容（这条实例没有自己的日志时的落点）
+///   2 别的文件，且有内容
+///   3 这条实例自己的日志，但空
+///   4 host 日志，但空
+///   5 别的文件，且空
+///
+/// 为什么先分「谁的文件」再分「有没有内容」：同一个 logs 目录里，一次**失败的启动**
+/// 也会留一份 console-*.log，而且通常比还在跑的实例那份新。只按 mtime 挑，日志页
+/// 默认来源显示的就是这份没信息量的失败日志；把它和 host 日志放在同一档里比 mtime，
+/// 同样是拿运气当判据。
+fn candidate_tier(item : LogCandidate, own : String?) -> Int {
+  let mine = match own {
+    Some(path) => item.file == path
+    None => false
+  }
+  let is_host = @json.basename(item.file) == host_log_name
+  let has_content = item.bytes > 0L
+  if mine {
+    if has_content { 0 } else { 3 }
+  } else if is_host {
+    if has_content { 1 } else { 4 }
+  } else if has_content {
+    2
+  } else {
+    5
+  }
+}
+
+///|
+/// 从候选里挑这一条：层级 -> mtime 降序 -> 路径升序（同层级同 mtime 时结果稳定可复现）。
+fn pick_instance_log(candidates : Array[LogCandidate], own : String?) -> LogCandidate {
+  let ranked = candidates.copy()
+  ranked.sort_by(fn(a, b) {
+    let ta = candidate_tier(a, own)
+    let tb = candidate_tier(b, own)
+    if ta != tb {
+      if ta < tb { -1 } else { 1 }
+    } else if a.mtime_ms != b.mtime_ms {
       if a.mtime_ms > b.mtime_ms { -1 } else { 1 }
     } else {
       @json.compare_code_units(a.file, b.file)
     }
   })
-  sorted
+  ranked[0]
 }
 
 ///|
@@ -525,7 +600,9 @@ pub async fn read_logs(
 }
 
 ///|
-/// 实例来源：先找这条实例，再在它的 DSH_HOME/logs 里取 mtime 最新的可读日志文件。
+/// 实例来源：先找这条实例，再在它的 DSH_HOME/logs 里挑一份日志 —— 挑法见
+/// own_log_path / candidate_tier（先认这条实例自己的那一份，其次 host 日志，
+/// 再按有没有内容分层，同级才比 mtime），不是单纯取 mtime 最新的那个文件。
 async fn read_instance_logs(
   source : Resolved,
   requested : Int,
@@ -590,7 +667,8 @@ async fn read_instance_logs(
     _ => @runtime.resolve_dsh_home()
   }
   let logs_dir = @json.join_path(home, instance_logs_dir)
-  let candidates = sort_candidates(collect_log_files(logs_dir))
+  let candidates = collect_log_files(logs_dir)
+  let own = own_log_path(instance, logs_dir)
   let fields = base.copy()
   // instance.dshHome 用解析后的值，homeSource 写清是哪来的
   for i = 0; i < fields.length(); i = i + 1 {
@@ -620,7 +698,7 @@ async fn read_instance_logs(
     fields.push(("truncatedNote", @json.JNull))
     return @json.JObj(fields)
   }
-  let picked = candidates[0]
+  let picked = pick_instance_log(candidates, own)
   let read = try {
     @json.read_tail_lines(picked.file, wanted)
   } catch {
@@ -644,7 +722,12 @@ async fn read_instance_logs(
   fields.push(("path", @json.JStr(picked.file)))
   fields.push(("logsDir", @json.JStr(logs_dir)))
   fields.push(("logFileCount", @json.jint(candidates.length())))
-  fields.push(("pickedBy", @json.JStr("logs 目录内按 mtime 取最新的一个可读日志文件")))
+  fields.push((
+    "pickedBy",
+    @json.JStr(
+      "logs 目录内先认这条实例自己的日志、其次 host 日志，再按有没有内容分层；同级取 mtime 最新的一个",
+    ),
+  ))
   fields.push(("readOk", @json.JBool(true)))
   fields.push(("errorCode", @json.JNull))
   fields.push(("readError", @json.JNull))
