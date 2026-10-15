@@ -128,6 +128,36 @@ const menuExpr = `(() => {
 })()`
 const m2 = await send('Runtime.evaluate', { expression: menuExpr, returnByValue: true })
 data.menu = JSON.parse(m2.result?.result?.value ?? '{}')
+
+// ── 最后一个触发器的菜单 ──
+// 「菜单往下展开」这个模式在**靠底部的卡**上会越出视口被截掉（使用者报过一次）。
+// 只测第一张卡永远看不到这个问题 —— 同一模式要测到边界那一格。
+await send('Runtime.evaluate', { expression: "(() => { document.body.click(); const t = [...document.querySelectorAll(" + JSON.stringify(SEL.menuTrigger) + ")]; if (t.length) t[t.length - 1].click(); return t.length })()", returnByValue: true })
+await new Promise((r) => setTimeout(r, 800))
+const lastExpr = `(() => {
+  const S = ${JSON.stringify(SEL)}
+  const R = (el) => { const r = el.getBoundingClientRect(); return { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1) } }
+  const menu = document.querySelector(S.menu)
+  const acts = [...document.querySelectorAll(S.actions)]
+  const actions = acts.length ? acts[acts.length - 1] : null
+  if (!menu) return JSON.stringify({ opened: false })
+  const m = R(menu), vh = innerHeight
+  return JSON.stringify({
+    opened: true, rect: m, viewportH: vh,
+    insideViewport: m.y >= 0 && m.bottom <= vh,
+    flipAttr: menu.getAttribute('data-flip') || '',
+    deltaTop: actions ? +(m.y - R(actions).bottom).toFixed(1) : null,
+    deltaBottom: actions ? +(R(actions).y - m.bottom).toFixed(1) : null,
+    deltaRight: actions ? +(m.right - R(actions).right).toFixed(1) : null,
+    itemsReachable: [...menu.querySelectorAll('[role=menuitem], button')].map((e) => {
+      const r = e.getBoundingClientRect()
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
+      return { text: e.textContent.trim().slice(0, 10), reachable: !!(hit && (hit === e || e.contains(hit))) }
+    }),
+  })
+})()`
+const m4 = await send('Runtime.evaluate', { expression: lastExpr, returnByValue: true })
+data.menuLast = JSON.parse(m4.result?.result?.value ?? '{}')
 writeFileSync(outJson, JSON.stringify(data, null, 1))
 console.log(JSON.stringify({ overflow: data.overflow, invariants: data.invariants, splitGap: data.split?.gap, menu: data.menu, cardCount: data.cards?.length }, null, 1))
 chrome.kill()

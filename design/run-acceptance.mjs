@@ -68,6 +68,16 @@ if (inv) {
   add('菜单落焦第一项', String(vueInv?.menu?.activeIsFirstItem), String(inv.menu?.activeIsFirstItem), inv.menu?.activeIsFirstItem === true)
   const unreachable = (inv.menu?.itemsReachable ?? []).filter((x) => !x.reachable).map((x) => x.text)
   add('菜单每项都可点到', '0 项不可达', unreachable.length ? unreachable.join(',') : '0 项不可达', (inv.menu?.itemsReachable ?? []).length > 0 && unreachable.length === 0)
+  // 靠底部那张卡的菜单：往下展开会越出视口被截（使用者报过一次）。
+  // 只测第一张卡是这个盲区的来源 —— 同一模式要测到边界那一格。
+  const lm = inv.menuLast
+  if (lm && lm.opened) {
+    add('底部卡的菜单不出屏', 'true', String(lm.insideViewport), lm.insideViewport === true)
+    const un2 = (lm.itemsReachable ?? []).filter((x) => !x.reachable).map((x) => x.text)
+    add('底部卡的菜单每项可点到', '0 项不可达', un2.length ? un2.join(',') : '0 项不可达', (lm.itemsReachable ?? []).length > 0 && un2.length === 0)
+  } else {
+    addInfo('底部卡的菜单（没量到：可能只有一张卡）', String(lm?.opened))
+  }
 }
 if (logs) {
   // 这两条取决于当前默认来源那个日志文件有多长：实例日志可能只有 1 行，行数不够自然滚不动。
