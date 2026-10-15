@@ -2,12 +2,20 @@
 //
 // 图标本身在 icons.mbt（内联 SVG）。
 //
-// DOM 上刻意挂 data-name：类名会随样式层换，data-name 不会 ——
-// 截图脚本、DOM 实测脚本、渲染基线都按它定位。
+// DOM 上刻意挂 data-name + data-uid：类名会随样式层换、位置会随列表顺序换，
+// 这两个不会 —— 截图脚本、DOM 实测脚本、渲染基线、以及使用者的元素拾取工具都按它定位。
+//   data-name = 角色（instance-card / source-badge，同类共用，允许重复）
+//   data-uid  = 这一个（8 位 base36，全页唯一、跨刷新稳定，算法在 uid.mbt）
+//
+// 语义路径统一在这里的口径：页面 → 分组 → 角色 → 这一项自己的键。
+// **最后一段永远是这一项自己的键**（row.id / 设置键名 / 来源值），不是序号。
 
 ///|
 /// 数据源徽标：三态各自一个图标与色调，悬停写出这个标记的完整依据。
-fn source_badge(tag : SourceTag) -> @html.Html {
+///
+/// parts 由调用方给全：同一个 data-name 的徽标在页面上有好几个
+/// （运行中分组 / 已停止分组 / 归档区 / 各页页眉），只靠 name 分不开它们。
+fn source_badge(tag : SourceTag, parts : Array[String]) -> @html.Html {
   let icon_name = match tag.kind {
     Real => "check"
     Fallback => "shield-outline"
@@ -20,7 +28,7 @@ fn source_badge(tag : SourceTag) -> @html.Html {
   }
   @html.span(
     class="dsh-badge" + tone,
-    attrs=@html.Attrs::build().title(tag.detail).data_set("name", "source-badge"),
+    attrs=mark("source-badge", parts).title(tag.detail),
     [icon(icon_name, size=12), @html.span(class="dsh-badge-label", tag.label)],
   )
 }
@@ -30,10 +38,17 @@ fn source_badge(tag : SourceTag) -> @html.Html {
 ///
 /// 计数是字符串而不是数字：读数还没回来时那里得写「…」而不是「0」——
 /// 「(0)」配一块加载态，正是把「还没读到」读成「没有」的那种写法。
-fn section_head(title : String, count : String, tag : SourceTag) -> @html.Html {
+///
+/// group 是这一组自己的键（running / stopped），语义路径靠它把两个分组的
+/// 同名徽标与同名标题分开。
+fn section_head(group : String, title : String, count : String, tag : SourceTag) -> @html.Html {
   @html.div(class="dsh-section-head", [
-    @html.h2(class="dsh-section-title", title + " (" + count + ")"),
-    source_badge(tag),
+    @html.h2(
+      class="dsh-section-title",
+      attrs=mark("section-title", ["overview", "section", group, "title"]),
+      title + " (" + count + ")",
+    ),
+    source_badge(tag, ["overview", "section", group, "source-badge"]),
   ])
 }
 
@@ -42,7 +57,7 @@ fn section_head(title : String, count : String, tag : SourceTag) -> @html.Html {
 fn running_empty(summary : String, detail : String) -> @html.Html {
   @html.section(
     class="dsh-empty",
-    attrs=@html.Attrs::build().data_set("name", "running-empty"),
+    attrs=mark("running-empty", ["overview", "section", "running", "empty"]),
     [
       @html.span(class="dsh-empty-icon", [icon("server", size=26)]),
       @html.p(class="dsh-empty-line", "当前没有检测到正在运行的 dsh 实例。"),
@@ -56,7 +71,7 @@ fn running_empty(summary : String, detail : String) -> @html.Html {
 fn stopped_empty() -> @html.Html {
   @html.section(
     class="dsh-empty",
-    attrs=@html.Attrs::build().data_set("name", "stopped-empty"),
+    attrs=mark("stopped-empty", ["overview", "section", "stopped", "empty"]),
     [
       @html.span(class="dsh-empty-icon", [icon("cube-outline", size=26)]),
       @html.p(class="dsh-empty-line", "还没有已停止的实例。"),
@@ -73,12 +88,13 @@ fn stopped_empty() -> @html.Html {
 ///
 /// 形状刻意跟空态拉开：空态是虚线框 + 居中图标，这里是实线框 + 面板底色。
 /// 也没有动效 —— 页面上的动效是启动态状态点专用的（见 styles/app.scss）。
+///
+/// name 既是 data-name 也是语义路径的最后一段：三处加载态（运行中 / 已停止 / 日志）
+/// 的 name 本来就各不相同，不必再让调用方多传一遍路径。
 fn loading_block(name : String, title : String, detail : String) -> @html.Html {
   @html.section(
     class="dsh-loading",
-    attrs=@html.Attrs::build()
-      .data_set("name", name)
-      .data_set("state", "loading"),
+    attrs=mark(name, ["loading", name]).data_set("state", "loading"),
     [
       @html.span(class="dsh-loading-icon", [icon("refresh", size=22)]),
       @html.p(class="dsh-loading-line", title),
@@ -89,28 +105,57 @@ fn loading_block(name : String, title : String, detail : String) -> @html.Html {
 
 ///|
 /// 卡上的一个字段行：左图标 + 标签 + 右值（值右对齐，超长省略，完整内容在悬停里）。
+///
+/// key 是这一格自己的键（dsh-version / profile / url / home / plugin-count / mtime），
+/// card 是它所在那张卡的 row.id —— 两张卡上同一格因此是不同的两个 uid。
 fn field(
   icon_name : String,
+  key : String,
+  card : String,
   label : String,
   value : String,
   hint : String,
 ) -> @html.Html {
-  @html.li(class="dsh-field", [
-    @html.span(class="dsh-field-icon", [icon(icon_name)]),
-    @html.span(class="dsh-field-label", label),
-    @html.span(class="dsh-field-value", attrs=@html.Attrs::build().title(hint), value),
-  ])
+  @html.li(
+    class="dsh-field",
+    attrs=mark("card-field", ["overview", "card", card, "field", key])
+      .data_set("field", key),
+    [
+      @html.span(class="dsh-field-icon", [icon(icon_name)]),
+      @html.span(
+        class="dsh-field-label",
+        attrs=mark("field-label", ["overview", "card", card, "field", key, "label"]),
+        label,
+      ),
+      @html.span(
+        class="dsh-field-value",
+        attrs=mark("field-value", ["overview", "card", card, "field", key, "value"]).title(hint),
+        value,
+      ),
+    ],
+  )
 }
 
 ///|
 /// 版本表的一行：每项都是真实读数；读不到就写「读取失败」与原因，不写空。
+///
+/// 行的键是 label（dsh 版本 / 控制台版本 / 平台 / 读取状态）—— 这几条是固定项，
+/// label 就是它们自己的键，不用序号。
 fn kv_row(label : String, value : String, hint : String) -> @html.Html {
   @html.div(
     class="dsh-row",
-    attrs=@html.Attrs::build().data_set("name", "kv-row"),
+    attrs=mark("kv-row", ["about", "version-row", label]),
     [
-      @html.span(class="dsh-label", label),
-      @html.span(class="dsh-value", attrs=@html.Attrs::build().title(hint), value),
+      @html.span(
+        class="dsh-label",
+        attrs=mark("kv-label", ["about", "version-row", label, "label"]),
+        label,
+      ),
+      @html.span(
+        class="dsh-value",
+        attrs=mark("kv-value", ["about", "version-row", label, "value"]).title(hint),
+        value,
+      ),
     ],
   )
 }
@@ -124,6 +169,9 @@ fn kv_row(label : String, value : String, hint : String) -> @html.Html {
 /// 居中层 61），不是父子。父子结构下点卡片会冒泡到遮罩上，而「只在点遮罩本身时关闭」
 /// 需要拿到事件对象判断 target（Vue 用的是 @click.self），rabbita 的 div.on_click 只收
 /// Cmd、收不到事件。兄弟结构下「点遮罩关闭」天然成立，卡片自己一个像素都不受影响。
+///
+/// name 是对话框自己的键（confirm-dialog / rename-dialog / note-dialog），
+/// 遮罩与居中层各取一条路径 —— 同一时刻只有一个框，但路径本身写的是「哪一个框」。
 fn dialog(
   name : String,
   label : String,
@@ -134,14 +182,13 @@ fn dialog(
   @html.fragment([
     @html.div(
       class="dsh-scrim",
-      attrs=@html.Attrs::build().data_set("name", name + "-scrim"),
+      attrs=mark(name + "-scrim", ["dialog", name, "scrim"]),
       on_click=on_scrim,
       @html.nothing,
     ),
     @html.div(
       class="dsh-dialog-wrap",
-      attrs=@html.Attrs::build()
-        .data_set("name", name)
+      attrs=mark(name, ["dialog", name])
         .aria_label(label)
         .role("dialog")
         .aria_modal("true"),

@@ -1,0 +1,137 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 28px 32px; background: #10151c; color: #d7e0ea;
+         font: 13px/1.65 "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+  h1 { font-size: 15px; margin: 0 0 4px; color: #eaf2fa; font-weight: 600; }
+  p.note { margin: 0 0 18px; color: #8fa3b8; font-size: 12px; }
+  pre { margin: 0; white-space: pre; }
+  .n { color: #7fd1a6; }   /* data-name */
+  .u { color: #f0b46a; }   /* data-uid  */
+</style>
+<h1>实例卡片的 DOM 片段 —— data-name（角色）与 data-uid（这一个）</h1>
+<p class="note">每一处标注同时带两个属性：<span class="n">data-name</span> 说角色（同类共用，可重复），<span class="u">data-uid</span> 说具体是哪一个（8 位 base36，全页唯一、跨刷新稳定）。svg 内部已折叠。</p>
+<pre>&lt;div <span class="n">data-name="instance-card"</span> <span class="u">data-uid="oik6nbmu"</span> data-instance="web-dev" class="dsh-case"&gt;
+  &lt;div class="dsh-case-head"&gt;
+    &lt;span class="dsh-tile violet"&gt;
+      &lt;svg …/&gt;
+    &lt;/span&gt;
+    &lt;div class="dsh-ident"&gt;
+      &lt;div class="dsh-title-line"&gt;
+        &lt;span <span class="n">data-name="card-name"</span> <span class="u">data-uid="f1c4ogo5"</span> class="dsh-name"&gt;
+          web-dev
+        &lt;/span&gt;
+        &lt;!--[--&gt;
+        &lt;!--]--&gt;
+      &lt;/div&gt;
+      &lt;div <span class="n">data-name="sub-line"</span> <span class="u">data-uid="xutwe5zh"</span> data-status="stopped" class="dsh-sub off"&gt;
+        &lt;span <span class="n">data-name="sub-kind"</span> <span class="u">data-uid="li4pcf7l"</span> title="磁盘上真实存在的 profile，当前没有对应的 dsh 进程" class="dsh-kind"&gt;
+          本地 profile
+        &lt;/span&gt;
+        &lt;span <span class="n">data-name="status-dot"</span> <span class="u">data-uid="yphoujw1"</span> class="dsh-dot-slot"&gt;
+          &lt;i class="dsh-dot"&gt;
+            &lt;!--[--&gt;
+            &lt;!--]--&gt;
+          &lt;/i&gt;
+        &lt;/span&gt;
+        &lt;span <span class="n">data-name="sub-state"</span> <span class="u">data-uid="k5syc8vx"</span> class="dsh-state"&gt;
+          已停止
+        &lt;/span&gt;
+        &lt;span class="dsh-tail"&gt;
+          &lt;span <span class="n">data-name="sub-uptime"</span> <span class="u">data-uid="kncfhmqd"</span> title="cordis.patch.yml 182 行 · lock 10-15 18:50" class="dsh-uptime"&gt;
+            cordis.patch.yml 182 行 · lock 10-15 18:50
+          &lt;/span&gt;
+          &lt;span <span class="n">data-name="port-note"</span> <span class="u">data-uid="iwsyku8b"</span> title="缺 11 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle、@local/dsh-retry-control、@local/dsh-linxi、dsh-session-manager、@local/dsh-copy-path、@local/dsh-provider-finder、@local/dsh-copy-session、@local/dsh-clyzhi-review、@local/dsh-proxy-pin" class="dsh-port-note"&gt;
+            缺 11 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle、@local/dsh-retry-control、@local/dsh-linxi、dsh-session-manager、@local/dsh-copy-path、@local/dsh-provider-finder、@local/dsh-copy-session、@local/dsh-clyzhi-review、@local/dsh-proxy-pin
+          &lt;/span&gt;
+        &lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;!--[--&gt;
+    &lt;div class="dsh-actions"&gt;
+      &lt;button <span class="n">data-name="start"</span> <span class="u">data-uid="sy8tftrv"</span> type="button" class="dsh-btn primary violet"&gt;
+        &lt;svg …/&gt;
+        &lt;span&gt;
+          启动
+        &lt;/span&gt;
+      &lt;/button&gt;
+      &lt;button <span class="n">data-name="restart"</span> <span class="u">data-uid="8x8apiai"</span> type="button" class="dsh-btn"&gt;
+        &lt;svg …/&gt;
+        &lt;span&gt;
+          重启
+        &lt;/span&gt;
+      &lt;/button&gt;
+      &lt;button <span class="n">data-name="menu-trigger"</span> <span class="u">data-uid="yoehocfs"</span> id="dsh-trigger-profile-web-dev" aria-haspopup="menu" aria-expanded="false" aria-label="更多操作（web-dev）" type="button" class="dsh-btn icon-only"&gt;
+        &lt;svg …/&gt;
+      &lt;/button&gt;
+    &lt;/div&gt;
+    &lt;!--]--&gt;
+  &lt;/div&gt;
+  &lt;ul class="dsh-fields"&gt;
+    &lt;li <span class="n">data-name="card-field"</span> <span class="u">data-uid="t6h54myq"</span> data-field="dsh-version" class="dsh-field"&gt;
+      &lt;span class="dsh-field-icon"&gt;
+        &lt;svg …/&gt;
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-label"</span> <span class="u">data-uid="avy2vy65"</span> class="dsh-field-label"&gt;
+        DSH 版本 / 来源
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-value"</span> <span class="u">data-uid="yct09x0q"</span> title="控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）" class="dsh-field-value"&gt;
+        0.2.0-rc.2（本机已安装）
+      &lt;/span&gt;
+    &lt;/li&gt;
+    &lt;li <span class="n">data-name="card-field"</span> <span class="u">data-uid="vio1dlrd"</span> data-field="profile" class="dsh-field"&gt;
+      &lt;span class="dsh-field-icon"&gt;
+        &lt;svg …/&gt;
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-label"</span> <span class="u">data-uid="33mm3w6a"</span> class="dsh-field-label"&gt;
+        Profile
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-value"</span> <span class="u">data-uid="sz4hc9bx"</span> title="磁盘上真实存在的 profile 目录名：web-dev" class="dsh-field-value"&gt;
+        web-dev
+      &lt;/span&gt;
+    &lt;/li&gt;
+    &lt;li <span class="n">data-name="card-field"</span> <span class="u">data-uid="w0jdcftt"</span> data-field="url" class="dsh-field"&gt;
+      &lt;span class="dsh-field-icon"&gt;
+        &lt;svg …/&gt;
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-label"</span> <span class="u">data-uid="e46ce2fu"</span> class="dsh-field-label"&gt;
+        访问地址
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-value"</span> <span class="u">data-uid="c8vd9ecl"</span> title="这只 profile 现在没有在跑，所以没有可访问的地址" class="dsh-field-value"&gt;
+        已停用，无法访问
+      &lt;/span&gt;
+    &lt;/li&gt;
+    &lt;li <span class="n">data-name="card-field"</span> <span class="u">data-uid="pu95nuim"</span> data-field="home" class="dsh-field"&gt;
+      &lt;span class="dsh-field-icon"&gt;
+        &lt;svg …/&gt;
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-label"</span> <span class="u">data-uid="wjkhubqh"</span> class="dsh-field-label"&gt;
+        DSH_HOME
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-value"</span> <span class="u">data-uid="lnftyjce"</span> title="控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）" class="dsh-field-value"&gt;
+        ~/.dsh
+      &lt;/span&gt;
+    &lt;/li&gt;
+    &lt;li <span class="n">data-name="card-field"</span> <span class="u">data-uid="x2yuqay4"</span> data-field="plugin-count" class="dsh-field"&gt;
+      &lt;span class="dsh-field-icon"&gt;
+        &lt;svg …/&gt;
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-label"</span> <span class="u">data-uid="h8i6mh43"</span> class="dsh-field-label"&gt;
+        插件数量
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-value"</span> <span class="u">data-uid="1vszc0a0"</span> title="缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle、@local/dsh-retry-control、@local/dsh-linxi、dsh-session-manager、@local/dsh-copy-path、@local/dsh-provider-finder、@local/dsh-copy-session、@local/dsh-clyzhi-review、@local/dsh-proxy-pin" class="dsh-field-value"&gt;
+        声明 13 · 已装 2
+      &lt;/span&gt;
+    &lt;/li&gt;
+    &lt;li <span class="n">data-name="card-field"</span> <span class="u">data-uid="n3tvalto"</span> data-field="mtime" class="dsh-field"&gt;
+      &lt;span class="dsh-field-icon"&gt;
+        &lt;svg …/&gt;
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-label"</span> <span class="u">data-uid="f8svqmyb"</span> class="dsh-field-label"&gt;
+        最近改动
+      &lt;/span&gt;
+      &lt;span <span class="n">data-name="field-value"</span> <span class="u">data-uid="6kgbb7js"</span> title="这只 profile 目录的最近改动时刻（mtime 2026-10-15T10:50:52.694Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：~/.dsh/profiles/web-dev 的 mtime" class="dsh-field-value"&gt;
+        10-15 18:50
+      &lt;/span&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;</pre>

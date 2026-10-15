@@ -1,0 +1,5202 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "states": {
+  "初始页（实例总览）": {
+   "total": 132
+  },
+  "展开行菜单": {
+   "total": 141
+  },
+  "打开对话框（重命名）": {
+   "total": 138
+  },
+  "设置页": {
+   "total": 35
+  },
+  "日志页": {
+   "total": 16
+  },
+  "关于页": {
+   "total": 17
+  },
+  "展开归档区": {
+   "total": 139
+  }
+ },
+ "uniqueness": {
+  "初始页（实例总览）": {
+   "total": 132,
+   "distinct": 132,
+   "duplicates": []
+  },
+  "展开行菜单": {
+   "total": 141,
+   "distinct": 141,
+   "duplicates": []
+  },
+  "打开对话框（重命名）": {
+   "total": 138,
+   "distinct": 138,
+   "duplicates": []
+  },
+  "设置页": {
+   "total": 35,
+   "distinct": 35,
+   "duplicates": []
+  },
+  "日志页": {
+   "total": 16,
+   "distinct": 16,
+   "duplicates": []
+  },
+  "关于页": {
+   "total": 17,
+   "distinct": 17,
+   "duplicates": []
+  },
+  "展开归档区": {
+   "total": 139,
+   "distinct": 139,
+   "duplicates": []
+  }
+ },
+ "stability": {
+  "初始页（实例总览）": {
+   "compared": 132,
+   "mismatched": []
+  },
+  "展开行菜单": {
+   "compared": 141,
+   "mismatched": []
+  },
+  "打开对话框（重命名）": {
+   "compared": 138,
+   "mismatched": []
+  },
+  "设置页": {
+   "compared": 35,
+   "mismatched": []
+  },
+  "日志页": {
+   "compared": 16,
+   "mismatched": []
+  },
+  "关于页": {
+   "compared": 17,
+   "mismatched": []
+  },
+  "展开归档区": {
+   "compared": 139,
+   "mismatched": []
+  }
+ },
+ "sameNameDiffCard": [
+  {
+   "name": "instance-card",
+   "perCard": {
+    "instance-card :: card=web": "38hhruar",
+    "instance-card :: card=web-dev": "oik6nbmu",
+    "instance-card :: card=review-dev": "6alh2f4j",
+    "instance-card :: card=headless": "56dajw30"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "card-name",
+   "perCard": {
+    "card-name :: card=web": "3mvsupwm",
+    "card-name :: card=web-dev": "f1c4ogo5",
+    "card-name :: card=review-dev": "uao96y5y",
+    "card-name :: card=headless": "42rjxdej"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "sub-line",
+   "perCard": {
+    "sub-line :: card=web": "mt1hrwue",
+    "sub-line :: card=web-dev": "xutwe5zh",
+    "sub-line :: card=review-dev": "91fnzx3q",
+    "sub-line :: card=headless": "rstvp2k3"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "sub-kind",
+   "perCard": {
+    "sub-kind :: card=web": "uzemkqnc",
+    "sub-kind :: card=web-dev": "li4pcf7l",
+    "sub-kind :: card=review-dev": "w2biryu0",
+    "sub-kind :: card=headless": "z8id3t03"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "status-dot",
+   "perCard": {
+    "status-dot :: card=web": "5g85qamy",
+    "status-dot :: card=web-dev": "yphoujw1",
+    "status-dot :: card=review-dev": "sgozq3d6",
+    "status-dot :: card=headless": "hjmhlqrr"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "sub-state",
+   "perCard": {
+    "sub-state :: card=web": "tu2meziy",
+    "sub-state :: card=web-dev": "k5syc8vx",
+    "sub-state :: card=review-dev": "3xya93nu",
+    "sub-state :: card=headless": "1j9ku31j"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "sub-uptime",
+   "perCard": {
+    "sub-uptime :: card=web": "4c2r00wc",
+    "sub-uptime :: card=web-dev": "kncfhmqd",
+    "sub-uptime :: card=review-dev": "gscj1n30",
+    "sub-uptime :: card=headless": "j5fp35nf"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "port-note",
+   "perCard": {
+    "port-note :: card=web": "lzts978i",
+    "port-note :: card=web-dev": "iwsyku8b",
+    "port-note :: card=review-dev": "vd0w30tu"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "restart",
+   "perCard": {
+    "restart :: card=web": "5nmvfpef",
+    "restart :: card=web-dev": "8x8apiai",
+    "restart :: card=review-dev": "1pokuw9z",
+    "restart :: card=headless": "odjh9zso"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "menu-trigger",
+   "perCard": {
+    "menu-trigger :: card=web": "2w6gczwr",
+    "menu-trigger :: card=web-dev": "yoehocfs",
+    "menu-trigger :: card=review-dev": "5scvmr8b",
+    "menu-trigger :: card=headless": "4sh0p2w6"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "card-field",
+   "perCard": {
+    "card-field :: card=web": "lbb52eq5",
+    "card-field :: card=web-dev": "n3tvalto",
+    "card-field :: card=review-dev": "ald5k9zx",
+    "card-field :: card=headless": "suevhn5i"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "field-label",
+   "perCard": {
+    "field-label :: card=web": "maq879uu",
+    "field-label :: card=web-dev": "f8svqmyb",
+    "field-label :: card=review-dev": "uy1ws8ja",
+    "field-label :: card=headless": "zdkr8735"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "field-value",
+   "perCard": {
+    "field-value :: card=web": "p2gjr8cp",
+    "field-value :: card=web-dev": "6kgbb7js",
+    "field-value :: card=review-dev": "d0d77h21",
+    "field-value :: card=headless": "js2hrvva"
+   },
+   "allDistinct": true
+  },
+  {
+   "name": "start",
+   "perCard": {
+    "start :: card=web-dev": "sy8tftrv",
+    "start :: card=review-dev": "vnn86ol6",
+    "start :: card=headless": "dmp4gap5"
+   },
+   "allDistinct": true
+  }
+ ],
+ "order": {
+  "profile": "headless",
+  "beforeCards": [
+   "web :3080",
+   "web-dev",
+   "review-dev",
+   "headless"
+  ],
+  "originalMtime": "2026-10-15 16:13:38.396605910 +0800",
+  "touched": "touch -d 2030-01-01 00:00:00 ~/.dsh/profiles/headless",
+  "afterCards": [
+   "web :3080",
+   "headless",
+   "web-dev",
+   "review-dev"
+  ],
+  "orderChanged": true,
+  "changedUids": [],
+  "compared": 132,
+  "restored": true,
+  "restoreNote": "touch -d \"2026-10-15 16:13:38.396605910 +0800\" ~/.dsh/profiles/headless"
+ },
+ "tableSize": 618,
+ "table": [
+  {
+   "state": "初始页（实例总览）",
+   "identity": "side-nav :: ",
+   "name": "side-nav",
+   "uid": "psintiol",
+   "tag": "aside",
+   "sample": "DSH 控制台实例总览日志设置关于本机运行，仅限"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "nav-overview :: ",
+   "name": "nav-overview",
+   "uid": "wgisl1kv",
+   "tag": "button",
+   "sample": "实例总览"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "nav-logs :: ",
+   "name": "nav-logs",
+   "uid": "naxovvpn",
+   "tag": "button",
+   "sample": "日志"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "nav-settings :: ",
+   "name": "nav-settings",
+   "uid": "m72eapcx",
+   "tag": "button",
+   "sample": "设置"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "nav-about :: ",
+   "name": "nav-about",
+   "uid": "uiuwfiyw",
+   "tag": "button",
+   "sample": "关于"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "overview-page :: ",
+   "name": "overview-page",
+   "uid": "64s1c0on",
+   "tag": "div",
+   "sample": "实例总览真实数据菜单里的动作走 POST /ap"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "8wau1c09",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "new-instance :: ",
+   "name": "new-instance",
+   "uid": "7lipfsbu",
+   "tag": "button",
+   "sample": "＋新建实例"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "zl8g5sbj",
+   "tag": "h2",
+   "sample": "当前运行的实例 (1)"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "i478edtj",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "instance-card :: card=web :3080 own=web :3080",
+   "name": "instance-card",
+   "uid": "38hhruar",
+   "tag": "div",
+   "sample": "web :3080本机监听的 dsh 实例运行中"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-name :: card=web :3080",
+   "name": "card-name",
+   "uid": "3mvsupwm",
+   "tag": "span",
+   "sample": "web :3080"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-line :: card=web :3080 own=running",
+   "name": "sub-line",
+   "uid": "mt1hrwue",
+   "tag": "div",
+   "sample": "本机监听的 dsh 实例运行中已运行 9 小时 "
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-kind :: card=web :3080",
+   "name": "sub-kind",
+   "uid": "uzemkqnc",
+   "tag": "span",
+   "sample": "本机监听的 dsh 实例"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "status-dot :: card=web :3080",
+   "name": "status-dot",
+   "uid": "5g85qamy",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-state :: card=web :3080",
+   "name": "sub-state",
+   "uid": "tu2meziy",
+   "tag": "span",
+   "sample": "运行中"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-uptime :: card=web :3080",
+   "name": "sub-uptime",
+   "uid": "4c2r00wc",
+   "tag": "span",
+   "sample": "已运行 9 小时 35 分钟"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "port-note :: card=web :3080",
+   "name": "port-note",
+   "uid": "lzts978i",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "open-web-ui :: card=web :3080",
+   "name": "open-web-ui",
+   "uid": "et9ch8vc",
+   "tag": "button",
+   "sample": "打开 Web UI"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "stop :: card=web :3080",
+   "name": "stop",
+   "uid": "c1dfucbp",
+   "tag": "button",
+   "sample": "停止"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "restart :: card=web :3080",
+   "name": "restart",
+   "uid": "5nmvfpef",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "menu-trigger :: card=web :3080",
+   "name": "menu-trigger",
+   "uid": "2w6gczwr",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web :3080 own=dsh-version",
+   "name": "card-field",
+   "uid": "rh2ae69b",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（入口"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "s4sqc0ic",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "sdk41prz",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（入口包）"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web :3080 own=profile",
+   "name": "card-field",
+   "uid": "ip2wffvw",
+   "tag": "li",
+   "sample": "Profileweb"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "ux13u3fn",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "z1ssmn1k",
+   "tag": "span",
+   "sample": "web"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web :3080 own=url",
+   "name": "card-field",
+   "uid": "6rdfx3zc",
+   "tag": "li",
+   "sample": "访问地址http://127.0.0.1:308"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "yrdz3tbj",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "zch7tzu4",
+   "tag": "span",
+   "sample": "http://127.0.0.1:3080/"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web :3080 own=home",
+   "name": "card-field",
+   "uid": "r83iml89",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "espkbgqa",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "7e306nnx",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web :3080 own=plugin-count",
+   "name": "card-field",
+   "uid": "6s1wvdpf",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 10"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "b3wr2r3c",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "ucd0ir2z",
+   "tag": "span",
+   "sample": "声明 13 · 已装 10"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web :3080 own=mtime",
+   "name": "card-field",
+   "uid": "lbb52eq5",
+   "tag": "li",
+   "sample": "最近改动10-15 13:24"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "maq879uu",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "p2gjr8cp",
+   "tag": "span",
+   "sample": "10-15 13:24"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "nbgatsyx",
+   "tag": "h2",
+   "sample": "已停止的实例 (3)"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "hsv3ns45",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "instance-card :: card=web-dev own=web-dev",
+   "name": "instance-card",
+   "uid": "oik6nbmu",
+   "tag": "div",
+   "sample": "web-dev本地 profile已停止cord"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-name :: card=web-dev",
+   "name": "card-name",
+   "uid": "f1c4ogo5",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-line :: card=web-dev own=stopped",
+   "name": "sub-line",
+   "uid": "xutwe5zh",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-kind :: card=web-dev",
+   "name": "sub-kind",
+   "uid": "li4pcf7l",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "status-dot :: card=web-dev",
+   "name": "status-dot",
+   "uid": "yphoujw1",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-state :: card=web-dev",
+   "name": "sub-state",
+   "uid": "k5syc8vx",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-uptime :: card=web-dev",
+   "name": "sub-uptime",
+   "uid": "kncfhmqd",
+   "tag": "span",
+   "sample": "cordis.patch.yml 182 行 ·"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "port-note :: card=web-dev",
+   "name": "port-note",
+   "uid": "iwsyku8b",
+   "tag": "span",
+   "sample": "缺 11 个包：@deepseek-ai/dsh"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "start :: card=web-dev",
+   "name": "start",
+   "uid": "sy8tftrv",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "restart :: card=web-dev",
+   "name": "restart",
+   "uid": "8x8apiai",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "menu-trigger :: card=web-dev",
+   "name": "menu-trigger",
+   "uid": "yoehocfs",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "t6h54myq",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "avy2vy65",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "yct09x0q",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web-dev own=profile",
+   "name": "card-field",
+   "uid": "vio1dlrd",
+   "tag": "li",
+   "sample": "Profileweb-dev"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "33mm3w6a",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "sz4hc9bx",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web-dev own=url",
+   "name": "card-field",
+   "uid": "w0jdcftt",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "e46ce2fu",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "c8vd9ecl",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web-dev own=home",
+   "name": "card-field",
+   "uid": "pu95nuim",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "wjkhubqh",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "lnftyjce",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "x2yuqay4",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 2"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "h8i6mh43",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "1vszc0a0",
+   "tag": "span",
+   "sample": "声明 13 · 已装 2"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=web-dev own=mtime",
+   "name": "card-field",
+   "uid": "n3tvalto",
+   "tag": "li",
+   "sample": "最近改动10-15 18:50"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "f8svqmyb",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "6kgbb7js",
+   "tag": "span",
+   "sample": "10-15 18:50"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "instance-card :: card=review-dev own=review-dev",
+   "name": "instance-card",
+   "uid": "6alh2f4j",
+   "tag": "div",
+   "sample": "review-dev本地 profile已停止c"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-name :: card=review-dev",
+   "name": "card-name",
+   "uid": "uao96y5y",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-line :: card=review-dev own=stopped",
+   "name": "sub-line",
+   "uid": "91fnzx3q",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-kind :: card=review-dev",
+   "name": "sub-kind",
+   "uid": "w2biryu0",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "status-dot :: card=review-dev",
+   "name": "status-dot",
+   "uid": "sgozq3d6",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-state :: card=review-dev",
+   "name": "sub-state",
+   "uid": "3xya93nu",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-uptime :: card=review-dev",
+   "name": "sub-uptime",
+   "uid": "gscj1n30",
+   "tag": "span",
+   "sample": "cordis.patch.yml 138 行 ·"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "port-note :: card=review-dev",
+   "name": "port-note",
+   "uid": "vd0w30tu",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "start :: card=review-dev",
+   "name": "start",
+   "uid": "vnn86ol6",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "restart :: card=review-dev",
+   "name": "restart",
+   "uid": "1pokuw9z",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "menu-trigger :: card=review-dev",
+   "name": "menu-trigger",
+   "uid": "5scvmr8b",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=review-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "kr8gr673",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "mrp6qjb8",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "zjsj2u7j",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=review-dev own=profile",
+   "name": "card-field",
+   "uid": "iv1tjjz0",
+   "tag": "li",
+   "sample": "Profilereview-dev"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "ang8r1eb",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "a3a6la8o",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=review-dev own=url",
+   "name": "card-field",
+   "uid": "4a4y032w",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "74kkybj3",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "se0hnsws",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=review-dev own=home",
+   "name": "card-field",
+   "uid": "b7l66xc9",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "orah2shu",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "dkm7iov1",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=review-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "ee898q7n",
+   "tag": "li",
+   "sample": "插件数量声明 15 · 已装 12"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "l7rw0qyg",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "t70b2cvf",
+   "tag": "span",
+   "sample": "声明 15 · 已装 12"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=review-dev own=mtime",
+   "name": "card-field",
+   "uid": "ald5k9zx",
+   "tag": "li",
+   "sample": "最近改动10-15 16:16"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "uy1ws8ja",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "d0d77h21",
+   "tag": "span",
+   "sample": "10-15 16:16"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "instance-card :: card=headless own=headless",
+   "name": "instance-card",
+   "uid": "56dajw30",
+   "tag": "div",
+   "sample": "headless本地 profile已停止cor"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-name :: card=headless",
+   "name": "card-name",
+   "uid": "42rjxdej",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-line :: card=headless own=stopped",
+   "name": "sub-line",
+   "uid": "rstvp2k3",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-kind :: card=headless",
+   "name": "sub-kind",
+   "uid": "z8id3t03",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "status-dot :: card=headless",
+   "name": "status-dot",
+   "uid": "hjmhlqrr",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-state :: card=headless",
+   "name": "sub-state",
+   "uid": "1j9ku31j",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "sub-uptime :: card=headless",
+   "name": "sub-uptime",
+   "uid": "j5fp35nf",
+   "tag": "span",
+   "sample": "cordis.patch.yml 4 行 · 无"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "start :: card=headless",
+   "name": "start",
+   "uid": "dmp4gap5",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "restart :: card=headless",
+   "name": "restart",
+   "uid": "odjh9zso",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "menu-trigger :: card=headless",
+   "name": "menu-trigger",
+   "uid": "4sh0p2w6",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=headless own=dsh-version",
+   "name": "card-field",
+   "uid": "usfybzxs",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "81t6dohj",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "y9gmlan8",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=headless own=profile",
+   "name": "card-field",
+   "uid": "uinmulvf",
+   "tag": "li",
+   "sample": "Profileheadless"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "ylj4eqqo",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "aiiwqvnn",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=headless own=url",
+   "name": "card-field",
+   "uid": "kd6m398r",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zo8uxnxs",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "wy4hoq37",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=headless own=home",
+   "name": "card-field",
+   "uid": "jleacxm8",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "t6ma3liv",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "ic3liqw4",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=headless own=plugin-count",
+   "name": "card-field",
+   "uid": "iny05v3y",
+   "tag": "li",
+   "sample": "插件数量声明 2 · 已装 2"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "r6tcpmcp",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "gaoottym",
+   "tag": "span",
+   "sample": "声明 2 · 已装 2"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "card-field :: card=headless own=mtime",
+   "name": "card-field",
+   "uid": "suevhn5i",
+   "tag": "li",
+   "sample": "最近改动10-15 16:13"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zdkr8735",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "js2hrvva",
+   "tag": "span",
+   "sample": "10-15 16:13"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "archived-toggle :: ",
+   "name": "archived-toggle",
+   "uid": "7k4ofpqh",
+   "tag": "button",
+   "sample": "已归档 (1)"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "side-info :: ",
+   "name": "side-info",
+   "uid": "1nqb7zbn",
+   "tag": "aside",
+   "sample": "工作流入口从当前实例派生开发副本派生隔离副本，用"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "l6ienh4d",
+   "tag": "button",
+   "sample": "从当前实例派生开发副本派生隔离副本，用新端口与独"
+  },
+  {
+   "state": "初始页（实例总览）",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "ovqtv21c",
+   "tag": "button",
+   "sample": "将插件交回主线实例把插件提交回稳定实例"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "side-nav :: ",
+   "name": "side-nav",
+   "uid": "psintiol",
+   "tag": "aside",
+   "sample": "DSH 控制台实例总览日志设置关于本机运行，仅限"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "nav-overview :: ",
+   "name": "nav-overview",
+   "uid": "wgisl1kv",
+   "tag": "button",
+   "sample": "实例总览"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "nav-logs :: ",
+   "name": "nav-logs",
+   "uid": "naxovvpn",
+   "tag": "button",
+   "sample": "日志"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "nav-settings :: ",
+   "name": "nav-settings",
+   "uid": "m72eapcx",
+   "tag": "button",
+   "sample": "设置"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "nav-about :: ",
+   "name": "nav-about",
+   "uid": "uiuwfiyw",
+   "tag": "button",
+   "sample": "关于"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "overview-page :: ",
+   "name": "overview-page",
+   "uid": "64s1c0on",
+   "tag": "div",
+   "sample": "实例总览真实数据菜单里的动作走 POST /ap"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "8wau1c09",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "new-instance :: ",
+   "name": "new-instance",
+   "uid": "7lipfsbu",
+   "tag": "button",
+   "sample": "＋新建实例"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "zl8g5sbj",
+   "tag": "h2",
+   "sample": "当前运行的实例 (1)"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "i478edtj",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "instance-card :: card=web :3080 own=web :3080",
+   "name": "instance-card",
+   "uid": "38hhruar",
+   "tag": "div",
+   "sample": "web :3080本机监听的 dsh 实例运行中"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-name :: card=web :3080",
+   "name": "card-name",
+   "uid": "3mvsupwm",
+   "tag": "span",
+   "sample": "web :3080"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-line :: card=web :3080 own=running",
+   "name": "sub-line",
+   "uid": "mt1hrwue",
+   "tag": "div",
+   "sample": "本机监听的 dsh 实例运行中已运行 9 小时 "
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-kind :: card=web :3080",
+   "name": "sub-kind",
+   "uid": "uzemkqnc",
+   "tag": "span",
+   "sample": "本机监听的 dsh 实例"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "status-dot :: card=web :3080",
+   "name": "status-dot",
+   "uid": "5g85qamy",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-state :: card=web :3080",
+   "name": "sub-state",
+   "uid": "tu2meziy",
+   "tag": "span",
+   "sample": "运行中"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-uptime :: card=web :3080",
+   "name": "sub-uptime",
+   "uid": "4c2r00wc",
+   "tag": "span",
+   "sample": "已运行 9 小时 35 分钟"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "port-note :: card=web :3080",
+   "name": "port-note",
+   "uid": "lzts978i",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "open-web-ui :: card=web :3080",
+   "name": "open-web-ui",
+   "uid": "et9ch8vc",
+   "tag": "button",
+   "sample": "打开 Web UI"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "stop :: card=web :3080",
+   "name": "stop",
+   "uid": "c1dfucbp",
+   "tag": "button",
+   "sample": "停止"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "restart :: card=web :3080",
+   "name": "restart",
+   "uid": "5nmvfpef",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-trigger :: card=web :3080",
+   "name": "menu-trigger",
+   "uid": "2w6gczwr",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web :3080 own=dsh-version",
+   "name": "card-field",
+   "uid": "rh2ae69b",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（入口"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "s4sqc0ic",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "sdk41prz",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（入口包）"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web :3080 own=profile",
+   "name": "card-field",
+   "uid": "ip2wffvw",
+   "tag": "li",
+   "sample": "Profileweb"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "ux13u3fn",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "z1ssmn1k",
+   "tag": "span",
+   "sample": "web"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web :3080 own=url",
+   "name": "card-field",
+   "uid": "6rdfx3zc",
+   "tag": "li",
+   "sample": "访问地址http://127.0.0.1:308"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "yrdz3tbj",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "zch7tzu4",
+   "tag": "span",
+   "sample": "http://127.0.0.1:3080/"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web :3080 own=home",
+   "name": "card-field",
+   "uid": "r83iml89",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "espkbgqa",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "7e306nnx",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web :3080 own=plugin-count",
+   "name": "card-field",
+   "uid": "6s1wvdpf",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 10"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "b3wr2r3c",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "ucd0ir2z",
+   "tag": "span",
+   "sample": "声明 13 · 已装 10"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web :3080 own=mtime",
+   "name": "card-field",
+   "uid": "lbb52eq5",
+   "tag": "li",
+   "sample": "最近改动10-15 13:24"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "maq879uu",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "p2gjr8cp",
+   "tag": "span",
+   "sample": "10-15 13:24"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "nbgatsyx",
+   "tag": "h2",
+   "sample": "已停止的实例 (3)"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "hsv3ns45",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "instance-card :: card=web-dev own=web-dev",
+   "name": "instance-card",
+   "uid": "oik6nbmu",
+   "tag": "div",
+   "sample": "web-dev本地 profile已停止cord"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-name :: card=web-dev",
+   "name": "card-name",
+   "uid": "f1c4ogo5",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-line :: card=web-dev own=stopped",
+   "name": "sub-line",
+   "uid": "xutwe5zh",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-kind :: card=web-dev",
+   "name": "sub-kind",
+   "uid": "li4pcf7l",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "status-dot :: card=web-dev",
+   "name": "status-dot",
+   "uid": "yphoujw1",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-state :: card=web-dev",
+   "name": "sub-state",
+   "uid": "k5syc8vx",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-uptime :: card=web-dev",
+   "name": "sub-uptime",
+   "uid": "kncfhmqd",
+   "tag": "span",
+   "sample": "cordis.patch.yml 182 行 ·"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "port-note :: card=web-dev",
+   "name": "port-note",
+   "uid": "iwsyku8b",
+   "tag": "span",
+   "sample": "缺 11 个包：@deepseek-ai/dsh"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "start :: card=web-dev",
+   "name": "start",
+   "uid": "sy8tftrv",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "restart :: card=web-dev",
+   "name": "restart",
+   "uid": "8x8apiai",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-trigger :: card=web-dev",
+   "name": "menu-trigger",
+   "uid": "yoehocfs",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "row-menu :: card=web-dev",
+   "name": "row-menu",
+   "uid": "n8no9gza",
+   "tag": "div",
+   "sample": "查看日志打开工作目录编辑配置重命名编辑备注归档删"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-item :: card=web-dev own=logs",
+   "name": "menu-item",
+   "uid": "l2xms5l1",
+   "tag": "button",
+   "sample": "查看日志"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-item :: card=web-dev own=dir",
+   "name": "menu-item",
+   "uid": "0aajyjme",
+   "tag": "button",
+   "sample": "打开工作目录"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-item :: card=web-dev own=config",
+   "name": "menu-item",
+   "uid": "cq79vv06",
+   "tag": "button",
+   "sample": "编辑配置"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-item :: card=web-dev own=rename",
+   "name": "menu-item",
+   "uid": "poy0hryy",
+   "tag": "button",
+   "sample": "重命名"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-item :: card=web-dev own=note",
+   "name": "menu-item",
+   "uid": "a9iwtgyi",
+   "tag": "button",
+   "sample": "编辑备注"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-item :: card=web-dev own=archive",
+   "name": "menu-item",
+   "uid": "x6j8skpf",
+   "tag": "button",
+   "sample": "归档"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-item :: card=web-dev own=delete",
+   "name": "menu-item",
+   "uid": "crb4qsoz",
+   "tag": "button",
+   "sample": "删除"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-overlay :: card=web-dev",
+   "name": "menu-overlay",
+   "uid": "pbo910cc",
+   "tag": "div",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "t6h54myq",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "avy2vy65",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "yct09x0q",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web-dev own=profile",
+   "name": "card-field",
+   "uid": "vio1dlrd",
+   "tag": "li",
+   "sample": "Profileweb-dev"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "33mm3w6a",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "sz4hc9bx",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web-dev own=url",
+   "name": "card-field",
+   "uid": "w0jdcftt",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "e46ce2fu",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "c8vd9ecl",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web-dev own=home",
+   "name": "card-field",
+   "uid": "pu95nuim",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "wjkhubqh",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "lnftyjce",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "x2yuqay4",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 2"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "h8i6mh43",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "1vszc0a0",
+   "tag": "span",
+   "sample": "声明 13 · 已装 2"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=web-dev own=mtime",
+   "name": "card-field",
+   "uid": "n3tvalto",
+   "tag": "li",
+   "sample": "最近改动10-15 18:50"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "f8svqmyb",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "6kgbb7js",
+   "tag": "span",
+   "sample": "10-15 18:50"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "instance-card :: card=review-dev own=review-dev",
+   "name": "instance-card",
+   "uid": "6alh2f4j",
+   "tag": "div",
+   "sample": "review-dev本地 profile已停止c"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-name :: card=review-dev",
+   "name": "card-name",
+   "uid": "uao96y5y",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-line :: card=review-dev own=stopped",
+   "name": "sub-line",
+   "uid": "91fnzx3q",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-kind :: card=review-dev",
+   "name": "sub-kind",
+   "uid": "w2biryu0",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "status-dot :: card=review-dev",
+   "name": "status-dot",
+   "uid": "sgozq3d6",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-state :: card=review-dev",
+   "name": "sub-state",
+   "uid": "3xya93nu",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-uptime :: card=review-dev",
+   "name": "sub-uptime",
+   "uid": "gscj1n30",
+   "tag": "span",
+   "sample": "cordis.patch.yml 138 行 ·"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "port-note :: card=review-dev",
+   "name": "port-note",
+   "uid": "vd0w30tu",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "start :: card=review-dev",
+   "name": "start",
+   "uid": "vnn86ol6",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "restart :: card=review-dev",
+   "name": "restart",
+   "uid": "1pokuw9z",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-trigger :: card=review-dev",
+   "name": "menu-trigger",
+   "uid": "5scvmr8b",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=review-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "kr8gr673",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "mrp6qjb8",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "zjsj2u7j",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=review-dev own=profile",
+   "name": "card-field",
+   "uid": "iv1tjjz0",
+   "tag": "li",
+   "sample": "Profilereview-dev"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "ang8r1eb",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "a3a6la8o",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=review-dev own=url",
+   "name": "card-field",
+   "uid": "4a4y032w",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "74kkybj3",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "se0hnsws",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=review-dev own=home",
+   "name": "card-field",
+   "uid": "b7l66xc9",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "orah2shu",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "dkm7iov1",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=review-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "ee898q7n",
+   "tag": "li",
+   "sample": "插件数量声明 15 · 已装 12"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "l7rw0qyg",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "t70b2cvf",
+   "tag": "span",
+   "sample": "声明 15 · 已装 12"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=review-dev own=mtime",
+   "name": "card-field",
+   "uid": "ald5k9zx",
+   "tag": "li",
+   "sample": "最近改动10-15 16:16"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "uy1ws8ja",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "d0d77h21",
+   "tag": "span",
+   "sample": "10-15 16:16"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "instance-card :: card=headless own=headless",
+   "name": "instance-card",
+   "uid": "56dajw30",
+   "tag": "div",
+   "sample": "headless本地 profile已停止cor"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-name :: card=headless",
+   "name": "card-name",
+   "uid": "42rjxdej",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-line :: card=headless own=stopped",
+   "name": "sub-line",
+   "uid": "rstvp2k3",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-kind :: card=headless",
+   "name": "sub-kind",
+   "uid": "z8id3t03",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "status-dot :: card=headless",
+   "name": "status-dot",
+   "uid": "hjmhlqrr",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-state :: card=headless",
+   "name": "sub-state",
+   "uid": "1j9ku31j",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "sub-uptime :: card=headless",
+   "name": "sub-uptime",
+   "uid": "j5fp35nf",
+   "tag": "span",
+   "sample": "cordis.patch.yml 4 行 · 无"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "start :: card=headless",
+   "name": "start",
+   "uid": "dmp4gap5",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "restart :: card=headless",
+   "name": "restart",
+   "uid": "odjh9zso",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "menu-trigger :: card=headless",
+   "name": "menu-trigger",
+   "uid": "4sh0p2w6",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=headless own=dsh-version",
+   "name": "card-field",
+   "uid": "usfybzxs",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "81t6dohj",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "y9gmlan8",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=headless own=profile",
+   "name": "card-field",
+   "uid": "uinmulvf",
+   "tag": "li",
+   "sample": "Profileheadless"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "ylj4eqqo",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "aiiwqvnn",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=headless own=url",
+   "name": "card-field",
+   "uid": "kd6m398r",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zo8uxnxs",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "wy4hoq37",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=headless own=home",
+   "name": "card-field",
+   "uid": "jleacxm8",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "t6ma3liv",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "ic3liqw4",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=headless own=plugin-count",
+   "name": "card-field",
+   "uid": "iny05v3y",
+   "tag": "li",
+   "sample": "插件数量声明 2 · 已装 2"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "r6tcpmcp",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "gaoottym",
+   "tag": "span",
+   "sample": "声明 2 · 已装 2"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "card-field :: card=headless own=mtime",
+   "name": "card-field",
+   "uid": "suevhn5i",
+   "tag": "li",
+   "sample": "最近改动10-15 16:13"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zdkr8735",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "js2hrvva",
+   "tag": "span",
+   "sample": "10-15 16:13"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "archived-toggle :: ",
+   "name": "archived-toggle",
+   "uid": "7k4ofpqh",
+   "tag": "button",
+   "sample": "已归档 (1)"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "side-info :: ",
+   "name": "side-info",
+   "uid": "1nqb7zbn",
+   "tag": "aside",
+   "sample": "工作流入口从当前实例派生开发副本派生隔离副本，用"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "l6ienh4d",
+   "tag": "button",
+   "sample": "从当前实例派生开发副本派生隔离副本，用新端口与独"
+  },
+  {
+   "state": "展开行菜单",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "ovqtv21c",
+   "tag": "button",
+   "sample": "将插件交回主线实例把插件提交回稳定实例"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "side-nav :: ",
+   "name": "side-nav",
+   "uid": "psintiol",
+   "tag": "aside",
+   "sample": "DSH 控制台实例总览日志设置关于本机运行，仅限"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "nav-overview :: ",
+   "name": "nav-overview",
+   "uid": "wgisl1kv",
+   "tag": "button",
+   "sample": "实例总览"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "nav-logs :: ",
+   "name": "nav-logs",
+   "uid": "naxovvpn",
+   "tag": "button",
+   "sample": "日志"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "nav-settings :: ",
+   "name": "nav-settings",
+   "uid": "m72eapcx",
+   "tag": "button",
+   "sample": "设置"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "nav-about :: ",
+   "name": "nav-about",
+   "uid": "uiuwfiyw",
+   "tag": "button",
+   "sample": "关于"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "overview-page :: ",
+   "name": "overview-page",
+   "uid": "64s1c0on",
+   "tag": "div",
+   "sample": "实例总览真实数据菜单里的动作走 POST /ap"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "8wau1c09",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "new-instance :: ",
+   "name": "new-instance",
+   "uid": "7lipfsbu",
+   "tag": "button",
+   "sample": "＋新建实例"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "zl8g5sbj",
+   "tag": "h2",
+   "sample": "当前运行的实例 (1)"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "i478edtj",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "instance-card :: card=web :3080 own=web :3080",
+   "name": "instance-card",
+   "uid": "38hhruar",
+   "tag": "div",
+   "sample": "web :3080本机监听的 dsh 实例运行中"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-name :: card=web :3080",
+   "name": "card-name",
+   "uid": "3mvsupwm",
+   "tag": "span",
+   "sample": "web :3080"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-line :: card=web :3080 own=running",
+   "name": "sub-line",
+   "uid": "mt1hrwue",
+   "tag": "div",
+   "sample": "本机监听的 dsh 实例运行中已运行 9 小时 "
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-kind :: card=web :3080",
+   "name": "sub-kind",
+   "uid": "uzemkqnc",
+   "tag": "span",
+   "sample": "本机监听的 dsh 实例"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "status-dot :: card=web :3080",
+   "name": "status-dot",
+   "uid": "5g85qamy",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-state :: card=web :3080",
+   "name": "sub-state",
+   "uid": "tu2meziy",
+   "tag": "span",
+   "sample": "运行中"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-uptime :: card=web :3080",
+   "name": "sub-uptime",
+   "uid": "4c2r00wc",
+   "tag": "span",
+   "sample": "已运行 9 小时 35 分钟"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "port-note :: card=web :3080",
+   "name": "port-note",
+   "uid": "lzts978i",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "open-web-ui :: card=web :3080",
+   "name": "open-web-ui",
+   "uid": "et9ch8vc",
+   "tag": "button",
+   "sample": "打开 Web UI"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "stop :: card=web :3080",
+   "name": "stop",
+   "uid": "c1dfucbp",
+   "tag": "button",
+   "sample": "停止"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "restart :: card=web :3080",
+   "name": "restart",
+   "uid": "5nmvfpef",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "menu-trigger :: card=web :3080",
+   "name": "menu-trigger",
+   "uid": "2w6gczwr",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web :3080 own=dsh-version",
+   "name": "card-field",
+   "uid": "rh2ae69b",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（入口"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "s4sqc0ic",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "sdk41prz",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（入口包）"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web :3080 own=profile",
+   "name": "card-field",
+   "uid": "ip2wffvw",
+   "tag": "li",
+   "sample": "Profileweb"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "ux13u3fn",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "z1ssmn1k",
+   "tag": "span",
+   "sample": "web"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web :3080 own=url",
+   "name": "card-field",
+   "uid": "6rdfx3zc",
+   "tag": "li",
+   "sample": "访问地址http://127.0.0.1:308"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "yrdz3tbj",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "zch7tzu4",
+   "tag": "span",
+   "sample": "http://127.0.0.1:3080/"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web :3080 own=home",
+   "name": "card-field",
+   "uid": "r83iml89",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "espkbgqa",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "7e306nnx",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web :3080 own=plugin-count",
+   "name": "card-field",
+   "uid": "6s1wvdpf",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 10"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "b3wr2r3c",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "ucd0ir2z",
+   "tag": "span",
+   "sample": "声明 13 · 已装 10"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web :3080 own=mtime",
+   "name": "card-field",
+   "uid": "lbb52eq5",
+   "tag": "li",
+   "sample": "最近改动10-15 13:24"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "maq879uu",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "p2gjr8cp",
+   "tag": "span",
+   "sample": "10-15 13:24"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "nbgatsyx",
+   "tag": "h2",
+   "sample": "已停止的实例 (3)"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "hsv3ns45",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "instance-card :: card=web-dev own=web-dev",
+   "name": "instance-card",
+   "uid": "oik6nbmu",
+   "tag": "div",
+   "sample": "web-dev本地 profile已停止cord"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-name :: card=web-dev",
+   "name": "card-name",
+   "uid": "f1c4ogo5",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-line :: card=web-dev own=stopped",
+   "name": "sub-line",
+   "uid": "xutwe5zh",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-kind :: card=web-dev",
+   "name": "sub-kind",
+   "uid": "li4pcf7l",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "status-dot :: card=web-dev",
+   "name": "status-dot",
+   "uid": "yphoujw1",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-state :: card=web-dev",
+   "name": "sub-state",
+   "uid": "k5syc8vx",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-uptime :: card=web-dev",
+   "name": "sub-uptime",
+   "uid": "kncfhmqd",
+   "tag": "span",
+   "sample": "cordis.patch.yml 182 行 ·"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "port-note :: card=web-dev",
+   "name": "port-note",
+   "uid": "iwsyku8b",
+   "tag": "span",
+   "sample": "缺 11 个包：@deepseek-ai/dsh"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "start :: card=web-dev",
+   "name": "start",
+   "uid": "sy8tftrv",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "restart :: card=web-dev",
+   "name": "restart",
+   "uid": "8x8apiai",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "menu-trigger :: card=web-dev",
+   "name": "menu-trigger",
+   "uid": "yoehocfs",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "t6h54myq",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "avy2vy65",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "yct09x0q",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web-dev own=profile",
+   "name": "card-field",
+   "uid": "vio1dlrd",
+   "tag": "li",
+   "sample": "Profileweb-dev"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "33mm3w6a",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "sz4hc9bx",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web-dev own=url",
+   "name": "card-field",
+   "uid": "w0jdcftt",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "e46ce2fu",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "c8vd9ecl",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web-dev own=home",
+   "name": "card-field",
+   "uid": "pu95nuim",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "wjkhubqh",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "lnftyjce",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "x2yuqay4",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 2"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "h8i6mh43",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "1vszc0a0",
+   "tag": "span",
+   "sample": "声明 13 · 已装 2"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=web-dev own=mtime",
+   "name": "card-field",
+   "uid": "n3tvalto",
+   "tag": "li",
+   "sample": "最近改动10-15 18:50"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "f8svqmyb",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "6kgbb7js",
+   "tag": "span",
+   "sample": "10-15 18:50"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "instance-card :: card=review-dev own=review-dev",
+   "name": "instance-card",
+   "uid": "6alh2f4j",
+   "tag": "div",
+   "sample": "review-dev本地 profile已停止c"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-name :: card=review-dev",
+   "name": "card-name",
+   "uid": "uao96y5y",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-line :: card=review-dev own=stopped",
+   "name": "sub-line",
+   "uid": "91fnzx3q",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-kind :: card=review-dev",
+   "name": "sub-kind",
+   "uid": "w2biryu0",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "status-dot :: card=review-dev",
+   "name": "status-dot",
+   "uid": "sgozq3d6",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-state :: card=review-dev",
+   "name": "sub-state",
+   "uid": "3xya93nu",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-uptime :: card=review-dev",
+   "name": "sub-uptime",
+   "uid": "gscj1n30",
+   "tag": "span",
+   "sample": "cordis.patch.yml 138 行 ·"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "port-note :: card=review-dev",
+   "name": "port-note",
+   "uid": "vd0w30tu",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "start :: card=review-dev",
+   "name": "start",
+   "uid": "vnn86ol6",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "restart :: card=review-dev",
+   "name": "restart",
+   "uid": "1pokuw9z",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "menu-trigger :: card=review-dev",
+   "name": "menu-trigger",
+   "uid": "5scvmr8b",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=review-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "kr8gr673",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "mrp6qjb8",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "zjsj2u7j",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=review-dev own=profile",
+   "name": "card-field",
+   "uid": "iv1tjjz0",
+   "tag": "li",
+   "sample": "Profilereview-dev"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "ang8r1eb",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "a3a6la8o",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=review-dev own=url",
+   "name": "card-field",
+   "uid": "4a4y032w",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "74kkybj3",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "se0hnsws",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=review-dev own=home",
+   "name": "card-field",
+   "uid": "b7l66xc9",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "orah2shu",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "dkm7iov1",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=review-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "ee898q7n",
+   "tag": "li",
+   "sample": "插件数量声明 15 · 已装 12"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "l7rw0qyg",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "t70b2cvf",
+   "tag": "span",
+   "sample": "声明 15 · 已装 12"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=review-dev own=mtime",
+   "name": "card-field",
+   "uid": "ald5k9zx",
+   "tag": "li",
+   "sample": "最近改动10-15 16:16"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "uy1ws8ja",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "d0d77h21",
+   "tag": "span",
+   "sample": "10-15 16:16"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "instance-card :: card=headless own=headless",
+   "name": "instance-card",
+   "uid": "56dajw30",
+   "tag": "div",
+   "sample": "headless本地 profile已停止cor"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-name :: card=headless",
+   "name": "card-name",
+   "uid": "42rjxdej",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-line :: card=headless own=stopped",
+   "name": "sub-line",
+   "uid": "rstvp2k3",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-kind :: card=headless",
+   "name": "sub-kind",
+   "uid": "z8id3t03",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "status-dot :: card=headless",
+   "name": "status-dot",
+   "uid": "hjmhlqrr",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-state :: card=headless",
+   "name": "sub-state",
+   "uid": "1j9ku31j",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "sub-uptime :: card=headless",
+   "name": "sub-uptime",
+   "uid": "j5fp35nf",
+   "tag": "span",
+   "sample": "cordis.patch.yml 4 行 · 无"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "start :: card=headless",
+   "name": "start",
+   "uid": "dmp4gap5",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "restart :: card=headless",
+   "name": "restart",
+   "uid": "odjh9zso",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "menu-trigger :: card=headless",
+   "name": "menu-trigger",
+   "uid": "4sh0p2w6",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=headless own=dsh-version",
+   "name": "card-field",
+   "uid": "usfybzxs",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "81t6dohj",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "y9gmlan8",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=headless own=profile",
+   "name": "card-field",
+   "uid": "uinmulvf",
+   "tag": "li",
+   "sample": "Profileheadless"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "ylj4eqqo",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "aiiwqvnn",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=headless own=url",
+   "name": "card-field",
+   "uid": "kd6m398r",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zo8uxnxs",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "wy4hoq37",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=headless own=home",
+   "name": "card-field",
+   "uid": "jleacxm8",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "t6ma3liv",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "ic3liqw4",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=headless own=plugin-count",
+   "name": "card-field",
+   "uid": "iny05v3y",
+   "tag": "li",
+   "sample": "插件数量声明 2 · 已装 2"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "r6tcpmcp",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "gaoottym",
+   "tag": "span",
+   "sample": "声明 2 · 已装 2"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "card-field :: card=headless own=mtime",
+   "name": "card-field",
+   "uid": "suevhn5i",
+   "tag": "li",
+   "sample": "最近改动10-15 16:13"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zdkr8735",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "js2hrvva",
+   "tag": "span",
+   "sample": "10-15 16:13"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "archived-toggle :: ",
+   "name": "archived-toggle",
+   "uid": "7k4ofpqh",
+   "tag": "button",
+   "sample": "已归档 (1)"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "side-info :: ",
+   "name": "side-info",
+   "uid": "1nqb7zbn",
+   "tag": "aside",
+   "sample": "工作流入口从当前实例派生开发副本派生隔离副本，用"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "l6ienh4d",
+   "tag": "button",
+   "sample": "从当前实例派生开发副本派生隔离副本，用新端口与独"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "ovqtv21c",
+   "tag": "button",
+   "sample": "将插件交回主线实例把插件提交回稳定实例"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "rename-dialog-scrim :: ",
+   "name": "rename-dialog-scrim",
+   "uid": "vumu3fru",
+   "tag": "div",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "rename-dialog :: dlg=rename-dialog",
+   "name": "rename-dialog",
+   "uid": "eautne2p",
+   "tag": "div",
+   "sample": "重命名实例 web-dev确定取消"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "dialog-title :: dlg=rename-dialog",
+   "name": "dialog-title",
+   "uid": "nh0s417u",
+   "tag": "h2",
+   "sample": "重命名实例 web-dev"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "rename-input :: dlg=rename-dialog",
+   "name": "rename-input",
+   "uid": "yyyonoio",
+   "tag": "input",
+   "sample": ""
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "dialog-ok :: dlg=rename-dialog",
+   "name": "dialog-ok",
+   "uid": "06p5av3f",
+   "tag": "button",
+   "sample": "确定"
+  },
+  {
+   "state": "打开对话框（重命名）",
+   "identity": "dialog-cancel :: dlg=rename-dialog",
+   "name": "dialog-cancel",
+   "uid": "836np62j",
+   "tag": "button",
+   "sample": "取消"
+  },
+  {
+   "state": "设置页",
+   "identity": "side-nav :: ",
+   "name": "side-nav",
+   "uid": "psintiol",
+   "tag": "aside",
+   "sample": "DSH 控制台实例总览日志设置关于本机运行，仅限"
+  },
+  {
+   "state": "设置页",
+   "identity": "nav-overview :: ",
+   "name": "nav-overview",
+   "uid": "wgisl1kv",
+   "tag": "button",
+   "sample": "实例总览"
+  },
+  {
+   "state": "设置页",
+   "identity": "nav-logs :: ",
+   "name": "nav-logs",
+   "uid": "naxovvpn",
+   "tag": "button",
+   "sample": "日志"
+  },
+  {
+   "state": "设置页",
+   "identity": "nav-settings :: ",
+   "name": "nav-settings",
+   "uid": "m72eapcx",
+   "tag": "button",
+   "sample": "设置"
+  },
+  {
+   "state": "设置页",
+   "identity": "nav-about :: ",
+   "name": "nav-about",
+   "uid": "uiuwfiyw",
+   "tag": "button",
+   "sample": "关于"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-page :: ",
+   "name": "settings-page",
+   "uid": "vy479vpt",
+   "tag": "section",
+   "sample": "设置真实数据改动即保存。实例与端口4进程2日志1"
+  },
+  {
+   "state": "设置页",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "0lv13e4b",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-note :: ",
+   "name": "settings-note",
+   "uid": "00g65vpy",
+   "tag": "p",
+   "sample": "改动即保存。"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-index :: ",
+   "name": "settings-index",
+   "uid": "ymb6dxoj",
+   "tag": "aside",
+   "sample": "实例与端口4进程2日志1界面1危险动作1"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-tab :: own=instance",
+   "name": "settings-tab",
+   "uid": "y91orgwp",
+   "tag": "button",
+   "sample": "实例与端口4"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-tab :: own=process",
+   "name": "settings-tab",
+   "uid": "evd3msbg",
+   "tag": "button",
+   "sample": "进程2"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-tab :: own=logs",
+   "name": "settings-tab",
+   "uid": "v7mno3a9",
+   "tag": "button",
+   "sample": "日志1"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-tab :: own=ui",
+   "name": "settings-tab",
+   "uid": "tr4fr6ea",
+   "tag": "button",
+   "sample": "界面1"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-tab :: own=safety",
+   "name": "settings-tab",
+   "uid": "g5uvbdkq",
+   "tag": "button",
+   "sample": "危险动作1"
+  },
+  {
+   "state": "设置页",
+   "identity": "settings-panel :: ",
+   "name": "settings-panel",
+   "uid": "gs4poxql",
+   "tag": "div",
+   "sample": "实例与端口起实例时的端口起点，以及每次扫描要为签"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-row :: own=instance.basePort",
+   "name": "setting-row",
+   "uid": "b78ln22l",
+   "tag": "div",
+   "sample": "启动端口起点启动 / 派生实例时，从这个端口开始"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-name :: ",
+   "name": "setting-name",
+   "uid": "iio7j98g",
+   "tag": "span",
+   "sample": "启动端口起点"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-desc :: ",
+   "name": "setting-desc",
+   "uid": "sqwc6f86",
+   "tag": "p",
+   "sample": "启动 / 派生实例时，从这个端口开始找第一个空闲"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-meta :: ",
+   "name": "setting-meta",
+   "uid": "mxnxe0ue",
+   "tag": "div",
+   "sample": "当前 8400·来源 文件·缺省 8400"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-input :: ",
+   "name": "setting-input",
+   "uid": "4qoktlp8",
+   "tag": "input",
+   "sample": ""
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-row :: own=probe.timeoutMs",
+   "name": "setting-row",
+   "uid": "zr7irs7h",
+   "tag": "div",
+   "sample": "签名探测超时探测一个候选端口时等应答的上限（毫秒"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-name :: ",
+   "name": "setting-name",
+   "uid": "jcqhg46o",
+   "tag": "span",
+   "sample": "签名探测超时"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-desc :: ",
+   "name": "setting-desc",
+   "uid": "73d0hrc6",
+   "tag": "p",
+   "sample": "探测一个候选端口时等应答的上限（毫秒）。调大能容"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-meta :: ",
+   "name": "setting-meta",
+   "uid": "oxyq42hi",
+   "tag": "div",
+   "sample": "当前 500·来源 文件·缺省 500"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-input :: ",
+   "name": "setting-input",
+   "uid": "xzhkkz4c",
+   "tag": "input",
+   "sample": ""
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-row :: own=probe.concurrency",
+   "name": "setting-row",
+   "uid": "xyjd0o8j",
+   "tag": "div",
+   "sample": "探测并发同时探测多少个候选端口。调大扫得快，瞬时"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-name :: ",
+   "name": "setting-name",
+   "uid": "6apqk7rq",
+   "tag": "span",
+   "sample": "探测并发"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-desc :: ",
+   "name": "setting-desc",
+   "uid": "zegbhhyo",
+   "tag": "p",
+   "sample": "同时探测多少个候选端口。调大扫得快，瞬时占用的文"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-meta :: ",
+   "name": "setting-meta",
+   "uid": "hlp12o6g",
+   "tag": "div",
+   "sample": "当前 8·来源 文件·缺省 8"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-input :: ",
+   "name": "setting-input",
+   "uid": "kg6xjq2u",
+   "tag": "input",
+   "sample": ""
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-row :: own=probe.maxCandidates",
+   "name": "setting-row",
+   "uid": "t8owpaie",
+   "tag": "div",
+   "sample": "候选端口上限一次扫描最多探测多少个本机 loop"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-name :: ",
+   "name": "setting-name",
+   "uid": "fqonlpsl",
+   "tag": "span",
+   "sample": "候选端口上限"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-desc :: ",
+   "name": "setting-desc",
+   "uid": "z1336d93",
+   "tag": "p",
+   "sample": "一次扫描最多探测多少个本机 loopback 监"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-meta :: ",
+   "name": "setting-meta",
+   "uid": "wce7ezbf",
+   "tag": "div",
+   "sample": "当前 40·来源 文件·缺省 40"
+  },
+  {
+   "state": "设置页",
+   "identity": "setting-input :: ",
+   "name": "setting-input",
+   "uid": "8ww6k4fj",
+   "tag": "input",
+   "sample": ""
+  },
+  {
+   "state": "日志页",
+   "identity": "side-nav :: ",
+   "name": "side-nav",
+   "uid": "psintiol",
+   "tag": "aside",
+   "sample": "DSH 控制台实例总览日志设置关于本机运行，仅限"
+  },
+  {
+   "state": "日志页",
+   "identity": "nav-overview :: ",
+   "name": "nav-overview",
+   "uid": "wgisl1kv",
+   "tag": "button",
+   "sample": "实例总览"
+  },
+  {
+   "state": "日志页",
+   "identity": "nav-logs :: ",
+   "name": "nav-logs",
+   "uid": "naxovvpn",
+   "tag": "button",
+   "sample": "日志"
+  },
+  {
+   "state": "日志页",
+   "identity": "nav-settings :: ",
+   "name": "nav-settings",
+   "uid": "m72eapcx",
+   "tag": "button",
+   "sample": "设置"
+  },
+  {
+   "state": "日志页",
+   "identity": "nav-about :: ",
+   "name": "nav-about",
+   "uid": "uiuwfiyw",
+   "tag": "button",
+   "sample": "关于"
+  },
+  {
+   "state": "日志页",
+   "identity": "logs-page :: ",
+   "name": "logs-page",
+   "uid": "ctnetfnr",
+   "tag": "section",
+   "sample": "日志真实数据来源dsh :3080————宿主日"
+  },
+  {
+   "state": "日志页",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "l8m7aj21",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-source-label :: ",
+   "name": "log-source-label",
+   "uid": "un2dt3aa",
+   "tag": "label",
+   "sample": "来源"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-source :: ",
+   "name": "log-source",
+   "uid": "9bro6lyt",
+   "tag": "select",
+   "sample": "dsh :3080————宿主日志审计日志"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-source-option :: val=instance:proc-3080",
+   "name": "log-source-option",
+   "uid": "naccxwhj",
+   "tag": "option",
+   "sample": "dsh :3080"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-source-divider :: val=__divider__",
+   "name": "log-source-divider",
+   "uid": "ges90p8a",
+   "tag": "option",
+   "sample": "————"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-source-option :: val=host",
+   "name": "log-source-option",
+   "uid": "d9zkcroq",
+   "tag": "option",
+   "sample": "宿主日志"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-source-option :: val=audit",
+   "name": "log-source-option",
+   "uid": "3b44v382",
+   "tag": "option",
+   "sample": "审计日志"
+  },
+  {
+   "state": "日志页",
+   "identity": "logs-meta :: ",
+   "name": "logs-meta",
+   "uid": "zlbvjg9l",
+   "tag": "span",
+   "sample": "尾部 200 行（请求 200） · 445.4"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-refresh :: ",
+   "name": "log-refresh",
+   "uid": "tzvrg0l0",
+   "tag": "button",
+   "sample": "刷新"
+  },
+  {
+   "state": "日志页",
+   "identity": "log-box :: ",
+   "name": "log-box",
+   "uid": "e8bal6gm",
+   "tag": "div",
+   "sample": "14:54:46.242··[retry-con"
+  },
+  {
+   "state": "关于页",
+   "identity": "side-nav :: ",
+   "name": "side-nav",
+   "uid": "psintiol",
+   "tag": "aside",
+   "sample": "DSH 控制台实例总览日志设置关于本机运行，仅限"
+  },
+  {
+   "state": "关于页",
+   "identity": "nav-overview :: ",
+   "name": "nav-overview",
+   "uid": "wgisl1kv",
+   "tag": "button",
+   "sample": "实例总览"
+  },
+  {
+   "state": "关于页",
+   "identity": "nav-logs :: ",
+   "name": "nav-logs",
+   "uid": "naxovvpn",
+   "tag": "button",
+   "sample": "日志"
+  },
+  {
+   "state": "关于页",
+   "identity": "nav-settings :: ",
+   "name": "nav-settings",
+   "uid": "m72eapcx",
+   "tag": "button",
+   "sample": "设置"
+  },
+  {
+   "state": "关于页",
+   "identity": "nav-about :: ",
+   "name": "nav-about",
+   "uid": "uiuwfiyw",
+   "tag": "button",
+   "sample": "关于"
+  },
+  {
+   "state": "关于页",
+   "identity": "about-page :: ",
+   "name": "about-page",
+   "uid": "0s23oae0",
+   "tag": "section",
+   "sample": "关于面向个人本机使用的 DSH 控制台，用来查看"
+  },
+  {
+   "state": "关于页",
+   "identity": "about-panel :: ",
+   "name": "about-panel",
+   "uid": "dxsgtsjs",
+   "tag": "div",
+   "sample": "面向个人本机使用的 DSH 控制台，用来查看这台"
+  },
+  {
+   "state": "关于页",
+   "identity": "version-panel :: ",
+   "name": "version-panel",
+   "uid": "kfbhkwer",
+   "tag": "div",
+   "sample": "版本dsh 版本0.2.0-rc.2控制台版本0"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-row :: ",
+   "name": "kv-row",
+   "uid": "jl2i7hwm",
+   "tag": "div",
+   "sample": "dsh 版本0.2.0-rc.2"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-label :: ",
+   "name": "kv-label",
+   "uid": "hrz4se1d",
+   "tag": "span",
+   "sample": "dsh 版本"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-value :: ",
+   "name": "kv-value",
+   "uid": "r4hhrurq",
+   "tag": "span",
+   "sample": "0.2.0-rc.2"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-row :: ",
+   "name": "kv-row",
+   "uid": "y8ply7dt",
+   "tag": "div",
+   "sample": "控制台版本0.1.0"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-label :: ",
+   "name": "kv-label",
+   "uid": "6txjhdsq",
+   "tag": "span",
+   "sample": "控制台版本"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-value :: ",
+   "name": "kv-value",
+   "uid": "gfvdngo5",
+   "tag": "span",
+   "sample": "0.1.0"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-row :: ",
+   "name": "kv-row",
+   "uid": "6ziiif90",
+   "tag": "div",
+   "sample": "平台linux x64 (7.2.9-arch1"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-label :: ",
+   "name": "kv-label",
+   "uid": "i9ke1hzf",
+   "tag": "span",
+   "sample": "平台"
+  },
+  {
+   "state": "关于页",
+   "identity": "kv-value :: ",
+   "name": "kv-value",
+   "uid": "ml8d7vwg",
+   "tag": "span",
+   "sample": "linux x64 (7.2.9-arch1-1"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "side-nav :: ",
+   "name": "side-nav",
+   "uid": "psintiol",
+   "tag": "aside",
+   "sample": "DSH 控制台实例总览日志设置关于本机运行，仅限"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "nav-overview :: ",
+   "name": "nav-overview",
+   "uid": "wgisl1kv",
+   "tag": "button",
+   "sample": "实例总览"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "nav-logs :: ",
+   "name": "nav-logs",
+   "uid": "naxovvpn",
+   "tag": "button",
+   "sample": "日志"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "nav-settings :: ",
+   "name": "nav-settings",
+   "uid": "m72eapcx",
+   "tag": "button",
+   "sample": "设置"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "nav-about :: ",
+   "name": "nav-about",
+   "uid": "uiuwfiyw",
+   "tag": "button",
+   "sample": "关于"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "overview-page :: ",
+   "name": "overview-page",
+   "uid": "64s1c0on",
+   "tag": "div",
+   "sample": "实例总览真实数据菜单里的动作走 POST /ap"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "8wau1c09",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "new-instance :: ",
+   "name": "new-instance",
+   "uid": "7lipfsbu",
+   "tag": "button",
+   "sample": "＋新建实例"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "zl8g5sbj",
+   "tag": "h2",
+   "sample": "当前运行的实例 (1)"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "i478edtj",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "instance-card :: card=web :3080 own=web :3080",
+   "name": "instance-card",
+   "uid": "38hhruar",
+   "tag": "div",
+   "sample": "web :3080本机监听的 dsh 实例运行中"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-name :: card=web :3080",
+   "name": "card-name",
+   "uid": "3mvsupwm",
+   "tag": "span",
+   "sample": "web :3080"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-line :: card=web :3080 own=running",
+   "name": "sub-line",
+   "uid": "mt1hrwue",
+   "tag": "div",
+   "sample": "本机监听的 dsh 实例运行中已运行 9 小时 "
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-kind :: card=web :3080",
+   "name": "sub-kind",
+   "uid": "uzemkqnc",
+   "tag": "span",
+   "sample": "本机监听的 dsh 实例"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "status-dot :: card=web :3080",
+   "name": "status-dot",
+   "uid": "5g85qamy",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-state :: card=web :3080",
+   "name": "sub-state",
+   "uid": "tu2meziy",
+   "tag": "span",
+   "sample": "运行中"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-uptime :: card=web :3080",
+   "name": "sub-uptime",
+   "uid": "4c2r00wc",
+   "tag": "span",
+   "sample": "已运行 9 小时 35 分钟"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "port-note :: card=web :3080",
+   "name": "port-note",
+   "uid": "lzts978i",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "open-web-ui :: card=web :3080",
+   "name": "open-web-ui",
+   "uid": "et9ch8vc",
+   "tag": "button",
+   "sample": "打开 Web UI"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "stop :: card=web :3080",
+   "name": "stop",
+   "uid": "c1dfucbp",
+   "tag": "button",
+   "sample": "停止"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "restart :: card=web :3080",
+   "name": "restart",
+   "uid": "5nmvfpef",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "menu-trigger :: card=web :3080",
+   "name": "menu-trigger",
+   "uid": "2w6gczwr",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web :3080 own=dsh-version",
+   "name": "card-field",
+   "uid": "rh2ae69b",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（入口"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "s4sqc0ic",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "sdk41prz",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（入口包）"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web :3080 own=profile",
+   "name": "card-field",
+   "uid": "ip2wffvw",
+   "tag": "li",
+   "sample": "Profileweb"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "ux13u3fn",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "z1ssmn1k",
+   "tag": "span",
+   "sample": "web"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web :3080 own=url",
+   "name": "card-field",
+   "uid": "6rdfx3zc",
+   "tag": "li",
+   "sample": "访问地址http://127.0.0.1:308"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "yrdz3tbj",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "zch7tzu4",
+   "tag": "span",
+   "sample": "http://127.0.0.1:3080/"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web :3080 own=home",
+   "name": "card-field",
+   "uid": "r83iml89",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "espkbgqa",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "7e306nnx",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web :3080 own=plugin-count",
+   "name": "card-field",
+   "uid": "6s1wvdpf",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 10"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "b3wr2r3c",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "ucd0ir2z",
+   "tag": "span",
+   "sample": "声明 13 · 已装 10"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web :3080 own=mtime",
+   "name": "card-field",
+   "uid": "lbb52eq5",
+   "tag": "li",
+   "sample": "最近改动10-15 13:24"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web :3080",
+   "name": "field-label",
+   "uid": "maq879uu",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web :3080",
+   "name": "field-value",
+   "uid": "p2gjr8cp",
+   "tag": "span",
+   "sample": "10-15 13:24"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "section-title :: ",
+   "name": "section-title",
+   "uid": "nbgatsyx",
+   "tag": "h2",
+   "sample": "已停止的实例 (3)"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "hsv3ns45",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "instance-card :: card=web-dev own=web-dev",
+   "name": "instance-card",
+   "uid": "oik6nbmu",
+   "tag": "div",
+   "sample": "web-dev本地 profile已停止cord"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-name :: card=web-dev",
+   "name": "card-name",
+   "uid": "f1c4ogo5",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-line :: card=web-dev own=stopped",
+   "name": "sub-line",
+   "uid": "xutwe5zh",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-kind :: card=web-dev",
+   "name": "sub-kind",
+   "uid": "li4pcf7l",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "status-dot :: card=web-dev",
+   "name": "status-dot",
+   "uid": "yphoujw1",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-state :: card=web-dev",
+   "name": "sub-state",
+   "uid": "k5syc8vx",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-uptime :: card=web-dev",
+   "name": "sub-uptime",
+   "uid": "kncfhmqd",
+   "tag": "span",
+   "sample": "cordis.patch.yml 182 行 ·"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "port-note :: card=web-dev",
+   "name": "port-note",
+   "uid": "iwsyku8b",
+   "tag": "span",
+   "sample": "缺 11 个包：@deepseek-ai/dsh"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "start :: card=web-dev",
+   "name": "start",
+   "uid": "sy8tftrv",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "restart :: card=web-dev",
+   "name": "restart",
+   "uid": "8x8apiai",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "menu-trigger :: card=web-dev",
+   "name": "menu-trigger",
+   "uid": "yoehocfs",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "t6h54myq",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "avy2vy65",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "yct09x0q",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web-dev own=profile",
+   "name": "card-field",
+   "uid": "vio1dlrd",
+   "tag": "li",
+   "sample": "Profileweb-dev"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "33mm3w6a",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "sz4hc9bx",
+   "tag": "span",
+   "sample": "web-dev"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web-dev own=url",
+   "name": "card-field",
+   "uid": "w0jdcftt",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "e46ce2fu",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "c8vd9ecl",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web-dev own=home",
+   "name": "card-field",
+   "uid": "pu95nuim",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "wjkhubqh",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "lnftyjce",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "x2yuqay4",
+   "tag": "li",
+   "sample": "插件数量声明 13 · 已装 2"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "h8i6mh43",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "1vszc0a0",
+   "tag": "span",
+   "sample": "声明 13 · 已装 2"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=web-dev own=mtime",
+   "name": "card-field",
+   "uid": "n3tvalto",
+   "tag": "li",
+   "sample": "最近改动10-15 18:50"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=web-dev",
+   "name": "field-label",
+   "uid": "f8svqmyb",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=web-dev",
+   "name": "field-value",
+   "uid": "6kgbb7js",
+   "tag": "span",
+   "sample": "10-15 18:50"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "instance-card :: card=review-dev own=review-dev",
+   "name": "instance-card",
+   "uid": "6alh2f4j",
+   "tag": "div",
+   "sample": "review-dev本地 profile已停止c"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-name :: card=review-dev",
+   "name": "card-name",
+   "uid": "uao96y5y",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-line :: card=review-dev own=stopped",
+   "name": "sub-line",
+   "uid": "91fnzx3q",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-kind :: card=review-dev",
+   "name": "sub-kind",
+   "uid": "w2biryu0",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "status-dot :: card=review-dev",
+   "name": "status-dot",
+   "uid": "sgozq3d6",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-state :: card=review-dev",
+   "name": "sub-state",
+   "uid": "3xya93nu",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-uptime :: card=review-dev",
+   "name": "sub-uptime",
+   "uid": "gscj1n30",
+   "tag": "span",
+   "sample": "cordis.patch.yml 138 行 ·"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "port-note :: card=review-dev",
+   "name": "port-note",
+   "uid": "vd0w30tu",
+   "tag": "span",
+   "sample": "缺 3 个包：@deepseek-ai/dsh-"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "start :: card=review-dev",
+   "name": "start",
+   "uid": "vnn86ol6",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "restart :: card=review-dev",
+   "name": "restart",
+   "uid": "1pokuw9z",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "menu-trigger :: card=review-dev",
+   "name": "menu-trigger",
+   "uid": "5scvmr8b",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=review-dev own=dsh-version",
+   "name": "card-field",
+   "uid": "kr8gr673",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "mrp6qjb8",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "zjsj2u7j",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=review-dev own=profile",
+   "name": "card-field",
+   "uid": "iv1tjjz0",
+   "tag": "li",
+   "sample": "Profilereview-dev"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "ang8r1eb",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "a3a6la8o",
+   "tag": "span",
+   "sample": "review-dev"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=review-dev own=url",
+   "name": "card-field",
+   "uid": "4a4y032w",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "74kkybj3",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "se0hnsws",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=review-dev own=home",
+   "name": "card-field",
+   "uid": "b7l66xc9",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "orah2shu",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "dkm7iov1",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=review-dev own=plugin-count",
+   "name": "card-field",
+   "uid": "ee898q7n",
+   "tag": "li",
+   "sample": "插件数量声明 15 · 已装 12"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "l7rw0qyg",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "t70b2cvf",
+   "tag": "span",
+   "sample": "声明 15 · 已装 12"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=review-dev own=mtime",
+   "name": "card-field",
+   "uid": "ald5k9zx",
+   "tag": "li",
+   "sample": "最近改动10-15 16:16"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=review-dev",
+   "name": "field-label",
+   "uid": "uy1ws8ja",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=review-dev",
+   "name": "field-value",
+   "uid": "d0d77h21",
+   "tag": "span",
+   "sample": "10-15 16:16"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "instance-card :: card=headless own=headless",
+   "name": "instance-card",
+   "uid": "56dajw30",
+   "tag": "div",
+   "sample": "headless本地 profile已停止cor"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-name :: card=headless",
+   "name": "card-name",
+   "uid": "42rjxdej",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-line :: card=headless own=stopped",
+   "name": "sub-line",
+   "uid": "rstvp2k3",
+   "tag": "div",
+   "sample": "本地 profile已停止cordis.patc"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-kind :: card=headless",
+   "name": "sub-kind",
+   "uid": "z8id3t03",
+   "tag": "span",
+   "sample": "本地 profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "status-dot :: card=headless",
+   "name": "status-dot",
+   "uid": "hjmhlqrr",
+   "tag": "span",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-state :: card=headless",
+   "name": "sub-state",
+   "uid": "1j9ku31j",
+   "tag": "span",
+   "sample": "已停止"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "sub-uptime :: card=headless",
+   "name": "sub-uptime",
+   "uid": "j5fp35nf",
+   "tag": "span",
+   "sample": "cordis.patch.yml 4 行 · 无"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "start :: card=headless",
+   "name": "start",
+   "uid": "dmp4gap5",
+   "tag": "button",
+   "sample": "启动"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "restart :: card=headless",
+   "name": "restart",
+   "uid": "odjh9zso",
+   "tag": "button",
+   "sample": "重启"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "menu-trigger :: card=headless",
+   "name": "menu-trigger",
+   "uid": "4sh0p2w6",
+   "tag": "button",
+   "sample": ""
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=headless own=dsh-version",
+   "name": "card-field",
+   "uid": "usfybzxs",
+   "tag": "li",
+   "sample": "DSH 版本 / 来源0.2.0-rc.2（本机"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "81t6dohj",
+   "tag": "span",
+   "sample": "DSH 版本 / 来源"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "y9gmlan8",
+   "tag": "span",
+   "sample": "0.2.0-rc.2（本机已安装）"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=headless own=profile",
+   "name": "card-field",
+   "uid": "uinmulvf",
+   "tag": "li",
+   "sample": "Profileheadless"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "ylj4eqqo",
+   "tag": "span",
+   "sample": "Profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "aiiwqvnn",
+   "tag": "span",
+   "sample": "headless"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=headless own=url",
+   "name": "card-field",
+   "uid": "kd6m398r",
+   "tag": "li",
+   "sample": "访问地址已停用，无法访问"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zo8uxnxs",
+   "tag": "span",
+   "sample": "访问地址"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "wy4hoq37",
+   "tag": "span",
+   "sample": "已停用，无法访问"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=headless own=home",
+   "name": "card-field",
+   "uid": "jleacxm8",
+   "tag": "li",
+   "sample": "DSH_HOME~/.ds"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "t6ma3liv",
+   "tag": "span",
+   "sample": "DSH_HOME"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "ic3liqw4",
+   "tag": "span",
+   "sample": "~/.dsh"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=headless own=plugin-count",
+   "name": "card-field",
+   "uid": "iny05v3y",
+   "tag": "li",
+   "sample": "插件数量声明 2 · 已装 2"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "r6tcpmcp",
+   "tag": "span",
+   "sample": "插件数量"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "gaoottym",
+   "tag": "span",
+   "sample": "声明 2 · 已装 2"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "card-field :: card=headless own=mtime",
+   "name": "card-field",
+   "uid": "suevhn5i",
+   "tag": "li",
+   "sample": "最近改动10-15 16:13"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-label :: card=headless",
+   "name": "field-label",
+   "uid": "zdkr8735",
+   "tag": "span",
+   "sample": "最近改动"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "field-value :: card=headless",
+   "name": "field-value",
+   "uid": "js2hrvva",
+   "tag": "span",
+   "sample": "10-15 16:13"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "archived-toggle :: ",
+   "name": "archived-toggle",
+   "uid": "7k4ofpqh",
+   "tag": "button",
+   "sample": "已归档 (1)"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "source-badge :: ",
+   "name": "source-badge",
+   "uid": "eeiuh8px",
+   "tag": "span",
+   "sample": "真实数据"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "archived-row :: ",
+   "name": "archived-row",
+   "uid": "ojt3367i",
+   "tag": "article",
+   "sample": "dsh-uid-accept-demo已归档 ·"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "archive-name :: ",
+   "name": "archive-name",
+   "uid": "nssshif1",
+   "tag": "span",
+   "sample": "dsh-uid-accept-demo"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "archive-kind :: ",
+   "name": "archive-kind",
+   "uid": "3zlgwomo",
+   "tag": "span",
+   "sample": "已归档 · 磁盘上没有这只 profile"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "archive-stamp :: ",
+   "name": "archive-stamp",
+   "uid": "a1z7r9qg",
+   "tag": "span",
+   "sample": "10-15 18:00"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "unarchive :: ",
+   "name": "unarchive",
+   "uid": "xkciwdz4",
+   "tag": "button",
+   "sample": "取消归档"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "archive-delete :: ",
+   "name": "archive-delete",
+   "uid": "ca9du0sj",
+   "tag": "button",
+   "sample": "删除"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "side-info :: ",
+   "name": "side-info",
+   "uid": "1nqb7zbn",
+   "tag": "aside",
+   "sample": "工作流入口从当前实例派生开发副本派生隔离副本，用"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "l6ienh4d",
+   "tag": "button",
+   "sample": "从当前实例派生开发副本派生隔离副本，用新端口与独"
+  },
+  {
+   "state": "展开归档区",
+   "identity": "workflow-entry :: ",
+   "name": "workflow-entry",
+   "uid": "ovqtv21c",
+   "tag": "button",
+   "sample": "将插件交回主线实例把插件提交回稳定实例"
+  }
+ ]
+}

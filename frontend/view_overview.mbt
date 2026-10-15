@@ -108,7 +108,7 @@ fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
             class=if danger { "dsh-menu-item danger" } else { "dsh-menu-item" },
             type_="button",
             disabled=row.busy,
-            attrs=@html.Attrs::build()
+            attrs=mark("menu-item", ["overview", "card", row.id, "menu-item", action_name(key)])
               .role("menuitem")
               .data_set("action", action_name(key)),
             on_click=emit(RowAction(row.id, key)),
@@ -120,7 +120,7 @@ fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   @html.div(
     id=menu_id(row.id),
     class="dsh-menu",
-    attrs=@html.Attrs::build().role("menu").data_set("name", "row-menu"),
+    attrs=mark("row-menu", ["overview", "card", row.id, "row-menu"]).role("menu"),
     on_keydown=emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {
         MenuCloseBack(row.id)
@@ -139,6 +139,7 @@ fn restart_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
     class="dsh-btn",
     type_="button",
     disabled=restarting || row.busy,
+    attrs=mark("restart", ["overview", "card", row.id, "restart"]),
     on_click=emit(RowAction(row.id, Restart)),
     [icon("refresh"), @html.span(if restarting { "重启中…" } else { "重启" })],
   )
@@ -154,7 +155,7 @@ fn restart_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
 ///
 /// 回执随 StartClicked 一起进 model：开成没开成不许猜（被拦时 window.open 给 null）。
 fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
-  @html.Attrs::build().on_click(fn(_event) {
+  mark("start", ["overview", "card", row.id, "start"]).on_click(fn(_event) {
     let profile = match row.profile_name {
       Some(name) => name
       None => ""
@@ -186,8 +187,7 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
         class="dsh-btn primary" + tone,
         type_="button",
         // 令牌读不到时按钮**照样可点**：点下去先把原因说清，不给一个点了 401 的链接
-        attrs=@html.Attrs::build()
-          .data_set("name", "open-web-ui")
+        attrs=mark("open-web-ui", ["overview", "card", row.id, "open-web-ui"])
           .title(open_ui_hint(row)),
         on_click=emit(RowAction(row.id, OpenUi)),
         [icon("open-in-new"), @html.span("打开 Web UI")],
@@ -198,6 +198,7 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
         class="dsh-btn",
         type_="button",
         disabled=row.busy,
+        attrs=mark("stop", ["overview", "card", row.id, "stop"]),
         on_click=emit(RowAction(row.id, Toggle)),
         [@html.i(class="dsh-dot-danger", @html.nothing), @html.span("停止")],
       ),
@@ -229,7 +230,7 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
       class="dsh-btn icon-only",
       type_="button",
       disabled=row.busy,
-      attrs=@html.Attrs::build()
+      attrs=mark("menu-trigger", ["overview", "card", row.id, "menu-trigger"])
         .id(trigger_id(row.id))
         .aria_haspopup("menu")
         .aria_expanded(if model.menu_open == row.id { "true" } else { "false" })
@@ -249,7 +250,7 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
     children.push(
       @html.div(
         class="dsh-menu-overlay",
-        attrs=@html.Attrs::build().data_set("name", "menu-overlay"),
+        attrs=mark("menu-overlay", ["overview", "card", row.id, "menu-overlay"]),
         on_click=emit(MenuClose),
         @html.nothing,
       ),
@@ -287,19 +288,20 @@ fn sub_line(row : Row) -> @html.Html {
       tail.push(
         @html.span(
           class="dsh-uptime",
-          // 悬停里补上档案的健康读数（patch 行数 / lock 时刻）：
-          // 这只 profile 的卡已经不再单独出现，这份读数得跟着进程卡走。
-          attrs=@html.Attrs::build().title(
-            if row.idle_note.length() > 0 {
-              (if row.uptime_hint.length() > 0 {
-                row.uptime_hint + " · "
+          attrs=mark("sub-uptime", ["overview", "card", row.id, "sub-line", "uptime"])
+            // 悬停里补上档案的健康读数（patch 行数 / lock 时刻）：
+            // 这只 profile 的卡已经不再单独出现，这份读数得跟着进程卡走。
+            .title(
+              if row.idle_note.length() > 0 {
+                (if row.uptime_hint.length() > 0 {
+                  row.uptime_hint + " · "
+                } else {
+                  ""
+                }) + row.idle_note
               } else {
-                ""
-              }) + row.idle_note
-            } else {
-              row.uptime_hint
-            },
-          ),
+                row.uptime_hint
+              },
+            ),
           match row.uptime {
             Some(minutes) => "已运行 " + duration_text(minutes)
             None => "运行时长未知"
@@ -310,28 +312,42 @@ fn sub_line(row : Row) -> @html.Html {
       tail.push(
         @html.span(
           class="dsh-uptime",
-          attrs=@html.Attrs::build().title(row.idle_note),
+          attrs=mark("sub-uptime", ["overview", "card", row.id, "sub-line", "uptime"])
+            .title(row.idle_note),
           if row.idle_note.length() > 0 { row.idle_note } else { "未运行" },
         ),
       )
   }
   let note = if row.status is Starting { row.port_note } else { row.note }
   if note.length() > 0 {
-    tail.push(@html.span(class="dsh-port-note", attrs=@html.Attrs::build().title(note), note))
+    tail.push(
+      @html.span(
+        class="dsh-port-note",
+        attrs=mark("port-note", ["overview", "card", row.id, "sub-line", "note"]).title(note),
+        note,
+      ),
+    )
   }
   @html.div(
     class=sub_class,
-    attrs=@html.Attrs::build()
-      .data_set("status", status_name(row.status))
-      .data_set("name", "sub-line"),
+    attrs=mark("sub-line", ["overview", "card", row.id, "sub-line"])
+      .data_set("status", status_name(row.status)),
     [
       @html.span(
         class="dsh-kind",
-        attrs=@html.Attrs::build().title(row.kind_hint),
+        attrs=mark("sub-kind", ["overview", "card", row.id, "sub-line", "kind"]).title(row.kind_hint),
         row.kind,
       ),
-      @html.span(class="dsh-dot-slot", [@html.i(class="dsh-dot", @html.nothing)]),
-      @html.span(class="dsh-state", state_label),
+      @html.span(
+        class="dsh-dot-slot",
+        attrs=mark("status-dot", ["overview", "card", row.id, "sub-line", "dot"]),
+        [@html.i(class="dsh-dot", @html.nothing)],
+      ),
+      @html.span(
+        class="dsh-state",
+        attrs=mark("sub-state", ["overview", "card", row.id, "sub-line", "state"]),
+        state_label,
+      ),
       @html.span(class="dsh-tail", tail),
     ],
   )
@@ -345,7 +361,11 @@ fn sub_line(row : Row) -> @html.Html {
 fn ident_block(row : Row) -> @html.Html {
   let parts : Array[@html.Html] = [
     @html.div(class="dsh-title-line", [
-      @html.span(class="dsh-name", row.name),
+      @html.span(
+        class="dsh-name",
+        attrs=mark("card-name", ["overview", "card", row.id, "name"]),
+        row.name,
+      ),
       // 标记的文字走 CSS 的 content（见 styles/app.scss 的 .dsh-console-mark::after）：
       // 卡片的 textContent 里因此没有「启动」两个字。这不是为了好看 ——
       // design/probe-dialog.mjs 是用 textContent.includes('启动') 找「已停止」那张卡的，
@@ -354,8 +374,7 @@ fn ident_block(row : Row) -> @html.Html {
       if row.console_started {
         @html.span(
           class="dsh-console-mark",
-          attrs=@html.Attrs::build()
-            .data_set("name", "console-mark")
+          attrs=mark("console-mark", ["overview", "card", row.id, "console-mark"])
             .data_set("mark", "console-started")
             .role("img")
             .aria_label("由本控制台启动")
@@ -376,8 +395,7 @@ fn ident_block(row : Row) -> @html.Html {
     parts.push(
       @html.div(
         class="dsh-note-row",
-        attrs=@html.Attrs::build()
-          .data_set("name", "card-note")
+        attrs=mark("card-note", ["overview", "card", row.id, "note"])
           .title(
             if row.user_note_source.length() > 0 {
               row.user_note + "\n（" + row.user_note_source + "）"
@@ -452,8 +470,7 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   }
   @html.div(
     class="dsh-case",
-    attrs=@html.Attrs::build()
-      .data_set("name", "instance-card")
+    attrs=mark("instance-card", ["overview", "card", row.id])
       .data_set("instance", row.name),
     [
       @html.div(class="dsh-case-head", [
@@ -464,12 +481,12 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       // 字段区是 2 列 × 3 行 = 6 格。第六格是「最近改动」——
       // 以前这里只填了 5 格，右下角空着（使用者点出来的那件事）。
       @html.ul(class="dsh-fields", [
-        field("label-outline", "DSH 版本 / 来源", row.version, row.version_hint),
-        field("layers-outline", "Profile", row.profile, row.profile_hint),
-        field("link-variant", "访问地址", row.url, url_hint(row)),
-        field("home-outline", "DSH_HOME", row.home, row.home_hint),
-        field("puzzle-outline", "插件数量", row.plugin_count, row.plugin_detail),
-        field("clock-outline", "最近改动", mtime_value(row), row.mtime_hint),
+        field("label-outline", "dsh-version", row.id, "DSH 版本 / 来源", row.version, row.version_hint),
+        field("layers-outline", "profile", row.id, "Profile", row.profile, row.profile_hint),
+        field("link-variant", "url", row.id, "访问地址", row.url, url_hint(row)),
+        field("home-outline", "home", row.id, "DSH_HOME", row.home, row.home_hint),
+        field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
+        field("clock-outline", "mtime", row.id, "最近改动", mtime_value(row), row.mtime_hint),
       ]),
     ],
   )
@@ -478,15 +495,23 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
 ///|
 fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   let parts : Array[@html.Html] = [
-    @html.span(class="dsh-archive-name", row.name),
-    @html.span(class="dsh-archive-kind", row.kind),
+    @html.span(
+      class="dsh-archive-name",
+      attrs=mark("archive-name", ["overview", "archive", row.id, "name"]),
+      row.name,
+    ),
+    @html.span(
+      class="dsh-archive-kind",
+      attrs=mark("archive-kind", ["overview", "archive", row.id, "kind"]),
+      row.kind,
+    ),
     @html.span(class="dsh-archive-stamp", [
       @html.span(class="dsh-archive-stamp-label", "归档时间"),
       @html.span(
         class="dsh-archive-stamp-value",
         // 记录里的时间是后端给的 ISO（UTC）：显示成浏览器本地的 MM-DD HH:MM，
         // 原值留在悬停里。解析不出来就照原样显示，不吞。
-        attrs=@html.Attrs::build().title(
+        attrs=mark("archive-stamp", ["overview", "archive", row.id, "stamp"]).title(
           match row.archived_at {
             Some(stamp) => stamp
             None => "归档时间读不到"
@@ -506,6 +531,7 @@ fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.button(
       class="dsh-archive-btn",
       type_="button",
+      attrs=mark("unarchive", ["overview", "archive", row.id, "unarchive"]),
       on_click=emit(RowAction(row.id, Unarchive)),
       [icon("archive-arrow-up-outline"), @html.span("取消归档")],
     ),
@@ -516,6 +542,7 @@ fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
         id=archive_trigger_id(row.id),
         class="dsh-archive-btn danger",
         type_="button",
+        attrs=mark("archive-delete", ["overview", "archive", row.id, "delete"]),
         on_click=emit(DeleteOpen(row.id, archive_trigger_id(row.id))),
         [icon("delete-outline"), @html.span("删除")],
       ),
@@ -523,7 +550,7 @@ fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   @html.article(
     class="dsh-archive-row",
-    attrs=@html.Attrs::build().data_set("name", "archived-row"),
+    attrs=mark("archived-row", ["overview", "archive", row.id]),
     parts,
   )
 }
@@ -539,7 +566,7 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 挂在折叠标题上，标的是用户当时看不到的东西。
   let body : Array[@html.Html] = []
   if model.archived_open {
-    body.push(source_badge(model.tag_archived))
+    body.push(source_badge(model.tag_archived, ["overview", "section", "archived", "source-badge"]))
     for row in items {
       body.push(archived_row(row, emit))
     }
@@ -550,7 +577,7 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.button(
           class="dsh-collapse",
           type_="button",
-          attrs=@html.Attrs::build().data_set("name", "archived-toggle"),
+          attrs=mark("archived-toggle", ["overview", "archive", "toggle"]),
           on_click=emit(ToggleArchived),
           [
             icon(if model.archived_open { "chevron-down" } else { "chevron-right" }),
@@ -578,6 +605,7 @@ fn side_info_panel() -> @html.Html {
       @html.button(
         class="dsh-flow",
         type_="button",
+        attrs=mark("workflow-entry", ["overview", "side-info", "workflow", title]),
         [
           @html.span(class="dsh-flow-icon " + tones[i % 2], [icon(icons[i % 2], size=16)]),
           @html.span(class="dsh-flow-body", [
@@ -592,7 +620,7 @@ fn side_info_panel() -> @html.Html {
   let notes : Array[@html.Html] = safety_checks.map(fn(item) {
     @html.li(class="dsh-note", [@html.span(class="dsh-note-text", item)])
   })
-  @html.aside(class="dsh-side-info", attrs=@html.Attrs::build().data_set("name", "side-info"), [
+  @html.aside(class="dsh-side-info", attrs=mark("side-info", ["overview", "side-info"]), [
     @html.div(class="dsh-info-card", [
       @html.h2(class="dsh-info-title", "工作流入口"),
       @html.div(class="dsh-flows", flows),
@@ -629,8 +657,7 @@ fn action_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.button(
         class="dsh-btn",
         type_="button",
-        attrs=@html.Attrs::build()
-          .data_set("name", "notice-open-web-ui")
+        attrs=mark("notice-open-web-ui", ["overview", "action-notice", "open-web-ui"])
           .title("再点一下就在新标签页打开带令牌的地址 —— 手动点击是新手势，弹窗拦截器拦不住"),
         on_click=emit(NoticeOpenUi),
         [icon("open-in-new"), @html.span("打开 Web UI")],
@@ -639,8 +666,7 @@ fn action_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   @html.div(
     class="dsh-notice" + tone,
-    attrs=@html.Attrs::build()
-      .data_set("name", "action-notice")
+    attrs=mark("action-notice", ["overview", "action-notice"])
       .data_set("ok", if model.act_notice_ok { "true" } else { "false" }),
     children,
   )
@@ -671,27 +697,37 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let note_block = if note.length() > 0 {
     @html.div(
       class="dsh-dialog-note",
-      attrs=@html.Attrs::build().data_set("name", "confirm-note"),
+      attrs=mark("confirm-note", ["dialog", "confirm-dialog", "note"]),
       [@html.span(class="dsh-dialog-note-tag", "备注"), @html.text(note)],
     )
   } else {
     @html.nothing
   }
   let card = @html.div(class="dsh-dialog-card", [
-    @html.h2(class="dsh-dialog-title", "删除实例 " + name + "？"),
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("dialog-title", ["dialog", "confirm-dialog", "title"]),
+      "删除实例 " + name + "？",
+    ),
     note_block,
-    @html.p(class="dsh-dialog-message", mode),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("dialog-message", ["dialog", "confirm-dialog", "message"]),
+      mode,
+    ),
     @html.div(class="dsh-dialog-foot", [
       @html.button(
         id="dsh-confirm-ok",
         class="dsh-dialog-btn primary",
         type_="button",
+        attrs=mark("dialog-ok", ["dialog", "confirm-dialog", "ok"]),
         on_click=emit(DeleteConfirm),
         [@html.text("删除")],
       ),
       @html.button(
         class="dsh-dialog-btn",
         type_="button",
+        attrs=mark("dialog-cancel", ["dialog", "confirm-dialog", "cancel"]),
         on_click=emit(DeleteCancel),
         [@html.text("取消")],
       ),
@@ -722,14 +758,20 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let can_confirm = model.rename_draft.trim().length() > 0
   let card = @html.div(class="dsh-dialog-card", [
-    @html.h2(class="dsh-dialog-title", "重命名实例 " + name),
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("dialog-title", ["dialog", "rename-dialog", "title"]),
+      "重命名实例 " + name,
+    ),
     @html.input(
       input_type=Text,
       id="dsh-rename-input",
       class="dsh-dialog-input",
       value=model.rename_draft,
       autofocus=true,
-      attrs=@html.Attrs::build().aria_label("实例名称").spellcheck(false),
+      attrs=mark("rename-input", ["dialog", "rename-dialog", "input"])
+        .aria_label("实例名称")
+        .spellcheck(false),
       on_input=emit.map(fn(text) { RenameInput(text) }),
     ),
     @html.div(class="dsh-dialog-foot", [
@@ -737,12 +779,14 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         class="dsh-dialog-btn primary",
         type_="button",
         disabled=!can_confirm,
+        attrs=mark("dialog-ok", ["dialog", "rename-dialog", "ok"]),
         on_click=emit(RenameConfirm),
         [@html.text("确定")],
       ),
       @html.button(
         class="dsh-dialog-btn",
         type_="button",
+        attrs=mark("dialog-cancel", ["dialog", "rename-dialog", "cancel"]),
         on_click=emit(RenameCancel),
         [@html.text("取消")],
       ),
@@ -782,18 +826,26 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let error_block = if model.note_error.length() > 0 {
     @html.p(
       class="dsh-dialog-error",
-      attrs=@html.Attrs::build().data_set("name", "note-error"),
+      attrs=mark("note-error", ["dialog", "note-dialog", "error"]),
       model.note_error,
     )
   } else {
     @html.nothing
   }
   let card = @html.div(class="dsh-dialog-card", [
-    @html.h2(class="dsh-dialog-title", [
-      icon("note-text-outline", size=14),
-      @html.text("编辑备注 " + name),
-    ]),
-    @html.p(class="dsh-dialog-message", "备注写的是这只 profile 干什么用的，存在它自己的目录里（改名、派生、搬走都跟着走）。留空保存就是删掉备注。"),
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("dialog-title", ["dialog", "note-dialog", "title"]),
+      [
+        icon("note-text-outline", size=14),
+        @html.text("编辑备注 " + name),
+      ],
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("dialog-message", ["dialog", "note-dialog", "message"]),
+      "备注写的是这只 profile 干什么用的，存在它自己的目录里（改名、派生、搬走都跟着走）。留空保存就是删掉备注。",
+    ),
     @html.textarea(
       id="dsh-note-input",
       class="dsh-dialog-input dsh-dialog-textarea",
@@ -802,10 +854,9 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       value=model.note_draft,
       placeholder="这只 profile 是干什么用的…",
       autofocus=true,
-      attrs=@html.Attrs::build()
+      attrs=mark("note-input", ["dialog", "note-dialog", "input"])
         .aria_label("profile 备注")
-        .spellcheck(false)
-        .data_set("name", "note-input"),
+        .spellcheck(false),
       on_input=emit.map(fn(text) { NoteInput(text) }),
       @html.nothing,
     ),
@@ -816,6 +867,7 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         class="dsh-dialog-btn primary",
         type_="button",
         disabled=saving,
+        attrs=mark("dialog-ok", ["dialog", "note-dialog", "ok"]),
         on_click=emit(NoteConfirm),
         [@html.text(if saving { "保存中…" } else { "保存" })],
       ),
@@ -824,6 +876,7 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         class="dsh-dialog-btn",
         type_="button",
         disabled=saving,
+        attrs=mark("dialog-cancel", ["dialog", "note-dialog", "cancel"]),
         on_click=emit(NoteCancel),
         [@html.text("取消")],
       ),
@@ -903,24 +956,26 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.header(class="dsh-overview-head", [
           @html.div(class="dsh-head-text", [
             @html.h1(class="dsh-page-title", "实例总览"),
-            source_badge(model.tag_runtime),
+            source_badge(model.tag_runtime, ["overview", "head", "source-badge"]),
             @html.span(class="dsh-head-note", "菜单里的动作走 POST /api/local/action"),
           ]),
           @html.button(
             class="dsh-new-btn",
             type_="button",
-            attrs=@html.Attrs::build().data_set("name", "new-instance"),
+            attrs=mark("new-instance", ["overview", "new-instance"]),
             [@html.span(class="dsh-plus", "＋"), @html.span("新建实例")],
           ),
         ]),
         action_notice(model, emit),
         section_head(
+          "running",
           "当前运行的实例",
           if pending { "…" } else { running.length().to_string() },
           model.tag_instances,
         ),
         @html.div(class="dsh-rows", running_list),
         section_head(
+          "stopped",
           "已停止的实例",
           if pending { "…" } else { stopped.length().to_string() },
           model.tag_profiles,
@@ -935,7 +990,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   @html.div(
     class="dsh-overview",
-    attrs=@html.Attrs::build().data_set("name", "overview-page"),
+    attrs=mark("overview-page", ["overview", "page"]),
     body,
   )
 }

@@ -33,12 +33,12 @@ fn version_rows(model : Model) -> Array[@html.Html] {
 fn about_view(model : Model) -> @html.Html {
   @html.section(
     class="dsh-page",
-    attrs=@html.Attrs::build().data_set("name", "about-page"),
+    attrs=mark("about-page", ["about", "page"]),
     [
       @html.header(class="dsh-page-head", [@html.h1(class="dsh-page-title", "关于")]),
       @html.div(
         class="dsh-panel",
-        attrs=@html.Attrs::build().data_set("name", "about-panel"),
+        attrs=mark("about-panel", ["about", "about-panel"]),
         [
           @html.p(
             class="dsh-para",
@@ -52,7 +52,7 @@ fn about_view(model : Model) -> @html.Html {
       ),
       @html.div(
         class="dsh-panel",
-        attrs=@html.Attrs::build().data_set("name", "version-panel"),
+        attrs=mark("version-panel", ["about", "version-panel"]),
         [
           @html.h2(class="dsh-panel-title", "版本"),
           @html.div(class="dsh-kv", version_rows(model)),

@@ -1,0 +1,2 @@
+起跑时在跑: 3080（这些一律不碰）
+停掉本轮新起的 8401 (web-dev) → 200 {"ok":true,"readOnly":false,"readAt":"2026-10-15T12:12:58.298Z","data":{"action":"stop-instance","outcome":{"pid":625167

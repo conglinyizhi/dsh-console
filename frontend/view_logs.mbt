@@ -147,7 +147,7 @@ fn source_select(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.option(
             value~,
             selected=model.log_source == value,
-            attrs=@html.Attrs::build().title(
+            attrs=mark("log-source-option", ["logs", "source-option", value]).title(
               "读该实例 DSH_HOME 下 logs 目录里最新的日志文件；实例未带 home 时按本机默认位置定位",
             ),
             [@html.text("dsh :" + fact.port.to_string())],
@@ -162,19 +162,25 @@ fn source_select(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       disabled=true,
       value="__divider__",
       selected=false,
+      attrs=mark("log-source-divider", ["logs", "source-option", "divider"]),
       [@html.text("————")],
     ),
   )
   for fixed in fixed_sources {
     let (value, label) = fixed
     options.push(
-      @html.option(value~, selected=model.log_source == value, @html.text(label)),
+      @html.option(
+        value~,
+        selected=model.log_source == value,
+        attrs=mark("log-source-option", ["logs", "source-option", value]),
+        @html.text(label),
+      ),
     )
   }
   @html.select(
     id="log-source",
     class="dsh-select",
-    attrs=@html.Attrs::build().data_set("name", "log-source"),
+    attrs=mark("log-source", ["logs", "source-select"]),
     on_change=emit.map(fn(value) { LogSourcePicked(value) }),
     options,
   )
@@ -202,11 +208,11 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.div(
       id="dsh-log-box",
       class="dsh-log-box",
-      attrs=@html.Attrs::build().data_set("name", "log-box"),
+      attrs=mark("log-box", ["logs", "box"]),
       lines,
     )
   } else {
-    @html.div(class="dsh-log-empty", [
+    @html.div(class="dsh-log-empty", attrs=mark("log-empty", ["logs", "empty"]), [
       @html.p(class="dsh-log-empty-title", "没有可显示的行"),
       @html.p(class="dsh-log-empty-detail", model.log_tag.detail),
     ])
@@ -221,26 +227,31 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   @html.section(
     class="dsh-logs",
-    attrs=@html.Attrs::build().data_set("name", "logs-page"),
+    attrs=mark("logs-page", ["logs", "page"]),
     [
       @html.header(class="dsh-logs-head", [
         @html.h1(class="dsh-page-title", "日志"),
-        source_badge(model.log_tag),
+        source_badge(model.log_tag, ["logs", "head", "source-badge"]),
       ]),
       @html.div(class="dsh-toolbar", [
         @html.div(class="dsh-tool-left", [
-          @html.label(class="dsh-log-label", for_="log-source", "来源"),
+          @html.label(
+            class="dsh-log-label",
+            for_="log-source",
+            attrs=mark("log-source-label", ["logs", "source-label"]),
+            "来源",
+          ),
           source_select(model, emit),
         ]),
         @html.span(
           class="dsh-meta",
-          attrs=@html.Attrs::build().title(logs_meta(model)),
+          attrs=mark("logs-meta", ["logs", "meta"]).title(logs_meta(model)),
           logs_meta(model),
         ),
         @html.button(
           class="dsh-refresh",
           type_="button",
-          attrs=@html.Attrs::build().data_set("name", "log-refresh"),
+          attrs=mark("log-refresh", ["logs", "refresh"]),
           on_click=emit(LogRefresh),
           [icon("refresh", size=13), @html.span("刷新")],
         ),

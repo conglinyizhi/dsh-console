@@ -40,8 +40,7 @@ fn setting_control_text(model : Model, def : SettingDef) -> String {
 
 ///|
 fn setting_input_attrs(model : Model, def : SettingDef, unit : String) -> @html.Attrs {
-  @html.Attrs::build()
-    .data_set("name", "setting-input")
+  mark("setting-input", ["settings", "row", def.key, "input"])
     .aria_label(def.label)
     .title(
       setting_fallback_text(def) + (if unit == "" { "" } else { " · 单位" + unit }),
@@ -92,12 +91,11 @@ fn setting_switch_control(
     class=if on { "dsh-switch on" } else { "dsh-switch" },
     type_="button",
     disabled=!known || model.settings_saving == def.key,
-    attrs=@html.Attrs::build()
+    attrs=mark("setting-switch", ["settings", "row", def.key, "switch"])
       .role("switch")
       .aria_checked(if on { "true" } else { "false" })
       .aria_label(def.label)
-      .title(setting_fallback_text(def))
-      .data_set("name", "setting-switch"),
+      .title(setting_fallback_text(def)),
     on_click=emit(SettingToggle(def.key, !on)),
     [
       @html.span(class="dsh-switch-knob", @html.nothing),
@@ -158,8 +156,7 @@ fn setting_select_control(
     id="dsh-setting-" + def.key,
     class="dsh-select",
     disabled=current_int is None || model.settings_saving == def.key,
-    attrs=@html.Attrs::build()
-      .data_set("name", "setting-select")
+    attrs=mark("setting-select", ["settings", "row", def.key, "select"])
       .aria_label(def.label)
       .title(setting_fallback_text(def)),
     on_change=emit.map(fn(text) { SettingCommit(def.key, text) }),
@@ -205,8 +202,7 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
   }
   @html.div(
     class="dsh-setting",
-    attrs=@html.Attrs::build()
-      .data_set("name", "setting-row")
+    attrs=mark("setting-row", ["settings", "row", def.key])
       .data_set("setting", def.key)
       .data_set("value", value_text)
       .data_set("source", source_text)
@@ -215,14 +211,32 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
     [
       @html.div(class="dsh-setting-main", [
         // 可见的只有人话名称，键名在行悬停里
-        @html.div(class="dsh-setting-title", [@html.span(class="dsh-setting-name", def.label)]),
-        @html.p(class="dsh-setting-desc", def.desc),
-        @html.div(class="dsh-setting-meta", meta),
+        @html.div(class="dsh-setting-title", [
+          @html.span(
+            class="dsh-setting-name",
+            attrs=mark("setting-name", ["settings", "row", def.key, "name"]),
+            def.label,
+          ),
+        ]),
+        @html.p(
+          class="dsh-setting-desc",
+          attrs=mark("setting-desc", ["settings", "row", def.key, "desc"]),
+          def.desc,
+        ),
+        @html.div(
+          class="dsh-setting-meta",
+          attrs=mark("setting-meta", ["settings", "row", def.key, "meta"]),
+          meta,
+        ),
       ]),
       @html.div(class="dsh-setting-control", [
         control,
         if saving {
-          @html.span(class="dsh-setting-saving", "保存中…")
+          @html.span(
+            class="dsh-setting-saving",
+            attrs=mark("setting-saving", ["settings", "row", def.key, "saving"]),
+            "保存中…",
+          )
         } else {
           @html.nothing
         },
@@ -255,8 +269,7 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.button(
         class=if active { "dsh-settings-tab active" } else { "dsh-settings-tab" },
         type_="button",
-        attrs=@html.Attrs::build()
-          .data_set("name", "settings-tab")
+        attrs=mark("settings-tab", ["settings", "tab", group.id])
           .data_set("group", group.id)
           .aria_current(if active { "true" } else { "false" }),
         on_click=emit(SettingsGroupPicked(group.id)),
@@ -276,7 +289,7 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   @html.aside(
     class="dsh-settings-index",
-    attrs=@html.Attrs::build().data_set("name", "settings-index"),
+    attrs=mark("settings-index", ["settings", "index"]),
     items,
   )
 }
@@ -290,7 +303,7 @@ fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     settings_index(model, emit),
     @html.div(
       class="dsh-settings-panel",
-      attrs=@html.Attrs::build().data_set("name", "settings-panel"),
+      attrs=mark("settings-panel", ["settings", "panel"]),
       [
         @html.h2(class="dsh-settings-panel-title", group.label),
         @html.p(class="dsh-settings-panel-note", group.note),
@@ -325,7 +338,7 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   @html.div(
     class="dsh-settings-error",
-    attrs=@html.Attrs::build().data_set("name", "settings-error"),
+    attrs=mark("settings-error", ["settings", "error"]),
     [
       @html.h2(class="dsh-settings-error-title", title),
       @html.p(class="dsh-settings-error-status", status_line),
@@ -335,7 +348,7 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           class="dsh-settings-retry",
           type_="button",
           disabled=model.settings_loading,
-          attrs=@html.Attrs::build().data_set("name", "settings-retry"),
+          attrs=mark("settings-retry", ["settings", "retry"]),
           on_click=emit(SettingsRetry),
           [icon("refresh", size=13), @html.span("重新读取")],
         ),
@@ -353,8 +366,7 @@ fn settings_feedback(model : Model) -> @html.Html {
   let tone = if model.settings_feedback_ok { " ok" } else { " err" }
   @html.p(
     class="dsh-settings-feedback" + tone,
-    attrs=@html.Attrs::build()
-      .data_set("name", "settings-feedback")
+    attrs=mark("settings-feedback", ["settings", "feedback"])
       .data_set("ok", if model.settings_feedback_ok { "true" } else { "false" }),
     model.settings_feedback,
   )
@@ -366,7 +378,7 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let body = if model.settings_loading && !model.settings_loaded {
     @html.div(
       class="dsh-settings-hint",
-      attrs=@html.Attrs::build().data_set("name", "settings-loading"),
+      attrs=mark("settings-loading", ["settings", "loading"]),
       "正在读 GET /api/local/settings …",
     )
   } else if model.settings_error.length() > 0 {
@@ -377,23 +389,23 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       None =>
         @html.div(
           class="dsh-settings-hint",
-          attrs=@html.Attrs::build().data_set("name", "settings-loading"),
+          attrs=mark("settings-loading", ["settings", "loading"]),
           "设置还没读。",
         )
     }
   }
   @html.section(
     class="dsh-settings-page",
-    attrs=@html.Attrs::build().data_set("name", "settings-page"),
+    attrs=mark("settings-page", ["settings", "page"]),
     [
       @html.header(class="dsh-settings-head", [
         @html.h1(class="dsh-page-title", "设置"),
-        source_badge(model.tag_settings),
+        source_badge(model.tag_settings, ["settings", "head", "source-badge"]),
       ]),
       // 落盘路径是排查用的细节，收进悬停：使用者只需要知道「改动即保存」
       @html.p(
         class="dsh-settings-note",
-        attrs=@html.Attrs::build().title(
+        attrs=mark("settings-note", ["settings", "note"]).title(
           "每个键单独保存一次；落盘位置 $XDG_STATE_HOME/dsh-console/settings.json",
         ),
         "改动即保存。",

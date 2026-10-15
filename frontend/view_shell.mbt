@@ -19,8 +19,7 @@ fn nav_item(page : Page, current : Page, label : String, icon_name : String, emi
   @html.button(
     class=if active { "dsh-nav-item active" } else { "dsh-nav-item" },
     type_="button",
-    attrs=@html.Attrs::build()
-      .data_set("name", "nav-" + nav_key(page))
+    attrs=mark("nav-" + nav_key(page), ["shell", "nav", nav_key(page)])
       .aria_current(if active { "page" } else { "false" }),
     on_click=emit(Navigate(page)),
     [
@@ -42,7 +41,7 @@ fn nav_key(page : Page) -> String {
 
 ///|
 fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  @html.aside(class="dsh-side", attrs=@html.Attrs::build().data_set("name", "side-nav"), [
+  @html.aside(class="dsh-side", attrs=mark("side-nav", ["shell", "side-nav"]), [
     @html.div(class="dsh-brand", [
       @html.span(class="dsh-brand-icon", [icon("hub-outline", size=17)]),
       @html.span(class="dsh-brand-title", "DSH 控制台"),
@@ -69,7 +68,7 @@ fn route_notice_bar(model : Model) -> @html.Html {
   }
   @html.p(
     class="dsh-route-notice",
-    attrs=@html.Attrs::build().data_set("name", "route-notice").role("status"),
+    attrs=mark("route-notice", ["shell", "route-notice"]).role("status"),
     [
       @html.span(class="dsh-route-notice-tag", "地址回落"),
       @html.span(model.route_notice),
