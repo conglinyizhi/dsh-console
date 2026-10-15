@@ -31,6 +31,14 @@ let socket_files : Array[SocketFile] = [
 ]
 
 ///|
+/// /proc/net/tcp(6) 里一行 LISTEN：端口 + 第 9 列的 socket inode。
+/// inode 是「端口 → 进程」那条 join 的唯一钥匙（见 ../processes/procjoin.mbt）。
+priv struct ListenSocket {
+  port : Int
+  inode : Int64
+}
+
+///|
 /// 只认 loopback（/proc/net 里按小端十六进制写）。
 let loopback_ipv4 : String = "0100007F"
 
@@ -76,6 +84,16 @@ pub struct InstanceSummary {
   started_at : String?
   uptime_seconds : Int?
   probe_ms : Int
+  /// 该端口在 /proc/net/tcp(6) 里那行的 socket inode（读不到给 None）
+  inode : Int64?
+  /// 实例入口包的版本（…/node_modules/@deepseek-ai/dsh/package.json）
+  version : String?
+  version_source : String
+  profile_source : String
+  dsh_home_source : String
+  /// 进程级原因码：port-join / port-arg / process-gone / fd-unreadable / cmdline-unreadable / unscanned
+  process_reason_code : String
+  process_reason : String
 }
 
 ///|
@@ -95,6 +113,14 @@ pub struct ProcessSupplement {
   dsh_processes : Int
   with_port : Int
   note : String
+  /// 待 join 的 loopback LISTEN socket inode 数
+  socket_inodes : Int
+  /// 在 /proc/<pid>/fd 里对上持有者的 inode 数
+  inode_holders : Int
+  /// /proc/<pid>/fd 读不了（权限）而被跳过的进程数
+  fd_denied : Int
+  /// join 这一遍的结论说明
+  join_note : String
 }
 
 ///|
@@ -149,13 +175,14 @@ fn classify(probe : @localapi.Probe) -> Signature? {
 }
 
 ///|
-/// 一行一个套接字，按列切：0 序号 1 本地地址 2 远端地址 3 状态。
-/// 只收 st=0A（LISTEN）且本地地址是 loopback 的端口。
-fn parse_listen_ports(text : String?, family : String) -> Array[Int] {
-  let ports : Array[Int] = []
+/// 一行一个套接字，按列切：0 序号 1 本地地址 2 远端地址 3 状态 … 9 inode。
+/// 只收 st=0A（LISTEN）且本地地址是 loopback 的行；inode 一并带回，
+/// 它是后面「端口 → 进程」那条 join 的钥匙。
+fn parse_listen_sockets(text : String?, family : String) -> Array[ListenSocket] {
+  let out : Array[ListenSocket] = []
   let body = match text {
     Some(t) => t
-    None => return ports
+    None => return out
   }
   for line in body.split("\n") {
     let cols = @json.split_ws(line.to_owned())
@@ -183,11 +210,19 @@ fn parse_listen_ports(text : String?, family : String) -> Array[Int] {
       continue
     }
     let port = parse_hex(addr_parts[1])
-    if port > 0 {
-      ports.push(port)
+    if port <= 0 {
+      continue
     }
+    // 第 9 列是 inode。列数不够或不是数字时按「读不到 inode」处理（给 0），
+    // 端口照收 —— 端口本身仍是有效候选，只是这条 join 走不通。
+    let inode = if cols.length() > 9 && @json.is_all_digits(cols[9]) {
+      @json.parse_dec64(cols[9])
+    } else {
+      0L
+    }
+    out.push({ port, inode })
   }
-  ports
+  out
 }
 
 ///|
@@ -271,8 +306,39 @@ fn evidence(probe : @localapi.Probe, signature : Signature) -> String {
 }
 
 ///|
-/// 进程扫描只做补充：按端口和真实进程对上号才补 pid 与启动时长，对不上就留空。
-async fn supplement_processes() -> (ProcessSupplement, Array[@processes.ProcSummary]) noraise {
+/// 一个端口对应的 socket inode；没有就 None（列里读不到 inode 时记 0，按读不到处理）。
+fn socket_inode_of(sockets : Array[ListenSocket], port : Int) -> Int64? {
+  for row in sockets {
+    if row.port == port && row.inode != 0L {
+      return Some(row.inode)
+    }
+  }
+  None
+}
+
+///|
+/// 收一行 LISTEN，同端口只留一条；先来的 inode 为空时用后来的补上。
+fn push_socket(sockets : Array[ListenSocket], row : ListenSocket) -> Unit {
+  let mut i = 0
+  while i < sockets.length() {
+    if sockets[i].port == row.port {
+      if sockets[i].inode == 0L && row.inode != 0L {
+        sockets[i] = row
+      }
+      return
+    }
+    i = i + 1
+  }
+  sockets.push(row)
+}
+
+///|
+/// 进程侧的补充扫描：按 cmdline 的 --port 找 dsh 进程。
+/// 这是弱证据，只在 inode join 走不通时兜底（真实实例命令行里根本不带 --port）。
+async fn supplement_processes(
+  holders : @processes.HolderScan,
+  socket_inodes : Int,
+) -> (ProcessSupplement, Array[@processes.ProcSummary]) noraise {
   let report = @processes.read_processes()
   let with_port : Array[@processes.ProcSummary] = []
   for item in report.instances {
@@ -282,9 +348,10 @@ async fn supplement_processes() -> (ProcessSupplement, Array[@processes.ProcSumm
     }
   }
   let note = if with_port.length() > 0 {
-    "读到了带 --port 的宿主 dsh 进程，按端口补 pid 与启动时长"
+    "按 cmdline 的 --port 匹配到 " + with_port.length().to_string() +
+    " 个宿主 dsh 进程；这只在 socket inode 的 join 走不通时兜底用"
   } else {
-    "没读到带 --port 的 dsh 进程（PID 命名空间可能被隔离），pid 与启动时长留空，不伪造"
+    "没有带 --port 的 dsh 进程可兜底（宿主实例的命令行本来就不带 --port），进程侧只认 socket inode 的 join"
   }
   ({
     proc_root: @processes.proc_root,
@@ -292,6 +359,10 @@ async fn supplement_processes() -> (ProcessSupplement, Array[@processes.ProcSumm
     dsh_processes: report.instances.length(),
     with_port: with_port.length(),
     note,
+    socket_inodes,
+    inode_holders: holders.holders.length(),
+    fd_denied: holders.fd_denied,
+    join_note: holders.note,
   }, with_port)
 }
 
@@ -313,24 +384,24 @@ fn find_supplement(
 /// 一次完整扫描：读 /proc/net/tcp(6)、探测候选端口、补进程信息。
 pub async fn instances_report() -> InstancesReport noraise {
   let per_file : Array[PerFile] = []
-  let all_ports : Array[Int] = []
+  let sockets : Array[ListenSocket] = []
   for src in socket_files {
     let text = match @json.read_text_file(src.file) {
       Ok(t) => Some(t)
       Err(_) => None
     }
-    let ports = parse_listen_ports(text, src.family)
+    let rows = parse_listen_sockets(text, src.family)
     per_file.push({
       file: src.file,
       family: src.family,
       readable: text is Some(_),
-      listen_ports: ports.length(),
+      listen_ports: rows.length(),
     })
-    for p in ports {
-      all_ports.push(p)
+    for row in rows {
+      push_socket(sockets, row)
     }
   }
-  let unique = dedup_sorted(all_ports)
+  let unique = dedup_sorted(sockets.map(fn(row) { row.port }))
   let truncated = unique.length() > max_candidates
   let candidates = if truncated {
     unique[:max_candidates].to_owned()
@@ -338,12 +409,23 @@ pub async fn instances_report() -> InstancesReport noraise {
     unique
   }
 
+  // 端口 → 进程：先拿候选端口的 socket inode，再一遍扫 /proc/<pid>/fd 找持有者。
+  // 这一遍只看候选端口（≤40 个），不按进程名猜；扫完就被下面的实例拼装复用。
+  let wanted_inodes : Array[Int64] = []
+  for port in candidates {
+    match socket_inode_of(sockets, port) {
+      Some(inode) => wanted_inodes.push(inode)
+      None => ()
+    }
+  }
+  let holders = @processes.holders_for_inodes(wanted_inodes)
+
   // 探测：只打 loopback，单个 500ms 超时，8 路并发（与 Node 版 PROBE_CONCURRENCY 同数）。
   // 顺序仍是端口升序：probe_ports 按下标返回，谁先回来不影响排序。
   // 候选上限 40、单口 500ms 的口径没动，最坏耗时因此是 ceil(40/8)×500ms = 2.5s（改前 20s）。
   let settled = @localapi.probe_ports(candidates)
 
-  let (supplement, with_port) = supplement_processes()
+  let (supplement, with_port) = supplement_processes(holders, wanted_inodes.length())
   let instances : Array[InstanceSummary] = []
   let probe_results : Array[ProbeResult] = []
   let mut reached = 0
@@ -367,7 +449,40 @@ pub async fn instances_report() -> InstancesReport noraise {
       None => continue
       Some(s) => s
     }
-    let proc = find_supplement(with_port, probe.port)
+    // 端口 → 进程：优先 socket inode 的 join（内核给的对应关系），
+    // 对不上才退回按 --port 匹配的弱证据，两条都不通就带结构化原因留空。
+    let inode = socket_inode_of(sockets, probe.port)
+    let facts = match inode {
+      Some(i) =>
+        match @processes.holder_for(holders, i) {
+          Some(h) => @processes.facts_for_pid(h.pid, inode, h.home_hint, "port-join", "")
+          None =>
+            match find_supplement(with_port, probe.port) {
+              Some(p) => @processes.facts_for_pid(p.pid, inode, None, "port-arg", "")
+              None => {
+                let code = if holders.fd_denied > 0 {
+                  "fd-unreadable"
+                } else {
+                  "process-gone"
+                }
+                @processes.absent_facts(
+                  inode,
+                  code,
+                  @processes.reason_text(code) + "（扫了 " +
+                  holders.scanned_pids.to_string() + " 个可见进程的 fd 表，其中 " +
+                  holders.fd_denied.to_string() + " 个读不了）",
+                )
+              }
+            }
+        }
+      None =>
+        @processes.absent_facts(
+          None,
+          "unscanned",
+          @processes.reason_text("unscanned") + "（端口 " + probe.port.to_string() +
+          " 的 LISTEN 行里没有可用的 inode）",
+        )
+    }
     instances.push({
       id: "proc-\{probe.port}",
       port: probe.port,
@@ -378,31 +493,20 @@ pub async fn instances_report() -> InstancesReport noraise {
       signature_id: sig.id,
       signature_describe: sig.describe,
       signature_evidence: evidence(probe, sig),
-      profile: match proc {
-        Some(p) => p.profile
-        None => None
-      },
-      pid: match proc {
-        Some(p) => Some(p.pid)
-        None => None
-      },
-      dsh_home: match proc {
-        Some(p) => p.dsh_home
-        None => None
-      },
-      exe_path: match proc {
-        Some(p) => Some(p.exe_path)
-        None => None
-      },
-      started_at: match proc {
-        Some(p) => p.started_at
-        None => None
-      },
-      uptime_seconds: match proc {
-        Some(p) => p.uptime_seconds
-        None => None
-      },
+      profile: facts.profile,
+      pid: facts.pid,
+      dsh_home: facts.dsh_home,
+      exe_path: facts.entry_path,
+      started_at: facts.started_at,
+      uptime_seconds: facts.uptime_seconds,
       probe_ms: probe.ms,
+      inode,
+      version: facts.version,
+      version_source: facts.version_source,
+      profile_source: facts.profile_source,
+      dsh_home_source: facts.dsh_home_source,
+      process_reason_code: facts.reason_code,
+      process_reason: facts.reason,
     })
   }
 
@@ -472,6 +576,15 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
       ("startedAt", @json.str_or_null(item.started_at)),
       ("uptimeSeconds", @json.int_or_null(item.uptime_seconds)),
       ("probeMs", @json.jint(item.probe_ms)),
+      ("inode", @json.int64_or_null(item.inode)),
+      ("version", @json.str_or_null(item.version)),
+      ("versionSource", @json.JStr(item.version_source)),
+      ("profileSource", @json.JStr(item.profile_source)),
+      ("dshHomeSource", @json.JStr(item.dsh_home_source)),
+      ("processReason", @json.JObj([
+        ("code", @json.JStr(item.process_reason_code)),
+        ("message", @json.JStr(item.process_reason)),
+      ])),
     ]))
   }
   @json.JObj([
@@ -510,6 +623,10 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
       ("dshProcesses", @json.jint(report.supplement.dsh_processes)),
       ("withPort", @json.jint(report.supplement.with_port)),
       ("note", @json.JStr(report.supplement.note)),
+      ("socketInodes", @json.jint(report.supplement.socket_inodes)),
+      ("inodeHolders", @json.jint(report.supplement.inode_holders)),
+      ("fdDenied", @json.jint(report.supplement.fd_denied)),
+      ("joinNote", @json.JStr(report.supplement.join_note)),
     ])),
     ("instances", @json.JArr(instances)),
   ])

@@ -146,6 +146,15 @@ pub fn int_or_null(n : Int?) -> JsonVal {
 }
 
 ///|
+/// 可空 64 位整数字段（socket inode 用）：None 给 null。
+pub fn int64_or_null(n : Int64?) -> JsonVal {
+  match n {
+    Some(v) => JNum(v.to_double())
+    None => JNull
+  }
+}
+
+///|
 /// 整数字段。
 pub fn jint(n : Int) -> JsonVal {
   JNum(n.to_double())

@@ -1,5 +1,8 @@
 {
   "is-main": false,
+  "native-stub": [
+    "fd_link.c"
+  ],
   "import": [
     "moonbitlang/async",
     "moonbitlang/async/fs",

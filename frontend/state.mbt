@@ -92,6 +92,10 @@ struct Row {
   version : String
   profile : String
   home : String
+  /// 三项字段的悬停说明：写清这个值是从哪读出来的，或者为什么读不到（后端原样给的原因）
+  version_hint : String
+  profile_hint : String
+  home_hint : String
   url : String
   plugin_count : String
   plugin_detail : String
@@ -362,8 +366,31 @@ fn join_with(items : Array[String], sep : String) -> String {
 }
 
 ///|
+/// 进程级原因码对应的短标签（卡上看得见的那一行）。空串 = 没有要说的。
+/// 与后端 reason_text 同一套码；这里只缩短，不换意思。
+fn process_note(fact : InstanceFact) -> String {
+  match fact.process_reason_code {
+    "port-join" =>
+      if fact.profile is None {
+        "cmdline 里没有 --profile"
+      } else if fact.version is None {
+        "入口包里读不到版本"
+      } else {
+        ""
+      }
+    "port-arg" => "进程是按 --port 匹配的，证据弱于 socket inode"
+    "process-gone" => "进程不可见：已退出，或不在本 PID 命名空间"
+    "fd-unreadable" => "/proc/<pid>/fd 读不到（权限不足）"
+    "cmdline-unreadable" => "进程在，但 cmdline 读不到"
+    "unscanned" => "没拿到该端口的 socket inode"
+    _ => ""
+  }
+}
+
+///|
 /// 正在运行的实例 = 监听端口 + HTTP 签名探测到的真实实例（不是 /proc 进程，也不是磁盘上的 profile）。
-/// 拿不到的字段一律写「未知」/「—」：探测走的是一次未授权的 GET，读不到实例自己的版本、DSH_HOME 与插件数。
+/// 实例的 Profile / DSH_HOME / DSH 版本 / 运行时长来自「端口 → socket inode → PID」这条 join；
+/// 任一项拿不到就写「未知」，并把后端给的原因挂在悬停说明上 —— 不编值，也不留一个干巴巴的未知。
 fn running_rows(facts : Array[InstanceFact], profiles : Array[ProfileFact]) -> Array[Row] {
   facts.map(fn(fact) {
     let profile_fact = match fact.profile {
@@ -396,22 +423,33 @@ fn running_rows(facts : Array[InstanceFact], profiles : Array[ProfileFact]) -> A
       status: Running,
       uptime: minutes,
       uptime_hint: match minutes {
-        None => "探测到监听端口，但本进程读不到宿主进程（PID 命名空间被隔离），运行时长未知"
+        None =>
+          if fact.process_reason == "" {
+            "运行时长读不到：没拿到该端口的 socket inode，也没对上进程"
+          } else {
+            "运行时长读不到：" + fact.process_reason
+          }
         Some(_) => ""
       },
       port_note: "",
       idle_note: "",
-      note: "",
+      note: process_note(fact),
       busy: false,
-      version: "未知",
+      version: match fact.version {
+        Some(v) => v + "（入口包）"
+        None => "未知"
+      },
+      version_hint: fact.version_source,
       profile: match fact.profile {
         Some(profile) => profile
         None => "未知"
       },
+      profile_hint: fact.profile_source,
       home: match fact.dsh_home {
         Some(home) => home
         None => "未知"
       },
+      home_hint: fact.dsh_home_source,
       url: fact.url,
       plugin_count: match profile_fact {
         Some(item) =>
@@ -478,8 +516,11 @@ fn profile_rows(
       },
       busy: false,
       version: version_text(runtime),
+      version_hint: "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）",
       profile: fact.name,
+      profile_hint: "磁盘上真实存在的 profile 目录名：" + fact.name,
       home: dsh_home,
+      home_hint: "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）",
       url: "—",
       plugin_count: "声明 " + fact.bundles.declared.to_string() + " · 已装 " +
         fact.bundles.installed.to_string(),
@@ -503,7 +544,7 @@ fn demo_running() -> Array[Row] {
       id: "work-main", name: "work-main", kind: "核心工作实例", kind_hint: "",
       tone: Accent, status: Running, uptime: Some(138), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", profile: "main", home: "/Users/you/.dsh/work-main",
+      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "main", home: "/Users/you/.dsh/work-main",
       url: "http://127.0.0.1:8100", plugin_count: "5 个", plugin_detail: "",
       deletable: false, archived_at: None,
     },
@@ -511,7 +552,7 @@ fn demo_running() -> Array[Row] {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
       tone: Violet, status: Running, uptime: Some(42), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", profile: "dev", home: "/Users/you/.dsh/plugin-dev",
+      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "dev", home: "/Users/you/.dsh/plugin-dev",
       url: "http://127.0.0.1:8200", plugin_count: "2 个（开发中）", plugin_detail: "",
       deletable: true, archived_at: None,
     },
@@ -525,7 +566,7 @@ fn demo_stopped() -> Array[Row] {
       id: "staging", name: "staging", kind: "插件开发（试验）", kind_hint: "",
       tone: Violet, status: Stopped, uptime: Some(0), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", profile: "staging", home: "/Users/you/.dsh/staging",
+      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "staging", home: "/Users/you/.dsh/staging",
       url: "http://127.0.0.1:8300", plugin_count: "3 个", plugin_detail: "",
       deletable: true, archived_at: None,
     },
@@ -539,7 +580,7 @@ fn demo_archived() -> Array[Row] {
       id: "old-experiment", name: "old-experiment", kind: "插件开发（试验）", kind_hint: "",
       tone: Violet, status: Stopped, uptime: Some(0), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", profile: "dev", home: "/Users/you/.dsh/old-experiment",
+      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "dev", home: "/Users/you/.dsh/old-experiment",
       url: "http://127.0.0.1:8400", plugin_count: "1 个（开发中）", plugin_detail: "",
       deletable: true, archived_at: Some(demo_archived_at),
     },

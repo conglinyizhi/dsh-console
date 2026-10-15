@@ -210,6 +210,25 @@ fn round_half_up(value : Double) -> Int {
 }
 
 ///|
+/// 进程已运行秒数：/proc/<pid>/stat 第 22 字段（时钟滴答）与 /proc/uptime 换算。
+/// 任一项读不到就给 None —— 「读不到」与「刚启动」必须能分开。
+pub async fn uptime_seconds_of(pid : Int, sys_uptime : Double?) -> Int? noraise {
+  let ticks = match read_start_ticks(pid) {
+    Some(t) => t
+    None => return None
+  }
+  let uptime = match sys_uptime {
+    Some(u) => u
+    None => return None
+  }
+  if uptime < 0.0 {
+    return None
+  }
+  let started_ago = uptime - ticks.to_double() / clk_tck
+  Some(if started_ago < 0.0 { 0 } else { round_half_up(started_ago) })
+}
+
+///|
 /// 扫描 /proc，列出 dsh 进程，按 pid 升序。
 pub async fn read_processes() -> ProcReport noraise {
   let sys_uptime = read_uptime_seconds()
@@ -240,18 +259,10 @@ pub async fn read_processes() -> ProcReport noraise {
       Some(e) => e
     }
     let port = read_port(argv)
-    let start_ticks = read_start_ticks(pid)
-    let mut uptime_seconds : Int? = None
-    let mut started_at : String? = None
-    match (start_ticks, sys_uptime) {
-      (Some(ticks), Some(uptime)) =>
-        if uptime >= 0.0 {
-          let started_ago = uptime - ticks.to_double() / clk_tck
-          let seconds = if started_ago < 0.0 { 0 } else { round_half_up(started_ago) }
-          uptime_seconds = Some(seconds)
-          started_at = Some(@json.iso_from_epoch_ms(now - seconds.to_int64() * 1000L))
-        }
-      _ => ()
+    let uptime_seconds = uptime_seconds_of(pid, sys_uptime)
+    let started_at = match uptime_seconds {
+      Some(seconds) => Some(@json.iso_from_epoch_ms(now - seconds.to_int64() * 1000L))
+      None => None
     }
     instances.push({
       pid,

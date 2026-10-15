@@ -316,10 +316,10 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
         instance_actions(row, model, emit),
       ]),
       @html.ul(class="dsh-fields", [
-        field("label-outline", "DSH 版本 / 来源", row.version, ""),
-        field("layers-outline", "Profile", row.profile, ""),
+        field("label-outline", "DSH 版本 / 来源", row.version, row.version_hint),
+        field("layers-outline", "Profile", row.profile, row.profile_hint),
         field("link-variant", "访问地址", row.url, ""),
-        field("home-outline", "DSH_HOME", row.home, ""),
+        field("home-outline", "DSH_HOME", row.home, row.home_hint),
         field("puzzle-outline", "插件数量", row.plugin_count, row.plugin_detail),
       ]),
     ],

@@ -238,6 +238,15 @@ pub(all) struct InstanceFact {
   profile : String?
   dsh_home : String?
   uptime_seconds : Int?
+  /// 入口包 …/node_modules/@deepseek-ai/dsh/package.json 的 version；读不到是 None
+  version : String?
+  /// 下面几条都是「这个值是从哪读出来的 / 为什么读不到」，原样来自后端，不在前端编
+  version_source : String
+  profile_source : String
+  dsh_home_source : String
+  /// 进程级原因码：port-join / port-arg / process-gone / fd-unreadable / cmdline-unreadable / unscanned
+  process_reason_code : String
+  process_reason : String
 } derive(Eq)
 
 pub extend InstanceFact with Eq::{ not_equal, equal }
@@ -278,6 +287,7 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
   for item in arr_field(data, "instances") {
     guard item is Json::Object(fact) else { continue }
     let sig = obj_field(fact, "signature")
+    let reason = obj_field(fact, "processReason")
     list.push({
       id: str_field(fact, "id"),
       port: int_or(fact, "port", 0),
@@ -288,6 +298,12 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
       profile: opt_str_field(fact, "profile"),
       dsh_home: opt_str_field(fact, "dshHome"),
       uptime_seconds: int_field(fact, "uptimeSeconds"),
+      version: opt_str_field(fact, "version"),
+      version_source: str_field(fact, "versionSource"),
+      profile_source: str_field(fact, "profileSource"),
+      dsh_home_source: str_field(fact, "dshHomeSource"),
+      process_reason_code: str_field(reason, "code"),
+      process_reason: str_field(reason, "message"),
     })
   }
   Ok({

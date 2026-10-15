@@ -222,6 +222,39 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
   `probe`（method、redirect、timeoutMs、concurrency、probed、reached、hits）/ `perFile` /
   `signatures` / `processSupplement`
 
+**端口 → 进程（把卡上的 Profile / DSH_HOME / 版本 / 运行时长填出来）**
+
+HTTP 签名只回答「这个端口是不是 DSH web」，回答不了「它是哪只实例」。宿主上的实例命令行是
+`node …/node_modules/@deepseek-ai/dsh/lib/bin.js --profile web --no-open`：**没有 `--port`**，
+environ 里也**没有任何 DSH_***，靠命令行认不出它监听哪个端口。所以补一条内核给的对应关系：
+
+1. `/proc/net/tcp(6)` 那行的**第 9 列 socket inode**（解析端口时一并带回，见 `ListenSocket`）
+2. 扫 `/proc/<pid>/fd/*` 的**链接目标**，找 `socket:[<inode>]` → 得到 **PID**
+   （全工程唯一一处 C 代码 `json/fd_link.c`：一次 `readlink(2)`，MoonBit 的 fs 层有 realpath、没有它）
+3. `/proc/<pid>/cmdline` 读 `--profile`；`/proc/<pid>/environ` 读 `DSH_HOME`，
+   没有就看 fd 表里 `…/.dsh/…` 路径的前缀，都没有才落默认 `$HOME/.dsh`（来源写进 `dshHomeSource`）
+4. 入口路径里 `node_modules/@deepseek-ai/dsh` 这一段的 `package.json` → `version`（软链入口先 realpath）
+5. `/proc/<pid>/stat` 第 22 字段 + `/proc/uptime` → `startedAt` / `uptimeSeconds`
+
+实例对象因此多出：`inode` / `version` / `versionSource` / `profileSource` / `dshHomeSource` /
+`processReason{code,message}`，`profile` / `pid` / `dshHome` / `exePath` / `startedAt` /
+`uptimeSeconds` 也由这条 join 填。`processSupplement` 多出 `socketInodes` / `inodeHolders` /
+`fdDenied` / `joinNote`。
+
+进程级原因码（读不到时给前端区分用，不编值）：
+
+| code | 含义 |
+|---|---|
+| `port-join` | 端口对应的 socket inode 在 `/proc/<pid>/fd` 里对到了持有进程 |
+| `port-arg` | inode 对不上，退回按 cmdline 的 `--port` 匹配（证据比 inode 弱） |
+| `process-gone` | 端口仍 LISTEN，但没有可见进程持有该 socket：进程已退出，或不在本 PID 命名空间 / 属于别的用户 |
+| `fd-unreadable` | `/proc/<pid>/fd` 读不到（权限不足或 hidepid） |
+| `cmdline-unreadable` | 进程在，但 `/proc/<pid>/cmdline` 读不到 |
+| `unscanned` | 没拿到该端口的 socket inode（`/proc/net/tcp(6)` 读不到） |
+
+**HTTP 签名探测保留**：它既是「这端口真的是 DSH web」的交叉校验，也是 `/proc` 侧读不到时的回退口径。
+两边都读不到才是真的读不到。
+
 ## 响应外壳与状态码
 
 成功：
@@ -259,9 +292,13 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 - 全部文件访问集中在 `json/fsio.mbt`、`json/env.mbt`、`json/tailread.mbt`、`json/version.mbt`，只有这些调用：
   `@fs.read_file`、`@fs.exists`、`@fs.kind`、`@fs.readdir`、`@fs.mtime`、`@fs.realpath`、
-  `@fs.file_size`、`@fs.open(ReadOnly)` + `File::read_at`（定位读尾部用）
+  `@fs.file_size`、`@fs.open(ReadOnly)` + `File::read_at`（定位读尾部用），
+  以及 `fsio.mbt` 里新增的 `read_link`（`readlink(2)`，只读链接目标）与 `list_dir_result`
+  （`@fs.readdir` 带上失败原因）。`read_link` 是全工程唯一一处 FFI，
+  落在 `json/fd_link.c` 的 `dsh_console_readlink`：只有一次 `readlink`，没有别的 libc 调用
 - 没有任何写 / 建 / 删 / 改名调用，也没有创建进程
-  （不 import `moonbitlang/async/process` 与 `moonbitlang/async/shell`）
+  （不 import `moonbitlang/async/process` 与 `moonbitlang/async/shell`；
+  `grep` 写 / 建进程关键词在 `.mbt` 与新增的 `.c` 里都是 0 命中）
 - 凭据类文件（`.credentials.yaml` / `.env` / `.npmrc`）在 `read_text_file` / `read_some_at` 里按 basename 硬拦：
   只判断存在，绝不读内容
 - 环境变量来自 `/proc/self/environ`，是本进程自己的环境，不是子进程
@@ -322,7 +359,8 @@ backend/
 ├── json/                       # 共用基础层（本工程唯一的只读文件 IO 入口）
 │   ├── encode.mbt              # 有序 JSON 编码 + ISO8601 格式化 + ISO 时间取时分秒
 │   ├── text.mbt                # 字符串/字节工具、级别切词、错误类型
-│   ├── fsio.mbt                # 只读文件访问入口（含定向读 read_some_at）
+│   ├── fsio.mbt                # 只读文件访问入口（含定向读 read_some_at、read_link）
+│   ├── fd_link.c               # 唯一一处 C：readlink(2) 的 FFI 桥（一次系统调用）
 │   ├── tailread.mbt            # 反向分块读文件尾部
 │   ├── version.mbt             # 后端自身版本 + 前端 package.json 的运行时读取
 │   ├── env.mbt                 # /proc/self/environ、HOME 解析
@@ -338,5 +376,6 @@ backend/
 ├── profiles/profiles.mbt       # GET /api/local/profiles
 ├── logs/logs.mbt               # GET /api/local/logs
 ├── processes/processes.mbt     # GET /api/local/processes
+├── processes/procjoin.mbt      # 端口 → socket inode → PID → Profile/DSH_HOME/版本/时长
 └── instances/instances.mbt     # GET /api/local/instances
 ```

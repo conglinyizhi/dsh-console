@@ -1,8 +1,11 @@
 // 只读文件访问。本文件是全工程唯一的文件 IO 入口。
 //
 // 允许：read_file / readdir / kind / mtime / exists / open(ReadOnly) + read_at
+//       / realpath / read_link（readlink(2)，只读链接目标）
 // 禁止：任何写 / 建 / 删 / 改名的调用，也禁止创建进程。
 // open 只以 ReadOnly 模式调用；敏感文件名在此处硬拦：只判断存在，绝不读内容。
+// read_link 走 fd_link.c 的一次 readlink(2)：/proc/<pid>/fd/* 的 socket:[<inode>]
+// 只有它能读出来（realpath 对非路径目标必然失败）。
 
 ///|
 /// 永远不读内容的敏感文件（与 Node 版 readProfiles.mjs 的 SENSITIVE_FILES 一致）。
@@ -127,6 +130,17 @@ pub async fn exe_path() -> String noraise {
 }
 
 ///|
+/// 解析路径上的软链，给出真实路径（realpath(2)）。解析不了给 None。
+/// 用途：pnpm 的 .bin/dsh 是指向真实包目录的软链，读入口包版本前要先落下实路径。
+pub async fn real_path(path : String) -> String? noraise {
+  try {
+    Some(@fs.realpath(path))
+  } catch {
+    _ => None
+  }
+}
+
+///|
 /// 多段路径拼接。
 pub fn join_all(parts : Array[String]) -> String {
   let mut acc = ""
@@ -186,5 +200,62 @@ pub async fn mtime_ms(path : String) -> Int64? noraise {
     Some(sec * 1000L + (nsec / 1000000).to_int64())
   } catch {
     _ => None
+  }
+}
+
+///|
+/// readlink(2)：读符号链接的目标本身，不跟随、不解析、不写。
+/// 这是「端口 → PID」那条 join 的唯一原语：/proc/<pid>/fd/* 里的
+/// socket:[<inode>] 只以链接目标的形式存在，realpath 追不到它。
+/// 失败返回 Err（带 errno 名），调用方按「读不到」处理，不崩。
+#borrow(path, buf)
+extern "c" fn read_link_raw(path : Bytes, buf : Bytes, bufsiz : Int) -> Int = "dsh_console_readlink"
+
+///|
+/// 读链接目标的缓冲区：Linux 的 PATH_MAX。目标更长时 readlink 截断，这里明确报错，
+/// 不返回半个路径 —— 半个路径拿去比对 inode 会得出错结论。
+let read_link_cap : Int = 4096
+
+///|
+/// errno 名。只列本工程会遇到的几个，其余给数字，不编名字。
+fn errno_text(code : Int) -> String {
+  match code {
+    1 => "EPERM 不允许的操作"
+    2 => "ENOENT 目标不存在"
+    5 => "EIO 读失败"
+    12 => "ENOMEM 内存不足"
+    13 => "EACCES 权限不足"
+    20 => "ENOTDIR 路径中有非目录"
+    22 => "EINVAL 不是符号链接或参数非法"
+    34 => "ERANGE 缓冲区太小"
+    40 => "ELOOP 链接层数过多"
+    _ => "errno " + code.to_string()
+  }
+}
+
+///|
+/// 读符号链接目标。只读一次 readlink(2)，失败给 Err（人话 + errno 名）。
+/// 同步的：一次系统调用，没有可挂起的点；调用方在 async 上下文里直接调。
+pub fn read_link(path : String) -> Result[String, String] {
+  let raw_path = @utf8.encode(path)
+  let buf = Bytes::make(read_link_cap, b'\x00')
+  let n = read_link_raw(raw_path, buf, read_link_cap)
+  if n < 0 {
+    return Err("readlink 失败：" + errno_text(-n))
+  }
+  if n >= read_link_cap {
+    return Err("readlink 失败：目标超过 " + read_link_cap.to_string() + " 字节，被截断")
+  }
+  Ok(@utf8.decode_lossy(buf[:n]))
+}
+
+///|
+/// 列目录并把失败原因带出来（list_dir 把失败吞成空数组，判断「空目录」与
+/// 「读不到」时不够用）。
+pub async fn list_dir_result(path : String) -> Result[Array[String], String] noraise {
+  try {
+    Ok(@fs.readdir(path))
+  } catch {
+    err => Err(err.to_string())
   }
 }
