@@ -152,17 +152,18 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   } else {
     @cmd.none
   }
-  (
-    {
-      ..model,
-      rows,
-      built: true,
-      log_source: source,
-      // 刚补发了一次读取：加载态立起来，回执到了再放下去
-      log_loading: if reload { true } else { model.log_loading },
-    },
-    cmd,
-  )
+  let next = {
+    ..model,
+    rows,
+    built: true,
+    log_source: source,
+    // 刚补发了一次读取：加载态立起来，回执到了再放下去
+    log_loading: if reload { true } else { model.log_loading },
+  }
+  // 列表拼好之后还有一件跟读数有关的事要办：启动成功的那只实例，
+  // 它在点击那一栈里占下的标页正等着带令牌的地址（见 fill_start_tab）
+  let (filled, waiting) = fill_start_tab(next, emit)
+  (filled, @cmd.batch([cmd, waiting]))
 }
 
 // ── 行操作 ─────────────────────────────────────────────────
@@ -332,6 +333,20 @@ fn open_path_action(
 }
 
 ///|
+/// js_open_url（卡上的「打开 Web UI」/ 菜单的「在新标签页打开」）与提示条里那颗
+/// 「打开 Web UI」共用的结局口径 → (成没成, 给用户看的一句话)。
+/// 「被浏览器拦了」与「打开出错」分开说：这是两件事，处理办法也不一样。
+fn open_outcome_text(outcome : String) -> (Bool, String) {
+  if outcome == "ok" {
+    (true, "已在新标签页打开带令牌的地址（能直接过握手，不是 401）")
+  } else if outcome == "blocked" {
+    (false, "浏览器把新标签页拦掉了（弹窗拦截）—— 地址是带令牌的那一条，可以自己去开")
+  } else {
+    (false, "打开新标签页失败（" + outcome + "）")
+  }
+}
+
+///|
 /// 打开 Web UI / 在新标签页打开：两处都开**带令牌的那一条地址**（webUrl），
 /// 也就是 dsh 启动横幅里那条能直接过首次握手的地址。
 ///
@@ -351,14 +366,7 @@ fn open_web_ui(
   }
   match row.web_url {
     Some(url) => {
-      let outcome = js_open_url(url)
-      let (ok, tail) = if outcome == "ok" {
-        (true, "已在新标签页打开带令牌的地址（能直接过握手，不是 401）")
-      } else if outcome == "blocked" {
-        (false, "浏览器把新标签页拦掉了（弹窗拦截）—— 地址是带令牌的那一条，可以自己去开")
-      } else {
-        (false, "打开新标签页失败（" + outcome + "）")
-      }
+      let (ok, tail) = open_outcome_text(js_open_url(url))
       (
         {
           ..model,
@@ -517,12 +525,30 @@ fn delete_pairs(model : Model, row_id : String) -> Array[(String, String)] {
 }
 
 ///|
+/// 占下的标页没有下文了（状态在点击与处理之间翻了、或那一行已经不在列表里）：
+/// 当场关掉它。开着的白页比没开更糟 —— 用户会以为启动成功了。
+fn close_held_tab(profile : String, tab : String) -> Unit {
+  if tab == "held" && profile != "" {
+    ignore(js_tab_close(profile))
+  }
+}
+
+///|
 /// 启动：先留在原分组显示等待态（状态点在动、三个按钮禁用），再按回执落定。
 ///
 /// 等待态有下限（start_delay_ms）：真实请求可能 50ms 就回来了，但「启动中…」一闪而过
 /// 比多等两秒更难用。回执与计时都到齐才收尾，收尾不等于宣布成功 ——
 /// 成功的证据是重读 instances 之后那张真的运行中卡。
-fn start_instance(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+///
+/// tab 是点击那一栈里同步开的占位标页的结局（见 view_overview 的 start_click）：
+/// 启动成功之后由 fill_start_tab 把带令牌的地址填进去，失败就在收尾里关掉。
+fn start_instance(
+  model : Model,
+  row : Row,
+  profile : String,
+  tab : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   let params = params_of(profile_pairs(row))
   let label = "启动 " + row.name
   if params == "" {
@@ -535,6 +561,10 @@ fn start_instance(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> (Model, @c
       @cmd.none,
     )
   }
+  // 上一次启动还挂着一个占位标页（同一时刻只跟一只）：先收掉它，不留一张悬空的白页
+  if model.start_tab_waiting {
+    ignore(js_tab_close(model.start_tab_profile))
+  }
   let busy = map_rows(model, row.id, fn(item) { { ..item, status: Starting, busy: true } })
   (
     {
@@ -546,6 +576,12 @@ fn start_instance(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> (Model, @c
       act_ok: false,
       act_note: "",
       act_notice: "",
+      start_tab: tab,
+      start_tab_profile: profile,
+      start_tab_waiting: false,
+      start_tab_tries: 0,
+      notice_url: None,
+      notice_url_notice: "",
     },
     @cmd.batch([
       action_cmd(row.id, "start-instance", label, action_body("start-instance", params), emit),
@@ -570,9 +606,161 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     fn(row) { { ..row, busy: false, status: Stopped, port_note: "" } },
   )
   if ok {
-    refresh_readings({ ..cleared, act_notice: label + "：" + note, act_notice_ok: true }, emit)
+    // 启动成了：占位标页先留着 —— 带令牌的地址由 instances 读数给出（见 fill_start_tab）
+    refresh_readings(
+      {
+        ..cleared,
+        act_notice: label + "：" + note,
+        act_notice_ok: true,
+        start_tab_waiting: true,
+      },
+      emit,
+    )
   } else {
-    ({ ..cleared, act_notice: label + "失败：" + note, act_notice_ok: false }, @cmd.none)
+    // 启动失败：占位标页没有下文了，当场关掉 —— **不留一张白页**，
+    // 关没关成也要在提示条里说出来，不假装收干净了
+    let tail = if model.start_tab == "held" {
+      match js_tab_close(model.start_tab_profile) {
+        "closed" => "；刚开的那个占位标页已经关掉，不留空白页"
+        "none" => "；没有留下占位标页"
+        other => "；关占位标页时出了岔子（" + other + "），请手动关掉它"
+      }
+    } else {
+      ""
+    }
+    (
+      {
+        ..cleared,
+        act_notice: label + "失败：" + note + tail,
+        act_notice_ok: false,
+        start_tab: "",
+        start_tab_profile: "",
+        start_tab_waiting: false,
+        start_tab_tries: 0,
+      },
+      @cmd.none,
+    )
+  }
+}
+
+///|
+/// 启动的那只 profile 现在有没有带令牌的地址。
+///
+/// 按 profile 名认，不按行 id：启动前后这一行会从「已停止」的 profile:<名> 变成
+/// 运行中的 port:<端口>，id 对不上，名才对得上。
+fn start_tab_url(rows : Array[Row], profile : String) -> String? {
+  for row in rows {
+    match row.profile_name {
+      Some(name) =>
+        if name == profile {
+          match row.web_url {
+            Some(url) => return Some(url)
+            None => ()
+          }
+        }
+      None => ()
+    }
+  }
+  None
+}
+
+///|
+/// 那只实例现在为什么没有带令牌的地址（后端原样给的那一句）；读数里还没有它就照实说。
+fn start_tab_block_reason(rows : Array[Row], profile : String) -> String {
+  for row in rows {
+    match row.profile_name {
+      Some(name) =>
+        if name == profile {
+          if row.web_url_source != "" {
+            return row.web_url_source
+          }
+          return "后端没给读不到令牌的原因"
+        }
+      None => ()
+    }
+  }
+  "instances 读数里还没有这只 profile 的实例"
+}
+
+///|
+/// 启动成功之后，instances 读数一落地就把带令牌的地址填进占位标页。
+///
+/// 为什么要等读数：令牌不在启动响应里 —— 它在实例日志的启动横幅里，由
+/// /api/local/instances 现算（后端 weburl.mbt）。所以这一枪只能在读数回来之后打。
+///
+/// 一轮没读到不急着了结：端口先监听、横幅后落盘，在慢机器上是可能的，
+/// 最多重读 start_tab_max_tries 轮。等满还读不到就认输 —— 认输也要把占位标页关掉、
+/// 把原因写清，**不留白页**。
+///
+/// 地址到手之后提示条里仍摆一颗「打开 Web UI」（方案 B）：自动开标页可能被拦、
+/// 也可能被用户自己关掉，那时再点一下就是新手势，一定开得成。
+fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  if !model.start_tab_waiting {
+    return (model, @cmd.none)
+  }
+  let profile = model.start_tab_profile
+  match start_tab_url(model.rows, profile) {
+    Some(url) => {
+      let tail = if model.start_tab == "held" {
+        match js_tab_goto(profile, url) {
+          "ok" => "已在启动时自动打开的那个标页里填上带令牌的地址（能直接过握手，不是 401）"
+          "closed" => "启动时占的那个标页已经被关掉了，没有标页可填"
+          "gone" => "占了位的标页句柄找不到了（页面可能刷过），没有标页可填"
+          other => "往占位标页里填地址失败（" + other + "）"
+        }
+      } else if model.start_tab == "blocked" {
+        "浏览器把自动开的标页拦掉了（弹窗拦截），一个标页都没开"
+      } else if model.start_tab == "" {
+        "这一次没有开标页（没拿到 profile 目录名）"
+      } else {
+        "自动开标页没成（" + model.start_tab + "）"
+      }
+      let text = model.act_notice + "；" + tail + "。带令牌的地址：" + url
+      (
+        {
+          ..model,
+          act_notice: text,
+          notice_url: Some(url),
+          notice_url_notice: text,
+          start_tab: "",
+          start_tab_profile: "",
+          start_tab_waiting: false,
+          start_tab_tries: 0,
+        },
+        @cmd.none,
+      )
+    }
+    None =>
+      if model.start_tab_tries < start_tab_max_tries {
+        (
+          { ..model, start_tab_tries: model.start_tab_tries + 1 },
+          @cmd.delay(emit(StartTabRetry), start_tab_retry_ms),
+        )
+      } else {
+        let tail = if model.start_tab == "held" {
+          match js_tab_close(profile) {
+            "closed" => "已经把这个占位标页关掉，不留空白页"
+            "none" => "没有留下空白标页"
+            other => "关标页时出了岔子（" + other + "），请手动关掉它"
+          }
+        } else {
+          "本来就没有开成标页"
+        }
+        let why = start_tab_block_reason(model.rows, profile)
+        (
+          {
+            ..model,
+            act_notice: model.act_notice + "；等不到带令牌的地址（" + why + "），" + tail +
+              "。令牌由实例日志的启动横幅给出，稍后刷新读数再点卡上的「打开 Web UI」",
+            act_notice_ok: false,
+            start_tab: "",
+            start_tab_profile: "",
+            start_tab_waiting: false,
+            start_tab_tries: 0,
+          },
+          @cmd.none,
+        )
+      }
   }
 }
 
@@ -1299,9 +1487,10 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                   params_of(port_pairs(row)),
                   emit,
                 )
-              } else if row.status is Stopped {
-                start_instance(model, row, emit)
               } else {
+                // 已停止那一侧**不从这里启动**：启动要在点击的同一个同步栈里先占一个
+                // 占位标页，所以那颗按钮发的是 StartClicked（见 view_overview 的 start_click）。
+                // 这里留一个不带标页的启动分支，就是给「自动开标页」留一条悄悄漏掉的路。
                 (model, @cmd.none)
               }
           }
@@ -1412,6 +1601,23 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         Config => open_path_action(model, id, "config", "编辑配置", emit)
         // 没有兜底分支了：ActionKey 的每一项上面都接上了（以前那行兜底会把这个事实藏起来）
       }
+    // 启动按钮的点击：占位标页已经在 DOM 监听器里同步开好（见 view_overview 的
+    // start_click），tab 是那一枪的回执。这里只按状态放行 —— 不是「已停止」就什么都不做，
+    // 但占下的标页要收掉：状态在这一栈与下一次渲染之间翻了的话，它就没有下文了。
+    StartClicked(id, profile, tab) =>
+      match find_row(model.rows, id) {
+        Some(row) =>
+          if row.status is Stopped {
+            start_instance(model, row, profile, tab, emit)
+          } else {
+            close_held_tab(profile, tab)
+            (model, @cmd.none)
+          }
+        None => {
+          close_held_tab(profile, tab)
+          (model, @cmd.none)
+        }
+      }
     DeleteOpen(id, return_id) => (
       { ..model, confirm_id: id, confirm_return: return_id },
       focus_after_render("dsh-confirm-ok"),
@@ -1434,6 +1640,28 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         finish_start({ ..model, act_tick: true }, emit)
       } else {
         (model, @cmd.none)
+      }
+    // 带令牌的地址还没到手：再重读一轮读数（有界，见 start_tab_max_tries）。
+    // 地址到了就填、到不了就认输关标页 —— 两条路都在 fill_start_tab 里。
+    StartTabRetry => refresh_readings(model, emit)
+    // 提示条里那颗「打开 Web UI」：用户再点一下 = 新手势，一定不被弹窗拦截器吃掉。
+    // 这是自动开标页被拦时的兜底入口（方案 B），地址是启动时读到的同一条 webUrl。
+    NoticeOpenUi =>
+      match model.notice_url {
+        None => (model, @cmd.none)
+        Some(url) => {
+          let (ok, tail) = open_outcome_text(js_open_url(url))
+          let text = "打开 Web UI：" + tail + "。" + url
+          (
+            {
+              ..model,
+              act_notice: text,
+              act_notice_ok: ok,
+              notice_url_notice: text,
+            },
+            @cmd.none,
+          )
+        }
       }
     RestartTick => ({ ..model, restarting: "" }, @cmd.none)
     RenameInput(text) => ({ ..model, rename_draft: text }, @cmd.none)

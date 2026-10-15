@@ -1,0 +1,898 @@
+{
+ "mode": "auto",
+ "baseUrl": "http://127.0.0.1:5390/",
+ "profile": "review-dev",
+ "steps": {
+  "click": {
+   "clicked": true,
+   "info": {
+    "found": true,
+    "x": 843.5,
+    "y": 565.828125,
+    "label": "启动",
+    "card": "review-dev"
+   }
+  },
+  "final": {
+   "notice": {
+    "present": true,
+    "ok": "true",
+    "text": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=~/.dsh/logs/console-review-dev-8400.log · detached=true · bootMs=1795 · command=/usr/bin/node ~/.local/share/pnpm/global/5/node_modules/@deepseek-ai/dsh/lib/bin.js --profile review-dev --no-open --port 8400 · url=http://127.0.0.1:8400/；已在启动时自动打开的那个标页里填上带令牌的地址（能直接过握手，不是 401）。带令牌的地址：http://127.0.0.1:8400/?token=YNUVN5lR-h9j0Xm7nmx02auahXNSrLj5zrvRte9wP-Q\n打开 Web UI",
+    "hasButton": true
+   },
+   "instances": [
+    {
+     "port": 3080,
+     "profile": "web",
+     "webUrl": null
+    },
+    {
+     "port": 8400,
+     "profile": "review-dev",
+     "webUrl": "http://127.0.0.1:8400/?token=YNUVN5lR-h9j0Xm7nmx02auahXNSrLj5zrvRte9wP-Q"
+    }
+   ]
+  },
+  "pagesAfterAuto": [
+   {
+    "id": "47AF36AF57D6DC11DE8D623A9F292991",
+    "url": "http://127.0.0.1:5390/",
+    "title": "DSH 控制台"
+   },
+   {
+    "id": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "url": "http://127.0.0.1:8400/",
+    "title": "DeepSeek Harness"
+   }
+  ],
+  "childTarget": "57E1147FF7BB8BF4A6C7594DADE95440",
+  "childSession": "398BD426CB28EFFFC400694082D1ED53",
+  "childLocation": "http://127.0.0.1:8400/",
+  "childTitle": "DeepSeek Harness",
+  "childNavigationEntry": "{\"name\":\"http://127.0.0.1:8400/\",\"redirectCount\":1,\"type\":\"navigate\"}"
+ },
+ "portsBefore": [
+  3080
+ ],
+ "shotAfter1s": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-start-tab/auto-after1s.png",
+ "timeline": [
+  {
+   "t": 5597,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 6000,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 6404,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 6893,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 7297,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 7701,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 8107,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 8510,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 review-dev"
+    }
+   ]
+  },
+  {
+   "t": 9037,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 9504,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 9907,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 10310,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 10711,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 11114,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 11516,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 11917,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 12318,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 12721,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 13122,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 13525,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 13927,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 14328,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 14731,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 15132,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 15535,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 15936,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 16338,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 16742,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 17143,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 17545,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 17948,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 18351,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 18754,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 19157,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 19559,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 19960,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 20363,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 20765,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 21166,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  },
+  {
+   "t": 21569,
+   "noticePresent": true,
+   "noticeHead": "启动 review-dev：pid=505990 · port=8400 · profile=review-dev · home=~/.dsh · logPath=/home/c",
+   "hasButton": true,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "http://127.0.0.1:8400/",
+     "title": "DeepSeek Harness"
+    }
+   ]
+  }
+ ],
+ "shotConsole": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-start-tab/auto-console.png",
+ "shotAutoTab": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-start-tab/auto-auto-tab.png",
+ "events": {
+  "targetCreated": [
+   {
+    "t": 365,
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   },
+   {
+    "t": 366,
+    "targetId": "65B44BC862D07EE56B05C8C816FFBD2A",
+    "type": "browser_ui",
+    "url": "chrome://omnibox-popup.top-chrome/",
+    "title": "chrome://omnibox-popup.top-chrome"
+   },
+   {
+    "t": 366,
+    "targetId": "CF808198005270E60B34C22CBFE22F01",
+    "type": "browser_ui",
+    "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+    "title": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+   },
+   {
+    "t": 5576,
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "type": "page",
+    "url": "",
+    "title": "",
+    "openerId": "47AF36AF57D6DC11DE8D623A9F292991"
+   }
+  ],
+  "targetDestroyed": [],
+  "targetInfoChanged": [
+   {
+    "t": 383,
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   },
+   {
+    "t": 437,
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "type": "page",
+    "url": "http://127.0.0.1:5390/",
+    "title": "127.0.0.1:5390"
+   },
+   {
+    "t": 5580,
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "type": "page",
+    "url": "",
+    "title": ""
+   },
+   {
+    "t": 5583,
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   },
+   {
+    "t": 8754,
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "type": "page",
+    "url": "http://127.0.0.1:8400/",
+    "title": "127.0.0.1:8400"
+   }
+  ],
+  "attachedToTarget": [
+   {
+    "t": 383,
+    "sessionId": "9A2F3C658C4F95559095F82C9137DFF8",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "url": "about:blank"
+   },
+   {
+    "t": 384,
+    "sessionId": "C5420F17A2DBEB2CAD7E7BDDDF40150C",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "url": "about:blank"
+   },
+   {
+    "t": 5580,
+    "sessionId": "398BD426CB28EFFFC400694082D1ED53",
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "url": ""
+   }
+  ],
+  "childNavigation": [
+   {
+    "t": 433,
+    "sessionId": "9A2F3C658C4F95559095F82C9137DFF8",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "frameNavigated",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 433,
+    "sessionId": "C5420F17A2DBEB2CAD7E7BDDDF40150C",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "frameNavigated",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 558,
+    "sessionId": "9A2F3C658C4F95559095F82C9137DFF8",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "loadEventFired"
+   },
+   {
+    "t": 560,
+    "sessionId": "C5420F17A2DBEB2CAD7E7BDDDF40150C",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "loadEventFired"
+   },
+   {
+    "t": 8751,
+    "sessionId": "398BD426CB28EFFFC400694082D1ED53",
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "event": "frameNavigated",
+    "url": "http://127.0.0.1:8400/"
+   },
+   {
+    "t": 9502,
+    "sessionId": "398BD426CB28EFFFC400694082D1ED53",
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "event": "loadEventFired"
+   }
+  ],
+  "childDocumentRequests": [
+   {
+    "t": 421,
+    "sessionId": "9A2F3C658C4F95559095F82C9137DFF8",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "requestWillBeSent",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 422,
+    "sessionId": "C5420F17A2DBEB2CAD7E7BDDDF40150C",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "requestWillBeSent",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 429,
+    "sessionId": "9A2F3C658C4F95559095F82C9137DFF8",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "responseReceived",
+    "status": 200,
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 429,
+    "sessionId": "C5420F17A2DBEB2CAD7E7BDDDF40150C",
+    "targetId": "47AF36AF57D6DC11DE8D623A9F292991",
+    "event": "responseReceived",
+    "status": 200,
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 8738,
+    "sessionId": "398BD426CB28EFFFC400694082D1ED53",
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "event": "requestWillBeSent",
+    "url": "http://127.0.0.1:8400/?token=YNUVN5lR-h9j0Xm7nmx02auahXNSrLj5zrvRte9wP-Q"
+   },
+   {
+    "t": 8742,
+    "sessionId": "398BD426CB28EFFFC400694082D1ED53",
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "event": "requestWillBeSent",
+    "url": "http://127.0.0.1:8400/"
+   },
+   {
+    "t": 8749,
+    "sessionId": "398BD426CB28EFFFC400694082D1ED53",
+    "targetId": "57E1147FF7BB8BF4A6C7594DADE95440",
+    "event": "responseReceived",
+    "status": 200,
+    "url": "http://127.0.0.1:8400/"
+   }
+  ]
+ },
+ "consoleIssues": [],
+ "childConsoleIssues": [],
+ "cleanup": {
+  "stopped": [
+   {
+    "port": 8400,
+    "result": "200 {\"ok\":true,\"readOnly\":false,\"readAt\":\"2026-10-15T10:21:54.639Z\",\"data\":{\"action\":\"stop-instance\",\"outcome\":{\"pid\":505990,\"port\":8400,\"profile\":\"review-dev\",\"sig"
+   }
+  ]
+ }
+}

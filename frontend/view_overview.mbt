@@ -141,6 +141,31 @@ fn restart_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
 }
 
 ///|
+/// 启动按钮的点击属性。
+///
+/// **占位标页要在这里开**，不能在 update 里开：这个 lambda 由 DOM 监听器同步调用
+/// （rabbita 的 insert_props 是 addEventListener(event => handler(event, scheduler))），
+/// 而 update 走的是 queueMicrotask —— 等启动响应（约 2.5 秒）回来再 window.open，
+/// 用户手势那一栈早没了，弹窗拦截器一定拦。
+///
+/// 回执随 StartClicked 一起进 model：开成没开成不许猜（被拦时 window.open 给 null）。
+fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
+  @html.Attrs::build().on_click(fn(_event) {
+    let profile = match row.profile_name {
+      Some(name) => name
+      None => ""
+    }
+    let tab = if profile == "" {
+      // 读数里连 profile 目录名都没有（演示数据）：这一枪本来就不会发请求，别开标页
+      ""
+    } else {
+      js_tab_hold(profile)
+    }
+    emit(StartClicked(row.id, profile, tab))
+  })
+}
+
+///|
 /// 行内按钮组。启动等待态（status=starting）：整行按钮禁用，行尾的 ⋯ 也 disabled ——
 /// 触发按钮点不动，菜单根本开不出来。
 fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
@@ -184,7 +209,7 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
         class="dsh-btn primary" + tone,
         type_="button",
         disabled=row.busy,
-        on_click=emit(RowAction(row.id, Toggle)),
+        attrs=start_click(row, emit),
         [
           icon("play", size=13),
           @html.span(if row.status is Starting { "启动中…" } else { "启动" }),
@@ -555,17 +580,42 @@ fn side_info_panel() -> @html.Html {
 ///|
 /// 动作结果提示条：成功与失败各一副脸色，失败里写清后端给的原因（conflict / not-authorized …）。
 /// 动作发不出去（这一行的读数里没有目标）也走这里，所以「没反应」这件事不会发生。
-fn action_notice(model : Model) -> @html.Html {
+///
+/// 方案 B 的兜底入口也挂在这儿：启动时自动开的那个标页可能被浏览器拦掉、也可能被用户
+/// 自己关掉，那时就在这条提示里摆一颗「打开 Web UI」—— 用户再点一下是新手势，
+/// 一定不被弹窗拦截器吃掉。按钮只在**这条提示对应的地址还在**时出现
+/// （notice_url_notice 与当前文字一致）：提示条被别的动作改写之后它自动失效。
+fn action_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.act_notice.length() == 0 {
     return @html.nothing
   }
   let tone = if model.act_notice_ok { " ok" } else { " err" }
-  @html.p(
+  let children : Array[@html.Html] = [
+    @html.span(class="dsh-notice-text", model.act_notice),
+  ]
+  let has_button = match model.notice_url {
+    Some(_) => model.notice_url_notice == model.act_notice
+    None => false
+  }
+  if has_button {
+    children.push(
+      @html.button(
+        class="dsh-btn",
+        type_="button",
+        attrs=@html.Attrs::build()
+          .data_set("name", "notice-open-web-ui")
+          .title("再点一下就在新标签页打开带令牌的地址 —— 手动点击是新手势，弹窗拦截器拦不住"),
+        on_click=emit(NoticeOpenUi),
+        [icon("open-in-new"), @html.span("打开 Web UI")],
+      ),
+    )
+  }
+  @html.div(
     class="dsh-notice" + tone,
     attrs=@html.Attrs::build()
       .data_set("name", "action-notice")
       .data_set("ok", if model.act_notice_ok { "true" } else { "false" }),
-    model.act_notice,
+    children,
   )
 }
 
@@ -836,7 +886,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             [@html.span(class="dsh-plus", "＋"), @html.span("新建实例")],
           ),
         ]),
-        action_notice(model),
+        action_notice(model, emit),
         section_head(
           "当前运行的实例",
           if pending { "…" } else { running.length().to_string() },

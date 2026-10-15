@@ -1075,6 +1075,21 @@ select { appearance: none; -webkit-appearance: none; }
   line-height: 1.6;
   color: $text-mid;
   word-break: break-word;
+  // 文案与兜底按钮并排：文字占满剩下的宽度（min-width: 0 才让长句照旧折行），
+  // 按钮不缩。提示条只有文字时这一层 flex 看不出来，与以前逐像素一致。
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.dsh-notice-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dsh-notice .dsh-btn {
+  flex: 0 0 auto;
+  // 提示条本来就是给「刚发生了什么」看的，按钮不抢视线：跟文字一样高就够了
+  height: 26px;
+  margin-top: -1px;
 }
 .dsh-notice.ok {
   border-color: rgba($ok-rgb, 0.4);

@@ -67,6 +67,75 @@ extern "js" fn js_open_url(url : String) -> String =
   #| }
 
 ///|
+/// 启动时先占一个空白标页，回一句结局：'held' / 'blocked' / 'error: …'。
+///
+/// **必须在用户手势的同一个同步栈里调用**：window.open 只有在这一栈里才不会被弹窗
+/// 拦截器吃掉，而启动要等实例真起来（约 2.5 秒）才拿得到带令牌的地址 —— 等响应回来
+/// 再调 window.open 就是 null，用户看到的只有一个被拦的提示。
+///
+/// 句柄按 profile 名挂在 window 上：model 里放不了 JS 对象，跨 update 只能这么留。
+/// 占位页顺手写一行「正在启动」—— 等地址的这几秒里它不是一张白纸。
+///
+/// navigator.userActivation.isActive 为 false 时直接回 'blocked'，不试那一枪：
+/// 没有手势一定是被拦，试了只会在控制台留一条弹窗拦截的记录。
+extern "js" fn js_tab_hold(profile : String) -> String =
+  #| profile => {
+  #|   try {
+  #|     if (navigator.userActivation && navigator.userActivation.isActive === false) return 'blocked'
+  #|     const tabs = (window.__dshStartTabs = window.__dshStartTabs || {})
+  #|     const w = window.open('', '_blank')
+  #|     if (!w) return 'blocked'
+  #|     tabs[profile] = w
+  #|     try { w.opener = null } catch (e) {}
+  #|     try {
+  #|       w.document.title = '正在启动 ' + profile
+  #|       const p = w.document.createElement('p')
+  #|       p.textContent = '正在启动 ' + profile + '，等控制台把带令牌的地址填进来…'
+  #|       p.setAttribute('style', 'font:14px/1.7 system-ui,sans-serif;color:#555;padding:24px')
+  #|       w.document.body.appendChild(p)
+  #|     } catch (e) {}
+  #|     return 'held'
+  #|   } catch (e) {
+  #|     return 'error: ' + String((e && e.message) || e)
+  #|   }
+  #| }
+
+///|
+/// 带令牌的地址到手：把占位标页导航过去。回 'ok' / 'closed' / 'gone' / 'error: …'。
+/// 用户自己先把占位页关了就是 'closed' —— 那不算开成，提示条要照实说。
+extern "js" fn js_tab_goto(profile : String, url : String) -> String =
+  #| (profile, url) => {
+  #|   const tabs = (window.__dshStartTabs = window.__dshStartTabs || {})
+  #|   const w = tabs[profile]
+  #|   delete tabs[profile]
+  #|   if (!w) return 'gone'
+  #|   try {
+  #|     if (w.closed) return 'closed'
+  #|     w.location.href = url
+  #|     return 'ok'
+  #|   } catch (e) {
+  #|     return 'error: ' + String((e && e.message) || e)
+  #|   }
+  #| }
+
+///|
+/// 没有地址可填（启动失败 / 读不到令牌 / 重试耗尽）：把占位标页关掉，**不留一张白页**。
+/// 回 'closed' / 'none'（本来就没有开成的标页）/ 'error: …'。
+extern "js" fn js_tab_close(profile : String) -> String =
+  #| profile => {
+  #|   const tabs = (window.__dshStartTabs = window.__dshStartTabs || {})
+  #|   const w = tabs[profile]
+  #|   delete tabs[profile]
+  #|   if (!w) return 'none'
+  #|   try {
+  #|     if (!w.closed) w.close()
+  #|     return 'closed'
+  #|   } catch (e) {
+  #|     return 'error: ' + String((e && e.message) || e)
+  #|   }
+  #| }
+
+///|
 /// 写剪贴板，回一段 JSON：{ ok, how, error }。
 ///
 /// 先 navigator.clipboard（唯一「知道成没成」的正路：它 reject 就说得出原因），

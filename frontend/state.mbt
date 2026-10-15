@@ -149,6 +149,18 @@ pub let start_delay_ms : Int = 2500
 pub let restart_lock_ms : Int = 900
 
 ///|
+/// 启动成功之后，最多重读几轮读数去等带令牌的地址。
+///
+/// 为什么要等：令牌不在启动响应里，它在实例日志里，由 /api/local/instances 现算
+/// （后端的 weburl.mbt）。端口先监听、带令牌的横幅后落盘，在慢机器上是可能的 ——
+/// 一轮没读到就认输会把一只真起来的实例说成没地址。有界：等满就认输并说清为什么。
+pub let start_tab_max_tries : Int = 3
+
+///|
+/// 上面那几轮之间的间隔（毫秒）。
+pub let start_tab_retry_ms : Int = 1200
+
+///|
 /// 控件里正在编辑的文本。键与文本分开存，保存成功或失败都要能把它清掉。
 struct SettingDraft {
   key : String
@@ -232,6 +244,22 @@ struct Model {
   act_notice_ok : Bool
   /// 启动等待态里那句提示要用的动作名（回执与计时是两条路，各自都拿得到它）
   act_label : String
+  // 启动成功后自动开标页（占位页模式，见 dom.mbt 的 js_tab_hold）
+  /// 点击启动时同步开的占位标页的结局：'held' / 'blocked' / 'error: …'；
+  /// 空串 = 这一次点击没有开标页（读数里没有 profile 目录名，请求都没发出去）
+  start_tab : String
+  /// 那只占位标页是为哪个 profile 开的：启动成功之后按它去 instances 读数里找 webUrl
+  start_tab_profile : String
+  /// 启动成功、还在等 instances 读数把带令牌的地址给出来（拿到就填进占位标页）
+  start_tab_waiting : Bool
+  /// 等地址时重读了几轮读数（有界，见 start_tab_max_tries）
+  start_tab_tries : Int
+  /// 提示条里那颗「打开 Web UI」要开的地址（方案 B：用户再点一下 = 新手势，
+  /// 一定不被弹窗拦截器吃掉）。None = 不摆按钮。
+  notice_url : String?
+  /// 上面那个地址属于哪一条提示条文字。与当前 act_notice 不一致时按钮不出现 ——
+  /// 提示条被别的动作改写之后，按钮自己失效，不留一个对不上号的入口。
+  notice_url_notice : String
   // 控制台自己的状态读数（GET /api/local/console）：运行时登记 + 归档记录
   console : ConsoleFacts?
   console_error : String
@@ -264,6 +292,14 @@ priv enum Msg {
   /// 浏览器前进 / 后退（或手改了 path）：按当前地址复原页面，不写历史
   RouteChanged
   RowAction(String, ActionKey)
+  /// 启动按钮的点击：行 id / profile 目录名 / 占位标页的结局。
+  /// 占位标页是在 DOM 监听器里**同步**开好的（见 view_overview 的 start_click），
+  /// 回执随这条消息进来 —— update 走 queueMicrotask，等不到用户手势那一栈。
+  StartClicked(String, String, String)
+  /// 启动成功但带令牌的地址还没到：再重读一轮读数（有界，见 start_tab_max_tries）
+  StartTabRetry
+  /// 提示条里那颗「打开 Web UI」被点了（方案 B 的兜底入口）
+  NoticeOpenUi
   MenuToggle(String)
   MenuClose
   MenuCloseBack(String)
@@ -359,6 +395,12 @@ fn initial_model() -> Model {
     act_notice: "",
     act_notice_ok: false,
     act_label: "",
+    start_tab: "",
+    start_tab_profile: "",
+    start_tab_waiting: false,
+    start_tab_tries: 0,
+    notice_url: None,
+    notice_url_notice: "",
     console: None,
     console_error: "",
     read_console: false,

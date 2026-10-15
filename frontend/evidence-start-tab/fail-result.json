@@ -1,0 +1,484 @@
+{
+ "mode": "fail",
+ "baseUrl": "http://127.0.0.1:5390/",
+ "profile": "headless",
+ "steps": {
+  "click": {
+   "clicked": true,
+   "info": {
+    "found": true,
+    "x": 843.5,
+    "y": 371.828125,
+    "label": "启动",
+    "card": "headless"
+   }
+  },
+  "final": {
+   "notice": {
+    "present": true,
+    "ok": "false",
+    "text": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open），它不是服务型 profile，起不成常驻实例。子进程已经退出（pid 501173，日志 ~/.dsh/logs/console-headless-8401.log）。日志里写着：error: unknown option '--no-open'。要跑这种 profile，按它自己的用法跑一次（dsh --profile headless …），别拿它起常驻实例；刚开的那个占位标页已经关掉，不留空白页",
+    "hasButton": false
+   },
+   "instances": [
+    {
+     "port": 3080,
+     "profile": "web",
+     "webUrl": null
+    }
+   ]
+  }
+ },
+ "portsBefore": [
+  3080
+ ],
+ "shotAfter1s": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-start-tab/fail-after1s.png",
+ "timeline": [
+  {
+   "t": 5508,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 headless"
+    }
+   ]
+  },
+  {
+   "t": 5911,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 headless"
+    }
+   ]
+  },
+  {
+   "t": 6315,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 headless"
+    }
+   ]
+  },
+  {
+   "t": 6802,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 headless"
+    }
+   ]
+  },
+  {
+   "t": 7205,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 headless"
+    }
+   ]
+  },
+  {
+   "t": 7608,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    },
+    {
+     "url": "about:blank",
+     "title": "正在启动 headless"
+    }
+   ]
+  },
+  {
+   "t": 8012,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 8415,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 8816,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 9218,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 9620,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 10023,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 10426,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 10828,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 11231,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 11634,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 12037,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 12439,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 12842,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 13245,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 13646,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 14049,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 14451,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 14852,
+   "noticePresent": true,
+   "noticeHead": "启动 headless失败：HTTP 500 Internal Server Error · spawn-failed：profile headless 的 app 不接受服务参数（--no-open",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  }
+ ],
+ "shotConsole": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-start-tab/fail-console.png",
+ "events": {
+  "targetCreated": [
+   {
+    "t": 301,
+    "targetId": "4BB83DED9E16967F5EB61E7BC4DD62B2",
+    "type": "browser_ui",
+    "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+    "title": "Omnibox Popup"
+   },
+   {
+    "t": 301,
+    "targetId": "9F68791F6FA6BEB1F3D48730B4BBD406",
+    "type": "browser_ui",
+    "url": "chrome://omnibox-popup.top-chrome/",
+    "title": "Omnibox Popup"
+   },
+   {
+    "t": 301,
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   },
+   {
+    "t": 5484,
+    "targetId": "0EC2F4E8452947E5D669AA8E4C8F2A13",
+    "type": "page",
+    "url": "",
+    "title": "",
+    "openerId": "C55914872255C29C64AEEBB41B498C8D"
+   }
+  ],
+  "targetDestroyed": [
+   {
+    "t": 7997,
+    "targetId": "0EC2F4E8452947E5D669AA8E4C8F2A13"
+   }
+  ],
+  "targetInfoChanged": [
+   {
+    "t": 303,
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   },
+   {
+    "t": 332,
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "type": "page",
+    "url": "http://127.0.0.1:5390/",
+    "title": "127.0.0.1:5390"
+   },
+   {
+    "t": 5490,
+    "targetId": "0EC2F4E8452947E5D669AA8E4C8F2A13",
+    "type": "page",
+    "url": "",
+    "title": ""
+   },
+   {
+    "t": 5496,
+    "targetId": "0EC2F4E8452947E5D669AA8E4C8F2A13",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   },
+   {
+    "t": 7997,
+    "targetId": "0EC2F4E8452947E5D669AA8E4C8F2A13",
+    "type": "page",
+    "url": "about:blank",
+    "title": "正在启动 headless"
+   }
+  ],
+  "attachedToTarget": [
+   {
+    "t": 303,
+    "sessionId": "528CE020E12E9C723A16E32B83CDD68C",
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "url": "about:blank"
+   },
+   {
+    "t": 312,
+    "sessionId": "5B0A7E48BE0F13AB18E7D90218C54C91",
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "url": "about:blank"
+   },
+   {
+    "t": 5490,
+    "sessionId": "FCF58E9E55A136ADEC9D05CF0D2DA32C",
+    "targetId": "0EC2F4E8452947E5D669AA8E4C8F2A13",
+    "url": ""
+   }
+  ],
+  "childNavigation": [
+   {
+    "t": 328,
+    "sessionId": "528CE020E12E9C723A16E32B83CDD68C",
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "event": "frameNavigated",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 328,
+    "sessionId": "5B0A7E48BE0F13AB18E7D90218C54C91",
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "event": "frameNavigated",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 452,
+    "sessionId": "528CE020E12E9C723A16E32B83CDD68C",
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "event": "loadEventFired"
+   },
+   {
+    "t": 453,
+    "sessionId": "5B0A7E48BE0F13AB18E7D90218C54C91",
+    "targetId": "C55914872255C29C64AEEBB41B498C8D",
+    "event": "loadEventFired"
+   }
+  ]
+ },
+ "consoleIssues": [
+  "log: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+ ],
+ "childConsoleIssues": [
+  "log: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+ ],
+ "cleanup": {
+  "stopped": []
+ }
+}

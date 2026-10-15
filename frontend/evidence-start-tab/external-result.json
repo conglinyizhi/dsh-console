@@ -1,0 +1,608 @@
+{
+ "mode": "external",
+ "baseUrl": "http://127.0.0.1:5390/",
+ "profile": "review-dev",
+ "steps": {
+  "click": {
+   "clicked": true,
+   "info": {
+    "found": true,
+    "x": 757.5,
+    "y": 141.6875,
+    "label": "打开 Web UI",
+    "card": "web :3080"
+   }
+  },
+  "final": {
+   "notice": {
+    "present": true,
+    "ok": "false",
+    "text": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 3 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址。裸地址 http://127.0.0.1:3080/ 直接打开是 401；可以从启动它的那个终端里抄启动横幅里 ?token=… 的完整地址自己拼。",
+    "hasButton": false
+   },
+   "instances": [
+    {
+     "port": 3080,
+     "profile": "web",
+     "webUrl": null
+    }
+   ]
+  }
+ },
+ "portsBefore": [
+  3080
+ ],
+ "shotAfter1s": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-start-tab/external-after1s.png",
+ "timeline": [
+  {
+   "t": 5466,
+   "noticePresent": false,
+   "noticeHead": null,
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 5869,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 6273,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 6744,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 7148,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 7550,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 7953,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 8356,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 8758,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 9161,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 9563,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 9965,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 10368,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 10771,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 11172,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 11575,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 11978,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 12381,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 12783,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 13185,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 13587,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 13990,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 14392,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 14793,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 15196,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 15598,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 16000,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 16401,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 16804,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 17205,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 17607,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 18008,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 18410,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 18812,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 19214,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 19616,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 20018,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 20420,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 20821,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  },
+  {
+   "t": 21223,
+   "noticePresent": true,
+   "noticeHead": "打开 Web UI web :3080：读不到握手令牌，没有打开任何标签页 —— 外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址",
+   "hasButton": false,
+   "pages": [
+    {
+     "url": "http://127.0.0.1:5390/",
+     "title": "DSH 控制台"
+    }
+   ]
+  }
+ ],
+ "shotConsole": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-start-tab/external-console.png",
+ "events": {
+  "targetCreated": [
+   {
+    "t": 304,
+    "targetId": "138A264E4FD56D36290146A4FDEFE4A0",
+    "type": "browser_ui",
+    "url": "chrome://omnibox-popup.top-chrome/",
+    "title": "Omnibox Popup"
+   },
+   {
+    "t": 304,
+    "targetId": "624AB0C973A68D414A77530B3534E624",
+    "type": "browser_ui",
+    "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+    "title": "Omnibox Popup"
+   },
+   {
+    "t": 304,
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   }
+  ],
+  "targetDestroyed": [],
+  "targetInfoChanged": [
+   {
+    "t": 306,
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "type": "page",
+    "url": "about:blank",
+    "title": "about:blank"
+   },
+   {
+    "t": 328,
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "type": "page",
+    "url": "http://127.0.0.1:5390/",
+    "title": "127.0.0.1:5390"
+   }
+  ],
+  "attachedToTarget": [
+   {
+    "t": 307,
+    "sessionId": "5748D0988D9513EA1175F08B36818913",
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "url": "about:blank"
+   },
+   {
+    "t": 307,
+    "sessionId": "34150CA883AD80517C48265254B65D3B",
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "url": "about:blank"
+   }
+  ],
+  "childNavigation": [
+   {
+    "t": 324,
+    "sessionId": "5748D0988D9513EA1175F08B36818913",
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "event": "frameNavigated",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 324,
+    "sessionId": "34150CA883AD80517C48265254B65D3B",
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "event": "frameNavigated",
+    "url": "http://127.0.0.1:5390/"
+   },
+   {
+    "t": 449,
+    "sessionId": "5748D0988D9513EA1175F08B36818913",
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "event": "loadEventFired"
+   },
+   {
+    "t": 449,
+    "sessionId": "34150CA883AD80517C48265254B65D3B",
+    "targetId": "DF1541052DD584AFC5C86193CF974CA9",
+    "event": "loadEventFired"
+   }
+  ]
+ },
+ "consoleIssues": [],
+ "childConsoleIssues": [],
+ "cleanup": {
+  "stopped": []
+ }
+}
