@@ -1,6 +1,6 @@
 // 日志页。
 //
-// 来源下拉是**原生 select**：分层顺序靠 disabled option 当分隔线，md2 的 select 没有分隔项。
+// 来源下拉是**原生 select**：分层顺序靠 disabled option 当分隔线，没有分隔项这种控件可用。
 // 元信息一行到底，日志区等宽 + 长行横向滚动不折断，打开与切来源都滚到底。
 
 ///|
@@ -230,7 +230,7 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           type_="button",
           attrs=@html.Attrs::build().data_set("name", "log-refresh"),
           on_click=emit(LogRefresh),
-          [icon("mdi-refresh", XSmall), @html.span("刷新")],
+          [icon("refresh", size=13), @html.span("刷新")],
         ),
       ]),
       note,

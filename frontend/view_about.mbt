@@ -30,11 +30,10 @@ fn about_view(model : Model) -> @html.Html {
     attrs=@html.Attrs::build().data_set("name", "about-page"),
     [
       @html.header(class="dsh-page-head", [@html.h1(class="dsh-page-title", "关于")]),
-      @md2.card(
-        variant=Outlined,
+      @html.div(
         class="dsh-panel",
         attrs=@html.Attrs::build().data_set("name", "about-panel"),
-        children=[
+        [
           @html.p(
             class="dsh-para",
             "面向个人本机使用的 DSH 控制台，用来查看这台机器上的 DeepSeek Harness 实例。",
@@ -42,11 +41,10 @@ fn about_view(model : Model) -> @html.Html {
           @html.p(class="dsh-para", "只读本机 ~/.dsh；页面上的动作均为演示。"),
         ],
       ),
-      @md2.card(
-        variant=Outlined,
+      @html.div(
         class="dsh-panel",
         attrs=@html.Attrs::build().data_set("name", "version-panel"),
-        children=[
+        [
           @html.h2(class="dsh-panel-title", "版本"),
           @html.div(class="dsh-kv", version_rows(model)),
           @html.p(

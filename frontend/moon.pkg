@@ -1,5 +1,4 @@
 import {
-  "conglinyizhi/md2",
   "moonbit-community/rabbita",
   "moonbit-community/rabbita/cmd",
   "moonbit-community/rabbita/html",
@@ -7,6 +6,9 @@ import {
   // 端口探测要拿 @js.Promise（@cmd.attempt 的 async 体里 wait 它），
   // 其余浏览器副作用走 dom.mbt 里的 extern "js"，不引 rabbita/dom 整包。
   "moonbit-community/rabbita/js",
+  // 图标是内联 SVG（icons.mbt）：@svg 的 node 走 createElementNS，
+  // @html 那套建出来的 <svg> 不在 SVG 命名空间里，不会渲染。
+  "moonbit-community/rabbita/svg",
   "moonbitlang/core/json",
 }
 

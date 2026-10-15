@@ -1,32 +1,27 @@
-// 页面之间共用的小件：图标、徽标、分组头、空态、字段行、对话框。
+// 页面之间共用的小件：徽标、分组头、空态、字段行、对话框。
 //
-// DOM 上刻意挂 data-name：类名会随样式层换（md2 的类名 vs 我们自己的），
-// data-name 不会 —— 截图脚本、DOM 实测脚本、渲染基线都按它定位。
-
-///|
-fn icon(name : String, size : @md2.Size) -> @html.Html {
-  @md2.icon(icon_name=name, size=size)
-}
+// 图标本身在 icons.mbt（内联 SVG）。
+//
+// DOM 上刻意挂 data-name：类名会随样式层换，data-name 不会 ——
+// 截图脚本、DOM 实测脚本、渲染基线都按它定位。
 
 ///|
 /// 数据源徽标：三态各自一个图标与色调，悬停写出这个标记的完整依据。
 fn source_badge(tag : SourceTag) -> @html.Html {
   let icon_name = match tag.kind {
-    Real => "mdi-check"
-    Fallback => "mdi-shield-outline"
-    Demo => "mdi-tune"
+    Real => "check"
+    Fallback => "shield-outline"
+    Demo => "tune"
   }
   let tone = match tag.kind {
     Real => " real"
     Fallback => " fallback"
     Demo => ""
   }
-  @md2.chip(
+  @html.span(
     class="dsh-badge" + tone,
-    prepend_icon=icon_name,
-    size=XSmall,
     attrs=@html.Attrs::build().title(tag.detail).data_set("name", "source-badge"),
-    children=[@html.span(class="dsh-badge-label", tag.label)],
+    [icon(icon_name, size=12), @html.span(class="dsh-badge-label", tag.label)],
   )
 }
 
@@ -46,7 +41,7 @@ fn running_empty(summary : String, detail : String) -> @html.Html {
     class="dsh-empty",
     attrs=@html.Attrs::build().data_set("name", "running-empty"),
     [
-      @html.span(class="dsh-empty-icon", [icon("mdi-server", XLarge)]),
+      @html.span(class="dsh-empty-icon", [icon("server", size=26)]),
       @html.p(class="dsh-empty-line", "当前没有检测到正在运行的 dsh 实例。"),
       @html.p(class="dsh-empty-sub", summary),
       @html.p(class="dsh-empty-sub", attrs=@html.Attrs::build().title(detail), detail),
@@ -60,7 +55,7 @@ fn stopped_empty() -> @html.Html {
     class="dsh-empty",
     attrs=@html.Attrs::build().data_set("name", "stopped-empty"),
     [
-      @html.span(class="dsh-empty-icon", [icon("mdi-cube-outline", XLarge)]),
+      @html.span(class="dsh-empty-icon", [icon("cube-outline", size=26)]),
       @html.p(class="dsh-empty-line", "还没有已停止的实例。"),
     ],
   )
@@ -75,7 +70,7 @@ fn field(
   hint : String,
 ) -> @html.Html {
   @html.li(class="dsh-field", [
-    @html.span(class="dsh-field-icon", [icon(icon_name, Small)]),
+    @html.span(class="dsh-field-icon", [icon(icon_name)]),
     @html.span(class="dsh-field-label", label),
     @html.span(class="dsh-field-value", attrs=@html.Attrs::build().title(hint), value),
   ])

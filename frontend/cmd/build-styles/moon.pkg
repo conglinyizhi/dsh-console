@@ -1,6 +1,8 @@
 import {
   "conglinyizhi/precss",
   "conglinyizhi/precss/core",
+  // 根包本身没有直接调用点，但 `async fn main` 需要它在场：
+  // 少了它就报「Cannot use `async fn main`: package moonbitlang/async is not imported」。
   "moonbitlang/async",
   "moonbitlang/async/fs",
 }

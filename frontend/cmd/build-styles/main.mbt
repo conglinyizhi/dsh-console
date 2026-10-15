@@ -1,36 +1,18 @@
-// 构建期样式编译：把 SCSS 交给 precss 编成两个静态 CSS 文件。
+// 构建期样式编译：把 SCSS 交给 precss 编成 dist/assets/app.css。
 //
-//   app.css        md2 的三层（vendor → theme → md2）+ 本页的布局层
-//   dsh-skin.css   把 dsh-console 的设计 token 覆写到 md2 的主题变量上
-//
-// 分成两个文件是**有意的**：对比图里那两列 rabbita 页面共用 app.css，差别只在
-// 有没有挂 dsh-skin.css。这样「md2 原生暗色」与「md2 + 自己的 SCSS」是同一套 DOM、
-// 同一套布局，只有主题层不同 —— 差异全部可归因到主题覆写，不掺别的变量。
-//
-// md2 的样式源不在本模块里：它由 moon.work 的成员路径指到磁盘上那份检出。
-// 路径与 moon.work 是同一个（README 记了这件事：改一处要改两处）。
+// 以前这里拼三个源：md2 的三层（vendor → theme → md2，从模块外的检出读）再接我们的
+// app.scss，另外再出一个 dsh-skin.css 去覆写 md2 的主题变量。md2 摘掉之后那些层都不在了 ——
+// 页面上的字体、颜色、形状全部由 styles/app.scss 一份定义，产物也就只有一个文件。
 //
 // precss 是纯库（String → String，零 IO），文件读取由这里注入。
 //
 // 运行：MOON_CC=clang MOON_AR=ar MOON_LD=clang moon run cmd/build-styles --target native
 
 ///|
-/// md2 检出的根目录（相对本模块根，与 moon.work 的成员路径一致）。
-let md2_root : String = "../../../../disk/ai_workspace/rabbita-material"
-
-///|
-/// md2 三层 + 我们的 app.scss → dist/assets/app.css。
-/// **顺序即层叠关系**，别乱调：vendor 最早、我们的规则最后。
-let app_sources : Array[String] = [
-  md2_root + "/styles/vendor.scss",
-  md2_root + "/styles/theme.scss",
-  md2_root + "/styles/md2.scss",
-  "styles/app.scss",
-]
-
-///|
-/// 主题覆写层 → dist/assets/dsh-skin.css，单独一个文件。
-let skin_sources : Array[String] = ["styles/dsh-skin.scss"]
+/// 样式源。**顺序即层叠关系**，别乱调：后面的压前面的。
+/// 现在只有一份（app.scss 自己内部按 reset → token → 版式排好），
+/// 留成数组是为了将来真要再加一层时不用改调用点。
+let app_sources : Array[String] = ["styles/app.scss"]
 
 ///|
 async fn compile(paths : Array[String], output_path : String) -> Result[Unit, String] {
@@ -80,5 +62,4 @@ async fn main {
     @fs.mkdir("dist/assets", recursive=true)
   }
   run(app_sources, "dist/assets/app.css")
-  run(skin_sources, "dist/assets/dsh-skin.css")
 }

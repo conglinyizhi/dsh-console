@@ -3,10 +3,9 @@
 // 两条分组（当前运行 / 已停止）+ 归档区 + 右栏信息面板，卡片的版式照 Vue 版逐项对齐：
 // 两行卡头（标题行 + 副标题行）、状态点独立 13px 槽位、字段区固定两列、按钮组右缘贴卡片内容盒。
 //
-// md2 的用法是**收窄的**：card（外壳）/ icon（字形）/ btn（仅卡上那四个动作按钮，
-// 那一组的形状在 dsh-skin.scss 里已经量过）。其余按钮走我们自己移植过来的类 ——
-// md2 的 .v-btn 形状是 30px 无内边距差，皮肤层按 (0,2,1) 压过我们的 (0,1,0)，
-// 归档行 28px、对话框 padding 0 14px、新建实例 32px 这些值会被它改掉，属于几何回归。
+// 卡片、按钮、图标全部自建：DOM 与类名照 Vue 版逐条对齐，
+// 形状出自 styles/app.scss（那份表就是从 Vue 的组件样式块机械迁移来的）。
+// 卡片是 .dsh-case（一张卡），行内按钮组是 .dsh-btn，图标是 icons.mbt 的内联 SVG。
 
 ///|
 priv enum MenuEntry {
@@ -37,20 +36,20 @@ fn action_name(key : ActionKey) -> String {
 /// 运行中：重命名 / 派生 / 归档靠上，运维三项沉底；删除只给可删实例。
 fn running_menu(deletable : Bool) -> Array[MenuEntry] {
   let items : Array[MenuEntry] = [
-    MItem(Tab, "mdi-open-in-new", "在新标签页打开", false),
-    MItem(CopyUrl, "mdi-link-variant", "复制访问地址", false),
+    MItem(Tab, "open-in-new", "在新标签页打开", false),
+    MItem(CopyUrl, "link-variant", "复制访问地址", false),
     MSep,
-    MItem(Rename, "mdi-rename-outline", "重命名", false),
-    MItem(Fork, "mdi-source-fork", "派生开发副本", false),
-    MItem(Archive, "mdi-archive-outline", "归档", false),
+    MItem(Rename, "rename-outline", "重命名", false),
+    MItem(Fork, "source-fork", "派生开发副本", false),
+    MItem(Archive, "archive-outline", "归档", false),
   ]
   if deletable {
-    items.push(MItem(Delete, "mdi-delete-outline", "删除", true))
+    items.push(MItem(Delete, "delete-outline", "删除", true))
   }
   items.push(MSep)
-  items.push(MItem(Logs, "mdi-text-box-outline", "查看日志", false))
-  items.push(MItem(Dir, "mdi-folder-open-outline", "打开工作目录", false))
-  items.push(MItem(Config, "mdi-tune", "编辑配置", false))
+  items.push(MItem(Logs, "text-box-outline", "查看日志", false))
+  items.push(MItem(Dir, "folder-open-outline", "打开工作目录", false))
+  items.push(MItem(Config, "tune", "编辑配置", false))
   items
 }
 
@@ -58,15 +57,15 @@ fn running_menu(deletable : Bool) -> Array[MenuEntry] {
 /// 已停止：下拉入口在「启动」右半的 caret 上；可删实例也能直接把删除放进菜单。
 fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
   let items : Array[MenuEntry] = [
-    MItem(Logs, "mdi-text-box-outline", "查看日志", false),
-    MItem(Dir, "mdi-folder-open-outline", "打开工作目录", false),
-    MItem(Config, "mdi-tune", "编辑配置", false),
+    MItem(Logs, "text-box-outline", "查看日志", false),
+    MItem(Dir, "folder-open-outline", "打开工作目录", false),
+    MItem(Config, "tune", "编辑配置", false),
     MSep,
-    MItem(Rename, "mdi-rename-outline", "重命名", false),
-    MItem(Archive, "mdi-archive-outline", "归档", false),
+    MItem(Rename, "rename-outline", "重命名", false),
+    MItem(Archive, "archive-outline", "归档", false),
   ]
   if deletable {
-    items.push(MItem(Delete, "mdi-delete-outline", "删除", true))
+    items.push(MItem(Delete, "delete-outline", "删除", true))
   }
   items
 }
@@ -98,7 +97,7 @@ fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
               .role("menuitem")
               .data_set("action", action_name(key)),
             on_click=emit(RowAction(row.id, key)),
-            [icon(icon_name, Small), @html.span(label)],
+            [icon(icon_name), @html.span(label)],
           ),
         )
     }
@@ -121,12 +120,12 @@ fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
 ///|
 fn restart_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let restarting = model.restarting == row.id
-  @md2.btn(
-    children=[icon("mdi-refresh", XSmall), @html.text(" " + (if restarting { "重启中…" } else { "重启" }))],
-    variant=Outlined,
-    disabled=restarting || row.busy,
+  @html.button(
     class="dsh-btn",
+    type_="button",
+    disabled=restarting || row.busy,
     on_click=emit(RowAction(row.id, Restart)),
+    [icon("refresh"), @html.span(if restarting { "重启中…" } else { "重启" })],
   )
 }
 
@@ -142,66 +141,63 @@ fn instance_actions(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
   let parts : Array[@html.Html] = []
   if running {
     parts.push(
-      @md2.btn(
-        children=[icon("mdi-open-in-new", XSmall), @html.text(" 打开 Web UI")],
-        // 不给 color="primary"：md2 的背景助记类 .bg-primary 是 !important，
-        // 会把实例卡「主色随色调走」（运行中蓝 / profile 紫）这条盖死。
-        // 填充色由 .dsh-btn.primary 读 --btn-bg 给，与 Vue 版一致。
-        variant=Flat,
+      @html.button(
+        // 主色随色调走（运行中蓝 / profile 紫）：填充色由 .dsh-btn.primary 读 --btn-bg 给
         class="dsh-btn primary" + tone,
+        type_="button",
         on_click=emit(RowAction(row.id, OpenUi)),
+        [icon("open-in-new"), @html.span("打开 Web UI")],
       ),
     )
     parts.push(
-      @md2.btn(
-        children=[@html.i(class="dsh-dot-danger", @html.nothing), @html.text(" 停止")],
-        variant=Outlined,
-        disabled=row.busy,
+      @html.button(
         class="dsh-btn",
+        type_="button",
+        disabled=row.busy,
         on_click=emit(RowAction(row.id, Toggle)),
+        [@html.i(class="dsh-dot-danger", @html.nothing), @html.span("停止")],
       ),
     )
     parts.push(restart_button(row, model, emit))
     parts.push(
-      @md2.btn(
-        children=[icon("mdi-dots-horizontal", Small)],
-        variant=Outlined,
-        icon=true,
-        disabled=row.busy,
+      @html.button(
         class="dsh-btn icon-only",
+        type_="button",
+        disabled=row.busy,
         attrs=@html.Attrs::build()
           .id(trigger_id(row.id))
           .aria_haspopup("menu")
           .aria_expanded(if model.menu_open == row.id { "true" } else { "false" })
           .aria_label("更多操作（" + row.name + "）"),
         on_click=emit(MenuToggle(row.id)),
+        [icon("dots-horizontal", size=16)],
       ),
     )
   } else {
     // 两段式：左半启动、右半只开菜单；分隔线是右半的 border-left，圆角各只留外侧两角
     parts.push(
       @html.div(class="dsh-split" + tone, [
-        @md2.btn(
-          children=[
-            icon("mdi-play", XSmall),
-            @html.text(" " + (if row.status is Starting { "启动中…" } else { "启动" })),
-          ],
-          variant=Flat,
-          disabled=row.busy,
+        @html.button(
           class="dsh-btn primary dsh-split-main",
-          on_click=emit(RowAction(row.id, Toggle)),
-        ),
-        @md2.btn(
-          children=[@md2.icon(icon_name="mdi-chevron-right", size=XSmall, class="dsh-caret")],
-          variant=Flat,
+          type_="button",
           disabled=row.busy,
+          on_click=emit(RowAction(row.id, Toggle)),
+          [
+            icon("play", size=13),
+            @html.span(if row.status is Starting { "启动中…" } else { "启动" }),
+          ],
+        ),
+        @html.button(
           class="dsh-btn primary split-caret",
+          type_="button",
+          disabled=row.busy,
           attrs=@html.Attrs::build()
             .id(trigger_id(row.id))
             .aria_haspopup("menu")
             .aria_expanded(if model.menu_open == row.id { "true" } else { "false" })
             .aria_label("启动菜单（" + row.name + "）"),
           on_click=emit(MenuToggle(row.id)),
+          [icon("chevron-right", size=12, class="dsh-caret")],
         ),
       ]),
     )
@@ -302,18 +298,17 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
     Violet => "dsh-tile violet"
   }
   let tile_icon = match row.tone {
-    Accent => "mdi-open-in-new"
-    Violet => "mdi-puzzle-outline"
+    Accent => "open-in-new"
+    Violet => "puzzle-outline"
   }
-  @md2.card(
-    variant=Outlined,
+  @html.div(
     class="dsh-case",
     attrs=@html.Attrs::build()
       .data_set("name", "instance-card")
       .data_set("instance", row.name),
-    children=[
+    [
       @html.div(class="dsh-case-head", [
-        @html.span(class=tile_class, [icon(tile_icon, Large)]),
+        @html.span(class=tile_class, [icon(tile_icon, size=20)]),
         @html.div(class="dsh-ident", [
           @html.div(class="dsh-title-line", [@html.span(class="dsh-name", row.name)]),
           sub_line(row),
@@ -321,11 +316,11 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
         instance_actions(row, model, emit),
       ]),
       @html.ul(class="dsh-fields", [
-        field("mdi-label-outline", "DSH 版本 / 来源", row.version, ""),
-        field("mdi-layers-outline", "Profile", row.profile, ""),
-        field("mdi-link-variant", "访问地址", row.url, ""),
-        field("mdi-home-outline", "DSH_HOME", row.home, ""),
-        field("mdi-puzzle-outline", "插件数量", row.plugin_count, row.plugin_detail),
+        field("label-outline", "DSH 版本 / 来源", row.version, ""),
+        field("layers-outline", "Profile", row.profile, ""),
+        field("link-variant", "访问地址", row.url, ""),
+        field("home-outline", "DSH_HOME", row.home, ""),
+        field("puzzle-outline", "插件数量", row.plugin_count, row.plugin_detail),
       ]),
     ],
   )
@@ -351,7 +346,7 @@ fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
       class="dsh-archive-btn",
       type_="button",
       on_click=emit(RowAction(row.id, Unarchive)),
-      [icon("mdi-archive-arrow-up-outline", Small), @html.span("取消归档")],
+      [icon("archive-arrow-up-outline"), @html.span("取消归档")],
     ),
   ]
   if row.deletable {
@@ -361,7 +356,7 @@ fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
         class="dsh-archive-btn danger",
         type_="button",
         on_click=emit(DeleteOpen(row.id, archive_trigger_id(row.id))),
-        [icon("mdi-delete-outline", Small), @html.span("删除")],
+        [icon("delete-outline"), @html.span("删除")],
       ),
     )
   }
@@ -397,10 +392,7 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           attrs=@html.Attrs::build().data_set("name", "archived-toggle"),
           on_click=emit(ToggleArchived),
           [
-            @md2.icon(
-              icon_name=if model.archived_open { "mdi-chevron-down" } else { "mdi-chevron-right" },
-              size=XSmall,
-            ),
+            icon(if model.archived_open { "chevron-down" } else { "chevron-right" }),
             @html.span("已归档 (" + items.length().to_string() + ")"),
           ],
         ),
@@ -415,7 +407,7 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 fn side_info_panel() -> @html.Html {
   let flows : Array[@html.Html] = []
   let tones = ["accent", "violet"]
-  let icons = ["mdi-source-fork", "mdi-open-in-new"]
+  let icons = ["source-fork", "open-in-new"]
   let index : Ref[Int] = Ref(0)
   for flow in workflows {
     let (title, detail) = flow
@@ -426,12 +418,12 @@ fn side_info_panel() -> @html.Html {
         class="dsh-flow",
         type_="button",
         [
-          @html.span(class="dsh-flow-icon " + tones[i % 2], [icon(icons[i % 2], Default)]),
+          @html.span(class="dsh-flow-icon " + tones[i % 2], [icon(icons[i % 2], size=16)]),
           @html.span(class="dsh-flow-body", [
             @html.span(class="dsh-flow-title", title),
             @html.span(class="dsh-flow-detail", detail),
           ]),
-          @html.span(class="dsh-flow-arrow", [icon("mdi-chevron-right", Small)]),
+          @html.span(class="dsh-flow-arrow", [icon("chevron-right")]),
         ],
       ),
     )
@@ -440,11 +432,11 @@ fn side_info_panel() -> @html.Html {
     @html.li(class="dsh-note", [@html.span(class="dsh-note-text", item)])
   })
   @html.aside(class="dsh-side-info", attrs=@html.Attrs::build().data_set("name", "side-info"), [
-    @md2.card(variant=Outlined, class="dsh-info-card", children=[
+    @html.div(class="dsh-info-card", [
       @html.h2(class="dsh-info-title", "工作流入口"),
       @html.div(class="dsh-flows", flows),
     ]),
-    @md2.card(variant=Outlined, class="dsh-info-card", children=[
+    @html.div(class="dsh-info-card", [
       @html.h2(class="dsh-info-title", "关于实例"),
       @html.ul(class="dsh-notes", notes),
     ]),

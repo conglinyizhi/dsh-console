@@ -1,35 +1,72 @@
-// dsh-console 前端的全部样式（一层，随 app.css 走，两份外壳共用）。
+// dsh-console 前端的全部样式（就这一层，编成 dist/assets/app.css）。
 //
 // 来源：由 Vue 版散在 18 个组件 <style scoped> 里的样式机械迁移而来 ——
 //   * 类名统一加 dsh- 前缀（scoped 合并成全局表后类名必须唯一）
-//   * 设计 token（src/styles/app.css 的 :root）换成 md2 主题变量，颜色因此在
-//     「md2 原生暗色」与「dsh 皮肤」两份外壳里各自成立，差异全部归因到 dsh-skin.css
 //   * 属性值逐条照抄，没有重排。唯一保留的动效是启动态状态点的 dot-pulse（见实例卡一节）
+//
+// 以前这层是「md2 组件样式 + dsh 皮肤覆写」三段拼出来的，设计 token 指向 md2 的主题变量
+// （--v-theme-*）。md2 摘掉之后这里是唯一一份：调色板、形状、reset 都在本文件里，
+// 组件 DOM 与类名照 Vue 版，图标是 icons.mbt 的内联 SVG。
 
-// ── 设计 token → md2 主题变量 ──────────────────────────────
-$bg: rgb(var(--v-theme-background));
-$panel: rgb(var(--v-theme-surface));
-$panel-soft: rgb(var(--v-theme-surface-light));
-$line: rgba(var(--v-border-color), var(--v-border-opacity));
-$line-strong: rgba(var(--v-border-color), 0.16);
-$text: rgb(var(--v-theme-on-surface));
-$text-mid: rgba(var(--v-theme-on-surface), 0.82);
-$text-dim: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
-$accent: rgb(var(--v-theme-primary));
-$accent-soft: rgba(var(--v-theme-primary), 0.14);
-$violet: rgb(var(--v-theme-secondary));
-$violet-soft: rgba(var(--v-theme-secondary), 0.14);
-$ok: rgb(var(--v-theme-success));
-$warn: rgb(var(--v-theme-warning));
-$danger: rgb(var(--v-theme-error));
+// ── 设计 token ─────────────────────────────────────────────
+// 就是 Vue 版 src/styles/app.css 的 :root，逐条搬过来。
+$bg: #131417;
+$panel: #1b1d21;
+$panel-soft: #212429;
+$line: rgba(255, 255, 255, 0.08);
+$line-strong: rgba(255, 255, 255, 0.16);
+$text: #e8e6e1;
+// Vue 的 --text-mid / --text-dim 是实色 #b9b6ae / #8b8880。md2 那版没有独立色值，
+// 用 on-surface 加透明度近似出来（0.82 / --v-medium-emphasis-opacity 0.72），
+// 渲染结果比实色亮一档。这一版沿用同样的透明度：这次只是摘依赖，不动观感。
+$text-mid: rgba(232, 230, 225, 0.82);
+$text-dim: rgba(232, 230, 225, 0.72);
+$accent: #4f8cff;
+$accent-soft: rgba(79, 140, 255, 0.14);
+$violet: #9d7bff;
+$violet-soft: rgba(157, 123, 255, 0.14);
+$ok: #4ec27a;
+$warn: #e0a458;
+$danger: #e0685f;
+// 需要带透明度时用这几个 RGB 三元组，不要写 rgba($ok, 0.1)：
+// precss 不做颜色函数求值，那样会原样吐成 `rgba(#4ec27a, 0.1)` —— 浏览器认不了，
+// 整条声明被丢掉，背景/描边会静默回落成上一条规则的值。三元组走的是纯文本替换。
+$ok-rgb: 78, 194, 122;
+$warn-rgb: 224, 164, 88;
+$danger-rgb: 224, 104, 95;
 $radius: 10px;
 $radius-sm: 6px;
 
-// ── 基础 ───────────────────────────────────────────────────
-*, *::before, *::after { box-sizing: border-box; }
+// ── 基础：reset + 页面底色 ─────────────────────────────────
+// 这一段原来由 md2 的 vendor 层（Vuetify 的 reset）提供。摘掉 md2 就得自己带上：
+// 清单里那些几何量（卡片 padding、字段行高 28px、侧栏 190px…）都是在这个
+// 「所有元素 margin/padding 归零」的前提下量出来的，少一条就整体位移。
+html { box-sizing: border-box; overflow-y: scroll; }
+*, *::before, *::after { box-sizing: inherit; background-repeat: no-repeat; }
+* { margin: 0; padding: 0; }
 html, body, #dsh-console-root { height: 100%; margin: 0; }
-body { background: $bg; color: $text; }
-button { font: inherit; color: inherit; }
+body {
+  background: $bg;
+  color: $text;
+  font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+// 表单控件的浏览器默认皮全部去掉：形状由各 .dsh-* 类给。
+// 原生 select 的箭头这里显式关掉 —— 我们没画替代品（.dsh-select 只是一圈描边），
+// 不关的话系统箭头会突然冒出来，宽度和观感都不一样。
+button, input, select, textarea { font: inherit; color: inherit; background-color: transparent; border-style: none; border-radius: 0; }
+button { cursor: pointer; }
+select { appearance: none; -webkit-appearance: none; }
+
+// ── 图标（icons.mbt 的内联 SVG） ────────────────────────────
+// Vue 版 AppIcon.vue 的 .icon { display: block; flex: none; } 逐条搬过来。
+// 尺寸走 svg 的 width/height 属性（在调用点上逐处给），颜色靠 currentColor 继承。
+// 以前那一堆 .dsh-xxx .v-icon { font-size: Npx } 的覆写整块删掉：那是为了把 md2
+// 的五档尺寸掰回 Vue 的取值，现在尺寸直接写在调用点上。
+.dsh-icon { display: block; flex: none; fill: currentColor; }
+
 // ── 外壳（App.vue） ──
 .dsh-shell {
   height: 100%;
@@ -186,13 +223,13 @@ button { font: inherit; color: inherit; }
 }
 .dsh-badge.real {
   color: $ok;
-  border-color: rgba(var(--v-theme-success), 0.4);
-  background: rgba(var(--v-theme-success), 0.1);
+  border-color: rgba($ok-rgb, 0.4);
+  background: rgba($ok-rgb, 0.1);
 }
 .dsh-badge.fallback {
   color: $warn;
-  border-color: rgba(var(--v-theme-warning), 0.42);
-  background: rgba(var(--v-theme-warning), 0.1);
+  border-color: rgba($warn-rgb, 0.42);
+  background: rgba($warn-rgb, 0.1);
 }
 
 // ── 分组头（InstanceGroup.vue，ArchivedSection.vue 同款） ──
@@ -278,8 +315,8 @@ button { font: inherit; color: inherit; }
   font-size: 12.5px; cursor: pointer; white-space: nowrap;
 }
 .dsh-archive-btn:hover { background: $panel-soft; }
-.dsh-archive-btn.danger { color: $danger; border-color: rgba(var(--v-theme-error), 0.42); }
-.dsh-archive-btn.danger:hover { background: rgba(var(--v-theme-error), 0.12); }
+.dsh-archive-btn.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
+.dsh-archive-btn.danger:hover { background: rgba($danger-rgb, 0.12); }
 
 // ── 实例卡（InstanceRow.vue） ──（@keyframes: dot-pulse）
 .dsh-case {
@@ -302,7 +339,7 @@ button { font: inherit; color: inherit; }
   align-items: center; column-gap: 10px;
 }
 .dsh-tile { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; }
-.dsh-tile.accent { background: rgba(var(--v-theme-success), 0.14); color: $ok; }
+.dsh-tile.accent { background: rgba($ok-rgb, 0.14); color: $ok; }
 .dsh-tile.violet { background: $violet-soft; color: $violet; }
 .dsh-ident {
   /* 标题行 + 副标题行，行间距 2px，两行同一起点、左对齐 */
@@ -343,7 +380,7 @@ button { font: inherit; color: inherit; }
 .dsh-sub.starting { color: $warn; }
 .dsh-sub.starting .dsh-dot {
   /* 等待态的点在动，收敛到 0.35 透明度再弹回 */
-  box-shadow: 0 0 0 3px rgba(var(--v-theme-warning), 0.16);
+  box-shadow: 0 0 0 3px rgba($warn-rgb, 0.16);
   animation: dot-pulse 900ms ease-in-out infinite;
 }
 @keyframes dot-pulse {
@@ -356,7 +393,7 @@ button { font: inherit; color: inherit; }
 }
 .dsh-dot {
   width: 7px; height: 7px; border-radius: 50%;
-  background: currentColor; box-shadow: 0 0 0 3px rgba(var(--v-theme-success), 0.13);
+  background: currentColor; box-shadow: 0 0 0 3px rgba($ok-rgb, 0.13);
 }
 .dsh-sub.off .dsh-dot { box-shadow: none; }
 .dsh-state { font-size: 12px; white-space: nowrap; }
@@ -921,14 +958,6 @@ button { font: inherit; color: inherit; }
   font-size: 11px;
   color: $text-dim;
 }
-// ── 压在 md2 组件形状之上的几条补丁 ────────────────────────
-// 两段式按钮：左半只留外侧两角。md2 的 .v-btn 被皮肤层统一成 6px 圆角
-// （html.dsh-skin .v-btn 特异性 0,2,1），所以这一条必须用 0,3,0 的选择器。
-.dsh-split > .dsh-btn.dsh-split-main {
-  border-right-width: 0;
-  border-radius: $radius-sm 0 0 $radius-sm;
-}
-
 // ── 手写的两条（不在 Vue 版样式块里，属于这一次新增的交互） ──
 // 归档区的折叠开关：清单要求「可折叠」，Vue 版没有这个交互，没有可搬的规则。
 // 外观跟着分组头走（字号字重色都从 .dsh-section-title 继承），只去掉按钮的默认皮。
@@ -944,7 +973,6 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .dsh-collapse:hover { color: $text; }
-.dsh-collapse .v-icon { font-size: 14px; }
 
 // 徽标里的文字：Vue 版的 SourceBadge 没给 .label 单独写规则，补一条不换行的。
 .dsh-badge-label { white-space: nowrap; }
