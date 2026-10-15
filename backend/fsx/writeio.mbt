@@ -105,6 +105,25 @@ pub async fn ensure_dir(path : String) -> Result[Unit, String] noraise {
 }
 
 ///|
+/// 临时文件名里的进程内序号。
+///
+/// 只用 pid + 毫秒是不够的：同一毫秒里两个并发写者算出来是同一个名字，
+/// 一个写、另一个 rename，先 rename 走的那个把名字搬空、另一个 ENOENT，
+/// 更坏的情况是两笔内容被追加进同一个临时文件，rename 之后就多出半截行
+/// （审计行与设置都实测复现过）。序号在同一进程里同步自增，够用。
+///
+/// Ref 是模块级可变量的载体（actions/instance.mbt 的 console_group 同款写法）：
+/// MoonBit 的顶层 `let mut` 不作为全局可变量，要可变量得用 Ref。
+let tmp_seq : Ref[Int] = { val: 0 }
+
+///|
+/// 取下一个序号。调用点在 write_text_atomic 的第一个 await 之前，不存在交错。
+fn next_tmp_seq() -> Int {
+  tmp_seq.val = tmp_seq.val + 1
+  tmp_seq.val
+}
+
+///|
 /// 原子写文本：先写同目录的临时文件，再 rename 覆盖。
 /// 临时文件与目标同目录是有意的 —— 跨文件系统的 rename 不是原子的，也会 EXDEV。
 pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, String] noraise {
@@ -113,7 +132,13 @@ pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, Str
     Ok(_) => ()
     Err(e) => return Err(e)
   }
-  let tmp = path + ".tmp-" + os_pid().to_string() + "-" + @async.now().to_string()
+  let tmp = path +
+    ".tmp-" +
+    os_pid().to_string() +
+    "-" +
+    @async.now().to_string() +
+    "-" +
+    next_tmp_seq().to_string()
   try {
     @fs.write_file(tmp, text, create_mode=CreateOrTruncate, permission=0o600)
   } catch {

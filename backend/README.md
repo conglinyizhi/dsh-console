@@ -567,7 +567,36 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | --- | --- | --- |
 | `runtime.json` | 控制台**自己起过**的实例：`{ pid, port, home, profile, startedAt, logPath, detached }` | 起实例成功 / 停止 / 重启 |
 | `archive.json` | 归档记录：`{ profile, archivedAt }`（第二轮删掉了 `merged`；**旧文件里带 `merged` 仍能读**，那个键被忽略） | 归档 / 取消归档 |
-| `audit.jsonl` | 每个动作一行：`{ at, action, params, ok, code, message, outcome }`，**只追加、不轮转** | 每个动作（含失败与 403）、以及 settings 的 PUT |
+| `audit.jsonl` | 每个动作一行：`{ at, action, params, ok, code, message, outcome }`，**超阈值轮转**（口径见下） | 每个动作（含失败与 403）、以及 settings 的 PUT |
+| `audit.jsonl` 的归档 | `.archive/audit-<UTC 时间戳>.jsonl`：滚出去的那份原样搬过去（含它自己的说明条），目录里最多留 40 份 | 每次轮转 |
+
+#### `audit.jsonl` 怎么滚动（阈值与保留条数写死在这里）
+
+审计平时只追加，不加轮转跑几个月就是几 MB 的流水，所以超过阈值就滚。三个数都是常数、不是设置项：
+
+| 常数 | 值 | 含义 |
+| --- | --- | --- |
+| 滚动阈值 | **8 MiB**（8388608 字节） | 文件字节数**超过**它就滚一次（等于不滚） |
+| 保留条数 | **2000 条** | 滚完新文件保留旧文件最近 2000 条，本次要追加的那行接在后面 |
+| 归档保留份数 | **40 份** | 归档目录里只留最近 40 份，更老的删掉 |
+
+滚动动作（顺序有讲究：先写新主文件再 rename 主文件，会把新内容搬进归档、旧流水留在主文件位置上，实测踩过）：
+
+1. 把「说明条 + 保留的最近 2000 条」写成归档文件 `.archive/audit-<UTC 时间戳>.jsonl`，写完关句柄；**同名不覆盖**，撞名顺延 `-1`、`-2`……
+2. `rename` 主文件到同一个归档名：这一步之后**完整旧流水**在归档里，可读
+3. 再把同样的内容写成主文件（临时文件 + `rename` 就位）
+
+**轮转本身留痕**：新主文件的第一条永远是 `action="audit-rotate"` 的说明行，写清
+「原文件 N 行 / M 字节已归档到 <路径>，本文件保留最近 K 条」（结构化字段在
+`params.archivedPath / sourceLines / sourceBytes / keptLines`）。审计不允许出现无声的断口，这条是契约的一部分。
+
+其它几条口径：
+
+- **原子**：三步都是「同目录临时文件 + `rename`」，没有半截文件；模型上唯一可见的中间态是「主文件短暂不存在」（第 2 与第 3 步之间），读侧 `audit_read_path` 遇到就回退读最近的归档 —— 滚动不会让审计突然读不到
+- **并发**：整个过程持进程内互斥锁 `audit_write_lock`。不加锁时一笔滚动的两次 `rename` 会把另一笔刚追加的行落到被搬走的旧 inode 上（实测阈值 1 字节 + 100 条并发会丢行）。跨进程（同时跑两个后端）不在射程内，也不在契约里
+- **失败不连坐**：滚动失败只把原因回给调用方拼进响应 `note`，**不让动作失败**（`store/audit.mbt` 全链 `noraise`）
+- **令牌原值仍然不进审计**（下面「令牌原值不进审计」那条不因滚动而放松）
+- 自测/运维可以临时改这三个数：`DSH_CONSOLE_AUDIT_MAX_BYTES` / `DSH_CONSOLE_AUDIT_RETAIN_LINES` / `DSH_CONSOLE_AUDIT_ARCHIVE_KEEP`（非法值一律按上面的缺省）
 
 外部已有的实例不写进 `runtime.json`。对账（pid 已消失就清理）发生在**动作里**，不发生在 GET：
 `GET /api/local/console` 只读，它给每条登记标一个 `alive`（按 `/proc/<pid>/stat` 判，僵尸算死）。
@@ -616,14 +645,14 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 | 设置 | `$XDG_STATE_HOME/dsh-console/settings.json`（缺省 `~/.local/state/dsh-console/`） | `store/settings.mbt` |
 | 运行登记 | `$XDG_STATE_HOME/dsh-console/runtime.json` | `store/registry.mbt` |
 | 归档记录 | `$XDG_STATE_HOME/dsh-console/archive.json` | `store/archive.mbt` |
-| 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（只追加） | `store/audit.mbt` |
+| 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（追加；超 8 MiB 滚动，归档进同目录 `.archive/`） | `store/audit.mbt` |
 | 回收站 | `$XDG_STATE_HOME/dsh-console/trash/<profile>-<毫秒>/` | `actions/profile_fs.mbt`（`deleteToTrash=true`） |
 | profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
 | profile 备注 | `<profile 目录>/.dsh-note.txt`（空串语义 = 删掉它） | `actions/profile_fs.mbt`（`set-profile-note`） |
 | 实例日志 | `<该实例 DSH_HOME>/logs/console-<profile>-<port>.log` | `actions/instance.mbt`（spawn 时重定向 stdout/stderr） |
 | 打开窗口 | **控制台自己不写盘**：目标路径交给桌面环境（`xdg-open`），后面开什么窗口是那个会话的事 | `actions/open_path.mbt`（第二处建进程处）。它给 `xdg-open` 的 stderr 落一个一次性捕获文件 `<状态目录>/open-path-<毫秒>.log`，探测窗过了就读出来、**随即删掉**（建不了就退回 `/dev/null`） |
 
-三份状态文件都是**原子写**（同目录临时文件 + `rename`）；`audit.jsonl` 只 append。
+三份状态文件都是**原子写**（同目录临时文件 + `rename`）；`audit.jsonl` 平时只 append，超阈值时按上面「`audit.jsonl` 怎么滚动」一节滚动（同样是原子写）。
 
 ### FFI
 
@@ -717,7 +746,7 @@ backend/
 │   ├── settings.mbt            # 九项设置的键、缺省、取值范围、原子落盘
 │   ├── registry.mbt            # runtime.json：控制台起过的实例
 │   ├── archive.mbt             # archive.json：归档记录
-│   └── audit.mbt               # audit.jsonl：动作审计（只追加）
+│   └── audit.mbt               # audit.jsonl：动作审计（超阈值滚动 + 归档 + 读侧回退）
 ├── actions/                    # 可写层（唯一入口 POST /api/local/action）
 │   ├── guard.mbt               # X-DSH-Console + Origin 守卫
 │   ├── respond.mbt             # 写侧响应外壳与错误码 → 状态码

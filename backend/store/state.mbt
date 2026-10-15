@@ -5,7 +5,7 @@
 //   settings.json  设置值（原子写）
 //   runtime.json   控制台起过的实例登记（原子写，只记我们起的）
 //   archive.json   归档记录（原子写）
-//   audit.jsonl    动作审计（只追加，不轮转）
+//   audit.jsonl    动作审计（平时只追加，超 8 MiB 滚动；归档在同目录 .archive/）
 //   trash/         删除进回收站的落点（deleteToTrash=true 时的目标）
 //
 // GET 系列接口不碰这些文件的写路径：读就是读，坏文件回退到缺省并把原因写进 sources。

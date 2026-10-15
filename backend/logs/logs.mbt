@@ -547,9 +547,16 @@ pub async fn read_logs(
     return read_instance_logs(source, requested, wanted)
   }
 
-  let file = match source.file {
+  let listed = match source.file {
     Some(f) => f
     None => ""
+  }
+  // 审计文件会滚动：主文件被滚走（或一时读不到）时退回最近一份归档，
+  // 别让「滚动」变成「审计页突然空了」。path 如实体现实读的那份文件。
+  let file = if source.id == "audit" {
+    @store.audit_read_path(listed)
+  } else {
+    listed
   }
   let base : Array[(String, @json.JsonVal)] = [
     ("source", @json.JStr(source.id)),
