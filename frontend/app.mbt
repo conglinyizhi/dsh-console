@@ -3,11 +3,25 @@
 // 三个只读接口在 init 里一次发出去；解析放在 update 里，失败的原因（不是 JSON / ok=false /
 // 接口不可达）原样进 model，界面直接展示。三个读数都落地之后才拼一次实例列表 ——
 // 与 Vue 版 Promise.all 之后再拼同一口径。
+//
+// 启动时先看地址栏（route.mbt）：深链进来的 /settings/process 直接落在设置的那一组上，
+// 认不出来的地址回落并留一句说明。popstate 的监听在这里挂一次，之后由 update 接力。
 
 ///|
 pub fn app() -> @rabbita.Val[@html.Html] {
   let (model, emit) = @rabbita.create_state_with_init(
-    init=fn(emit) { (initial_model(), load(emit)) },
+    init=fn(emit) {
+      let route = parse_route(js_location_url())
+      let (model, enter) = route_into(initial_model(), route, emit)
+      // 地址认不出来时把它改写回落后的那一条：地址栏与页面必须指着同一处，
+      // 但这一步不是用户走的（不写历史，退回上一页还是他自己那一步）
+      let settle = if route.notice == "" {
+        @cmd.none
+      } else {
+        replace_route(route_url(model.page, model.settings_group, model.log_source))
+      }
+      (model, @cmd.batch([load(emit), enter, listen_popstate(emit), settle]))
+    },
     update=update,
   )
   model.view(fn(m) { page_view(m, emit) })
@@ -37,6 +51,48 @@ fn default_log_source(model : Model) -> String {
         "host"
       }
     None => "host"
+  }
+}
+
+///|
+/// 按一条路由进入对应的页面：地址里写着的页面状态进 model，该页自己要拉起的那份读数在这里发。
+///
+/// 启动（init）与前进 / 后退（RouteChanged）都只走这一条 —— 两边各写一遍「进日志页要读一次
+/// 日志、进设置页要读一次设置」迟早会分叉，而分叉出来的是「刷新之后这一页没数据」。
+fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let base = {
+    ..model,
+    page: route.page,
+    // 分组只在地址真写着设置页时才进 model：切到别的页面不该把用户记住的那一组抹掉
+    settings_group: if route.page is Settings { route.group } else { model.settings_group },
+    route_notice: route.notice,
+  }
+  match route.page {
+    Logs => {
+      // 地址里写了来源就按它读（并记成「用户自己挑的」，读数回来不许压过它）；
+      // 没写就按默认来源推导 —— 与总览页拼列表时用的是同一个口径。
+      let (picked, source) = match route.source {
+        Some(value) => (true, value)
+        None => (false, default_log_source(base))
+      }
+      let next = { ..base, log_source: source, log_user_picked: picked }
+      // 内容已经是这个来源的就只滚到底（后退回到同一页不必重读）
+      if next.log_source_read == source {
+        (next, scroll_bottom_after_render("dsh-log-box"))
+      } else {
+        start_logs(next, source, emit)
+      }
+    }
+    Settings =>
+      // 设置是懒加载：只在真进设置页时发 GET。
+      // 别在应用启动时顺手读它 —— 后端还没提供这个接口时，
+      // 每次打开总览都会在控制台里留一条 404，而「控制台零问题」是验收项。
+      if model.settings_loaded || model.settings_loading {
+        (base, @cmd.none)
+      } else {
+        ({ ..base, settings_loading: true, settings_error: "" }, settings_get_cmd(emit))
+      }
+    _ => (base, @cmd.none)
   }
 }
 
@@ -84,16 +140,29 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   } else {
     default_log_source(model)
   }
-  // 日志页已经开着、而默认来源刚刚才定下来：补一次读取，别让下拉与内容对不上
-  let cmd = if model.page is Logs && source != model.log_source {
+  // 日志页已经开着、而默认来源刚刚才定下来：补一次读取，别让下拉与内容对不上。
+  // 这一步是读数推出来的、不是用户走的：地址栏跟着改写（replace_route），不写新历史。
+  let reload = model.page is Logs && source != model.log_source
+  let cmd = if reload {
     @cmd.batch([
+      replace_route(route_url(Logs, model.settings_group, source)),
       load_logs(source, log_tail_of(model), emit),
       scroll_bottom_after_render("dsh-log-box"),
     ])
   } else {
     @cmd.none
   }
-  ({ ..model, rows, built: true, log_source: source }, cmd)
+  (
+    {
+      ..model,
+      rows,
+      built: true,
+      log_source: source,
+      // 刚补发了一次读取：加载态立起来，回执到了再放下去
+      log_loading: if reload { true } else { model.log_loading },
+    },
+    cmd,
+  )
 }
 
 // ── 行操作 ─────────────────────────────────────────────────
@@ -1136,7 +1205,9 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                     " 尾部 " + facts.window_bytes.to_string() + " 字节窗口，返回 " +
                     facts.lines.length().to_string() + " 行 · " + time + " 读取",
                   ),
-                  log_loaded: true,
+                  log_loading: false,
+                  // 这一份内容属于哪个来源：按接口回的 source 记账（前端不猜）
+                  log_source_read: facts.source,
                 }
               } else {
                 let reason = match facts.read_error {
@@ -1149,7 +1220,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                   log_error: reason,
                   log_time: time,
                   log_tag: fallback_tag(label + "真实读取失败：" + reason),
-                  log_loaded: true,
+                  log_loading: false,
                 }
               }
             Err(reason) =>
@@ -1159,7 +1230,7 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
                 log_error: reason,
                 log_time: time,
                 log_tag: fallback_tag(query + " 失败：" + reason),
-                log_loaded: true,
+                log_loading: false,
               }
           }
         Err(err) => {
@@ -1170,39 +1241,46 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             log_error: reason,
             log_time: time,
             log_tag: fallback_tag(query + " 失败：" + reason),
-            log_loaded: true,
+            log_loading: false,
           }
         }
       }
       (next, scroll_bottom_after_render("dsh-log-box"))
     }
+    // 侧栏切页：状态与地址一起走。同一页连点两次不会攒出两条一样的历史（见 route.mbt）。
     Navigate(page) => {
-      let next = { ..model, page }
-      if page is Logs {
-        let cmd = if model.log_loaded {
-          scroll_bottom_after_render("dsh-log-box")
+      let route : Route = {
+        page,
+        group: model.settings_group,
+        // 用户自己挑过的日志来源在他点侧栏「日志」时要留着（地址里因此也带这个来源）；
+        // 没挑过就按当时的读数推导默认来源，与总览页拼列表同一个口径。
+        source: if page is Logs && model.log_user_picked {
+          Some(model.log_source)
         } else {
-          @cmd.batch([
-            load_logs(model.log_source, log_tail_of(model), emit),
-            scroll_bottom_after_render("dsh-log-box"),
-          ])
-        }
-        ({ ..next, log_loaded: true }, cmd)
-      } else if page is Settings {
-        // 设置是懒加载：只在第一次进设置页时发 GET。
-        // 别在应用启动时顺手读它 —— 后端还没提供这个接口时，
-        // 每次打开总览都会在控制台里留一条 404，而「控制台零问题」是验收项。
-        if model.settings_loaded || model.settings_loading {
-          (next, @cmd.none)
-        } else {
-          (
-            { ..next, settings_loading: true, settings_error: "" },
-            settings_get_cmd(emit),
-          )
-        }
-      } else {
-        (next, @cmd.none)
+          None
+        },
+        notice: "",
       }
+      let (next, enter) = route_into(model, route, emit)
+      (
+        next,
+        @cmd.batch([
+          enter,
+          push_route(route_url(next.page, next.settings_group, next.log_source)),
+        ]),
+      )
+    }
+    // 浏览器前进 / 后退：地址是唯一的口径，页面按它复原（不写历史，也不清回落说明 ——
+    // 退回的那一格地址可能就是个认不出来的，说明得跟着回来）。
+    RouteChanged => {
+      let route = parse_route(js_location_url())
+      let (next, enter) = route_into(model, route, emit)
+      let settle = if route.notice == "" {
+        @cmd.none
+      } else {
+        replace_route(route_url(next.page, next.settings_group, next.log_source))
+      }
+      (next, @cmd.batch([enter, settle, listen_popstate(emit)]))
     }
     RowAction(id, key) =>
       match key {
@@ -1294,21 +1372,21 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
             None => (model, @cmd.none)
             Some(row) =>
               match log_source_for_row(model, row) {
-                Some(source) => (
-                  {
-                    ..model,
-                    page: Logs,
-                    menu_open: "",
-                    log_source: source,
-                    // 这是用户自己挑的来源，rebuild 的缺省推导不许再压过它
-                    log_user_picked: true,
-                    log_loaded: true,
-                  },
-                  @cmd.batch([
-                    load_logs(source, log_tail_of(model), emit),
-                    scroll_bottom_after_render("dsh-log-box"),
-                  ]),
-                )
+                Some(source) => {
+                  // 这是用户自己挑的来源，rebuild 的缺省推导不许再压过它
+                  let (next, read) = start_logs(
+                    { ..model, page: Logs, menu_open: "", log_user_picked: true },
+                    source,
+                    emit,
+                  )
+                  (
+                    next,
+                    @cmd.batch([
+                      read,
+                      push_route(route_url(Logs, model.settings_group, source)),
+                    ]),
+                  )
+                }
                 // 没有在跑的实例可读：留在总览页把原因说清，不切到一个空日志页
                 None => (
                   {
@@ -1481,27 +1559,30 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
       { ..model, archived_open: !model.archived_open, archived_user_toggled: true },
       @cmd.none,
     )
-    LogSourcePicked(value) => (
-      { ..model, log_source: value, log_user_picked: true, log_loaded: true },
-      @cmd.batch([
-        load_logs(value, log_tail_of(model), emit),
-        scroll_bottom_after_render("dsh-log-box"),
-      ]),
-    )
-    LogRefresh => (
-      model,
-      @cmd.batch([
-        load_logs(model.log_source, log_tail_of(model), emit),
-        scroll_bottom_after_render("dsh-log-box"),
-      ]),
-    )
+    // 换来源：来源是页面状态的一部分，跟着进地址（换来源 = 走一步，可以后退回来）
+    LogSourcePicked(value) => {
+      let (next, read) = start_logs({ ..model, log_user_picked: true }, value, emit)
+      (
+        next,
+        @cmd.batch([
+          read,
+          push_route(route_url(Logs, model.settings_group, value)),
+        ]),
+      )
+    }
+    // 刷新不是走一步：地址不变，只是重读一遍当前来源
+    LogRefresh => start_logs(model, model.log_source, emit)
     // ── 设置页 ─────────────────────────────────────────────
     SettingsText(res) => settings_loaded_state(model, res)
     SettingsRetry => (
       { ..model, settings_loading: true, settings_error: "", settings_loaded: false },
       settings_get_cmd(emit),
     )
-    SettingsGroupPicked(id) => ({ ..model, settings_group: id }, @cmd.none)
+    // 设置分组也是页面状态：切分组就换地址，刷新 / 后退都回到同一组
+    SettingsGroupPicked(id) => (
+      { ..model, settings_group: id, route_notice: "" },
+      push_route(route_url(Settings, id, model.log_source)),
+    )
     SettingDraft(key, text) => (
       { ..model, settings_draft: put_draft(model.settings_draft, key, text) },
       @cmd.none,

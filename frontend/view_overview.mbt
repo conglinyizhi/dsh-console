@@ -777,17 +777,39 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let stopped = model.rows.filter(fn(row) {
     row.archived_at is None && !(row.status is Running)
   })
+  // 读数还没落地：这一格摆加载态，空态只在真读到空的时候出现（见 loading_block）
+  let pending = readings_pending(model)
   let running_list : Array[@html.Html] = running.map(fn(row) {
     instance_card(row, model, emit)
   })
   if running.length() == 0 {
-    running_list.push(running_empty(running_summary(model), model.tag_instances.detail))
+    if pending {
+      running_list.push(
+        loading_block(
+          "running-loading",
+          "正在读取实例读数…",
+          "GET /api/local/instances 与 /api/local/profiles 还没返回。读数回来之前这里显示的是加载态；空态只在真读到空的时候出现。",
+        ),
+      )
+    } else {
+      running_list.push(running_empty(running_summary(model), model.tag_instances.detail))
+    }
   }
   let stopped_list : Array[@html.Html] = stopped.map(fn(row) {
     instance_card(row, model, emit)
   })
   if stopped.length() == 0 {
-    stopped_list.push(stopped_empty())
+    if pending {
+      stopped_list.push(
+        loading_block(
+          "stopped-loading",
+          "正在读取 profile 读数…",
+          "GET /api/local/profiles 还没返回。读数回来之前这里显示的是加载态。",
+        ),
+      )
+    } else {
+      stopped_list.push(stopped_empty())
+    }
   }
   let dialogs : Array[@html.Html] = []
   if model.confirm_id.length() > 0 {
@@ -815,9 +837,17 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           ),
         ]),
         action_notice(model),
-        section_head("当前运行的实例", running.length(), model.tag_instances),
+        section_head(
+          "当前运行的实例",
+          if pending { "…" } else { running.length().to_string() },
+          model.tag_instances,
+        ),
         @html.div(class="dsh-rows", running_list),
-        section_head("已停止的实例", stopped.length(), model.tag_profiles),
+        section_head(
+          "已停止的实例",
+          if pending { "…" } else { stopped.length().to_string() },
+          model.tag_profiles,
+        ),
         @html.div(class="dsh-rows", stopped_list),
         archived_section(model, emit),
       ]),

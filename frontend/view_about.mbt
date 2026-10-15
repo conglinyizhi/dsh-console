@@ -6,7 +6,13 @@
 ///|
 fn version_rows(model : Model) -> Array[@html.Html] {
   match model.runtime {
-    None => [kv_row("读取状态", "读取失败", model.runtime_error)]
+    // 读数还没回来与读取失败是两件事：前者说「正在读」，后者把原因摆出来
+    None =>
+      if model.read_runtime {
+        [kv_row("读取状态", "读取失败", model.runtime_error)]
+      } else {
+        [kv_row("读取状态", "正在读取…", "GET /api/local/runtime 还没返回")]
+      }
     Some(facts) =>
       [
         kv_row("dsh 版本", facts.dsh_version, facts.dsh_package_name),

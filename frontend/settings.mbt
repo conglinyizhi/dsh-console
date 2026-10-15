@@ -378,6 +378,18 @@ fn setting_bool_of(model : Model, key : String) -> Bool? {
 }
 
 ///|
+/// 这个分组 id 在不在表里。路由用它判定「地址里那一组还存不存在」——
+/// 存不存在是路由要不要回落的事，与「认不出退回第一组」是两件事。
+fn settings_group_exists(id : String) -> Bool {
+  for group in settings_groups {
+    if group.id == id {
+      return true
+    }
+  }
+  false
+}
+
+///|
 /// 分组查找：认不出的 id 退回第一个分组，右侧不留空白。
 fn setting_group_of(id : String) -> SettingGroup {
   for group in settings_groups {

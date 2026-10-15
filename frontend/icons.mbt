@@ -67,7 +67,7 @@
 //   shield-outline             徽标「回退」12 / 侧栏「关于」16
 //   source-fork                菜单「派生开发副本」14 / 流程入口 16
 //   text-box-outline           侧栏「日志」16 / 菜单「查看日志」14
-//   tune                       徽标「演示数据」12 / 菜单「编辑配置」14
+//   tune                       菜单「编辑配置」14
 //   view-grid-outline          侧栏「实例总览」16
 
 ///|

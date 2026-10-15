@@ -1,7 +1,9 @@
 // 应用状态、消息与更新循环。
 //
-// 导航是状态切页（没有 URL 路由）：page 就是 model 里的一个字段，刷新回到总览。
-// 三个只读接口在 init 里一次发出去；读不到就把原因留进 model，界面直接展示。
+// 导航既是状态切页也是 URL：page 是 model 里的字段，同时写进地址栏（见 route.mbt），
+// 刷新与前进/后退都按地址复原页面。
+// 三个只读接口在 init 里一次发出去；读不到就把原因留进 model，界面直接展示；
+// 还没回来之前界面是加载态，不是空态（见 readings_pending）。
 
 ///|
 pub(all) enum Page {
@@ -57,17 +59,22 @@ enum Tone {
 pub extend Tone with Eq::{ not_equal, equal }
 
 ///|
+/// 三档：真实读取 / 真实读取失败退回演示 / 请求还在路上。
+/// （以前还有一档「演示数据」，只被「接口还没返回」那个初始态用着 ——
+/// 初始态现在是「读取中」，那一档就没有生产者了，随它一起去掉。）
 enum TagKind {
   Real
-  Demo
   Fallback
+  /// 读数还没回来：既不是真实数据，也不是演示数据，界面上说「读取中」
+  Pending
 } derive(Eq)
 
 pub extend TagKind with Eq::{ not_equal, equal }
 
 ///|
 /// 一处数据的数据源标记，界面上逐处标。
-/// real = 真实读取；demo = 本轮仍是演示；fallback = 真实读取失败，显式退回演示。
+/// real = 真实读取；fallback = 真实读取失败，显式退回演示；
+/// pending = 请求还在路上（这一档**不是**空数据：把「还在读」标成「没有」正是要修的那件事）。
 struct SourceTag {
   kind : TagKind
   label : String
@@ -153,6 +160,8 @@ pub extend SettingDraft with Eq::{ not_equal, equal }
 ///|
 struct Model {
   page : Page
+  /// 地址回落说明：URL 认不出来时写在这里，由外壳顶部那条提示显示（空串 = 没有要说的）
+  route_notice : String
   // 三个只读读数：原始事实 + 失败原因 + 读数时刻
   runtime : RuntimeFacts?
   runtime_error : String
@@ -230,7 +239,11 @@ struct Model {
   // 日志页
   log_source : String
   log_user_picked : Bool
-  log_loaded : Bool
+  /// 日志请求还在路上。**「还没读完」与「确实是空的」是两副样子**，界面按它分档。
+  log_loading : Bool
+  /// 现在 logs 里那份内容是哪个来源读回来的（空串 = 还没读到过）。
+  /// 换了来源之后旧内容不能顶着新来源显示，要不要重读就看它。
+  log_source_read : String
   logs : LogsFacts?
   log_error : String
   log_time : String
@@ -248,6 +261,8 @@ priv enum Msg {
   InstancesText(Result[String, Error])
   LogsText(Result[String, Error])
   Navigate(Page)
+  /// 浏览器前进 / 后退（或手改了 path）：按当前地址复原页面，不写历史
+  RouteChanged
   RowAction(String, ActionKey)
   MenuToggle(String)
   MenuClose
@@ -287,6 +302,7 @@ priv enum Msg {
 fn initial_model() -> Model {
   {
     page: Overview,
+    route_notice: "",
     runtime: None,
     runtime_error: "",
     runtime_time: "—",
@@ -294,11 +310,13 @@ fn initial_model() -> Model {
     profiles_error: "",
     instances: None,
     instances_error: "",
-    tag_runtime: demo_tag("本地只读接口还没返回"),
-    tag_instances: demo_tag("本地只读接口还没返回"),
-    tag_profiles: demo_tag("本地只读接口还没返回"),
-    tag_archived: demo_tag("归档记录还没读到"),
-    tag_settings: demo_tag("设置页还没打开过"),
+    // 初始那几副标记是「读取中」，不是「演示数据」：请求还在路上，
+    // 这时候标成演示数据与标成空数据是同一个毛病 —— 把「还没读到」说成了别的。
+    tag_runtime: pending_tag("GET /api/local/runtime 还没返回"),
+    tag_instances: pending_tag("GET /api/local/instances 还没返回"),
+    tag_profiles: pending_tag("GET /api/local/profiles 还没返回"),
+    tag_archived: pending_tag("GET /api/local/console 还没返回"),
+    tag_settings: pending_tag("GET /api/local/settings 还没读"),
     read_runtime: false,
     read_profiles: false,
     read_instances: false,
@@ -346,11 +364,12 @@ fn initial_model() -> Model {
     read_console: false,
     log_source: "host",
     log_user_picked: false,
-    log_loaded: false,
+    log_loading: false,
+    log_source_read: "",
     logs: None,
     log_error: "",
     log_time: "",
-    log_tag: fallback_tag("日志还没读"),
+    log_tag: pending_tag("日志还没读"),
     log_instance_note: "",
   }
 }
@@ -363,13 +382,23 @@ fn real_tag(detail : String) -> SourceTag {
 }
 
 ///|
-fn demo_tag(detail : String) -> SourceTag {
-  { kind: Demo, label: "演示数据", detail }
+fn fallback_tag(detail : String) -> SourceTag {
+  { kind: Fallback, label: "演示数据 · 真实读取失败", detail }
 }
 
 ///|
-fn fallback_tag(detail : String) -> SourceTag {
-  { kind: Fallback, label: "演示数据 · 真实读取失败", detail }
+/// 请求还在路上：读数没到之前的那一档。与「演示数据 / 读取失败」分开 ——
+/// 那两档说的是「已经知道了什么」，这一档说的是「还不知道」。
+fn pending_tag(detail : String) -> SourceTag {
+  { kind: Pending, label: "读取中", detail }
+}
+
+///|
+/// 几个只读读数是不是还没落地（runtime / profiles / instances / console 都算，
+/// 列表就是等它们一起到了才拼的）。落地之前界面摆加载态：
+/// 这一段空白不是「没有实例」，是「还没读到」。
+fn readings_pending(model : Model) -> Bool {
+  !model.built
 }
 
 
@@ -405,11 +434,26 @@ fn load_readings(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 }
 
 ///|
-/// 日志页的读数：尾部 200 行，上限由接口负责截断并说明。
+/// 日志页的读数：尾部行数由设置决定（读不到就是契约缺省 200），上限由接口负责截断并说明。
 fn load_logs(source : String, tail : Int, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   let query = "/api/local/logs?source=" + js_encode_uri_component(source) + "&tail=" +
     tail.to_string()
   @http.get(query).expect_text(emit.map(fn(res) { LogsText(res) }))
+}
+
+///|
+/// 发起一次日志读取：先把加载态立起来（回执 LogsText 再放下去），读完滚到底。
+///
+/// 打开日志页、换来源、点刷新、点卡上的「查看日志」都走这一条 —— 四处各写一遍
+/// 「记得置 log_loading」迟早会漏一处，漏掉的那处就会把「正在读」显示成「没有行」。
+fn start_logs(model : Model, source : String, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  (
+    { ..model, log_source: source, log_loading: true },
+    @cmd.batch([
+      load_logs(source, log_tail_of(model), emit),
+      scroll_bottom_after_render("dsh-log-box"),
+    ]),
+  )
 }
 
 ///|

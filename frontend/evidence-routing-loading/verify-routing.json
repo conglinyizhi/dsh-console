@@ -1,0 +1,275 @@
+{
+ "routing": {
+  "pages": [
+   {
+    "step": "初始 /",
+    "url": "/",
+    "h1": "实例总览",
+    "settingsGroup": null,
+    "routeNotice": null,
+    "overview": true,
+    "logs": false,
+    "settings": false,
+    "about": false
+   },
+   {
+    "step": "点侧栏 日志",
+    "url": "/logs?source=instance%3Aproc-3080",
+    "h1": "日志",
+    "settingsGroup": null,
+    "routeNotice": null,
+    "overview": false,
+    "logs": true,
+    "settings": false,
+    "about": false
+   },
+   {
+    "step": "点侧栏 设置",
+    "url": "/settings/instance",
+    "h1": "设置",
+    "settingsGroup": "实例与端口4",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   },
+   {
+    "step": "点侧栏 关于",
+    "url": "/about",
+    "h1": "关于",
+    "settingsGroup": null,
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": false,
+    "about": true
+   },
+   {
+    "step": "点侧栏 实例总览",
+    "url": "/",
+    "h1": "实例总览",
+    "settingsGroup": null,
+    "routeNotice": null,
+    "overview": true,
+    "logs": false,
+    "settings": false,
+    "about": false
+   },
+   {
+    "step": "点侧栏 设置（回到设置）",
+    "url": "/settings/instance",
+    "h1": "设置",
+    "settingsGroup": "实例与端口4",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   }
+  ],
+  "reloads": [
+   {
+    "step": "日志页刷新",
+    "url": "/logs?source=instance%3Aproc-3080",
+    "h1": "日志",
+    "settingsGroup": null,
+    "routeNotice": null,
+    "overview": false,
+    "logs": true,
+    "settings": false,
+    "about": false
+   },
+   {
+    "step": "设置/safety 刷新",
+    "before": {
+     "url": "/settings/safety",
+     "h1": "设置",
+     "settingsGroup": "危险动作1",
+     "routeNotice": null,
+     "overview": false,
+     "logs": false,
+     "settings": true,
+     "about": false
+    },
+    "after": {
+     "url": "/settings/safety",
+     "h1": "设置",
+     "settingsGroup": "危险动作1",
+     "routeNotice": null,
+     "overview": false,
+     "logs": false,
+     "settings": true,
+     "about": false
+    }
+   }
+  ],
+  "groups": [
+   {
+    "url": "/settings/instance",
+    "h1": "设置",
+    "settingsGroup": "实例与端口4",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   },
+   {
+    "url": "/settings/process",
+    "h1": "设置",
+    "settingsGroup": "进程2",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   },
+   {
+    "url": "/settings/logs",
+    "h1": "设置",
+    "settingsGroup": "日志1",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   },
+   {
+    "url": "/settings/ui",
+    "h1": "设置",
+    "settingsGroup": "界面1",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   },
+   {
+    "url": "/settings/safety",
+    "h1": "设置",
+    "settingsGroup": "危险动作1",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   }
+  ],
+  "history": {
+   "from": {
+    "url": "/",
+    "h1": "实例总览",
+    "settingsGroup": null,
+    "routeNotice": null,
+    "overview": true,
+    "logs": false,
+    "settings": false,
+    "about": false
+   },
+   "back": {
+    "url": "/settings/safety",
+    "h1": "设置",
+    "settingsGroup": "危险动作1",
+    "routeNotice": null,
+    "overview": false,
+    "logs": false,
+    "settings": true,
+    "about": false
+   },
+   "forward": {
+    "url": "/",
+    "h1": "实例总览",
+    "settingsGroup": null,
+    "routeNotice": null,
+    "overview": true,
+    "logs": false,
+    "settings": false,
+    "about": false
+   }
+  },
+  "badGroup": {
+   "url": "/settings/instance",
+   "h1": "设置",
+   "settingsGroup": "实例与端口4",
+   "routeNotice": "地址回落地址里的 /settings/not-a-group 对不上任何一个设置分组（现有分组：instance / process / logs / ui / safety），已回到设置首页。",
+   "overview": false,
+   "logs": false,
+   "settings": true,
+   "about": false
+  },
+  "badPath": {
+   "url": "/",
+   "h1": "实例总览",
+   "settingsGroup": null,
+   "routeNotice": "地址回落地址里的 /nope/deep 不是本控制台的路由，已回到实例总览。现有路由：/ · /logs · /settings/<分组> · /about",
+   "overview": true,
+   "logs": false,
+   "settings": false,
+   "about": false
+  }
+ },
+ "loading": {
+  "duringLoad": {
+   "url": "/",
+   "runningLoading": true,
+   "stoppedLoading": true,
+   "runningEmptyEl": false,
+   "stoppedEmptyEl": false,
+   "emptyRunning": false,
+   "emptyStopped": false,
+   "loadingText": "正在读取实例读数…GET /api/local/instances 与 /api/local/profiles 还没返回。读数回来之前这里显示的是加载态；空态只在真读到空的时候出现。",
+   "badge": [
+    "读取中",
+    "读取中",
+    "读取中"
+   ],
+   "sectionTitles": [
+    "当前运行的实例 (…)",
+    "已停止的实例 (…)"
+   ]
+  },
+  "afterLoad": {
+   "runningLoading": false,
+   "cards": 3,
+   "realBadge": true,
+   "sectionTitles": [
+    "当前运行的实例 (1)",
+    "已停止的实例 (2)"
+   ]
+  },
+  "logDuringLoad": {
+   "url": "/logs",
+   "logLoading": true,
+   "emptyLogEl": false,
+   "emptyLog": false
+  },
+  "logLoaded": {
+   "logLoading": false,
+   "box": true,
+   "lines": 200,
+   "emptyLogEl": false,
+   "emptyLog": false
+  }
+ },
+ "empty": {
+  "overview": {
+   "url": "/",
+   "runningLoading": false,
+   "runningEmpty": true,
+   "stoppedEmpty": true,
+   "emptyRunningText": true,
+   "emptyStoppedText": true,
+   "sectionTitles": [
+    "当前运行的实例 (0)",
+    "已停止的实例 (0)"
+   ]
+  },
+  "logs": {
+   "logLoading": false,
+   "emptyLogEl": true,
+   "emptyLog": true,
+   "lines": 0
+  }
+ }
+}

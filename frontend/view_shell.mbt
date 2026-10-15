@@ -1,6 +1,9 @@
 // 应用外壳：左侧导航四项 + 内容区。
 //
-// 导航是状态切页（没有 URL 路由，刷新回到总览）。页脚「本机运行，仅限回环访问」在导航栏底部。
+// 导航既是状态切页也写地址（见 route.mbt）：刷新与前进/后退按地址复原页面。
+// 页脚「本机运行，仅限回环访问」在导航栏底部。
+// 顶部那条 .dsh-route-notice 只在地址认不出来、被回落时出现 —— 回落必须说清为什么，
+// 不然「点进来发现不是自己要的那一页」就成了没法解释的怪事。
 //
 // 「设置」从顶栏搬到侧栏（这一轮）：顶栏当时只有那一个按钮，按钮一走顶栏就成了
 // 一条 44px 的空带子，所以整条顶栏一起去掉，内容区直接顶到窗口上沿。
@@ -58,6 +61,23 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+/// 地址回落说明：认不出来的地址落在这一页时，把「为什么」摆在最上面。
+/// 没有要说的就一个节点都不占（DOM 里不留空壳）。
+fn route_notice_bar(model : Model) -> @html.Html {
+  if model.route_notice.length() == 0 {
+    return @html.nothing
+  }
+  @html.p(
+    class="dsh-route-notice",
+    attrs=@html.Attrs::build().data_set("name", "route-notice").role("status"),
+    [
+      @html.span(class="dsh-route-notice-tag", "地址回落"),
+      @html.span(model.route_notice),
+    ],
+  )
+}
+
+///|
 fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let body = match model.page {
     Overview => overview_view(model, emit)
@@ -67,6 +87,9 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   @html.div(class="dsh-shell", [
     side_nav(model, emit),
-    @html.div(class="dsh-workbench", [@html.main_(class="dsh-main", [body])]),
+    @html.div(class="dsh-workbench", [
+      route_notice_bar(model),
+      @html.main_(class="dsh-main", [body]),
+    ]),
   ])
 }

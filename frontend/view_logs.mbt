@@ -186,7 +186,19 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Some(facts) => facts.lines.map(log_line)
     None => []
   }
-  let body = if lines.length() > 0 {
+  // 三种「空白」是三件不同的事，分档摆：
+  //   还在读（这一份内容不属于当前来源）→ 加载态
+  //   读回来了、确实一行都没有      → 空态
+  //   读失败了                      → 空态 + 那个「读取失败」标记（既有行为，不混进加载态）
+  let reading = model.log_loading && (lines.length() == 0 || model.log_source_read != model.log_source)
+  let body = if reading {
+    loading_block(
+      "log-loading",
+      "正在读取日志…",
+      "GET /api/local/logs?source=" + model.log_source +
+      " 还没返回。回来之前这里显示的是加载态。",
+    )
+  } else if lines.length() > 0 {
     @html.div(
       id="dsh-log-box",
       class="dsh-log-box",

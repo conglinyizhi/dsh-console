@@ -85,6 +85,27 @@ select { appearance: none; -webkit-appearance: none; }
   overflow-y: auto;
   overflow-x: hidden;
 }
+// 地址回落提示条：只在地址认不出来时出现（落在 .dsh-main 之上，不随内容滚动）。
+// 复用告警那副脸色 —— 它不是错误，但也不是一次正常的进入。
+.dsh-route-notice {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 22px;
+  border-bottom: 1px solid rgba($warn-rgb, 0.36);
+  background: rgba($warn-rgb, 0.1);
+  color: $text;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.dsh-route-notice-tag {
+  flex: none;
+  font-weight: 600;
+  color: $warn;
+  white-space: nowrap;
+}
 
 // ── 左侧导航（SideNav.vue） ──
 .dsh-side {
@@ -203,6 +224,12 @@ select { appearance: none; -webkit-appearance: none; }
   border-color: rgba($warn-rgb, 0.42);
   background: rgba($warn-rgb, 0.1);
 }
+/* 读取中：既不是真实数据也不是演示数据，只是请求还在路上 */
+.dsh-badge.pending {
+  color: $text-dim;
+  border-color: $line;
+  background: rgba(255, 255, 255, 0.03);
+}
 
 // ── 分组头（InstanceGroup.vue，ArchivedSection.vue 同款） ──
 .dsh-section-head {
@@ -247,6 +274,41 @@ select { appearance: none; -webkit-appearance: none; }
   color: $text-mid;
 }
 .dsh-empty-sub {
+  margin: 0;
+  font-size: 11px;
+  color: $text-dim;
+  max-width: 60ch;
+}
+
+// ── 加载态（读数还没回来的那一格） ──
+// **与空态刻意长得不一样**：空态是虚线框（「扫完了，确实没有」），
+// 这一块是实线框 + 面板底色（「还没读到」）。一样的话，刷新后那段加载时间
+// 会被当成「本机一个实例都没有」——那正是要修的那件事。
+// 这里没有动效：全页的动效留给启动态的状态点（dot-pulse），多一个会打破
+// design/probe-animation.mjs 的「点击前无可见动效」。
+.dsh-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 30px 16px 32px;
+  border: 1px solid $line;
+  border-radius: $radius;
+  background: $panel;
+  text-align: center;
+}
+.dsh-loading-icon {
+  color: $text-dim;
+  margin-bottom: 8px;
+  opacity: 0.65;
+}
+.dsh-loading-line {
+  margin: 0;
+  font-size: 12.5px;
+  color: $text-mid;
+}
+.dsh-loading-sub {
   margin: 0;
   font-size: 11px;
   color: $text-dim;

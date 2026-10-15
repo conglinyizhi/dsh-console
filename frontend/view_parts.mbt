@@ -11,12 +11,12 @@ fn source_badge(tag : SourceTag) -> @html.Html {
   let icon_name = match tag.kind {
     Real => "check"
     Fallback => "shield-outline"
-    Demo => "tune"
+    Pending => "refresh"
   }
   let tone = match tag.kind {
     Real => " real"
     Fallback => " fallback"
-    Demo => ""
+    Pending => " pending"
   }
   @html.span(
     class="dsh-badge" + tone,
@@ -27,9 +27,12 @@ fn source_badge(tag : SourceTag) -> @html.Html {
 
 ///|
 /// 分组头：标题 + 计数 + 该组数据的数据源标记。
-fn section_head(title : String, count : Int, tag : SourceTag) -> @html.Html {
+///
+/// 计数是字符串而不是数字：读数还没回来时那里得写「…」而不是「0」——
+/// 「(0)」配一块加载态，正是把「还没读到」读成「没有」的那种写法。
+fn section_head(title : String, count : String, tag : SourceTag) -> @html.Html {
   @html.div(class="dsh-section-head", [
-    @html.h2(class="dsh-section-title", title + " (" + count.to_string() + ")"),
+    @html.h2(class="dsh-section-title", title + " (" + count + ")"),
     source_badge(tag),
   ])
 }
@@ -57,6 +60,29 @@ fn stopped_empty() -> @html.Html {
     [
       @html.span(class="dsh-empty-icon", [icon("cube-outline", size=26)]),
       @html.p(class="dsh-empty-line", "还没有已停止的实例。"),
+    ],
+  )
+}
+
+///|
+/// 读数还没回来时占位的那一块。
+///
+/// **它与空态是两副样子，这是重点**：空态（running_empty / stopped_empty）说的是
+/// 「扫完了，确实没有」；这一块说的是「还没读到」。两者长得一样的话，
+/// 刷新之后那段加载时间就会被读成「本机一个实例都没有」。
+///
+/// 形状刻意跟空态拉开：空态是虚线框 + 居中图标，这里是实线框 + 面板底色。
+/// 也没有动效 —— 页面上的动效是启动态状态点专用的（见 styles/app.scss）。
+fn loading_block(name : String, title : String, detail : String) -> @html.Html {
+  @html.section(
+    class="dsh-loading",
+    attrs=@html.Attrs::build()
+      .data_set("name", name)
+      .data_set("state", "loading"),
+    [
+      @html.span(class="dsh-loading-icon", [icon("refresh", size=22)]),
+      @html.p(class="dsh-loading-line", title),
+      @html.p(class="dsh-loading-sub", detail),
     ],
   )
 }
