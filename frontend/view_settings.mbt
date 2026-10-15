@@ -189,27 +189,35 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
     CList(options) => setting_select_control(model, def, current, options, emit)
   }
   let saving = model.settings_saving == def.key
+  // 元信息：来源是「默认」时，当前值与缺省本来就是同一个数，说一遍就够；
+  // 只有被文件改过才需要「当前 X · 缺省 Y」两栏对照。
+  let default_short = setting_default_short(model, def)
+  let meta : Array[@html.Html] = if source_text == "默认" {
+    [@html.span(class="dsh-setting-default", "默认 " + default_short)]
+  } else {
+    [
+      @html.span(class="dsh-setting-current", "当前 " + value_text),
+      @html.span(class="dsh-setting-sep", "·"),
+      @html.span(class="dsh-setting-source", "来源 " + source_text),
+      @html.span(class="dsh-setting-sep", "·"),
+      @html.span(class="dsh-setting-default", "缺省 " + default_short),
+    ]
+  }
   @html.div(
     class="dsh-setting",
     attrs=@html.Attrs::build()
       .data_set("name", "setting-row")
       .data_set("setting", def.key)
       .data_set("value", value_text)
-      .data_set("source", source_text),
+      .data_set("source", source_text)
+      // 键名是给排查用的，摆在标题旁边太嘈杂 —— 收进悬停
+      .title(def.label + "：设置文件里的键名是 " + def.key),
     [
       @html.div(class="dsh-setting-main", [
-        @html.div(class="dsh-setting-title", [
-          @html.span(class="dsh-setting-name", def.label),
-          @html.span(class="dsh-setting-key", def.key),
-        ]),
+        // 可见的只有人话名称，键名在行悬停里
+        @html.div(class="dsh-setting-title", [@html.span(class="dsh-setting-name", def.label)]),
         @html.p(class="dsh-setting-desc", def.desc),
-        @html.div(class="dsh-setting-meta", [
-          @html.span(class="dsh-setting-current", "当前值 " + value_text),
-          @html.span(class="dsh-setting-sep", "·"),
-          @html.span(class="dsh-setting-source", "来源 " + source_text),
-          @html.span(class="dsh-setting-sep", "·"),
-          @html.span(class="dsh-setting-default", "缺省 " + setting_default_short(model, def)),
-        ]),
+        @html.div(class="dsh-setting-meta", meta),
       ]),
       @html.div(class="dsh-setting-control", [
         control,
@@ -382,9 +390,13 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.h1(class="dsh-page-title", "设置"),
         source_badge(model.tag_settings),
       ]),
+      // 落盘路径是排查用的细节，收进悬停：使用者只需要知道「改动即保存」
       @html.p(
         class="dsh-settings-note",
-        "改动即保存：每个键单独 PUT 一次。落盘位置 $XDG_STATE_HOME/dsh-console/settings.json。",
+        attrs=@html.Attrs::build().title(
+          "每个键单独保存一次；落盘位置 $XDG_STATE_HOME/dsh-console/settings.json",
+        ),
+        "改动即保存。",
       ),
       settings_feedback(model),
       body,
