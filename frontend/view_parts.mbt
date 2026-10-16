@@ -138,7 +138,11 @@ fn loading_block(name : String, title : String, detail : String) -> @html.Html {
 /// 占位块是**静态**灰块：没有 shimmer、没有脉冲 —— 全页的动效只有启动态那颗状态点，
 /// 多一个就会被 design/probe-animation.mjs 的「点击前无可见动效」抓到。
 /// 它们也不是交互元素：没有 tabindex、没有 role、没有点击处理器，点了没反应；
-/// 整块对读屏隐藏（aria-hidden），带语义的只有末尾那一行说明（role=status + aria-live）。
+/// 整块对读屏隐藏（aria-hidden），带语义的只有末尾那一条状态说明（role=status + aria-live）。
+///
+/// **那一条说明是视觉隐藏的（sr-only）**（第十二轮）：正文里不再出现「正在读取…」那几句 ——
+/// 骨架屏本身就代表加载态，再摆四句话是重复。但它一个字都不能删：占位方块对读屏
+/// 等于空白，读屏的人要的正是这一条。屏幕上一个像素都不占（见 app.scss 的 .dsh-sr-only）。
 ///
 /// 说明摆在占位块**下面**（不是上面）：这样第一块与将来的第一张卡落在同一个位置，
 /// 上下也不跳。说明只此一处，占位块里一个字都不写。
@@ -171,9 +175,11 @@ fn card_loading(name : String, title : String, detail : String) -> @html.Html {
   let children : Array[@html.Html] = [
     @html.div(class="dsh-skeleton-row", tiles),
   ]
+  // 这一条只给读屏：role=status + aria-live 保留，位置由 .dsh-sr-only 挪出可视区
+  // （绝对定位 + 1px + clip）。四句话从可见位拿掉，骨架屏单独代表加载态。
   children.push(
     @html.div(
-      class="dsh-loading-note",
+      class="dsh-loading-note dsh-sr-only",
       attrs=@html.Attrs::build().role("status").aria_live("polite"),
       [
         @html.p(class="dsh-loading-line", title),

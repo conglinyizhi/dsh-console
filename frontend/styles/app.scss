@@ -435,6 +435,23 @@ select { appearance: none; -webkit-appearance: none; }
   min-width: 0;
   text-align: left;
 }
+/* 视觉隐藏（sr-only）：屏幕上一个像素都不占，读屏照读。
+   绝对定位 + 1px + clip 三件套 —— 只写 overflow: hidden 不够：那样元素仍然占着
+   文档流里那一行的高度，而这一条存在的理由恰恰是**不占高度**。
+   也不能用 display: none / visibility: hidden：那两样把读屏一起藏了 ✗
+   （骨架屏那一条状态说明挂在这一类上，见 view_parts 的 card_loading）。 */
+.dsh-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 // ── 归档行（ArchivedRow.vue） ──
 .dsh-archive-row {
