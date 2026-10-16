@@ -1,0 +1,230 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "steps": {
+  "noStateField": {
+   "cardLight": "unknown",
+   "cardDotClass": "dsh-dot light-unknown",
+   "cardDotBg": "rgba(0, 0, 0, 0)",
+   "cardDotAria": "未知（后端没给 state）",
+   "drawerLight": "unknown",
+   "label": "未知（后端没给 state）",
+   "why": "这一版后端还没给 state 字段，颜色不猜（这一格是「未知」，不是三色里的任何一档）。已有的读数里能说的只有：签名探测通过（dsh-auth-401）；端口在听、持有它的进程像不像 dsh、profile 缺不缺包，要等后端把 state 接上才说得准。",
+   "stateRaw": "后端 state：没有这个字段（这一版后端还没给）"
+  },
+  "cardDom": {
+   "found": true,
+   "id": "dsh-card-port-3080",
+   "tag": "article",
+   "role": "button",
+   "tabindex": "0",
+   "ariaHaspopup": "dialog",
+   "text": "web :3080",
+   "childElementCount": 1,
+   "inner": {
+    "buttons": 0,
+    "menus": 0,
+    "fields": 0,
+    "actionGroups": 0,
+    "dots": 1,
+    "names": 1,
+    "notes": 0,
+    "tiles": 1
+   },
+   "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（绿 · 运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\">\n<div class=\"dsh-case-head\">\n<span class=\"dsh-tile-slot\">\n<span class=\"dsh-tile accent\">\n<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\">\n<path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\">\n</path>\n</svg>\n</span>\n<span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"绿 · 运行中\" title=\"绿 · 运行中：签名探测通过（dsh-auth-401：HTTP 401 且响应体含 &quot;dsh web authentication required&quot;（dsh-client-connection 的未授权应答））。这一档由后端的 state 给（state=running）。\" class=\"dsh-dot light-run\">\n<!--[-->\n<!--]-->\n</span>\n</span>\n<span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（绿 · 运行中）\" class=\"dsh-name\">web :3080</span>\n</div>\n</article>"
+  },
+  "openByCard": {
+   "open": true,
+   "scrim": true,
+   "activeId": "dsh-drawer-close",
+   "activeIsClose": true,
+   "activeIsCard": false,
+   "active": "dsh-drawer-close"
+  },
+  "closedByEsc": {
+   "open": false,
+   "scrim": false,
+   "activeId": "dsh-card-port-3080",
+   "activeIsClose": false,
+   "activeIsCard": true,
+   "active": "dsh-card-port-3080"
+  },
+  "closedByOutside": {
+   "open": false,
+   "scrim": false,
+   "activeId": "dsh-card-port-3080",
+   "activeIsClose": false,
+   "activeIsCard": true,
+   "active": "dsh-card-port-3080"
+  },
+  "closedByButton": {
+   "open": false,
+   "scrim": false,
+   "activeId": "dsh-card-port-3080",
+   "activeIsClose": false,
+   "activeIsCard": true,
+   "active": "dsh-card-port-3080"
+  },
+  "openByKeyboard": {
+   "open": true,
+   "scrim": true,
+   "activeId": "dsh-drawer-close",
+   "activeIsClose": true,
+   "activeIsCard": false,
+   "active": "dsh-drawer-close"
+  },
+  "reachWide": {
+   "buttons": [
+    {
+     "action": "close",
+     "text": "",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "path.[object SVGAnimatedStrin"
+    },
+    {
+     "action": "open-ui",
+     "text": "打开 Web UI",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "stop",
+     "text": "停止",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "restart",
+     "text": "重启",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "tab",
+     "text": "在新标签页打开",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "copy-url",
+     "text": "复制访问地址",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "copy-dev",
+     "text": "复制开发指令",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "rename",
+     "text": "重命名",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "note",
+     "text": "备注",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "fork",
+     "text": "派生开发副本",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "logs",
+     "text": "查看日志",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "dir",
+     "text": "打开工作目录",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    },
+    {
+     "action": "config",
+     "text": "编辑配置",
+     "disabled": false,
+     "reachable": true,
+     "neededScroll": false,
+     "hittag": "span."
+    }
+   ],
+   "fieldCount": 6,
+   "fieldLabels": [
+    "DSH 版本 / 来源",
+    "Profile",
+    "访问地址",
+    "DSH_HOME",
+    "插件数量",
+    "最近改动"
+   ],
+   "scrollable": {
+    "scrollH": 841,
+    "clientH": 841,
+    "canScroll": false,
+    "overflowY": "auto"
+   }
+  },
+  "narrow": {
+   "drawerW": 400,
+   "viewportW": 400,
+   "left": 0,
+   "fullWidth": true,
+   "pageOverflowX": false,
+   "drawerOverflowX": false,
+   "buttons": 13,
+   "unreachable": []
+  }
+ },
+ "card": {
+  "found": true,
+  "id": "dsh-card-port-3080",
+  "tag": "article",
+  "role": "button",
+  "tabindex": "0",
+  "ariaHaspopup": "dialog",
+  "text": "web :3080",
+  "childElementCount": 1,
+  "inner": {
+   "buttons": 0,
+   "menus": 0,
+   "fields": 0,
+   "actionGroups": 0,
+   "dots": 1,
+   "names": 1,
+   "notes": 0,
+   "tiles": 1
+  },
+  "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（绿 · 运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\">\n<div class=\"dsh-case-head\">\n<span class=\"dsh-tile-slot\">\n<span class=\"dsh-tile accent\">\n<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\">\n<path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\">\n</path>\n</svg>\n</span>\n<span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"绿 · 运行中\" title=\"绿 · 运行中：签名探测通过（dsh-auth-401：HTTP 401 且响应体含 &quot;dsh web authentication required&quot;（dsh-client-connection 的未授权应答））。这一档由后端的 state 给（state=running）。\" class=\"dsh-dot light-run\">\n<!--[-->\n<!--]-->\n</span>\n</span>\n<span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（绿 · 运行中）\" class=\"dsh-name\">web :3080</span>\n</div>\n</article>"
+ }
+}

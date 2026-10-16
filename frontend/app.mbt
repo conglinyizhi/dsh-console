@@ -139,6 +139,17 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   // 归档区不是演示数据了：它由本轮真的点过「归档」的动作产生（archive.json 没有读接口，
   // 所以这份记录只在这次会话里有效）。行是按读数重建的，重建之后要把归档标记标回去。
   let rows = apply_archived_marks(model, rows)
+  // 抽屉指着的那一行还在不在：重建之后行可能已经不是原来那一条了（停掉的实例变成
+  // profile 行、归档把它移出分组、profile 被删掉）。行没了就把抽屉收掉 ——
+  // 留一个指向不存在的行的 drawer_id，页面上会多出一个没有内容的浮层挡住底下。
+  let drawer = if model.drawer_id == "" {
+    ""
+  } else {
+    match find_row(rows, model.drawer_id) {
+      Some(_) => model.drawer_id
+      None => ""
+    }
+  }
   let source = if model.log_user_picked {
     model.log_source
   } else {
@@ -159,6 +170,7 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   let next = {
     ..model,
     rows,
+    drawer_id: drawer,
     built: true,
     log_source: source,
     // 刚补发了一次读取：加载态立起来，回执到了再放下去
@@ -327,7 +339,7 @@ fn open_path_action(
       }
   }
   send_action(
-    { ..model, menu_open: "" },
+    model,
     row_id,
     "open-path",
     row_name(model, row_id),
@@ -374,7 +386,6 @@ fn open_web_ui(
       (
         {
           ..model,
-          menu_open: "",
           act_notice: row.name + " 的 Web UI " + tail + "。地址 " + url + "（令牌来源：" +
             row.web_url_source + "）",
           act_notice_ok: ok,
@@ -391,7 +402,6 @@ fn open_web_ui(
       (
         {
           ..model,
-          menu_open: "",
           act_notice: row.name + " 的 Web UI 没有打开：读不到握手令牌，一个标签页都没开 —— " +
             reason + "。裸地址 " + row.url +
             " 直接打开会被挡在门外；可以从启动它的那个终端里，把启动横幅里带令牌的完整地址抄过来。",
@@ -443,7 +453,6 @@ fn copy_url_action(
     return (
       {
         ..model,
-        menu_open: "",
         act_notice: row.name + " 的" + what + "没能复制：" + why + "，没有可复制的内容",
         act_notice_ok: false,
       },
@@ -451,7 +460,7 @@ fn copy_url_action(
     )
   }
   (
-    { ..model, menu_open: "", act_notice: "" },
+    { ..model, act_notice: "" },
     copy_cmd(row.name + " 的" + what, text, emit),
   )
 }
@@ -560,14 +569,13 @@ fn copy_dev_action(model : Model, row_id : String, emit : @cmd.Emit[Msg]) -> (Mo
     return (
       {
         ..model,
-        menu_open: "",
         act_notice: row.name + " 的开发指令没能复制：" + why + "，拼不出可粘的说明",
         act_notice_ok: false,
       },
       @cmd.none,
     )
   }
-  ({ ..model, menu_open: "", act_notice: "" }, copy_cmd(row.name + " 的开发指令", text, emit))
+  ({ ..model, act_notice: "" }, copy_cmd(row.name + " 的开发指令", text, emit))
 }
 
 ///|
@@ -1617,11 +1625,6 @@ fn clear_flash(model : Model) -> Model {
 
 ///|
 fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
-  // 行内动作一律先收起菜单：菜单项点下去之后菜单不该留在原地
-  let model = match msg {
-    RowAction(_, _) => { ..model, menu_open: "" }
-    _ => model
-  }
   match msg {
     RuntimeText(res) => {
       let time = local_time_now()
@@ -1902,17 +1905,22 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
               )
             }
           }
+        // 三个会开对话框的动作（重命名 / 删除 / 备注）都先把抽屉收掉：
+        // 对话框在抽屉之上（z-index 60/61 > 抽屉 50/51），抽屉留在地上没有意义 ——
+        // 而且取消之后焦点要回触发元素，那元素在抽屉里的话，焦点就落进一个盖在背后的面板。
+        // 关掉抽屉之后焦点回那张卡，与「打开对话框的是这张卡」这件事一致。
         Rename => (
           {
             ..model,
+            drawer_id: "",
             rename_id: id,
             rename_draft: row_name(model, id),
-            rename_return: trigger_id(id),
+            rename_return: card_id(id),
           },
           focus_select_after_render("dsh-rename-input"),
         )
         Delete => (
-          { ..model, confirm_id: id, confirm_return: trigger_id(id) },
+          { ..model, drawer_id: "", confirm_id: id, confirm_return: card_id(id) },
           focus_after_render("dsh-confirm-ok"),
         )
         // 打开编辑框是纯前端的事，真正的写动作在保存那一步（NoteConfirm）
@@ -1957,7 +1965,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 Some(source) => {
                   // 这是用户自己挑的来源，rebuild 的缺省推导不许再压过它
                   let (next, read) = start_logs(
-                    { ..model, page: Logs, menu_open: "", log_user_picked: true },
+                    { ..model, page: Logs, drawer_id: "", log_user_picked: true },
                     source,
                     emit,
                   )
@@ -1973,7 +1981,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 None => (
                   {
                     ..model,
-                    menu_open: "",
+                    drawer_id: "",
                     act_notice: row.name +
                       " 现在没有在跑的实例，没有可读的日志来源（查看日志这一步没有执行）",
                     act_notice_ok: false,
@@ -2017,23 +2025,17 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       { ..model, confirm_id: id, confirm_return: return_id },
       focus_after_render("dsh-confirm-ok"),
     )
-    MenuToggle(id) =>
-      if model.menu_open == id {
-        ({ ..model, menu_open: "" }, @cmd.none)
-      } else {
-        (
-          { ..model, menu_open: id },
-          // 顺序有意义：先量锚点（可能翻上去、可能钳高度），几何定了再落焦第一项
-          @cmd.batch([
-            flip_after_render(menu_id(id)),
-            focus_first_after_render(menu_id(id), ".dsh-menu-item"),
-          ]),
-        )
-      }
-    MenuClose => ({ ..model, menu_open: "" }, @cmd.none)
-    MenuCloseBack(id) => (
-      { ..model, menu_open: "" },
-      focus_after_render(trigger_id(id)),
+    // 点整张卡：开抽屉，焦点进抽屉里的关闭键。
+    // 卡是 role=button + tabindex=0，键盘也能开（Enter / 空格，见 view_overview 的 card_attrs）。
+    DrawerOpen(id) => (
+      { ..model, drawer_id: id },
+      focus_after_render(drawer_close_id()),
+    )
+    // 关抽屉：点外部 / Esc / 关闭键三条路都走这里，焦点一律回触发它的那张卡 ——
+    // 焦点落在被卸载的节点上会掉到 body，键盘用户于是从页首重新 Tab。
+    DrawerClose => (
+      { ..model, drawer_id: "" },
+      focus_after_render(card_id(model.drawer_id)),
     )
     // 启动的展示下限到了：等回执一起收尾（收尾里不伪造成「运行中」——
     // 真的起来了的那张卡由重读 instances 给出）
@@ -2108,12 +2110,15 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     )
     // 编辑备注：与重命名同一套（预填、Esc 取消、关闭后焦点回触发元素）。
     // 焦点落在备注框、光标推到文末 —— 这里是接着改，不是整段覆盖。
+    // 与重命名 / 删除同一条口径：开框就把抽屉收掉（框在抽屉之上，抽屉留着没有意义，
+    // 取消之后焦点还要回触发它的那张卡 —— 那元素在抽屉里的话焦点就落进背后的面板）
     NoteOpen(id) => (
       {
         ..model,
+        drawer_id: "",
         note_open: id,
         note_draft: row_note(model, id),
-        note_return: trigger_id(id),
+        note_return: card_id(id),
         note_error: "",
       },
       focus_end_after_render("dsh-note-input"),

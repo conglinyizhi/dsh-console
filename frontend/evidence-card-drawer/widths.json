@@ -1,0 +1,613 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "widths": [
+  {
+   "viewportW": 360,
+   "tracks": 1,
+   "trackSizes": [
+    "126px"
+   ],
+   "observedColumns": 1,
+   "cardWidths": [
+    126,
+    126,
+    126
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 360,
+   "pageClientW": 360,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 480,
+   "tracks": 1,
+   "trackSizes": [
+    "246px"
+   ],
+   "observedColumns": 1,
+   "cardWidths": [
+    246,
+    246,
+    246
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 480,
+   "pageClientW": 480,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 620,
+   "tracks": 1,
+   "trackSizes": [
+    "386px"
+   ],
+   "observedColumns": 1,
+   "cardWidths": [
+    386,
+    386,
+    386
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 620,
+   "pageClientW": 620,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 725,
+   "tracks": 1,
+   "trackSizes": [
+    "491px"
+   ],
+   "observedColumns": 1,
+   "cardWidths": [
+    491,
+    491,
+    491
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 725,
+   "pageClientW": 725,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 726,
+   "tracks": 2,
+   "trackSizes": [
+    "240px",
+    "240px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    240,
+    240,
+    240
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 726,
+   "pageClientW": 726,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 900,
+   "tracks": 2,
+   "trackSizes": [
+    "327px",
+    "327px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    327,
+    327,
+    327
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 900,
+   "pageClientW": 900,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 977,
+   "tracks": 2,
+   "trackSizes": [
+    "365.5px",
+    "365.5px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    365.5,
+    365.5,
+    365.5
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 977,
+   "pageClientW": 977,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 978,
+   "tracks": 3,
+   "trackSizes": [
+    "240px",
+    "240px",
+    "240px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    240,
+    240,
+    240
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 978,
+   "pageClientW": 978,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1100,
+   "tracks": 3,
+   "trackSizes": [
+    "280.656px",
+    "280.672px",
+    "280.672px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    280.7,
+    280.7,
+    280.7
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1100,
+   "pageClientW": 1100,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1229,
+   "tracks": 3,
+   "trackSizes": [
+    "323.656px",
+    "323.672px",
+    "323.672px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    323.7,
+    323.7,
+    323.7
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1229,
+   "pageClientW": 1229,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1230,
+   "tracks": 4,
+   "trackSizes": [
+    "240px",
+    "240px",
+    "240px",
+    "240px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    240,
+    240,
+    240
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1230,
+   "pageClientW": 1230,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1280,
+   "tracks": 4,
+   "trackSizes": [
+    "252.5px",
+    "252.5px",
+    "252.5px",
+    "252.5px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    252.5,
+    252.5,
+    252.5
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1280,
+   "pageClientW": 1280,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1440,
+   "tracks": 4,
+   "trackSizes": [
+    "292.5px",
+    "292.5px",
+    "292.5px",
+    "292.5px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    292.5,
+    292.5,
+    292.5
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1440,
+   "pageClientW": 1440,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1481,
+   "tracks": 4,
+   "trackSizes": [
+    "302.75px",
+    "302.75px",
+    "302.75px",
+    "302.75px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    302.8,
+    302.8,
+    302.8
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1481,
+   "pageClientW": 1481,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1482,
+   "tracks": 5,
+   "trackSizes": [
+    "240px",
+    "240px",
+    "240px",
+    "240px",
+    "240px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    240,
+    240,
+    240
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1482,
+   "pageClientW": 1482,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1600,
+   "tracks": 5,
+   "trackSizes": [
+    "263.594px",
+    "263.594px",
+    "263.594px",
+    "263.594px",
+    "263.594px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    263.6,
+    263.6,
+    263.6
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1600,
+   "pageClientW": 1600,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1733,
+   "tracks": 5,
+   "trackSizes": [
+    "290.188px",
+    "290.203px",
+    "290.203px",
+    "290.203px",
+    "290.203px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    290.2,
+    290.2,
+    290.2
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1733,
+   "pageClientW": 1733,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1734,
+   "tracks": 6,
+   "trackSizes": [
+    "240px",
+    "240px",
+    "240px",
+    "240px",
+    "240px",
+    "240px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    240,
+    240,
+    240
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1734,
+   "pageClientW": 1734,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 1920,
+   "tracks": 6,
+   "trackSizes": [
+    "271px",
+    "271px",
+    "271px",
+    "271px",
+    "271px",
+    "271px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    271,
+    271,
+    271
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 1920,
+   "pageClientW": 1920,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "viewportW": 2560,
+   "tracks": 6,
+   "trackSizes": [
+    "377.656px",
+    "377.656px",
+    "377.656px",
+    "377.656px",
+    "377.656px",
+    "377.656px"
+   ],
+   "observedColumns": 2,
+   "cardWidths": [
+    377.7,
+    377.7,
+    377.7
+   ],
+   "pageOverflowX": false,
+   "pageScrollW": 2560,
+   "pageClientW": 2560,
+   "gridOverflowX": false,
+   "mainOverflowX": false,
+   "cardOverflowX": [
+    false,
+    false,
+    false
+   ],
+   "headOverflowX": [
+    false,
+    false,
+    false
+   ]
+  }
+ ]
+}

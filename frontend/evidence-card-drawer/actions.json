@@ -1,0 +1,20 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "steps": {
+  "beforeLogs": {
+   "url": "/",
+   "drawer": true
+  },
+  "afterLogs": {
+   "url": "/logs?source=instance%3Aproc-3080",
+   "drawer": false,
+   "h1": "日志",
+   "select": "instance:proc-3080"
+  },
+  "copy": {
+   "toast": null,
+   "notice": "web :3080 的访问地址没能写进剪贴板：Failed to execute 'writeText' on 'Clipboard': Document is not focused.；document.execCommand 也返回 false。",
+   "clip": "read-failed: Failed to execute 'readText' on 'Clipboard': Document is not focused."
+  }
+ }
+}

@@ -1,0 +1,77 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "cases": {
+  "rename": {
+   "action": "rename",
+   "clicked": "重命名",
+   "open": true,
+   "scrim": true,
+   "drawerOpen": false,
+   "centered": true,
+   "onTop": true,
+   "active": "dsh-rename-input",
+   "title": "重命名实例 headless",
+   "cancel": {
+    "open": false,
+    "scrim": false,
+    "drawerOpen": false,
+    "centered": null,
+    "onTop": null,
+    "active": "dsh-card-profile-headless",
+    "title": null
+   },
+   "focusAfterCancel": "dsh-card-profile-headless"
+  },
+  "renameScrim": {
+   "action": "rename",
+   "clicked": "重命名",
+   "open": true,
+   "scrim": true,
+   "drawerOpen": false,
+   "centered": true,
+   "onTop": true,
+   "active": "dsh-rename-input",
+   "title": "重命名实例 headless",
+   "afterScrim": {
+    "open": false,
+    "scrim": false,
+    "drawerOpen": false,
+    "centered": null,
+    "onTop": null,
+    "active": "dsh-card-profile-headless",
+    "title": null
+   }
+  },
+  "note": {
+   "action": "note",
+   "clicked": "备注",
+   "open": true,
+   "scrim": true,
+   "drawerOpen": false,
+   "centered": true,
+   "onTop": true,
+   "active": "dsh-note-input",
+   "title": "编辑备注 headless"
+  },
+  "delete": {
+   "action": "delete",
+   "clicked": "删除",
+   "open": true,
+   "scrim": true,
+   "drawerOpen": false,
+   "centered": true,
+   "onTop": true,
+   "active": "dsh-confirm-ok",
+   "title": "删除实例 headless？",
+   "afterScrim": {
+    "open": false,
+    "scrim": false,
+    "drawerOpen": false,
+    "centered": null,
+    "onTop": null,
+    "active": "dsh-card-profile-headless",
+    "title": null
+   }
+  }
+ }
+}

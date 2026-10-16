@@ -284,6 +284,18 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
 // ── GET /api/local/instances ────────────────────────────────
 
 ///|
+/// 实例对应的 profile 的健康读数（profileHealth，第七轮契约新增）。
+///
+/// 只报两个事实：缺几个包、有没有 cordis.patch.yml —— 卡片上那颗状态灯「黄」的
+/// 成因 c 就是它们（契约里写死的判据）。包名清单不在这里：它在 profiles 读数里。
+pub(all) struct InstanceHealth {
+  missing_bundles : Int
+  has_patch : Bool
+} derive(Eq)
+
+pub extend InstanceHealth with Eq::{ not_equal, equal }
+
+///|
 pub(all) struct InstanceFact {
   id : String
   port : Int
@@ -312,6 +324,15 @@ pub(all) struct InstanceFact {
   web_url : String?
   /// 令牌从哪来，或为什么读不到（后端原样给；这一版后端还没这个字段时也补一句人话）。
   web_url_source : String
+  /// 状态灯的三档（第七轮契约）：running / fault / starting。
+  /// None = 这一版后端还没给这个字段（或给了个不是字符串的值）——
+  /// 这时**不许猜颜色**：卡上那颗灯走「未知」那一档，抽屉里说清是后端没给。
+  state : String?
+  /// 为什么是这个状态（后端原样给）。字段不在时由前端补一句「这一版还没给」。
+  state_reason : String
+  /// 实例对应的 profile 健康读数；None = 这一版后端没给 profileHealth。
+  /// None 与「给了但缺 0 个包」不是一件事，所以用 Option 而不是拿 0 顶上。
+  profile_health : InstanceHealth?
 } derive(Eq)
 
 pub extend InstanceFact with Eq::{ not_equal, equal }
@@ -373,6 +394,9 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
         bool_field(fact, "startedByConsole"),
       web_url: opt_str_field(fact, "webUrl"),
       web_url_source: web_url_source_of(fact),
+      state: state_of(fact),
+      state_reason: state_reason_of(fact),
+      profile_health: health_of(fact),
     })
   }
   Ok({
@@ -398,6 +422,53 @@ fn web_url_source_of(fact : Map[String, Json]) -> String {
   match fact.get("webUrl") {
     Some(Json::String(_)) => ""
     _ => "instances 读数里这一条没有 webUrl / webUrlSource 字段（这一版没给这两个字段）"
+  }
+}
+
+///|
+/// state 字段的取值：只看它是不是一个非空字符串。
+///
+/// None 有两种来路，界面都要说清「不猜颜色」：字段**根本不在响应里**（这一版后端还没落地），
+/// 以及字段在、但值不是能认的字符串（null / 数字 / 空串）。
+/// 取值本身不在前端做业务推导 —— running / fault / starting 的判据在后端（见契约第七轮）。
+fn state_of(fact : Map[String, Json]) -> String? {
+  match fact.get("state") {
+    Some(Json::String(s)) => if s == "" { None } else { Some(s) }
+    _ => None
+  }
+}
+
+///|
+/// stateReason：后端给了就原样用；字段不在时补一句人话。
+///
+/// 这句话是抽屉里「为什么是这个颜色」那一块的正文，**不能是空串**：
+/// 空着就成了一个没有理由的颜色。所以「后端给了 state 但没给理由」与
+/// 「这一版后端根本没给 state」分开写。
+fn state_reason_of(fact : Map[String, Json]) -> String {
+  let reason = str_field(fact, "stateReason")
+  if has_key(fact, "state") {
+    if reason != "" {
+      reason
+    } else {
+      "后端给了 state，但没有给 stateReason：为什么是这个状态，后端没解释"
+    }
+  } else {
+    "instances 读数里没有 state 字段（这一版后端还没给）"
+  }
+}
+
+///|
+/// profileHealth：只在它真是一个对象时才有值。
+/// 字段不在 = None（界面说「这一版后端还没给」），**不拿 missingBundles:0 顶上**：
+/// 「读了、一个都不缺」与「没读到」不是一件事，顶上就把后者说成了前者。
+fn health_of(fact : Map[String, Json]) -> InstanceHealth? {
+  match fact.get("profileHealth") {
+    Some(Json::Object(health)) =>
+      Some({
+        missing_bundles: int_or(health, "missingBundles", 0),
+        has_patch: bool_field(health, "hasPatch"),
+      })
+    _ => None
   }
 }
 

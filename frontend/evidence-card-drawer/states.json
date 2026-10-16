@@ -1,0 +1,548 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "fakePort": 34503,
+ "fakeProbe": {
+  "status": 200,
+  "contentType": "text/plain",
+  "body": "not a dsh signature"
+ },
+ "fakeCmdline": "node ~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/lib/bin.js web --port 34503 -e require('http').createServer((q,s)=>{s.writeHead(200,{'content-type':'text/plain'});s.end('not a dsh signature')}).listen(34503)",
+ "fakePid": 207752,
+ "cards": [
+  {
+   "id": "dsh-card-port-3080",
+   "name": "web :3080",
+   "dataLight": "running",
+   "dataStatus": "running",
+   "dotState": "running",
+   "dotClass": "dsh-dot light-run",
+   "dotBg": "rgb(78, 194, 122)",
+   "dotSize": "13pxx13px",
+   "dotAria": "绿 · 运行中",
+   "note": null,
+   "text": "web :3080"
+  },
+  {
+   "id": "dsh-card-port-34503",
+   "name": "web :34503",
+   "dataLight": "fault",
+   "dataStatus": "running",
+   "dotState": "fault",
+   "dotClass": "dsh-dot light-fault",
+   "dotBg": "rgb(224, 164, 88)",
+   "dotSize": "13pxx13px",
+   "dotAria": "黄 · 故障",
+   "note": null,
+   "text": "web :34503"
+  },
+  {
+   "id": "dsh-card-profile-headless",
+   "name": "headless",
+   "dataLight": "stopped",
+   "dataStatus": "stopped",
+   "dotState": "stopped",
+   "dotClass": "dsh-dot light-stop",
+   "dotBg": "rgb(224, 104, 95)",
+   "dotSize": "13pxx13px",
+   "dotAria": "红 · 停用",
+   "note": "备注测试测试",
+   "text": "headless备注测试测试"
+  },
+  {
+   "id": "dsh-card-profile-review-dev",
+   "name": "review-dev",
+   "dataLight": "fault",
+   "dataStatus": "stopped",
+   "dotState": "fault",
+   "dotClass": "dsh-dot light-fault",
+   "dotBg": "rgb(224, 164, 88)",
+   "dotSize": "13pxx13px",
+   "dotAria": "黄 · 故障",
+   "note": null,
+   "text": "review-dev"
+  }
+ ],
+ "drawers": {
+  "running": {
+   "card": {
+    "id": "dsh-card-port-3080",
+    "name": "web :3080",
+    "dataLight": "running",
+    "dataStatus": "running",
+    "dotState": "running",
+    "dotClass": "dsh-dot light-run",
+    "dotBg": "rgb(78, 194, 122)",
+    "dotSize": "13pxx13px",
+    "dotAria": "绿 · 运行中",
+    "note": null,
+    "text": "web :3080"
+   },
+   "drawer": {
+    "open": true,
+    "id": "dsh-drawer",
+    "role": "dialog",
+    "ariaModal": "true",
+    "width": 520,
+    "right": 1440,
+    "viewportW": 1440,
+    "position": "fixed",
+    "lightState": "running",
+    "lightBg": "rgb(78, 194, 122)",
+    "lightLabel": "绿 · 运行中",
+    "why": "绿 · 运行中：签名探测通过（dsh-auth-401：HTTP 401 且响应体含 \"dsh web authentication required\"（dsh-client-connection 的未授权应答））。这一档由后端的 state 给（state=running）。",
+    "stateRaw": "后端 state：running",
+    "stateReason": "后端 stateReason：签名探测通过（dsh-auth-401）；profile 检查不过（成因 c）：缺 3 个包（@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle）（~/.dsh/profiles/web）—— 这只实例在跑、签名也过，绿由签名给，缺包这一条记在 profileHealth 里",
+    "health": "缺 3 个包（后端只给了个数，没给名字）",
+    "healthSource": "来源：instances 读数的 profileHealth 字段（后端按这只实例解析出的 profile 给的）",
+    "fieldCount": 6,
+    "fieldLabels": [
+     "DSH 版本 / 来源",
+     "Profile",
+     "访问地址",
+     "DSH_HOME",
+     "插件数量",
+     "最近改动"
+    ],
+    "buttons": [
+     {
+      "action": "close",
+      "text": "",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "open-ui",
+      "text": "打开 Web UI",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "stop",
+      "text": "停止",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "restart",
+      "text": "重启",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "tab",
+      "text": "在新标签页打开",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-url",
+      "text": "复制访问地址",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-dev",
+      "text": "复制开发指令",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "rename",
+      "text": "重命名",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "note",
+      "text": "备注",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "fork",
+      "text": "派生开发副本",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "logs",
+      "text": "查看日志",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "dir",
+      "text": "打开工作目录",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "config",
+      "text": "编辑配置",
+      "disabled": false,
+      "reachable": true
+     }
+    ],
+    "activeElement": "dsh-drawer-close"
+   }
+  },
+  "fault": {
+   "card": {
+    "id": "dsh-card-port-34503",
+    "name": "web :34503",
+    "dataLight": "fault",
+    "dataStatus": "running",
+    "dotState": "fault",
+    "dotClass": "dsh-dot light-fault",
+    "dotBg": "rgb(224, 164, 88)",
+    "dotSize": "13pxx13px",
+    "dotAria": "黄 · 故障",
+    "note": null,
+    "text": "web :34503"
+   },
+   "drawer": {
+    "open": true,
+    "id": "dsh-drawer",
+    "role": "dialog",
+    "ariaModal": "true",
+    "width": 520,
+    "right": 1440,
+    "viewportW": 1440,
+    "position": "fixed",
+    "lightState": "fault",
+    "lightBg": "rgb(224, 164, 88)",
+    "lightLabel": "黄 · 故障",
+    "why": "黄 · 故障：端口在听、持有它的进程 cmdline 看着是 dsh，但签名探测不通过（HTTP 200 text/plain，没有命中任何签名）。契约里黄的两种成因 —— b：端口在听、持有它的进程像 dsh，但签名探测不通过；c：解析出的 profile 缺包大于 0（或没有 cordis.patch.yml）。",
+    "stateRaw": "后端 state：fault",
+    "stateReason": "后端 stateReason：端口在听、持有它的进程 cmdline 看着是 dsh，但签名探测不通过（HTTP 200 text/plain，没有命中任何签名）",
+    "health": "缺 3 个包（后端只给了个数，没给名字）",
+    "healthSource": "来源：instances 读数的 profileHealth 字段（后端按这只实例解析出的 profile 给的）",
+    "fieldCount": 6,
+    "fieldLabels": [
+     "DSH 版本 / 来源",
+     "Profile",
+     "访问地址",
+     "DSH_HOME",
+     "插件数量",
+     "最近改动"
+    ],
+    "buttons": [
+     {
+      "action": "close",
+      "text": "",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "open-ui",
+      "text": "打开 Web UI",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "stop",
+      "text": "停止",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "restart",
+      "text": "重启",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "tab",
+      "text": "在新标签页打开",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-url",
+      "text": "复制访问地址",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-dev",
+      "text": "复制开发指令",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "rename",
+      "text": "重命名",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "note",
+      "text": "备注",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "fork",
+      "text": "派生开发副本",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "logs",
+      "text": "查看日志",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "dir",
+      "text": "打开工作目录",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "config",
+      "text": "编辑配置",
+      "disabled": false,
+      "reachable": true
+     }
+    ],
+    "activeElement": "dsh-drawer-close"
+   }
+  },
+  "stopped": {
+   "card": {
+    "id": "dsh-card-profile-headless",
+    "name": "headless",
+    "dataLight": "stopped",
+    "dataStatus": "stopped",
+    "dotState": "stopped",
+    "dotClass": "dsh-dot light-stop",
+    "dotBg": "rgb(224, 104, 95)",
+    "dotSize": "13pxx13px",
+    "dotAria": "红 · 停用",
+    "note": "备注测试测试",
+    "text": "headless备注测试测试"
+   },
+   "drawer": {
+    "open": true,
+    "id": "dsh-drawer",
+    "role": "dialog",
+    "ariaModal": "true",
+    "width": 520,
+    "right": 1440,
+    "viewportW": 1440,
+    "position": "fixed",
+    "lightState": "stopped",
+    "lightBg": "rgb(224, 104, 95)",
+    "lightLabel": "红 · 停用",
+    "why": "红 · 停用：没有在跑的实例，profile 的包也不缺、cordis.patch.yml 也在（契约里红的判据）。",
+    "stateRaw": "后端 state：不适用（这是磁盘上的 profile 行，不是实例读数）",
+    "stateReason": "后端 stateReason：这一行是磁盘上的 profile，不是实例读数：实例的 state 字段对它不适用；状态灯按 profiles 读数里现成的两条判据给（缺包 / 有没有 cordis.patch.yml）",
+    "health": "声明的包都已安装，cordis.patch.yml 也在",
+    "healthSource": "来源：GET /api/local/profiles 的 bundles / patch 字段",
+    "fieldCount": 6,
+    "fieldLabels": [
+     "DSH 版本 / 来源",
+     "Profile",
+     "访问地址",
+     "DSH_HOME",
+     "插件数量",
+     "最近改动"
+    ],
+    "buttons": [
+     {
+      "action": "close",
+      "text": "",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "start",
+      "text": "启动",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "restart",
+      "text": "重启",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-url",
+      "text": "复制访问地址",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-dev",
+      "text": "复制开发指令",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "rename",
+      "text": "重命名",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "note",
+      "text": "备注",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "archive",
+      "text": "归档",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "delete",
+      "text": "删除",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "logs",
+      "text": "查看日志",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "dir",
+      "text": "打开工作目录",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "config",
+      "text": "编辑配置",
+      "disabled": false,
+      "reachable": true
+     }
+    ],
+    "activeElement": "dsh-drawer-close"
+   }
+  },
+  "fault-c": {
+   "card": {
+    "id": "dsh-card-profile-review-dev",
+    "name": "review-dev",
+    "dataLight": "fault",
+    "dataStatus": "stopped",
+    "dotState": "fault",
+    "dotClass": "dsh-dot light-fault",
+    "dotBg": "rgb(224, 164, 88)",
+    "dotSize": "13pxx13px",
+    "dotAria": "黄 · 故障",
+    "note": null,
+    "text": "review-dev"
+   },
+   "drawer": {
+    "open": true,
+    "id": "dsh-drawer",
+    "role": "dialog",
+    "ariaModal": "true",
+    "width": 520,
+    "right": 1440,
+    "viewportW": 1440,
+    "position": "fixed",
+    "lightState": "fault",
+    "lightBg": "rgb(224, 164, 88)",
+    "lightLabel": "黄 · 故障",
+    "why": "黄 · 故障：没有在跑的实例，但这只 profile 缺 3 个包（@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle）—— 契约里黄的成因 c。",
+    "stateRaw": "后端 state：不适用（这是磁盘上的 profile 行，不是实例读数）",
+    "stateReason": "后端 stateReason：这一行是磁盘上的 profile，不是实例读数：实例的 state 字段对它不适用；状态灯按 profiles 读数里现成的两条判据给（缺包 / 有没有 cordis.patch.yml）",
+    "health": "缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle",
+    "healthSource": "来源：GET /api/local/profiles 的 bundles / patch 字段",
+    "fieldCount": 6,
+    "fieldLabels": [
+     "DSH 版本 / 来源",
+     "Profile",
+     "访问地址",
+     "DSH_HOME",
+     "插件数量",
+     "最近改动"
+    ],
+    "buttons": [
+     {
+      "action": "close",
+      "text": "",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "start",
+      "text": "启动",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "restart",
+      "text": "重启",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-url",
+      "text": "复制访问地址",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "copy-dev",
+      "text": "复制开发指令",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "rename",
+      "text": "重命名",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "note",
+      "text": "备注",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "archive",
+      "text": "归档",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "delete",
+      "text": "删除",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "logs",
+      "text": "查看日志",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "dir",
+      "text": "打开工作目录",
+      "disabled": false,
+      "reachable": true
+     },
+     {
+      "action": "config",
+      "text": "编辑配置",
+      "disabled": false,
+      "reachable": true
+     }
+    ],
+    "activeElement": "dsh-drawer-close"
+   }
+  }
+ },
+ "consoleIssues": []
+}

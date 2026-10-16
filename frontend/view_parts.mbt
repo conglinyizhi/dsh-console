@@ -116,10 +116,12 @@ fn loading_block(name : String, title : String, detail : String) -> @html.Html {
 }
 
 ///|
-/// 卡上的一个字段行：左图标 + 标签 + 右值（值右对齐，超长省略，完整内容在悬停里）。
+/// 一个字段行：左图标 + 标签 + 右值（值右对齐，超长省略，完整内容在悬停里）。
 ///
+/// 第七轮起它只出现在**详情抽屉**里（卡片只剩三样：图标 + 状态灯、名字、备注），
+/// 所以语义路径是 overview → drawer → 这一行 → field。
 /// key 是这一格自己的键（dsh-version / profile / url / home / plugin-count / mtime），
-/// card 是它所在那张卡的 row.id —— 两张卡上同一格因此是不同的两个 uid。
+/// card 是它所属那一行的 row.id —— 两份读数里同一格因此是不同的两个 uid。
 fn field(
   icon_name : String,
   key : String,
@@ -130,18 +132,18 @@ fn field(
 ) -> @html.Html {
   @html.li(
     class="dsh-field",
-    attrs=mark("card-field", ["overview", "card", card, "field", key])
+    attrs=mark("drawer-field", ["overview", "drawer", card, "field", key])
       .data_set("field", key),
     [
       @html.span(class="dsh-field-icon", [icon(icon_name)]),
       @html.span(
         class="dsh-field-label",
-        attrs=mark("field-label", ["overview", "card", card, "field", key, "label"]),
+        attrs=mark("field-label", ["overview", "drawer", card, "field", key, "label"]),
         label,
       ),
       @html.span(
         class="dsh-field-value",
-        attrs=mark("field-value", ["overview", "card", card, "field", key, "value"]).title(hint),
+        attrs=mark("field-value", ["overview", "drawer", card, "field", key, "value"]).title(hint),
         value,
       ),
     ],
