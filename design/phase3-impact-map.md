@@ -370,3 +370,23 @@ backend/instances/weburl.mbt:389-398  回落到 $HOME/.dsh
 
 后端 profileHealth 这一格已经不再指主线 ✓，但**前端 `running_rows` / `in_use_by` 仍按名字配 profile** ✗，
 所以卡片上「缺 N 个包」那一行还可能配到控制台 home 的那一份 ✓。这条归 d。
+---
+
+## goal 收尾（2026-10-16）
+
+四项全部落地，各有改前/改后证据：
+
+| 项 | 提交 | 改前 | 改后 |
+| --- | --- | --- | --- |
+| a | `5613ef2` | 猜成 $HOME/.dsh，profileHealth 读到主线的 3 | dshHome=null、来源写未知、profileHealth=null |
+| b | `881f076` | 同名被别处实例挡回 409 | 200，实例起在它自己的 home 下 |
+| c | `f4ec2ac` `4b818ca` `8019ecd` | 同名归档分不开、恢复回控制台 home | 两条可分开、恢复回原 home、旧记录照读 |
+| d | `f84a1e3` | params 只有名字，后端回目录不存在；认不出时剪贴板被写进未知路径 | 带 home，实例起在对的 home 下；认不出一份都不发 |
+
+**验收**：`run-acceptance.mjs` 判定 **29 项通过 29、失败 0**（用 `ACC_NO_START=1` 跳过会真起实例的动效探针；
+那两条如实标成信息项）。跑全程实例列表只有 3080，没有起任何东西。
+
+**未做（已登记，不属于 a~d）**：
+- `logs.mbt:671-675` 与 `weburl.mbt:389-398` 认不出 home 时仍回落默认 —— 与 a 的口径不一致，见上一节。
+- profile 跨 home 聚合未做（少读数，不是错读数）。
+- `open-path` 没有 home 参数（要动后端才谈得上）。

@@ -35,7 +35,14 @@ const listPorts = async () => {
 }
 const portsBefore = await listPorts()
 if (run('probe-logs.mjs', [baseUrl, prefix + '-logs.json', '日志', profile])) errs.push('probe-logs 失败')
-if (run('probe-animation.mjs', [baseUrl, prefix + '-anim.json', '启动'])) errs.push('probe-animation 失败')
+// 这一支会点「启动」、真起一只实例再收掉。
+// 使用者明确不想让验收在他机器上起东西时，用 ACC_NO_START=1 跳过它 ——
+// 跳过的那几条**如实标成信息项**（下面是 else 分支），不静默、也不假装过了。
+if (process.env.ACC_NO_START) {
+  console.log('（ACC_NO_START=1：跳过动效探针，它会在本机真起一只实例）')
+} else if (run('probe-animation.mjs', [baseUrl, prefix + '-anim.json', '启动'])) {
+  errs.push('probe-animation 失败')
+}
 const dlgOut = spawnSync('node', [join(here, 'probe-dialog.mjs'), baseUrl], { encoding: 'utf8', timeout: 180000 })
 let dlg = null
 for (const line of (dlgOut.stdout || '').split('\n')) {
@@ -214,6 +221,9 @@ if (anim) {
   // 新形态下「启动」在抽屉里、等待态动效也换了位置 —— 探针入口还没跟上，先如实记为信息，
   // **不判红也不判绿**（既不留假红，也不留假绿）。补探针是下一轮的事。
   addInfo('等待态动效与禁用（探针入口未跟上新形态）', '未判')
+  }
+  if (!anim) {
+    addInfo('动效与等待态那几条（ACC_NO_START 跳过）', '未判（未起实例）')
 }
 
 if (dlg) {
