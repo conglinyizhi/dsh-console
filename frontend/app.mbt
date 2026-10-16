@@ -253,6 +253,28 @@ fn profile_pairs(row : Row) -> Array[(String, String)] {
 }
 
 ///|
+/// 归档 / 取消归档的参数：{ profile, home }。
+///
+/// home 必须带上：一份档案的身份是 (home, 名字)。同名两份档案在两个 home 里时，
+/// 只发名字后端分不出撤的是哪一条（那它只能按名字撤，会把另一份也撤掉）。
+/// 归档孤行（磁盘上没有目录）的 home 来自归档记录本身，见 Row 的 archive_home。
+/// 读不到 home（后端没给 / 这一行没有可比的值）就只发名字：**不猜一个 home 出来**，
+/// 由后端按它自己的 home 认 —— 那是改动之前的兼容口径。
+fn archive_pairs(row : Row) -> Array[(String, String)] {
+  match row.profile_name {
+    Some(name) => {
+      let home = archive_home_of(row)
+      if home == "" {
+        [("profile", json_text_literal(name))]
+      } else {
+        [("profile", json_text_literal(name)), ("home", json_text_literal(home))]
+      }
+    }
+    None => []
+  }
+}
+
+///|
 /// 目标端口的参数（停止 / 重启按端口认）。
 fn port_pairs(row : Row) -> Array[(String, String)] {
   match row.port_value {
@@ -262,13 +284,16 @@ fn port_pairs(row : Row) -> Array[(String, String)] {
 }
 
 ///|
-/// 按行取动作目标：kind = "port" 取端口，其余取 profile。
+/// 按行取动作目标：kind = "port" 取端口，"archive" 取归档那一套（名字 + home），
+/// 其余取 profile。
 fn params_for_row(model : Model, row_id : String, kind : String) -> String {
   match find_row(model.rows, row_id) {
     None => ""
     Some(row) =>
       if kind == "port" {
         params_of(port_pairs(row))
+      } else if kind == "archive" {
+        params_of(archive_pairs(row))
       } else {
         params_of(profile_pairs(row))
       }
@@ -748,9 +773,15 @@ fn delete_receipt(name : String, outcome : Map[String, Json]?) -> (String, Strin
   } else {
     who + " 已删除（回执里的 mode 是「" + mode + "」，这一版认不出这个值）。"
   }
+  // home = 这一份是从哪个 home 删的；进回收站时它会连条目一起记下来，恢复按它归位。
+  // 记不上时 originError 给原因 —— 那句话必须露出来，不然恢复落到别处时没人知道为什么。
+  let home = str_field(outcome, "home")
+  let origin_error = str_field(outcome, "originError")
   let hint = "profile=" + profile + " | dir=" + dir + " | mode=" + mode + " | trashPath=" +
     (if trash_path == "" { "（硬删，没有回收站落点）" } else { trash_path }) +
-    " | hardDeleted=" + (if hard { "true" } else { "false" })
+    " | hardDeleted=" + (if hard { "true" } else { "false" }) +
+    (if home == "" { "" } else { " | home=" + home }) +
+    (if origin_error == "" { "" } else { " | 来源 home 没记住：" + origin_error })
   (text, hint)
 }
 
@@ -1963,7 +1994,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             "archive-profile",
             row_name(model, id),
             "归档",
-            params_for_row(model, id, "profile"),
+            params_for_row(model, id, "archive"),
             emit,
           )
         Unarchive =>
@@ -1973,7 +2004,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             "unarchive-profile",
             row_name(model, id),
             "取消归档",
-            params_for_row(model, id, "profile"),
+            params_for_row(model, id, "archive"),
             emit,
           )
         Fork =>

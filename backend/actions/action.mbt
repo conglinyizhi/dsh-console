@@ -135,6 +135,29 @@ fn require_note_text(params : Json) -> String raise ActionError {
 }
 
 ///|
+/// 归档 / 取消归档说的是**哪一份**档案：params.home 给了就用它，没给按控制台自己的 home。
+///
+/// 为什么必须能带 home：一份档案的身份是 (home, 名字)。控制台当前只列自己那个 home 的
+/// profile，所以界面带上来的就是它读到的那个 home；等跨 home 聚合落地，这一路不用再改。
+/// 给了但不像个路径一律拒 —— 这个值会进归档记录的判重键，写坏了以后分不清谁是谁。
+async fn archive_target_home(params : Json) -> String raise ActionError {
+  match optional_string(params, "home") {
+    None => {
+      let (home, _) = @runtime.resolve_dsh_home()
+      home
+    }
+    Some(raw) =>
+      match @store.normalize_home(raw) {
+        Some(home) => home
+        None => {
+          fail("bad-params", "home 要是一个绝对的目录路径（不含 . 与 .. 段）：" + raw)
+          abort("unreachable: fail 一定抛错")
+        }
+      }
+  }
+}
+
+///|
 /// 取「整份新顺序」参数：order 必须是一个字符串数组，每一项都是一个认得出的行 id。
 ///
 /// 每一条都当场拒掉，一条都不放过：
@@ -182,7 +205,8 @@ fn require_order_ids(params : Json) -> Array[String] raise ActionError {
     if !@store.order_id_valid(id) {
       fail(
         "bad-params",
-        "order 里有认不出的行 id：" + id + "（只认 port:<端口号> 与 profile:<名字>）",
+        "order 里有认不出的行 id：" + id +
+        "（只认 port:<端口号> 与 profile:<名字>@<home>）",
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -430,14 +454,21 @@ pub async fn run_action(
           None => ()
         }
       }
+      // 判重按 (home, 名字)：同名不同 home 是两份档案，各归各的 ——
+      // 从前只看名字，第二份会被当成「已经在归档区里了」挡回去。
+      let home = archive_target_home(params)
       let loaded = @store.load_archive()
       for r in loaded.entries {
-        if r.profile == profile {
-          fail("conflict", "profile " + profile + " 已经在归档区里了（先取消归档再归档）")
+        if @store.archive_target_matches(r, home, profile) {
+          fail(
+            "conflict",
+            "profile " + profile + " 已经在归档区里了（home：" + home + "；先取消归档再归档）",
+          )
         }
       }
       let record : @store.ArchiveRecord = {
         profile,
+        home,
         archived_at: @json.iso_from_epoch_ms(@async.now()),
       }
       let entries = loaded.entries.copy()
@@ -450,6 +481,7 @@ pub async fn run_action(
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj([
           ("profile", @json.JStr(profile)),
+          ("home", @json.JStr(record.home)),
           ("archivedAt", @json.JStr(record.archived_at)),
           ("archivePath", @json.JStr(paths.archive)),
           ("diskUntouched", @json.JBool(true)),
@@ -459,18 +491,21 @@ pub async fn run_action(
     }
     "unarchive-profile" => {
       let profile = require_string(params, "profile")
+      // 取消归档只撤**这一份**：同名另一 home 的记录原样留着。
+      // 没带 home 的旧客户端按名字撤（archive_target_matches 里有兼容口径）。
+      let home = archive_target_home(params)
       let loaded = @store.load_archive()
       let kept : Array[@store.ArchiveRecord] = []
       let mut removed = false
       for r in loaded.entries {
-        if r.profile == profile {
+        if @store.archive_target_matches(r, home, profile) {
           removed = true
         } else {
           kept.push(r)
         }
       }
       if !removed {
-        fail("not-found", "归档区里没有 " + profile)
+        fail("not-found", "归档区里没有 " + profile + "（home：" + home + "）")
       }
       match @store.save_archive(kept) {
         Ok(_) => ()
@@ -480,6 +515,7 @@ pub async fn run_action(
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj([
           ("profile", @json.JStr(profile)),
+          ("home", @json.JStr(home)),
           ("removed", @json.JBool(true)),
           ("remaining", @json.jint(kept.length())),
           ("archivePath", @json.JStr(paths.archive)),
@@ -495,6 +531,10 @@ pub async fn run_action(
           ("dir", @json.JStr(outcome.dir)),
           ("mode", @json.JStr(outcome.mode)),
           ("trashPath", @json.JStr(outcome.trash_path)),
+          // 从哪个 home 删的：进回收站时这一条也会被记进 trash-origins.json，
+          // 恢复按它归位。记不上时 originError 给出原因（删除本身照旧算成功）。
+          ("home", @json.JStr(outcome.home)),
+          ("originError", @json.str_or_null(outcome.origin_error)),
           ("confirm", @json.JStr(outcome.confirm)),
           ("hardDeleted", @json.JBool(outcome.mode == "hard-delete")),
         ])),
@@ -511,23 +551,39 @@ pub async fn run_action(
           files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
         _ => "文件数读不到（" + outcome.size_source + "）"
       }
+      // 「回到 profile 列表里」这句话只有在这一份回到**本控制台这个** home 时才成立：
+      // 回到别的 home 的那一份，本控制台的列表根本不列它 —— 照旧说那句话就是一句谎。
+      let (console_home, _) = @runtime.resolve_dsh_home()
+      let landed = if outcome.home == console_home {
+        "「" + outcome.profile + "」已经回到 profile 列表里（" + outcome.to + "）"
+      } else {
+        "「" + outcome.profile + "」已经回到它自己那个 home（" + outcome.to +
+        "）—— 那不是本控制台的 home，列表里不会出现它"
+      }
+      let fallback = if outcome.home_recorded {
+        ""
+      } else {
+        "；这一条没有来源 home 记录，是按本控制台的 home 恢复的"
+      }
+      let forget = match outcome.origin_error {
+        Some(e) => "；来源记录没能清掉：" + e
+        None => ""
+      }
       @json.JObj([
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj([
           ("dir", @json.JStr(outcome.dir)),
           ("profile", @json.JStr(outcome.profile)),
           ("restoredTo", @json.JStr(outcome.to)),
+          ("home", @json.JStr(outcome.home)),
+          ("homeSource", @json.JStr(outcome.home_source)),
+          ("homeRecorded", @json.JBool(outcome.home_recorded)),
+          ("originError", @json.str_or_null(outcome.origin_error)),
           ("files", @json.int_or_null(outcome.files)),
           ("bytes", @json.int64_or_null(outcome.bytes)),
           ("sizeSource", @json.JStr(outcome.size_source)),
         ])),
-        (
-          "note",
-          @json.JStr(
-            "「" + outcome.profile + "」已经回到 profile 列表里（" + outcome.to + "），这一份共 " +
-            size,
-          ),
-        ),
+        ("note", @json.JStr(landed + "，这一份共 " + size + fallback + forget)),
       ])
     }
     // 彻底删除：与 delete-profile 的硬删同一风险等级，必须带 confirm = "PURGE"（缺了给 bad-params）。
@@ -544,6 +600,7 @@ pub async fn run_action(
           ("dir", @json.JStr(outcome.dir)),
           ("profile", @json.JStr(outcome.profile)),
           ("path", @json.JStr(outcome.path)),
+          ("originError", @json.str_or_null(outcome.origin_error)),
           ("files", @json.int_or_null(outcome.files)),
           ("bytes", @json.int64_or_null(outcome.bytes)),
           ("sizeSource", @json.JStr(outcome.size_source)),

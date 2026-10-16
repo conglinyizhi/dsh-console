@@ -560,8 +560,10 @@ node probe-skeleton.mjs http://127.0.0.1:5390/ skeleton
 指针的移动 / 松开 / 取消挂在**外壳**（`view_shell` 的 `.dsh-shell`）而不是条目或分组上：拖到列表之外松手时，
 挂在分组上就收不到那一次抬起，拖动状态会一直挂着。另外移动事件带着按键位掩码，为 0 就当作「其实早就松手了」。
 
-顺序表存在后端：`$XDG_STATE_HOME/dsh-console/order.json`，**按行 id 存**（`port:<端口号>` / `profile:<名字>`），
-不存位置索引（列表本身会变）。生效规则：没拖过走自动排序；拖过用存下来的；表里没有的行按自动规则排在已排好的之后；
+顺序表存在后端：`$XDG_STATE_HOME/dsh-console/order.json`，**按行 id 存**，
+不存位置索引（列表本身会变）。行 id 两种：`port:<端口号>`（端口全机唯一，不带 home）与
+**`profile:<名字>@<home>`**（多 home 之后一份档案的身份是 home + 名字，同名两份是两个 id，各排各的；
+home 为空串时才退回老形状 `profile:<名字>`）。拼法与后端 `store/order.mbt` 一字不差 —— id 是逐字比对的键。生效规则：没拖过走自动排序；拖过用存下来的；表里没有的行按自动规则排在已排好的之后；
 运行中与已停止**两组各自排**，不合并成一张表。
 
 实测在 `evidence-card-layout/`（`drag-5533.json` 与同名截图：真指针按下一路拖到松开、写回后的 `order.json`、

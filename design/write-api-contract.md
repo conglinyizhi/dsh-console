@@ -24,8 +24,8 @@ Body:
 | `restart-instance` | `{ pid }` 或 `{ port }` | 先停后起（端口与 profile 沿用原来的） |
 | `fork-profile` | `{ profile, newName?, port? }` | 派生一份新 profile；新名字默认 `<原名>-dev`，重名自动加序号 |
 | `rename-profile` | `{ profile, newName }` | 改磁盘上的 profile 目录名；空名、非法字符、重名都要拒 |
-| `archive-profile` | `{ profile, merged? : bool }` | 记一条归档（**不动磁盘上的 profile**），`merged` 表示成果是否已回灌主线 |
-| `unarchive-profile` | `{ profile }` | 删掉那条归档记录 |
+| `archive-profile` | `{ profile, home? }` | 记一条归档（**不动磁盘上的 profile**）。一份档案的身份是 **(home, 名字)**：同名不同 home 各一条，重复归档同一份才 `conflict`；`home` 缺省 = 控制台自己的 `DSH_HOME` |
+| `unarchive-profile` | `{ profile, home? }` | 撤掉那一份的归档记录（只撤这一条，同名另一 home 的留着） |
 | `delete-profile` | `{ profile }` | 按 `safety.deleteToTrash` 决定移入回收站还是硬删；**硬删要有明确二次参数**（见下） |
 
 **destructive 的两条额外要求**：
@@ -360,3 +360,49 @@ stateReason 写清「端口在听，但签名探测不通过」。
 **这么定的理由**：颜色要回答一个明确的问题（在不在服务）。
 缺包是**档案的健康**，它是另一件事 —— 混进颜色里，会让「在跑但档案有瑕疵」和「真的跑挂了」看起来一样，
 而这两件的处置完全不同（前者照用，后者要去救）。给同一个颜色，等于把两个不同的问题合并成一个 ✗
+
+---
+
+# 追加契约（Phase 3 c：归档 / 回收站 / 顺序表的键带上 home）
+
+背景：[`dsh-home-isolation-plan.md`](dsh-home-isolation-plan.md) 决定给开发用 profile 独立 `DSH_HOME`；
+一份档案的身份因此从「profile 名」变成 **(home, profile 名)**。归档 / 回收站 / 顺序表这三处按名字做键的地方全要跟着改，
+否则同名两份档案互相顶。实测（[`phase3-impact-map.md`](phase3-impact-map.md) 第四节）：`archive.json` 只写得出
+`[{"profile":"zz-same"}]`；回收站恢复写死 `profiles_root()`，删了隔离那份、恢复却落回主线。
+
+## 一、后端
+
+### 归档（`archive.json`）
+- 记录形状 `{ profile, home, archivedAt }`；`home` 缺失（本次改动之前写的旧记录）读成空串。
+- `archive-profile` / `unarchive-profile` 参数多一个可选 `home`（绝对路径，不含 `.` / `..` 段；不给按控制台自己的 `DSH_HOME`）。
+- 判据：名字相等 **且**（home 相等，**或**记录与请求里有一方没有 home —— 兼容口径，见第三节）。
+
+### 回收站（`trash/` + `trash-origins.json`）
+- 条目目录名仍是 `<profile>-<epochMs>`（不动，旧条目照旧读得出来、排得出时间）。
+- 新增 `$XDG_STATE_HOME/dsh-console/trash-origins.json`：`{ "<目录名>": "<home>" }`，
+  由 `delete-profile` 在移入回收站之后写；`restore-from-trash` 按它归位、`purge-trash-item` 顺手清掉。
+- `GET /api/local/console` 的 `trash[]` 每条加 `home`（空串 = 没记来源）与 `homeSource`（来源或没有它的原因）。
+- **恢复目标是记下来的那个 home**，不是控制台自己的 home。没记来源的旧条目落回控制台自己的 home，
+  并在回执 note 里说明「这一条没有来源 home 记录，是按本控制台的 home 恢复的」。
+- home 这一格**不写进回收站条目目录里**：那个目录就是 profile 本体，多一个标记文件就会跟着恢复回去，
+  顺带还会被算进「几个文件 · 多少字节」的读数里。
+
+### 顺序表（`order.json`）
+- 行 id 两种形状：`port:<端口号>`（端口全机唯一，不带 home）与 `profile:<名字>@<home>`。
+- 老形状 `profile:<名字>` 仍然认：本次改动之前的 order.json 读得出来就不丢（那一条失去名次，回到自动排序）。
+- 校验：名字非空且不含冒号与斜杠；home 必须是**已归一化**的绝对路径。`profile:/a/b@web`（把 home 与名字写反）
+  与 `profile:web@/a/b/`（带尾斜杠的等价写法）都拒 —— id 是逐字比对的键，等价写法就是两把钥匙。
+
+## 二、前端
+- 行 id 与后端一字不差地拼（`state.mbt` 的 `profile_row_id` / `archived_row_id`）；归档与取消归档的 params 带上 `home`。
+- 归档区的匹配按 (home, 名字)：同名两份档案在页面上是两条（本家的那一行 + 一条「磁盘上没有这只 profile」的孤行），
+  取消归档只撤点中的那一条。
+- 其余界面一个像素都不动（只动 id 的拼法与提交给后端的参数）。
+
+## 三、兼容（旧数据一条都不许丢）
+
+| 旧数据 | 新代码怎么读 |
+| --- | --- |
+| `archive.json` 里没有 `home` 的记录 | 读成 `home: ""`，按名字参与判重与取消归档 —— 读得出来、撤得掉 |
+| 回收站里本次改动之前删的条目 | 没有来源记录 → 落回控制台自己的 home，回执里把这件事说明 |
+| `order.json` 里 `profile:<名字>` | 仍然认（不报错、不丢），只是这一行排不上名次 |

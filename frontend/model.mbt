@@ -618,8 +618,13 @@ pub extend ConsoleRuntime with Eq::{ not_equal, equal }
 ///
 /// 第二轮起没有「已合并」标记了（使用者的决定）：归档就是归档，成没成果不在这条记录里。
 /// 旧的 archive.json 里可能还带着 merged 字段，读的时候直接忽略 —— 少读一个字段不算错。
+///
+/// home 是这份档案属于哪个 home（多 home 之后，一份档案的身份是 home + 名字）。
+/// 空串 = 这条记录没有 home：本次改动之前写下的旧记录 —— 那种记录按名字参与匹配，
+/// 见 state.mbt 的 archive_record_matches_row。**字段不在就是空串**，不拿别的值顶上。
 pub(all) struct ConsoleArchive {
   profile : String
+  home : String
   archived_at : String
 } derive(Eq)
 
@@ -726,6 +731,7 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     guard item is Json::Object(entry) else { continue }
     archive.push({
       profile: str_field(entry, "profile"),
+      home: str_field(entry, "home"),
       archived_at: str_field(entry, "archivedAt"),
     })
   }

@@ -495,10 +495,10 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `rename-profile` | 改磁盘上的目录名 | 空名 / 非法字符 / 重名 / 正在运行 都拒 |
 | `set-profile-note` | 写备注：非空 `text` 原子写进 `<profile 目录>/.dsh-note.txt`（覆盖旧的）；**空串 = 删掉那个文件** | 名字先过白名单、再确认解析到 `profilesRoot` 之内（**目录穿越拒 `bad-params`**）；目录不存在 `not-found`；超过 2000 字符 `bad-params`；写不动 `io-error`。`text` 不 trim（前后空格是用户写的），**缺 `text` 键 ≠ 空串**：缺键 `bad-params` |
 | `open-path` | `xdg-open <目标>` 打开一个**枚举目标**：`kind:"dir"`（缺省）= profile 目录，`kind:"config"` = 它的 `cordis.patch.yml`。**直接 exec**（不经 shell、不做任何字符串插值），spawn 完不等它干活 | **params 只认 `profile` 与 `kind`**，多一个键（比如 `path`）就 `bad-params`——客户端给不了路径。名字过白名单 + 解析结果必须落在 profilesRoot 之内（两道，与 `set-profile-note` 同款）；目标不存在 `not-found`；PATH 里没有 `xdg-open` / 没有图形环境（`DISPLAY` 与 `WAYLAND_DISPLAY` 都没设）/ `xdg-open` 起来就非零退出 → `io-error`，message 写清是哪一种 |
-| `archive-profile` | 往 `archive.json` 追加一条 `{ profile, archivedAt }` | **不动磁盘上的 profile**；同一个 profile 已在归档区 → `conflict` |
-| `unarchive-profile` | 删掉那条记录 | 没有这条 → `not-found` |
+| `archive-profile` | 往 `archive.json` 追加一条 `{ profile, home, archivedAt }`。`home` 可选（不给 = 控制台自己的 `DSH_HOME`） | **不动磁盘上的 profile**；一份档案的身份是 **(home, 名字)**：同一个 home 的同名 profile 已在归档区 → `conflict`，同名另一 home 各归各的 |
+| `unarchive-profile` | 撤掉那一份（`profile` + 可选 `home`）的记录 | 没有这一份 → `not-found`；同名另一 home 的那条留着不动 |
 | `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
-| `set-row-order` | 把**整份**手动顺序原子写进 `<状态目录>/order.json`：一个行 id 的字符串数组，元素只认 `port:<端口号>` 与 `profile:<名字>` | 不是字符串 / id 形状不对 / 有重复 / 超 5000 条 → `bad-params`；写不动 `io-error`。空数组合法（= 清空顺序表，回到自动排序）。**不做增量合并**：调用方给的就是要落盘的那一份 —— 增量式接口要后端先读一份当前顺序再算，两次并发拖动会互相覆盖 |
+| `set-row-order` | 把**整份**手动顺序原子写进 `<状态目录>/order.json`：一个行 id 的字符串数组，元素只认 `port:<端口号>` 与 `profile:<名字>@<home>`（老形状 `profile:<名字>` 仍然认，见下面「状态文件」那一节） | 不是字符串 / id 形状不对 / 有重复 / 超 5000 条 → `bad-params`；写不动 `io-error`。空数组合法（= 清空顺序表，回到自动排序）。**不做增量合并**：调用方给的就是要落盘的那一份 —— 增量式接口要后端先读一份当前顺序再算，两次并发拖动会互相覆盖 |
 
 ### 派生出的新 profile 怎么认得出（第五轮）
 
@@ -655,7 +655,8 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | 文件 | 内容 | 写时机 |
 | --- | --- | --- |
 | `runtime.json` | 控制台**自己起过**的实例：`{ pid, port, home, profile, startedAt, logPath, detached }` | 起实例成功 / 停止 / 重启 |
-| `archive.json` | 归档记录：`{ profile, archivedAt }`（第二轮删掉了 `merged`；**旧文件里带 `merged` 仍能读**，那个键被忽略） | 归档 / 取消归档 |
+| `archive.json` | 归档记录：`{ profile, home, archivedAt }`（第二轮删掉了 `merged`；**旧文件里带 `merged` 仍能读**，那个键被忽略。**没有 `home` 的旧记录也照读**：读成空串，按名字参与判重与取消归档） | 归档 / 取消归档 |
+| `trash-origins.json` | 回收站条目各自的**来源 home**：`{ "<目录名>": "<home>" }`，恢复按它归位（没有来源的旧条目落回控制台自己的 home，并说出来） | 删除进回收站 / 恢复 / 彻底删除 |
 | `audit.jsonl` | 每个动作一行：`{ at, action, params, ok, code, message, outcome }`，**超阈值轮转**（口径见下） | 每个动作（含失败与 403）、以及 settings 的 PUT |
 | `audit.jsonl` 的归档 | `.archive/audit-<UTC 时间戳>.jsonl`：滚出去的那份原样搬过去（含它自己的说明条），目录里最多留 40 份 | 每次轮转 |
 
@@ -753,8 +754,9 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 | 运行登记 | `$XDG_STATE_HOME/dsh-console/runtime.json` | `store/registry.mbt` |
 | 归档记录 | `$XDG_STATE_HOME/dsh-console/archive.json` | `store/archive.mbt` |
 | 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（追加；超 8 MiB 滚动，归档进同目录 `.archive/`） | `store/audit.mbt` |
-| 手动顺序 | `$XDG_STATE_HOME/dsh-console/order.json`（**顶层就是字符串数组**，元素是 `port:<端口号>` / `profile:<名字>`；空数组 = 没拖过） | `store/order.mbt` |
+| 手动顺序 | `$XDG_STATE_HOME/dsh-console/order.json`（**顶层就是字符串数组**，元素是 `port:<端口号>` / `profile:<名字>@<home>`；老形状 `profile:<名字>` 仍认；空数组 = 没拖过） | `store/order.mbt` |
 | 回收站 | `$XDG_STATE_HOME/dsh-console/trash/<profile>-<毫秒>/` | `actions/profile_fs.mbt`（`deleteToTrash=true`） |
+| 回收站来源 | `$XDG_STATE_HOME/dsh-console/trash-origins.json` | `store/trash_origins.mbt` |
 | profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
 | profile 备注 | `<profile 目录>/.dsh-note.txt`（空串语义 = 删掉它；**派生时也写这一个文件**） | `actions/profile_fs.mbt`（`set-profile-note` 与 `fork-profile`） |
 | 实例日志 | `<该实例 DSH_HOME>/logs/console-<profile>-<port>.log` | `actions/instance.mbt`（spawn 时重定向 stdout/stderr） |
@@ -857,7 +859,10 @@ backend/
 │   ├── state.mbt               # 状态目录与 JSON 文件读取（坏文件给原因）
 │   ├── settings.mbt            # 九项设置的键、缺省、取值范围、原子落盘
 │   ├── registry.mbt            # runtime.json：控制台起过的实例
-│   ├── archive.mbt             # archive.json：归档记录
+│   ├── archive.mbt             # archive.json：归档记录（(home, 名字) 为身份）
+│   ├── trash_origins.mbt       # trash-origins.json：回收站条目各自从哪个 home 删的
+│   ├── order.mbt               # order.json：手动顺序（行 id 带 home）
+│   ├── laststarted.mbt         # 「上次启动」表（行 id 同一套）
 │   └── audit.mbt               # audit.jsonl：动作审计（超阈值滚动 + 归档 + 读侧回退）
 ├── actions/                    # 可写层（唯一入口 POST /api/local/action）
 │   ├── guard.mbt               # X-DSH-Console + Origin 守卫

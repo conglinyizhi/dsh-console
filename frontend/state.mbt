@@ -155,6 +155,12 @@ struct Row {
   deletable : Bool
   /// 有值即表示已归档，移出运行/停止两个分组
   archived_at : String?
+  /// 这一行的**归档记录**属于哪个 home（只有归档孤行用得上）。
+  ///
+  /// 为什么孤行要单独带一个：它的 home 那一格显示的是「—」（磁盘上没有目录，没有可读的
+  /// DSH_HOME），可取消归档必须说清撤的是哪一条记录 —— 同名两份档案在两个 home 里时，
+  /// 只发名字会把另一份也撤掉。别处一律空串，那时用 row.home（就是这只 profile 所在的 home）。
+  archive_home : String
   /// 写动作的目标：磁盘上的 profile 目录名。读不到就是 None ——
   /// 这时动作先在本地说清「没有可用的目标」，不发请求（也不拿演示数据里的名字去删真东西）。
   profile_name : String?
@@ -1270,6 +1276,65 @@ fn group_of(row : Row) -> String {
 }
 
 ///|
+/// 已停止那一组的行 id：名字 + home（与后端 store/order.mbt 的 profile_row_id 一字不差）。
+///
+/// 顺序表是**按键逐字比对**的，两端拼法必须完全一致；home 是文件系统路径（绝对路径），
+/// 直接拼进去，不加任何编码 —— 后端那边同样按原文拼、同样按原文校验。
+/// home 为空串时给老形状（profile:<名字>）：那是「这一行没有 home 可比」的如实写法。
+fn profile_row_id(name : String, home : String) -> String {
+  if home == "" {
+    "profile:" + name
+  } else {
+    "profile:" + name + "@" + home
+  }
+}
+
+///|
+/// 归档孤行的行 id：归档记录的名字 + 它属于哪个 home。
+///
+/// 与 profile 行的 id 分开一套前缀（archived:）：它是另一类行（磁盘上没有目录），
+/// 不参与排序，也不该跟同名的那只已停止行撞 id。
+fn archived_row_id(name : String, home : String) -> String {
+  if home == "" {
+    "archived:" + name
+  } else {
+    "archived:" + name + "@" + home
+  }
+}
+
+///|
+/// 一行「档案在哪」的 home：归档孤行用记录自带的那个，其余行用它自己那一格的值。
+///
+/// 空串 = 没有可比的值（读数为空 / 后端没给）：调用方据此退回「只按名字认」。
+fn archive_home_of(row : Row) -> String {
+  if row.archive_home != "" {
+    row.archive_home
+  } else if row.home == "—" || row.home == "未知" {
+    // 这两串是「值不存在 / 读不到」的显示文本，不是路径：拿它们当 home 用就是编
+    ""
+  } else {
+    row.home
+  }
+}
+
+///|
+/// 一条归档记录说的是不是这一行：名字要对上，home 也要对上。
+///
+/// 两种「只按名字认」的情形（与后端 archive_target_matches 同一口径）：
+///   · 记录没带 home —— 本次改动之前的旧记录，那时只有一个 home 口径，说的就是它；
+///   · 这一行给不出 home —— 没有可比的东西，硬比只会把该标成已归档的那一行漏掉。
+/// 除了这两种，home 必须相等：同名两份档案在两个 home 里时，正是靠它分开。
+fn archive_record_matches_row(record : ConsoleArchive, name : String, home : String) -> Bool {
+  if record.profile != name {
+    return false
+  }
+  if home == "" || record.home == "" {
+    return true
+  }
+  record.home == home
+}
+
+///|
 /// 一个行 id 在顺序表里排第几。-1 = 表里没有这一条。
 fn order_rank(order : Array[String], id : String) -> Int {
   for i = 0; i < order.length(); i = i + 1 {
@@ -1337,10 +1402,26 @@ fn last_started_lookup(console : ConsoleFacts?, id : String) -> (String, String)
 ///
 /// 顺序不能反：正在跑的实例，进程起始时间是最准的那一个；控制台记录里那条
 /// 可能是很久以前起的那一次（这一只后来被别人重启过）。反过来会把新时刻说成旧的。
+///|
+/// 按 profile 查「上次启动」要试的那几个行 id，按该试的先后排。
+///
+/// 新的形状（带 home）在前，老形状（只有名字）在后：后端那边的记录不一定都带 home
+/// （audit.jsonl 里的 start-instance 流水就没有），那一条读数不该因为键换代就查不到。
+fn profile_id_candidates(name : String, home : String) -> Array[String] {
+  let out : Array[String] = []
+  if home != "" {
+    out.push(profile_row_id(name, home))
+  }
+  out.push("profile:" + name)
+  out
+}
+
+///|
+/// 同上，一行卡片的「上次启动」：正在跑的那一只按端口，其余按 profile。
 fn row_last_started(
   instance_started : String?,
   port_id : String,
-  profile_id : String,
+  profile_ids : Array[String],
   console : ConsoleFacts?,
 ) -> (String, String) {
   match instance_started {
@@ -1354,8 +1435,8 @@ fn row_last_started(
   if at != "" {
     return (at, source)
   }
-  if profile_id != "" {
-    let (at2, source2) = last_started_lookup(console, profile_id)
+  for id in profile_ids {
+    let (at2, source2) = last_started_lookup(console, id)
     if at2 != "" {
       return (at2, source2)
     }
@@ -1665,12 +1746,18 @@ fn running_rows(
     let (light, light_reason, light_basis) = instance_light(fact, profile_fact)
     let health = instance_health(fact, profile_fact)
     // 第二行第三顺位：这一只真实的启动时刻优先（进程起始时间），取不到才去查控制台的记录
+    // 这一只实例自己的 home（运行时读出来的）。它同时是「按 profile 查上次启动」时要用的那一段：
+    // 后端那张表里的键是 (名字, home)，少一段就对不上 —— 查不到就直接空着，不拿别的凑
+    let instance_home = match fact.dsh_home {
+      Some(h) => h
+      None => ""
+    }
     let (last_started, last_started_source) = row_last_started(
       fact.started_at,
       "port:" + fact.port.to_string(),
       match fact.profile {
-        Some(name) => "profile:" + name
-        None => ""
+        Some(name) => profile_id_candidates(name, instance_home)
+        None => []
       },
       console,
     )
@@ -1747,6 +1834,7 @@ fn running_rows(
       },
       deletable: false,
       archived_at: None,
+      archive_home: "",
       profile_name: fact.profile,
       port_value: Some(fact.port),
       console_started: fact.console_started || console_started(console, fact.port),
@@ -1911,11 +1999,12 @@ fn profile_rows(
     let (last_started, last_started_source) = row_last_started(
       None,
       "",
-      "profile:" + fact.name,
+      profile_id_candidates(fact.name, dsh_home),
       console,
     )
     rows.push({
-      id: "profile:" + fact.name,
+      // 行 id 带上 home：同名两份档案在两个 home 里时，它们是两行，各排各的
+      id: profile_row_id(fact.name, dsh_home),
       name: fact.name,
       // 「本地 profile」这个标签永远为真、从不提供信息（没有「远端 profile」这种东西）→ 删掉：
       // 一只磁盘上的 profile 当然是本地的，写出来只是噪声（与「真实数据」那一类同理）。
@@ -1960,6 +2049,7 @@ fn profile_rows(
       },
       deletable: true,
       archived_at: None,
+      archive_home: "",
       profile_name: Some(fact.name),
       port_value: None,
       console_started: false,
@@ -2015,7 +2105,7 @@ fn apply_archived_marks(model : Model, rows : Array[Row]) -> Array[Row] {
       Some(name) => {
         let mut stamp = ""
         for record in archive {
-          if record.profile == name {
+          if archive_record_matches_row(record, name, archive_home_of(row)) {
             stamp = record.archived_at
           }
         }
@@ -2032,7 +2122,7 @@ fn apply_archived_marks(model : Model, rows : Array[Row]) -> Array[Row] {
     for row in marked {
       match row.profile_name {
         Some(name) =>
-          if name == record.profile {
+          if archive_record_matches_row(record, name, archive_home_of(row)) {
             listed = true
           }
         None => ()
@@ -2049,7 +2139,9 @@ fn apply_archived_marks(model : Model, rows : Array[Row]) -> Array[Row] {
 /// 归档记录在、磁盘上的 profile 目录不在时的那一行：只为了让人看见这条记录并撤掉它。
 fn archived_orphan(record : ConsoleArchive) -> Row {
   {
-    id: "archived:" + record.profile,
+    // id 带上记录里的 home：同名两份档案在两个 home 里时，两条孤行是两个 id
+    //（列表按 id 打补丁，撞 id 会让其中一条静默消失），取消归档也靠它认准是哪一条。
+    id: archived_row_id(record.profile, record.home),
     name: record.profile,
     kind: "已归档 | 磁盘上没有这只 profile",
     kind_hint: "archive.json 里有这只 profile 的归档记录，但 profiles 读数里没有对应的目录",
@@ -2074,6 +2166,9 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     plugin_detail: "",
     deletable: true,
     archived_at: Some(record.archived_at),
+    // 磁盘上没有目录，home 那一格仍旧显示「—」；记录自带的 home 放这里，
+    // 只用来认「取消归档撤的是哪一条」，不改那一格显示什么。
+    archive_home: record.home,
     profile_name: Some(record.profile),
     port_value: None,
     console_started: false,
@@ -2116,7 +2211,7 @@ fn demo_running() -> Array[Row] {
       url: "http://127.0.0.1:8100", web_url: None,
       web_url_source: "演示数据：端口 8100 上没有真实实例，读不到令牌",
       plugin_count: "5 个", plugin_detail: "",
-      deletable: false, archived_at: None,
+      deletable: false, archived_at: None, archive_home: "",
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
@@ -2138,7 +2233,7 @@ fn demo_running() -> Array[Row] {
       url: "http://127.0.0.1:8200", web_url: None,
       web_url_source: "演示数据：端口 8200 上没有真实实例，读不到令牌",
       plugin_count: "2 个（开发中）", plugin_detail: "",
-      deletable: true, archived_at: None,
+      deletable: true, archived_at: None, archive_home: "",
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
@@ -2166,7 +2261,7 @@ fn demo_stopped() -> Array[Row] {
       url: "http://127.0.0.1:8300", web_url: None,
       web_url_source: "演示数据：端口 8300 上没有真实实例，读不到令牌",
       plugin_count: "3 个", plugin_detail: "",
-      deletable: true, archived_at: None,
+      deletable: true, archived_at: None, archive_home: "",
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
