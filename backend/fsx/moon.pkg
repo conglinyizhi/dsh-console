@@ -1,0 +1,10 @@
+import {
+  "conglinyizhi/dsh-console-backend/json",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+}
+
+options(
+  "is-main": false,
+  "native-stub": [ "proc_signal.c" ],
+)

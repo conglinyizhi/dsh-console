@@ -1,0 +1,11 @@
+import {
+  "conglinyizhi/dsh-console-backend/json",
+  "moonbitlang/moonback",
+  "moonbitlang/moonback/middlewares/unstable_static",
+  "moonbitlang/async/http" @async_http,
+  "moonbitlang/async/fs",
+}
+
+options(
+  "is-main": false,
+)

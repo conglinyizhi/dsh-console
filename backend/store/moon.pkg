@@ -1,0 +1,9 @@
+import {
+  "conglinyizhi/dsh-console-backend/json",
+  "conglinyizhi/dsh-console-backend/fsx",
+  "moonbitlang/async",
+}
+
+options(
+  "is-main": false,
+)

@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json" @core_json,
+}
+
+options(
+  "is-main": false,
+  "native-stub": [ "fd_link.c", "local_time.c" ],
+)
