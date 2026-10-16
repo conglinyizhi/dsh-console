@@ -18,7 +18,8 @@
 ///|
 /// 一条「上次启动」。
 pub struct LastStarted {
-  /// 行 id，与 order.json / 前端 row.id 同一套：port:<端口号> / profile:<名字>
+  /// 行 id，与 order.json / 前端 row.id 同一套：port:<端口号> / profile:<名字>@<home>
+  /// （登记里读不到 home 时才退回老形状 profile:<名字>，见 order.mbt 的 profile_row_id）
   id : String
   /// 启动时刻（UTC ISO）
   at : String
@@ -106,7 +107,18 @@ fn audit_start_entries(line : Json) -> Array[LastStarted] {
   }
   let source = "audit.jsonl 里 start-instance 那一笔的时间"
   if profile != "" {
-    out.push({ id: order_id_profile_prefix + profile, at, source })
+    // 审计行里**没有** home（start-instance 的 params 只带 profile 与 port）：
+    // 只有 profile 时按老形状产 id（profile:<名字>）。登记里那一路有 home，用那一路的。
+    // 硬安一个默认 home 上去就等于猜，而猜错的行 id 会对到另一份档案的「上次启动」上。
+    let home = match field_of(params, "home") {
+      Some(v) =>
+        match as_string(v) {
+          Some(s) => s
+          None => ""
+        }
+      None => ""
+    }
+    out.push({ id: profile_row_id(profile, home), at, source })
   }
   let port = match field_of(params, "port") {
     Some(v) =>
@@ -151,9 +163,9 @@ pub async fn load_last_started() -> (Array[LastStarted], Array[String]) noraise 
   for r in registry.entries {
     if looks_like_iso(r.started_at) {
       let source = "runtime.json 里这条登记的 startedAt"
-      put_latest(list, order_id_port_prefix + r.port.to_string(), r.started_at, source)
+      put_latest(list, port_row_id(r.port), r.started_at, source)
       if r.profile != "" {
-        put_latest(list, order_id_profile_prefix + r.profile, r.started_at, source)
+        put_latest(list, profile_row_id(r.profile, r.home), r.started_at, source)
       }
     }
   }
