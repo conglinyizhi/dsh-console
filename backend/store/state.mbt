@@ -8,6 +8,11 @@
 //   order.json     手动排序的显式顺序表：一个行 id 的字符串数组（原子写）
 //   audit.jsonl    动作审计（平时只追加，超 8 MiB 滚动；归档在同目录 .archive/）
 //   trash/         删除进回收站的落点（deleteToTrash=true 时的目标）
+//   trash-origins.json  trash/ 里每一条是**从哪个 home 删的**：{ "<目录名>": "<home>" }（原子写）
+//
+// trash-origins.json 单独一份而不是塞进 trash/ 里：条目目录本身就是那只 profile 的目录，
+// 恢复时会连里面的东西一起搬回去 —— 往里写一个标记文件，就等于给恢复回去的 profile 添了一个
+// 它自己没写过的文件 ✗。放在状态目录里按目录名查，条目本身一个字节都不动。
 //
 // GET 系列接口不碰这些文件的写路径：读就是读，坏文件回退到缺省并把原因写进 sources。
 
@@ -21,6 +26,7 @@ pub struct StatePaths {
   audit : String
   order : String
   trash : String
+  trash_origins : String
 }
 
 ///|
@@ -39,7 +45,37 @@ pub async fn state_paths() -> StatePaths noraise {
     audit: @json.join_path(dir, "audit.jsonl"),
     order: @json.join_path(dir, "order.json"),
     trash: @json.join_path(dir, "trash"),
+    trash_origins: @json.join_path(dir, "trash-origins.json"),
   }
+}
+
+///|
+/// 把一段文本当成一个 home 路径来认，认得出给**归一化之后**的值，认不出给 None。
+///
+/// 认的条件：绝对路径、去掉末尾多余的斜杠之后非空且不是根、按斜杠切出来的段里
+/// 没有单个点与双点。全都是为了同一个目的：home 会进归档记录的判重键、进回收站
+/// 恢复时的目标路径 —— 一个方向不对的字符串在这儿被拦下，比它跑到「恢复到哪里」那一步
+/// 再发现便宜得多。归一化（去尾斜杠）是为了让 /a/b 与 /a/b/ 认成同一个 home。
+pub fn normalize_home(raw : String) -> String? {
+  let text = @json.trim_both(raw)
+  if !text.has_prefix("/") {
+    return None
+  }
+  let mut end = text.length()
+  while end > 1 && @json.slice(text, end - 1, end) == "/" {
+    end = end - 1
+  }
+  let trimmed = @json.slice(text, 0, end)
+  if trimmed == "/" {
+    return None
+  }
+  for segment in trimmed.split("/") {
+    let part = @json.owned(segment)
+    if part == "." || part == ".." {
+      return None
+    }
+  }
+  Some(trimmed)
 }
 
 ///|

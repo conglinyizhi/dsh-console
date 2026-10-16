@@ -215,6 +215,16 @@ pub struct DeleteOutcome {
   mode : String
   /// 回收站落点；硬删时为空串
   trash_path : String
+  /// 这一份是从哪个 home 删的（就是 dir 所在的那个 home）。
+  /// 删进回收站时它会被记进 trash-origins.json，恢复按它归位 —— 同名两份档案
+  /// 各自回各自的家，靠的就是这个值，不是靠「控制台自己现在是哪个 home」。
+  home : String
+  /// 记来源 home 失败的原因（None = 记上了 / 不需要记）。
+  ///
+  /// 记不上**不算删除失败**：目录已经进回收站了，为了一个标记把整次删除报成失败是假报。
+  /// 但也不能吞 —— 不说出来的话，恢复那一步就会落到控制台自己的 home 上（旧行为），
+  /// 而使用者以为它会回原处。
+  origin_error : String?
   /// 硬删时确实要求过的二次确认串
   confirm : String
 }
@@ -225,7 +235,10 @@ pub struct DeleteOutcome {
 pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcome raise ActionError {
   let name = @json.trim_both(profile)
   validate_profile_name(name)
-  let root = profiles_root()
+  // home 与 root 同源算一次：分开各算一遍迟早会分叉，而分叉出来正好是
+  // 「删的是这一处、记下的来源却是另一处」—— 那比不记还坏。
+  let (home, _) = @runtime.resolve_dsh_home()
+  let root = @json.join_path(home, "profiles")
   let dir = @json.join_path(root, name)
   if !@json.is_dir(dir) {
     fail("not-found", "profile 目录不存在：" + dir)
@@ -243,7 +256,8 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
   if settings.safety_delete_to_trash {
     let paths = @store.state_paths()
     let stamp = @async.now().to_string()
-    let trash_path = @json.join_path(paths.trash, name + "-" + stamp)
+    let trash_dir_name = name + "-" + stamp
+    let trash_path = @json.join_path(paths.trash, trash_dir_name)
     match @fsx.ensure_dir(paths.trash) {
       Ok(_) => ()
       Err(e) => fail("io-error", e)
@@ -262,11 +276,19 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
         }
       }
     }
+    // 记下「这一条是从哪个 home 删的」。恢复时按它归位，所以这一步就是
+    // 「删了隔离那份、恢复却回到主线上」那个错的正面修法。
+    let origin_error = match @store.put_trash_origin(trash_dir_name, home) {
+      Ok(_) => None
+      Err(e) => Some(e)
+    }
     return {
       profile: name,
       dir,
       mode: "trash",
       trash_path,
+      home,
+      origin_error,
       confirm: "",
     }
   }
@@ -284,7 +306,7 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
     Ok(_) => ()
     Err(e) => fail("io-error", e)
   }
-  { profile: name, dir, mode: "hard-delete", trash_path: "", confirm: given }
+  { profile: name, dir, mode: "hard-delete", trash_path: "", home, origin_error: None, confirm: given }
 }
 
 ///|

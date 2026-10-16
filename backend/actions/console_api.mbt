@@ -59,6 +59,8 @@ async fn console_payload() -> @json.JsonVal noraise {
   // 回收站条目（第六轮契约第一节）：trash/ 下每一份删除进回收站的 profile 目录一条。
   // profile 名与删除时刻都从目录名切（按最后一个 '-'，profile 名自己允许带 '-'）；
   // 文件数与体积是递归数出来的，数不动给 null 并把原因写在 sizeSource 里 —— 不编。
+  // home 是**删除那一刻记下来的**来源（trash-origins.json），恢复按它归位；
+  // 没记来源的旧条目 home 给空串、原因写在 homeSource 里，不拿控制台自己的 home 冒充。
   let trash : Array[@json.JsonVal] = []
   for item in list_trash() {
     trash.push(@json.JObj([
@@ -66,6 +68,8 @@ async fn console_payload() -> @json.JsonVal noraise {
       ("profile", @json.JStr(item.profile)),
       ("deletedAtMs", @json.int64_or_null(item.deleted_at_ms)),
       ("deletedAtSource", @json.JStr(item.deleted_at_source)),
+      ("home", @json.JStr(item.home)),
+      ("homeSource", @json.JStr(item.home_source)),
       ("fileCount", @json.int_or_null(item.file_count)),
       ("bytes", @json.int64_or_null(item.bytes)),
       ("sizeSource", @json.JStr(item.size_source)),
