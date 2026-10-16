@@ -98,8 +98,8 @@ fn console_mark(row : Row) -> @html.Html {
 ///
 /// 卡片是 article + role=button，不是 <button>：卡片里将来可能还要放文本节点，
 /// 而 button 里嵌块级内容是无效的；role + tabindex 给的是同一套键盘与读屏语义。
-fn card_attrs(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
-  mark("instance-card", ["overview", "card", row.id])
+fn card_attrs(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Attrs {
+  let attrs = mark("instance-card", ["overview", "card", row.id])
     .data_set("instance", row.name)
     // 行 id 也写进 DOM：指针拖动的落点判定要按它认行（见 dom.mbt 的 js_drop_target）。
     // 与卡片自己的 DOM id 分开：那个是给焦点用的短串（dsh-card-…），这个要与 row.id 一字不差。
@@ -107,7 +107,9 @@ fn card_attrs(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
     .data_set("status", status_name(row.status))
     .data_set("light", light_key(row.light))
     .role("button")
-    .tabindex(0)
+    // 正被拖的那一条：从 Tab 序列里摘掉。它在原地只剩一个空位（画成了占位块），
+    // 焦点落在一个看不见的节点上，键盘用户就找不着自己在哪儿了。
+    .tabindex(if model.drag_active && model.drag_id == row.id { -1 } else { 0 })
     .aria_haspopup("dialog")
     .aria_label(row.name + " —— 点开看读数与控制（" + light_label(row.light) + "）")
     .on_click(fn(_event) { emit(DrawerOpen(row.id)) })
@@ -121,14 +123,24 @@ fn card_attrs(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
       let key = event.key()
       if key == "Enter" || key == " " {
         emit(DrawerOpen(row.id))
-      } else if (key == "ArrowUp" || key == "ArrowDown") && event.ctrl_key() {
-        // 键盘换位。用 Ctrl+方向键而不是裸方向键：裸方向键要留给页面滚动与焦点移动，
-        // 抢过来会让键盘用户在列表里走不动路。
+      } else {
+        @cmd.none
+      }
+    })
+    // 换位挂在**抬起**这一拍，不挂按下：
+    //   ① 按一次键浏览器会送好几个键盘事件（按下 / 自动重复 / 抬起），
+    //      挂在按下上会换两次位 —— 一次按键换两格，不是使用者要的；
+    //   ② 抬起还顺手给了「按错了就按住不放、再移开」这个反悔的余地。
+    // 键位仍旧是 Ctrl+方向键：裸方向键要留给页面滚动与焦点移动，抢过来键盘用户在列表里走不动路。
+    .on_keyup(fn(event) {
+      let key = event.key()
+      if (key == "ArrowUp" || key == "ArrowDown") && event.ctrl_key() {
         emit(ReorderKey(row.id, if key == "ArrowUp" { -1 } else { 1 }))
       } else {
         @cmd.none
       }
     })
+  attrs
 }
 
 ///|
@@ -212,7 +224,7 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   @html.article(
     id=card_id(row.id),
     class=card_class(row, model),
-    attrs=card_attrs(row, emit),
+    attrs=card_attrs(row, model, emit),
     [
       @html.span(class="dsh-tile-slot", [
         @html.span(class=tile_class, [icon(tile_icon, size=20)]),
@@ -225,50 +237,196 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
 
 
 ///|
+/// 一组里的一条：卡片节点 + 它的行 id。
+///
+/// 为什么要把 id 与节点摆在一起：拖动预览要按 id 找到「哪一条该插到哪儿」，
+/// 而 @html.Html 是不透明的 —— 想从节点里反查行 id 只能去翻 DOM，
+/// 那是把渲染期该知道的事推给浏览器。并排存着，查找就是一次数组遍历。
+priv struct DragItem {
+  id : String
+  node : @html.Html
+}
+
+///|
+/// 被拖的那一条现在排在第几格（0 起）：**按模型里的数**，不按 DOM 顺序。
+///
+/// 摆格子那一步（dom.mbt 的 js_grid_cells）拿的就是这个数，它也是落点；
+/// 这里只是把它变成「第几位」好播报。
+fn drag_position(model : Model) -> Int {
+  if model.drag_at_index >= 0 {
+    model.drag_at_index + 1
+  } else {
+    model.drag_from + 1
+  }
+}
+
+
+///|
+/// 占位块：**它就是这块将来真正会占的那一格**。
+///
+/// 形状与真条目同款（宽高、圆角、内边距、图标位全部照 .dsh-case 走，见 app.scss 一节），
+/// 内容用的是被拖的那一条自己 —— 一眼看出「是它要落到这儿」，不是另找一块灰。
+/// 它照抄形状而不是照抄外观：虚线边 + 半透明底，一眼分得出「这是将要有的」；
+/// 状态灯摘掉（灯说的是**现在**在不在跑，一块预览摆一颗灯是拿将来冒充现在）。
+///
+/// 静态信息，不是装饰：prefers-reduced-motion 下让位那一段过渡会撤掉，这一块留着。
+fn drop_slot(row : Row, slot_index : Int) -> @html.Html {
+  // slot_index 只写进 DOM 供验收探针对号（真正摆格子的是 js_grid_cells）
+  @html.div(
+    class="dsh-case dsh-drop-slot ghost-tile",
+    // 两个 data 属性：
+    //   slot-index 说它落在第几格（样式按它给 order —— **不用行内 style**：
+    //     那一层按位置比对孩子，行内样式会被对齐到别的节点上，实测差一格）；
+    //   slot-row 说「这一格将来是谁的」（验收探针按它把占位块与真条目对号，它不是行 id）。
+    attrs=mark("drop-slot", ["overview", "drop-slot", row.id])
+      .data_set("slot-index", slot_index.to_string())
+      .data_set("slot-row", row.id)
+      .aria_hidden("true"),
+    [
+      // 图标位：形状要占着，但里面什么都不画（真图标是这一条的标识，预览不该冒充它）
+      @html.span(class="dsh-tile-slot", [@html.span(class="dsh-tile", @html.nothing)]),
+      @html.div(class="dsh-case-body", [
+        @html.div(class="dsh-case-head", [
+          @html.span(class="dsh-name", card_name_text(row)),
+        ]),
+      ]),
+    ],
+  )
+}
+
+///|
+/// 跟着指针走的虚影：手上那一条的**半透明副本**。
+///
+/// 位置由 dom.mbt 的 js_drag_ghost_move 每动一下就改一次（只改这一个节点的 transform，
+/// 不回状态、不重渲染）；这里只负责把它画出来、给它定尺寸。
+/// 对指针关掉（pointer-events: none）：它压在指针下面，不关的话每逢指针落到它身上，
+/// 事件就换了目标，底下列表再也收不到移动。它也**不是** [data-row] 节点 ——
+/// 落点判定要认的是真条目，多一个同名的会认错。
+fn drag_ghost_view(row : Row, model : Model) -> @html.Html {
+  @html.div(
+    class="dsh-drag-ghost",
+    style=[
+      "width: " + model.drag_ghost_w.to_string() + "px",
+      "height: " + model.drag_ghost_h.to_string() + "px",
+    ],
+    attrs=mark("drag-ghost", ["overview", "drag-ghost", row.id]).aria_hidden("true"),
+    [
+      @html.article(class="dsh-case ghost-card", [
+        @html.span(class="dsh-tile-slot", [
+          @html.span(
+            class=if row.tone is Accent { "dsh-tile accent" } else { "dsh-tile violet" },
+            @html.nothing,
+          ),
+          status_light(row),
+        ]),
+        @html.div(class="dsh-case-body", [
+          @html.div(class="dsh-case-head", [
+            @html.span(class="dsh-name", card_name_text(row)),
+            match row.port_value {
+              Some(port) => card_port(row, port)
+              None => @html.nothing
+            },
+          ]),
+          match card_second_line(row) {
+            Some(node) => node
+            None => @html.nothing
+          },
+        ]),
+      ]),
+    ],
+  )
+}
+
+///|
+/// 拖动 / 换位时给读屏播报的一句：**已移到第 N 位**。
+///
+/// 播报的是「将要落到第几位」而不是「现在在第几位」—— 拖动过程中使用者要判断的，
+/// 正是「松手会落在哪儿」；说当前位次等于把问题重复一遍。
+/// 换位落定之后模型里就没有拖动态了，这一段随之消失，读屏不再念（它是一句提醒，不是状态）。
+fn drag_live_region(model : Model) -> @html.Html {
+  if !model.drag_active || model.drag_at_index < 0 {
+    return @html.nothing
+  }
+  let name = row_name(model, model.drag_id)
+  let text = if name == "" {
+    "已移到第 " + drag_position(model).to_string() + " 位"
+  } else {
+    name + " 已移到第 " + drag_position(model).to_string() + " 位"
+  }
+  @html.span(
+    class="dsh-drag-live",
+    attrs=mark("drag-live", ["overview", "drag-live"])
+      .role("status")
+      .aria_live("polite")
+      .aria_atomic("true"),
+    text,
+  )
+}
+///|
 /// 一组条目的容器（「当前运行的实例」/「已停止的实例」各一个）。
 ///
 /// 这一层给的是**分组语义**：落点判定要知道指针底下那一条属于哪一组
 /// （跨组不许放，两组不合并），以及拖动过程中整组的文字不许被选中。
+///
+/// 占位块也在这里插，**追加在末尾**。摆到第几格不靠这里的位置，也不靠节点上的属性 ——
+/// 虚拟 DOM 那一层按**位置**比对孩子序列（中间插一个节点会让它把后面的节点错位对齐、
+/// 属性也对到别的节点上），所以位置与属性都不可信。真正摆格子的是渲染之后那一步：
+/// dom.mbt 的 js_grid_cells 直接给每一条写 grid-column / grid-row（同一个 k，
+/// 也就是落点那一个数）。
+///
+/// 于是 n 个格子上是：占位块在第 k 格、被拖的那一条在最后一格（画成虚影看不见，
+/// `visibility: hidden` 仍然占着那一格）、其余各条按原次序填满剩下的格子 ——
+/// 与「真把它抽走、再插进第 k 格」的终局**逐格相同**：预览就是结果。
 ///
 /// 指针的按下 / 移动 / 松开**不挂在这里**，挂在外壳（见 view_shell 的 page_view）：
 /// 拖到列表之外再松手时，组这一层收不到抬起，拖动状态会一直挂着。
 /// 外壳包着整页，指针在页面里哪儿都是一路冒泡上去的。
 fn row_group(
   group : String,
-  children : Array[@html.Html],
+  items : Array[DragItem],
   model : Model,
   _emit : @cmd.Emit[Msg],
 ) -> @html.Html {
-  let attrs = mark("row-group", ["overview", "rows", group]).data_set("group", group)
+  // 落点写在 DOM 上（data-drop-index）：它是「预览就是结果」这条验收的判据之一，
+  // 探针照它比对「松手前占位块在第几格」与「松手后被拖那一条排在第几格」。
+  // 也是这一条链路的自证：算法算出来的那个数，与画面上摆的那一格是同一个。
+  let attrs = mark("row-group", ["overview", "rows", group])
+    .data_set("group", group)
+    .data_set("drop-index", model.drag_at_index.to_string())
+  let kids : Array[@html.Html] = items.map(fn(item) { item.node })
+  // 占位块里放的是被拖那一条自己的名字：一眼看出「是它要落到这儿」
+  let dragged_row = match find_row(model.rows, model.drag_id) {
+    Some(row) => row
+    None => return @html.div(class="dsh-rows dsh-card-grid", attrs=attrs, kids)
+  }
+  let previewing = model.drag_active && model.drag_group == group && model.drag_at_index >= 0
+  if previewing {
+    // **占位块挂在末尾**，不插进中间：虚拟 DOM 那一层是按位置比对孩子序列的，
+    // 中间插一个会让它把后面那些节点错位对齐 —— 实测「插在第 0 位的占位块」
+    // 拿到了第 0 位那个节点的行内样式，占位块本身被挤到末尾（预览因此差一格）。
+    // 挂末尾 = 只是多了一个孩子，前面一个节点都不动；摆到第几格由它自己的
+    // data-slot-index 说（样式里按这个属性给 order，见 app.scss 那一段）。
+    kids.push(drop_slot(dragged_row, model.drag_at_index))
+  }
   if model.drag_active {
-    @html.div(class="dsh-rows dsh-card-grid dsh-drag-active", attrs=attrs, children)
+    @html.div(class="dsh-rows dsh-card-grid dsh-drag-active", attrs=attrs, kids)
   } else {
-    @html.div(class="dsh-rows dsh-card-grid", attrs=attrs, children)
+    @html.div(class="dsh-rows dsh-card-grid", attrs=attrs, kids)
   }
 }
 
 ///|
-/// 条目的类名：常态是 `dsh-case`，拖动过程中多两档。
+/// 条目的类名：常态是 `dsh-case`，正在被拖的那一条多一档 `drag-image`。
 ///
-///   dragging   正被拖着的那一条（淡一档，一眼看出手在哪儿）
-///   drop-before / drop-after  落位提示挂在这一条上（那一侧画一道插入线）
-///
-/// 落位提示**不挂在被拖的那一条自己身上**：指针停在它自己上面时提示会自己跳，
-/// 那是「要往这儿插」，而它本来就在这儿。
+/// drag-image = 原件（手上那一条的替身：半透明地跟着指针走）**还在它原来的格子上**，
+/// 只是看不见了 —— 位置留着，DOM 顺序就与拖动前一致，落点算法才有一份稳的坐标可用
+/// （见 dom.mbt 的 js_drop_freeze）。原来那两档（dragging / drop-before / drop-after）
+/// 随插入线一起去掉了：落点现在由占位块自己说，不再画在这条卡上。
 fn card_class(row : Row, model : Model) -> String {
-  let base = if model.drag_active && model.drag_id == row.id {
-    "dsh-case dragging"
+  if model.drag_active && model.drag_id == row.id {
+    "dsh-case drag-image"
   } else {
     "dsh-case"
-  }
-  if model.drag_active && model.drag_over == row.id && model.drag_id != row.id {
-    if model.drag_over_after {
-      base + " drop-after"
-    } else {
-      base + " drop-before"
-    }
-  } else {
-    base
   }
 }
 
@@ -1083,41 +1241,44 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 读数还没落地：这一格摆加载态（与真条目同形的占位块，见 card_loading），
   // 空态只在真读到空的时候出现
   let pending = readings_pending(model)
-  let running_list : Array[@html.Html] = running.map(fn(row) {
-    instance_card(row, model, emit)
+  // 一组里的每一条都带上自己的行 id（见 DragItem）：拖动预览要按 id 找锚点
+  let running_list : Array[DragItem] = running.map(fn(row) {
+    { id: row.id, node: instance_card(row, model, emit) }
   })
   if running.length() == 0 {
     if pending {
-      running_list.push(
-        card_loading(
+      running_list.push({
+        id: "",
+        node: card_loading(
           "running-loading",
           "正在读取实例读数…",
           "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
         ),
-      )
+      })
     } else {
       // 读数失败时把原因带上（那一档标记里有）；读到了就没这一句
       let detail = match model.tag_instances {
         Some(tag) => tag.detail
         None => ""
       }
-      running_list.push(running_empty(running_summary(model), detail))
+      running_list.push({ id: "", node: running_empty(running_summary(model), detail) })
     }
   }
-  let stopped_list : Array[@html.Html] = stopped.map(fn(row) {
-    instance_card(row, model, emit)
+  let stopped_list : Array[DragItem] = stopped.map(fn(row) {
+    { id: row.id, node: instance_card(row, model, emit) }
   })
   if stopped.length() == 0 {
     if pending {
-      stopped_list.push(
-        card_loading(
+      stopped_list.push({
+        id: "",
+        node: card_loading(
           "stopped-loading",
           "正在读取 profile 读数…",
           "profile 的读数还在路上，这里先摆加载态。",
         ),
-      )
+      })
     } else {
-      stopped_list.push(stopped_empty())
+      stopped_list.push({ id: "", node: stopped_empty() })
     }
   }
   let dialogs : Array[@html.Html] = []
@@ -1179,6 +1340,18 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Some(row) => body.push(detail_drawer(row, model, emit, true))
     None => ()
   }
+  // 虚影挂在最外层、不进任何一页的栅格：它是 position: fixed 的，不占文档流，
+  // 也就不动任何一条的位置（落点算法量的是格子，多一个盒子就会量错）。
+  match find_row(model.rows, model.drag_id) {
+    Some(dragged) => {
+      if model.drag_ghost {
+        body.push(drag_ghost_view(dragged, model))
+      }
+    }
+    None => ()
+  }
+  // 读屏播报：只在拖动态存在时才有一个节点（它是提醒，不是常驻状态）
+  body.push(drag_live_region(model))
   @html.div(
     class="dsh-overview",
     attrs=mark("overview-page", ["overview", "page"]),

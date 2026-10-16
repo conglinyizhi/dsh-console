@@ -1,0 +1,253 @@
+{
+ "url": "http://127.0.0.1:5391/",
+ "sections": [
+  "drag",
+  "stuck",
+  "narrow",
+  "click",
+  "keyboard"
+ ],
+ "orderPath": "/tmp/dsh-drag-iso/dsh-console/order.json",
+ "orderFileBefore": "[\"port:3080\",\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]",
+ "click": {
+  "target": "profile:headless",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "drawerOpen": true
+ },
+ "drag": {
+  "group": "stopped",
+  "from": "profile:web-dev",
+  "to": "profile:review-dev",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "steps": [],
+  "indicator": {
+   "present": true,
+   "slotIndex": "1",
+   "slotRow": "profile:web-dev",
+   "cls": "dsh-case dsh-drop-slot ghost-tile",
+   "w": 253,
+   "h": 70,
+   "dragging": true,
+   "draggingRow": "profile:web-dev"
+  },
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:headless",
+     "profile:web-dev",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "orderFileAfter": "[\"port:3080\",\"profile:headless\",\"profile:web-dev\",\"profile:review-dev\"]",
+  "notice": {
+   "err": null,
+   "toast": "顺序已保存",
+   "drawer": false
+  }
+ },
+ "stuck": {
+  "from": "profile:headless",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:headless",
+     "profile:web-dev",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "duringDrag": {
+   "present": true,
+   "slotIndex": "1",
+   "slotRow": "profile:headless",
+   "cls": "dsh-case dsh-drop-slot ghost-tile",
+   "w": 253,
+   "h": 70,
+   "dragging": true,
+   "draggingRow": "profile:headless"
+  },
+  "outsideDrag": {
+   "present": false,
+   "dragging": true
+  },
+  "afterRelease": {
+   "present": false,
+   "dragging": false
+  },
+  "afterHover": {
+   "present": false,
+   "dragging": false
+  },
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:headless",
+     "profile:web-dev",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "notice": {
+   "err": null,
+   "toast": "顺序已保存",
+   "drawer": false
+  }
+ },
+ "narrow": {
+  "viewport": 360,
+  "from": "profile:headless",
+  "to": "profile:review-dev",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:headless",
+     "profile:web-dev",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:headless",
+     "profile:web-dev",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "indicator": {
+   "present": false,
+   "dragging": false
+  },
+  "notice": {
+   "err": null,
+   "toast": null,
+   "drawer": false
+  }
+ },
+ "keyboard": {
+  "row": "profile:headless",
+  "focusedBefore": "profile:headless",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:headless",
+     "profile:web-dev",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "orderFileAfter": "[\"port:3080\",\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]",
+  "notice": {
+   "err": null,
+   "toast": "顺序已保存",
+   "drawer": false
+  }
+ },
+ "orderFileEnd": "[\"port:3080\",\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]"
+}

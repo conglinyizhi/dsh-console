@@ -237,6 +237,22 @@ pub let drag_threshold_px : Double = 6.0
 pub let drag_min_viewport_width : Int = 726
 
 ///|
+/// 条目让位那一段过渡的时长（毫秒）：别条从旧格子挪到新格子走这么久。
+///
+/// 与 style 里 .dsh-case 的 transition 时长、以及 dom.mbt 里 FLIP 动画的时长
+/// 是同一个数（改一处得改另两处）。取值 150–200：再快看不清「谁让了谁」，
+/// 再慢指针已经移到下一格了、上一段还没走完，落点会看着发黏。
+/// **减少动效那一档不做过渡**（那条 media query 关掉 transition + FLIP 自己会跳过）。
+pub let reorder_ms : Int = 180
+
+///|
+/// 键盘换位第一拍与第二拍之间留多久（毫秒）：占位块先亮出来，再落位。
+///
+/// 比 reorder_ms 略长一点：让位那一段走完，眼睛已经看见「落到这儿」，
+/// 落位紧跟着发生；短于 reorder_ms 的话两段动画会叠在一起，看着像直接跳过去。
+pub let reorder_preview_ms : Int = 190
+
+///|
 /// 成功提示（toast）的寿命：出现之后这么多毫秒开始淡出。
 ///
 /// 只有**成功**的提示会走：失败要留到使用者自己处理掉（见 app.mbt 的 update 外壳）。
@@ -327,14 +343,41 @@ struct Model {
   drag_start_y : Double
   /// 位移过阈值了。**只有它成立才叫拖动**；没过的按下-松开仍然是点击（开抽屉）
   drag_active : Bool
-  /// 落位提示挂在哪一行上（"" = 现在没有提示）
-  drag_over : String
-  /// 提示画在目标行的下方（false = 上方）
-  drag_over_after : Bool
+  /// 这一次拖动落在哪一组（"" = 没有）。占位块只插在这一组里。
+  drag_group : String
+  /// 被拖的那一条原来在第几格（0 起）：换位播报要说「从第几到第几」时用得上。
+  drag_from : Int
+  /// 占位块插在这一行的**前面**（"" = 现在没有占位块）。
+  ///
+  /// 这一格只用来画：视图把占位块插进栅格的孩子序列里，摆在这一条之前。
+  /// **落点由 drag_at_index 定**，不由它定 —— 两者必须是同一个决定的两个说法
+  /// （见 insert_at_index），不然画在最左边而落在最右边。
+  drag_at : String
+  /// 上面那个占位块所在的**格子序号**（0 起），也就是松手后被拖的那一条将落到的位次。
+  ///
+  /// 这一格是这一轮的**唯一判据**：占位块画在第 k 格、松手就落在第 k 格。
+  /// -1 = 没有落点（指针在列表之外 / 跨组 / 还没过阈值）。
+  drag_at_index : Int
+  /// 拖动中的虚影跟着指针走到哪儿了（视口坐标；按下那一刻虚影的中心就压在指针上）。
+  /// 只是画：不参与任何判定。
+  drag_ghost_x : Double
+  drag_ghost_y : Double
+  /// 虚影要不要画（过了阈值才算拖动，虚影跟着出现）
+  drag_ghost : Bool
+  /// 虚影的宽高（CSS 像素）：按下时从被拖的那一条身上量一次，整个拖动过程不变。
+  /// 中途不再量，是因为列表正在让位 —— 再量一次会量到挪开后的格子，虚影会跟着跳。
+  drag_ghost_w : Double
+  drag_ghost_h : Double
   /// 这一次按下-松开不该再开抽屉（拖动过了）。**下一次按下会把它清掉** ——
   /// 不这么做的话，「拖完在卡片外松手、click 没来」会把这个标记一直留着，
   /// 吃掉使用者下一次真正的点击。
   drag_suppress_click : Bool
+  /// 键盘换位正等着落位的那一步（-1 / +1；0 = 没有等着的那一步）。
+  ///
+  /// Ctrl+方向键分两拍：先摆出占位块让人看见「要落到哪儿」，190ms 之后才真的换。
+  /// 这一格记的就是那第二拍要走的步长 —— 不记的话，第二拍只能现猜，
+  /// 而这中间使用者可能又按了别的方向（那时预览已经跟着换了，落位必须听最后一次）。
+  drag_key_dir : Int
   /// 提交前的那一份顺序。写回失败要按它回滚：失败之后页面必须回到原样，
   /// 停在「看着是新的、其实没存下」的状态比不做还糟。
   order_before : Array[String]
@@ -480,12 +523,15 @@ priv enum Msg {
   /// 拖动状态就会一直挂着（那一拍再划过列表，落位线还会跟着走）。
   /// 位掩码为 0 = 没有任何键按着 —— 那就是「其实早就松手了」，当场作废。
   DragMove(Double, Double, Int)
-  /// 指针松开：落位提示指哪儿就落到哪儿，立刻写回
+  /// 指针松开：占位块在哪一格就落到哪一格，立刻写回
   DragUp
   /// 指针被取消（触控被打断等）：这一次拖动作废，顺序一个字节都不动
   DragCancel
-  /// 键盘换位：行 id + 方向（-1 往上 / +1 往下）。键盘用户没有鼠标，这条是他们的入口
+  /// 键盘换位第一拍：行 id + 方向（-1 往上 / +1 往下）。键盘用户没有鼠标，这条是他们的入口。
+  /// 它**只摆占位块**，不动顺序 —— 让人先看见要落到哪儿，第二拍才落
   ReorderKey(String, Int)
+  /// 键盘换位第二拍：预览摆够了，真的换。带方向，好与预览那一拍对上号
+  ReorderCommit(Int)
   /// set-row-order 的回执：成功了保持新顺序，失败了回滚并如实报错
   OrderDone(Result[String, Error])
   /// 关抽屉：点外部 / Esc / 关闭按钮都走这一条。焦点回触发它的那张卡。
@@ -562,8 +608,16 @@ fn initial_model() -> Model {
     drag_start_x: 0.0,
     drag_start_y: 0.0,
     drag_active: false,
-    drag_over: "",
-    drag_over_after: false,
+    drag_group: "",
+    drag_from: -1,
+    drag_at: "",
+    drag_at_index: -1,
+    drag_ghost_x: 0.0,
+    drag_ghost_y: 0.0,
+    drag_ghost: false,
+    drag_ghost_w: 0.0,
+    drag_ghost_h: 0.0,
+    drag_key_dir: 0,
     drag_suppress_click: false,
     order_before: [],
     restarting: "",
@@ -1299,22 +1353,143 @@ fn current_group_ids(model : Model, group : String) -> Array[String] {
 }
 
 ///|
-/// 拖动的落点：从 js_drop_target 那段 JSON 里取出 (行 id, 组名, 是否插到它后面)。
-/// 取不到（指针底下没有条目 / JSON 不合形状）给三个空值，调用方据此不画提示也不落位。
-fn drop_target_of(x : Double, y : Double) -> (String, String, Bool) {
+/// 拖动的落点：从 js_drop_target 那段 JSON 里取出 (指针底下那一行的 id, 组名, 那一行的插入位次)。
+///
+/// `rank` 是**这一组里除被拖的那一条之外、按屏幕顺序数**的位次：插到某一行之前 = 它的位次，
+/// 插到某一行之后 = 它的位次 + 1。位次就是格子的算法，见 insert_at_index。
+/// 取不到（指针在列表之外 / JSON 不合形状）给 ("", "", -1)，调用方据此既不画占位块也不落位。
+fn drop_target_of(x : Double, y : Double) -> (String, String, Int) {
   let text = js_drop_target(x, y)
   if text == "" {
-    return ("", "", false)
+    return ("", "", -1)
   }
   let json = try @json.parse(text) catch {
     // 解析不出来就当没有落点：宁可这一次拖动不落位，也不拿一个猜的位置去插
     _ =>
-      return ("", "", false)
+      return ("", "", -1)
   }
   match json {
     Json::Object(fields) =>
-      (str_field(fields, "row"), str_field(fields, "group"), bool_field(fields, "after"))
-    _ => ("", "", false)
+      (
+        str_field(fields, "row"),
+        str_field(fields, "group"),
+        // 没有 rank（指针在列表之外）就当没有落点
+        match int_field(fields, "rank") {
+          Some(v) => v
+          None => -1
+        },
+      )
+    _ => ("", "", -1)
+  }
+}
+
+///|
+/// **落点的唯一算法**：把被拖的那一条插到「其余 n-1 条」的第 rank 个空档上，
+/// 得到它在整组里的最终位次（0 起，也就是它将占的**格子序号**）。
+///
+/// 预览与落位都取这一个数，所以「占位块画在第几格」与「松手落在第几格」不可能分叉 ——
+/// 分叉正是这一轮要修的那件事（旧版把判定藏在「指针越过谁的中间线」里，画的是线、落的是别处）。
+///
+/// 边界：rank ≤ 0 落到最前（0）；rank ≥ n-1 落到最后（n-1）。合起来就是：
+/// 排在前面的那 rank 条各占一格，所以插进去之后它在第 rank 格。
+fn insert_at_index(n : Int, rank : Int) -> Int {
+  if n <= 1 {
+    return 0
+  }
+  if rank < 0 {
+    return 0
+  }
+  if rank > n - 1 {
+    return n - 1
+  }
+  rank
+}
+
+
+///|
+/// 把被拖的那一条插进 ids 的第 k 格，返回整组的新顺序。
+///
+/// k 由 insert_at_index 算出来，所以这里的 k 就是**格子序号**：结果数组的第 k 个元素
+/// 就是被拖的那一条。视图按同一个 k 把占位块插进孩子序列 —— 预览与结果因此逐格一致。
+fn insert_row_at(ids : Array[String], dragged : String, k : Int) -> Array[String] {
+  let rest : Array[String] = []
+  for id in ids {
+    if id != dragged {
+      rest.push(id)
+    }
+  }
+  let out : Array[String] = []
+  let mut placed = false
+  for i = 0; i <= rest.length(); i = i + 1 {
+    if i == k && !placed {
+      out.push(dragged)
+      placed = true
+    }
+    if i < rest.length() {
+      out.push(rest[i])
+    }
+  }
+  if !placed {
+    out.push(dragged)
+  }
+  out
+}
+
+///|
+/// 被拖的那一条现在排在第几格（0 起）；不在组里给 -1。
+fn index_of_row(ids : Array[String], id : String) -> Int {
+  let mut at = -1
+  for i = 0; i < ids.length(); i = i + 1 {
+    if ids[i] == id {
+      at = i
+    }
+  }
+  at
+}
+
+///|
+/// 占位块要摆在**谁的前面**：结果顺序里第 k 格那条，就是此刻屏幕上的第 k 格那一条。
+///
+/// 为什么是它：被拖的那一条在拖动期间还留在原地（画成虚影占着那一格），没有从序列里消失。
+/// 所以「其余条各自占哪一格」与结果顺序里「它们各自占哪一格」是同一件事 ——
+/// 结果顺序的第 k 格那条，此刻正站在第 k 格。占位块插在它前面，就正好落在第 k 格。
+/// 同理插在最后一条前面 = 落在它那一格，也就是最后一格。
+///
+/// k 越界（理论上不会）给空串：视图拿到空串就不插占位块，宁可不画也不画错一格。
+fn anchor_at(ids : Array[String], k : Int) -> String {
+  if k < 0 || k >= ids.length() {
+    return ""
+  }
+  ids[k]
+}
+
+///|
+/// 被拖的那一条按下的那一刻有多大（宽, 高）—— 虚影照这个尺寸画，整个拖动过程不变。
+///
+/// 为什么要照抄而不是给虚影一个固定尺寸：虚影说的是「这一条被拿在手上」，
+/// 尺寸与它自己不一样的话，看着像换了一条东西在拖。
+/// 中途不再重量：列表正在让位，再量一次可能量到挪开后的格子，虚影会跟着跳。
+fn lift_sizes_of(id : String) -> (Double, Double) {
+  let text = js_card_box(card_id(id))
+  if text == "" {
+    return (0.0, 0.0)
+  }
+  let json = try @json.parse(text) catch {
+    _ => return (0.0, 0.0)
+  }
+  match json {
+    Json::Object(fields) =>
+      (
+        match num_field(fields, "w") {
+          Some(v) => v
+          None => 0.0
+        },
+        match num_field(fields, "h") {
+          Some(v) => v
+          None => 0.0
+        },
+      )
+    _ => (0.0, 0.0)
   }
 }
 
@@ -1328,50 +1503,20 @@ fn drag_past_threshold(x0 : Double, y0 : Double, x1 : Double, y1 : Double) -> Bo
 }
 
 ///|
-/// 把被拖的那一条挪到目标位置上，返回这一组的新顺序。
+/// 把被拖的那一条挪到第 k 格（占位块现在所在的那一格），返回这一组的新顺序。
 ///
-/// 任何一条不成立都给 None（= 这一次拖动作废，顺序一个字节都不动）：
-///   · 指针底下不是条目（拖到空白处松手）
-///   · 目标就是它自己（等于没动）
-///   · 目标在**另一组**里 —— 两组是语义不是排版，跨组拖动不合并两组
-fn moved_group_ids(
-  model : Model,
-  dragged : String,
-  over : String,
-  after : Bool,
-) -> Array[String]? {
+/// k < 0 = 没有落点，作废。**k 与占位块用的是同一个数**（见 drag_drop_index），
+/// 所以「看到的」与「落到的」是同一件事，不可能差一格。
+fn moved_group_ids(model : Model, dragged : String, k : Int) -> Array[String]? {
   let group = group_of_row_id(model, dragged)
-  if group == "" || over == "" || over == dragged {
-    return None
-  }
-  if group_of_row_id(model, over) != group {
+  if group == "" || k < 0 {
     return None
   }
   let ids = current_group_ids(model, group)
-  let rest : Array[String] = []
-  for id in ids {
-    if id != dragged {
-      rest.push(id)
-    }
+  if index_of_row(ids, dragged) < 0 {
+    return None
   }
-  // 目标在 rest 里的位置；找不到（理论上不会）就落到末尾
-  let mut at = rest.length()
-  for i = 0; i < rest.length(); i = i + 1 {
-    if rest[i] == over {
-      at = if after { i + 1 } else { i }
-    }
-  }
-  let out : Array[String] = []
-  for i = 0; i < rest.length(); i = i + 1 {
-    if i == at {
-      out.push(dragged)
-    }
-    out.push(rest[i])
-  }
-  if at >= rest.length() {
-    out.push(dragged)
-  }
-  Some(out)
+  Some(insert_row_at(ids, dragged, k))
 }
 
 ///|
@@ -1434,7 +1579,14 @@ fn commit_order(
   // 键盘用户按完 Ctrl+↓ 焦点还停在原来那一格上，而那一格现在是别的条目了。
   (
     next,
-    @cmd.batch([order_action_cmd(full, emit), focus_after_render(card_id(dragged))]),
+    @cmd.batch([
+      order_action_cmd(full, emit),
+      focus_after_render(card_id(dragged)),
+      // 落位这一拍也让位：被拖的那一条回到占位块那一格、其余各挪一格，
+      // 都是位置变化，一起交给 FLIP 演（撤格子排在 FLIP 之后：
+      // 先按摆好的格子把这段变化演出来，撤掉之后就是文档流里的终局）。
+      @cmd.batch([reorder_after_render(), clear_cells_after_render()]),
+    ]),
   )
 }
 

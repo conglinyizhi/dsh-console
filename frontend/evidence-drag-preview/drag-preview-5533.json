@@ -1,0 +1,2393 @@
+{
+ "url": "http://127.0.0.1:5391/",
+ "stateDir": "/tmp/dsh-drag-iso",
+ "orderFile": "/tmp/dsh-drag-iso/dsh-console/order.json",
+ "trials": [
+  {
+   "name": "t0-card2-bottom",
+   "group": "stopped",
+   "from": "profile:web-dev",
+   "target": "profile:review-dev",
+   "releaseAt": {
+    "x": 353,
+    "y": 361
+   },
+   "orderBefore": [
+    "profile:web-dev",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "frames": [
+    {
+     "i": 1,
+     "pointer": {
+      "x": 353,
+      "y": 261
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 275,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 2,
+     "pointer": {
+      "x": 353,
+      "y": 272
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 286,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 3,
+     "pointer": {
+      "x": 353,
+      "y": 283
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 297,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 4,
+     "pointer": {
+      "x": 353,
+      "y": 294
+     },
+     "slotIndex": 2,
+     "slotVisual": 2,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 308,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 506,
+       "y": 215
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "pointer": {
+      "x": 353,
+      "y": 305
+     },
+     "slotIndex": 2,
+     "slotVisual": 2,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 319,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 506,
+       "y": 215
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "pointer": {
+      "x": 353,
+      "y": 316
+     },
+     "slotIndex": 2,
+     "slotVisual": 2,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 330,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 506,
+       "y": 215
+      }
+     ]
+    },
+    {
+     "i": 7,
+     "pointer": {
+      "x": 353,
+      "y": 328
+     },
+     "slotIndex": 2,
+     "slotVisual": 2,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 342,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 506,
+       "y": 215
+      }
+     ]
+    },
+    {
+     "i": 8,
+     "pointer": {
+      "x": 353,
+      "y": 339
+     },
+     "slotIndex": 2,
+     "slotVisual": 2,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 353,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 506,
+       "y": 215
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "pointer": {
+      "x": 353,
+      "y": 350
+     },
+     "slotIndex": 2,
+     "slotVisual": 2,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 364,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 506,
+       "y": 215
+      }
+     ]
+    },
+    {
+     "i": 10,
+     "pointer": {
+      "x": 353,
+      "y": 361
+     },
+     "slotIndex": 2,
+     "slotVisual": 2,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 363,
+      "y": 375,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 506,
+       "y": 215
+      }
+     ]
+    }
+   ],
+   "preview": {
+    "slotIndex": 2,
+    "slotVisual": 2,
+    "slotRow": "profile:web-dev",
+    "ghost": {
+     "x": 363,
+     "y": 375,
+     "w": 282,
+     "h": 70
+    },
+    "placed": [
+     {
+      "row": "profile:web-dev",
+      "x": 506,
+      "y": 297
+     }
+    ]
+   },
+   "orderAfter": [
+    "profile:headless",
+    "profile:review-dev",
+    "profile:web-dev"
+   ],
+   "orderFileAfter": "[\"port:3080\",\"profile:headless\",\"profile:review-dev\",\"profile:web-dev\"]",
+   "landedAt": 2,
+   "consistent": true,
+   "declaredMatchesVisual": true,
+   "slotEveryFrame": true,
+   "ghostFollows": true,
+   "monotone": true
+  },
+  {
+   "name": "t1-card1-bottom",
+   "group": "stopped",
+   "from": "profile:web-dev",
+   "target": "profile:headless",
+   "releaseAt": {
+    "x": 647,
+    "y": 279
+   },
+   "orderBefore": [
+    "profile:web-dev",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "frames": [
+    {
+     "i": 1,
+     "pointer": {
+      "x": 382,
+      "y": 253
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 392,
+      "y": 267,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 2,
+     "pointer": {
+      "x": 412,
+      "y": 256
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 422,
+      "y": 270,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 3,
+     "pointer": {
+      "x": 441,
+      "y": 259
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 451,
+      "y": 273,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 4,
+     "pointer": {
+      "x": 471,
+      "y": 261
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 481,
+      "y": 275,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "pointer": {
+      "x": 500,
+      "y": 264
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 510,
+      "y": 278,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "pointer": {
+      "x": 529,
+      "y": 267
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 539,
+      "y": 281,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 7,
+     "pointer": {
+      "x": 559,
+      "y": 270
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 569,
+      "y": 284,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 8,
+     "pointer": {
+      "x": 588,
+      "y": 273
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 598,
+      "y": 287,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "pointer": {
+      "x": 618,
+      "y": 276
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 628,
+      "y": 290,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 10,
+     "pointer": {
+      "x": 647,
+      "y": 279
+     },
+     "slotIndex": 1,
+     "slotVisual": 1,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 657,
+      "y": 293,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 212,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    }
+   ],
+   "preview": {
+    "slotIndex": 1,
+    "slotVisual": 1,
+    "slotRow": "profile:web-dev",
+    "ghost": {
+     "x": 657,
+     "y": 293,
+     "w": 282,
+     "h": 70
+    },
+    "placed": [
+     {
+      "row": "profile:web-dev",
+      "x": 506,
+      "y": 297
+     }
+    ]
+   },
+   "orderAfter": [
+    "profile:headless",
+    "profile:web-dev",
+    "profile:review-dev"
+   ],
+   "orderFileAfter": "[\"port:3080\",\"profile:headless\",\"profile:web-dev\",\"profile:review-dev\"]",
+   "landedAt": 1,
+   "consistent": true,
+   "declaredMatchesVisual": true,
+   "slotEveryFrame": true,
+   "ghostFollows": true,
+   "monotone": true
+  },
+  {
+   "name": "t2-card1-top",
+   "group": "stopped",
+   "from": "profile:web-dev",
+   "target": "profile:headless",
+   "releaseAt": {
+    "x": 647,
+    "y": 221
+   },
+   "orderBefore": [
+    "profile:web-dev",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "frames": [
+    {
+     "i": 1,
+     "pointer": {
+      "x": 382,
+      "y": 247
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 392,
+      "y": 261,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 2,
+     "pointer": {
+      "x": 412,
+      "y": 244
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 422,
+      "y": 258,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 3,
+     "pointer": {
+      "x": 441,
+      "y": 241
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 451,
+      "y": 255,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 4,
+     "pointer": {
+      "x": 471,
+      "y": 238
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 481,
+      "y": 252,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "pointer": {
+      "x": 500,
+      "y": 235
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 510,
+      "y": 249,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "pointer": {
+      "x": 529,
+      "y": 232
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 539,
+      "y": 246,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 7,
+     "pointer": {
+      "x": 559,
+      "y": 230
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 569,
+      "y": 244,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 8,
+     "pointer": {
+      "x": 588,
+      "y": 227
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 598,
+      "y": 241,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "pointer": {
+      "x": 618,
+      "y": 224
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 628,
+      "y": 238,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    },
+    {
+     "i": 10,
+     "pointer": {
+      "x": 647,
+      "y": 221
+     },
+     "slotIndex": 0,
+     "slotVisual": 0,
+     "slotRow": "profile:web-dev",
+     "ghost": {
+      "x": 657,
+      "y": 235,
+      "w": 282,
+      "h": 70
+     },
+     "placed": [
+      {
+       "row": "profile:web-dev",
+       "x": 506,
+       "y": 297
+      }
+     ],
+     "rows": [
+      {
+       "row": "port:3080",
+       "group": "running",
+       "slot": 0,
+       "x": 212,
+       "y": 97
+      },
+      {
+       "row": "profile:web-dev",
+       "group": "stopped",
+       "slot": 0,
+       "x": 506,
+       "y": 297
+      },
+      {
+       "row": "profile:headless",
+       "group": "stopped",
+       "slot": 1,
+       "x": 506,
+       "y": 215
+      },
+      {
+       "row": "profile:review-dev",
+       "group": "stopped",
+       "slot": 2,
+       "x": 212,
+       "y": 297
+      }
+     ]
+    }
+   ],
+   "preview": {
+    "slotIndex": 0,
+    "slotVisual": 0,
+    "slotRow": "profile:web-dev",
+    "ghost": {
+     "x": 657,
+     "y": 235,
+     "w": 282,
+     "h": 70
+    },
+    "placed": [
+     {
+      "row": "profile:web-dev",
+      "x": 506,
+      "y": 297
+     }
+    ]
+   },
+   "orderAfter": [
+    "profile:web-dev",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "orderFileAfter": "[\"port:3080\",\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]",
+   "landedAt": 0,
+   "consistent": true,
+   "declaredMatchesVisual": true,
+   "slotEveryFrame": true,
+   "ghostFollows": true,
+   "monotone": true
+  }
+ ],
+ "checks": [
+  {
+   "name": "预览与结果逐格一致（t0-card2-bottom）",
+   "pass": true,
+   "detail": "占位块画在第 2 格（声明 2）→ 落在第 2 格"
+  },
+  {
+   "name": "占位块的声明与摆位同格（t0-card2-bottom）",
+   "pass": true,
+   "detail": "data-slot-index 与画面上那一格"
+  },
+  {
+   "name": "占位块每帧都在（t0-card2-bottom）",
+   "pass": true,
+   "detail": "10 帧"
+  },
+  {
+   "name": "虚影跟着指针（固定偏移）",
+   "pass": true,
+   "detail": "10 帧（t0-card2-bottom）"
+  },
+  {
+   "name": "预览与结果逐格一致（t1-card1-bottom）",
+   "pass": true,
+   "detail": "占位块画在第 1 格（声明 1）→ 落在第 1 格"
+  },
+  {
+   "name": "占位块的声明与摆位同格（t1-card1-bottom）",
+   "pass": true,
+   "detail": "data-slot-index 与画面上那一格"
+  },
+  {
+   "name": "占位块每帧都在（t1-card1-bottom）",
+   "pass": true,
+   "detail": "10 帧"
+  },
+  {
+   "name": "虚影跟着指针（固定偏移）",
+   "pass": true,
+   "detail": "10 帧（t1-card1-bottom）"
+  },
+  {
+   "name": "预览与结果逐格一致（t2-card1-top）",
+   "pass": true,
+   "detail": "占位块画在第 0 格（声明 0）→ 落在第 0 格"
+  },
+  {
+   "name": "占位块的声明与摆位同格（t2-card1-top）",
+   "pass": true,
+   "detail": "data-slot-index 与画面上那一格"
+  },
+  {
+   "name": "占位块每帧都在（t2-card1-top）",
+   "pass": true,
+   "detail": "10 帧"
+  },
+  {
+   "name": "虚影跟着指针（固定偏移）",
+   "pass": true,
+   "detail": "10 帧（t2-card1-top）"
+  },
+  {
+   "name": "三个落点互不相同",
+   "pass": true,
+   "detail": "[2,1,0]"
+  },
+  {
+   "name": "键盘换位有预览",
+   "pass": true,
+   "detail": "占位块第 1 格"
+  },
+  {
+   "name": "键盘预览期间顺序未动",
+   "pass": true,
+   "detail": "预览那一拍（up+70ms）的顺序与按下前一致"
+  },
+  {
+   "name": "键盘按下那一拍不动（换位在抬起）",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "键盘落位与预览同格",
+   "pass": true,
+   "detail": "画在第 1 格（声明 1）→ 落在第 1 格"
+  },
+  {
+   "name": "点击不误触发",
+   "pass": true,
+   "detail": "{\"row\":\"profile:web-dev\",\"drawerOpen\":true,\"orderSame\":true}"
+  },
+  {
+   "name": "跨组拖动作废",
+   "pass": true,
+   "detail": "{\"slotCount\":0,\"orderSame\":true}"
+  },
+  {
+   "name": "窄屏 360 不响应拖动",
+   "pass": true,
+   "detail": "{\"viewport\":360,\"slotCount\":0,\"ghostCount\":0,\"orderSame\":true}"
+  },
+  {
+   "name": "reduced-motion 下占位块仍在",
+   "pass": true,
+   "detail": "{\"reduce\":true,\"anims\":0,\"transition\":\"0s\"}"
+  },
+  {
+   "name": "reduced-motion 下让位无过渡",
+   "pass": true,
+   "detail": "{\"reduce\":true,\"anims\":0,\"transition\":\"0s\"}"
+  },
+  {
+   "name": "reduced-motion 下落点一致",
+   "pass": true,
+   "detail": "第 1 格 → 第 1 格"
+  }
+ ],
+ "orderPathFromApi": "/tmp/dsh-drag-iso/dsh-console/order.json",
+ "orderIsolated": true,
+ "distinctSpots": [
+  2,
+  1,
+  0
+ ],
+ "trialsViewport": 810,
+ "keyboard": {
+  "row": "profile:web-dev",
+  "orderBefore": [
+   "profile:web-dev",
+   "profile:headless",
+   "profile:review-dev"
+  ],
+  "preview": {
+   "slotIndex": 1,
+   "slotVisual": 1,
+   "orderDuringPreview": [
+    "profile:web-dev",
+    "profile:headless",
+    "profile:review-dev"
+   ]
+  },
+  "orderAfter": [
+   "profile:headless",
+   "profile:web-dev",
+   "profile:review-dev"
+  ],
+  "orderFileAfter": "[\"port:3080\",\"profile:headless\",\"profile:web-dev\",\"profile:review-dev\"]",
+  "notice": {
+   "err": null,
+   "drawer": false
+  },
+  "seq": [
+   {
+    "at": "down+90ms",
+    "slotIndex": -1,
+    "slotVisual": -1,
+    "order": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ],
+    "placed": [],
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 0,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 1,
+      "x": 477,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "at": "up+70ms",
+    "slotIndex": 1,
+    "slotVisual": 1,
+    "order": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ],
+    "placed": [
+     {
+      "row": "profile:web-dev",
+      "x": 1006,
+      "y": 215
+     }
+    ],
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "at": "up+150ms",
+    "slotIndex": 1,
+    "slotVisual": 1,
+    "order": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ],
+    "placed": [
+     {
+      "row": "profile:web-dev",
+      "x": 1006,
+      "y": 215
+     }
+    ],
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "at": "up+1350ms",
+    "slotIndex": -1,
+    "slotVisual": -1,
+    "order": [
+     "profile:headless",
+     "profile:web-dev",
+     "profile:review-dev"
+    ],
+    "placed": [],
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 477,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   }
+  ],
+  "orderBeforeDuring": [
+   "profile:web-dev",
+   "profile:headless",
+   "profile:review-dev"
+  ],
+  "previewShown": true,
+  "previewKeptOrder": true,
+  "landedAt": 1,
+  "previewSlot": 1,
+  "previewDeclared": 1,
+  "idleOnKeyDown": true
+ },
+ "click": {
+  "row": "profile:web-dev",
+  "drawerOpen": true,
+  "orderSame": true
+ },
+ "crossGroup": {
+  "from": "profile:headless",
+  "to": "port:3080",
+  "slotDuring": -1,
+  "slotCount": 0,
+  "orderSame": true,
+  "notice": {
+   "err": null,
+   "drawer": false
+  }
+ },
+ "narrow": {
+  "viewport": 360,
+  "slotCount": 0,
+  "ghostCount": 0,
+  "orderSame": true
+ },
+ "reduced": {
+  "media": {
+   "reduce": true,
+   "anims": 0,
+   "transition": "0s"
+  },
+  "slotPresent": true,
+  "slotIndex": 1,
+  "slotVisual": 1,
+  "samples": [
+   {
+    "i": 1,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "slotIndex": 1,
+    "rows": [
+     {
+      "row": "port:3080",
+      "group": "running",
+      "slot": 0,
+      "x": 212,
+      "y": 97
+     },
+     {
+      "row": "profile:headless",
+      "group": "stopped",
+      "slot": 0,
+      "x": 1006,
+      "y": 215
+     },
+     {
+      "row": "profile:web-dev",
+      "group": "stopped",
+      "slot": 1,
+      "x": 212,
+      "y": 215
+     },
+     {
+      "row": "profile:review-dev",
+      "group": "stopped",
+      "slot": 2,
+      "x": 741,
+      "y": 215
+     }
+    ]
+   }
+  ],
+  "orderAfter": [
+   "profile:web-dev",
+   "profile:headless",
+   "profile:review-dev"
+  ],
+  "landedAt": 1,
+  "consistent": true
+ },
+ "orderFileEnd": "[\"port:3080\",\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]"
+}

@@ -665,29 +665,97 @@ select { appearance: none; -webkit-appearance: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-// ── 拖动排序（第十轮） ──
+// ── 拖动排序的落点预览（第十二轮：预览就是结果） ──
 //
-// 全部靠指针事件 + 一个类名，没有原生 HTML5 拖放（它的拖影与放下判定在无头浏览器里
-// 既验不了也不好控）。三样视觉：
-//   .dragging     正被拖着的那一条淡一档
-//   .drop-before / .drop-after  落位提示：在目标那一侧画一道插入线（::after，2px）
-//   .dsh-drag-active  整组：拖动中禁掉文字选中，光标改成抓着
-// 插入线画在盒子**外面**（top: -7 / bottom: -7），正好落在 12px 的栅格间隙里，
-// 不占任何布局位置 —— 所以提示出现与消失都不会把条目挤动一下。
+// 全部靠指针事件，没有原生 HTML5 拖放（它的拖影与放下判定在无头浏览器里既验不了也不好控）。
+// 四样视觉：
+//   .drag-image    手上那一条留在原格子里、看不见了（visibility: hidden 仍占着那一格）
+//   .dsh-drag-ghost  跟着指针走的半透明虚影（外面一层定位，里面一张 .dsh-case）
+//   .dsh-drop-slot   占位块：**它就是这块将来真正会占的那一格**
+//   .dsh-drag-active 整组：拖动中禁掉文字选中，光标改成抓着
+//
+// 与第十轮那版的分界：那时提示是目标块上一条 2px 插入线（画在盒子外面，落在 12px 的栅格
+// 间隙里），信息量只有「插在这一条前面还是后面」，而且那个判定藏在「指针越过谁的中间线」
+// 这句代码里，画面上看不见。现在占位块自己占着一格、其余条目真的让开 —— 
+// 松手落到哪一格，预览里就已经写着。
+//
+// 让位那一段过渡不是 CSS transition：让位是**节点在序列里换了位置**，不是某个属性值变了，
+// transition 不触发。走的是 FLIP（dom.mbt 的 js_drop_flip）：先量旧位置、再量新位置、
+// 补一段 180ms 的位移，与 state.mbt 的 reorder_ms 是同一个数。
+// **减少动效那一档不做这段过渡**（FLIP 里判、直接返回），但占位块留着 ——
+// 它是信息，不是装饰。
 .dsh-card-grid.dsh-drag-active { user-select: none; cursor: grabbing; }
-.dsh-case.dragging { opacity: 0.55; }
-.dsh-case.drop-before::after,
-.dsh-case.drop-after::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  height: 2px;
-  border-radius: 1px;
-  background: $accent;
+
+/* 手上那一条留在原地、看不见：位置必须留着。条目序列不变，落点算法才有一份
+   「与没在拖时一致」的坐标可量（见 dom.mbt 的 js_drop_freeze）。 */
+/* 手上那一条留在原地、看不见：位置必须留着（条目序列不变，落点算法才有一份
+   「与没在拖时一致」的坐标可量，见 dom.mbt 的 js_drop_freeze）。它落在第几格
+   由 js_grid_cells 说（见下面那一段）。 */
+.dsh-case.drag-image { visibility: hidden; }
+
+/* 拖动预览的格子**不在这里写**：摆格子的是渲染之后那一步 ——
+   dom.mbt 的 js_grid_cells 给每一条直接写 grid-column / grid-row。
+   为什么不放在样式表里（两个都试过、都被量出来的事实否掉）：
+     ① 靠孩子序列里的位置不行 —— 虚拟 DOM 那一层按位置比对孩子序列，中间插一个节点
+        会把后面那些节点错位对齐，属性也会对到别的节点上；
+     ② 靠 `order` + 属性选择器不行 —— 栅格的自动排布**碰不得空档**：order 不成一份
+        完整的 0..n-1 排列时，后一条会自己往后跳一格（实测第 0 格的占位块被摆到了
+        第三列）；补齐成完整排列之后，被拖的那一条又得跟着别人一起重排，而它必须
+        稳稳待在最后一格。
+   行内样式是这里唯一说了算的：它压得过属性选择器，也压得过栅格的自动排布。 */
+
+
+/* 虚影外面这一层：position: fixed 不占文档流，跟着指针走的是它自己的 transform
+   （js_drag_ghost_move 每动一下改一次，不回状态）。尺寸由行内样式给 —— 照手上那一条量。
+   对指针关掉：它压在指针下面，不关的话每逢指针落到它身上，事件就换了目标。 */
+.dsh-drag-ghost {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 40;
   pointer-events: none;
+  will-change: transform;
 }
-.dsh-case.drop-before::after { top: -7px; }
-.dsh-case.drop-after::after { bottom: -7px; }
+/* 里面那张卡：半透明 + 一圈投影 —— 一眼看出「这是拿在手上的、浮在页面上」，
+   与已经落到格子里的那些分得开。投影是「不在流里」的唯一记号（位置本身也会说话，
+   但虚影压在别的卡片上时，只有投影能说清谁在前）。
+   它没有 hover / focus 的样子（虚影不可交互）：那两档由 .dsh-case 身上带着，
+   这里显式压掉，免得鼠标扫过时虚影亮一下，看着像可以点。 */
+.dsh-drag-ghost .ghost-card {
+  opacity: 0.72;
+  cursor: grabbing;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+.dsh-drag-ghost .ghost-card:hover { background: $panel; border-color: $line; }
+
+/* 占位块：形状与真条目**同款**（宽高、圆角、内边距、图标位都照 .dsh-case 走），
+   外观另起一副：虚线边 + 极淡的强调底 + 里面的内容再淡一档。
+   它是「将要有的」，不是「已经有的」—— 与真条目长得一样的话，一屏里会多出一条幽灵条目。 */
+/* 悬停那一档要**显式压掉**：占位块就在指针底下，:hover 一直成立，
+   不压的话它会被 .dsh-case:hover 那条规则拿走边色与底色（实测边框变成了 $line-strong、
+   底色变成 $panel-soft），「将要有的」那副样子就没了 —— 它也不是可交互的，
+   不该给出可点的反馈。 */
+.dsh-drop-slot, .dsh-drop-slot:hover {
+  border-style: dashed;
+  border-color: rgba(79, 140, 255, 0.55);
+  background: $accent-soft;
+  cursor: default;
+}
+.dsh-drop-slot .ghost-tile { opacity: 0.5; }
+/* 图标位与第二行都不参与：占位块只有「一条条目那么高」这一件事要说 */
+.dsh-drop-slot .dsh-tile { background: transparent; }
+
+/* 读屏播报那一句：视觉上不占地方，但**不能 display: none** ——
+   读屏会连同节点一起忽略。裁成一个点挪到看不见的地方，语义还在。 */
+.dsh-drag-live {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 .dsh-fields {
   /* 常态两列：6 个字段是 2 / 2 / 2，不随窗口宽度涨成四列。
      只有卡宽 < 500 时才塌成一列 × 6 行（见本文件末尾的窄视口一段）——

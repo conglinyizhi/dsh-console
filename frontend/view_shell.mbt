@@ -192,6 +192,13 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       .on_pointerup(fn(_event) { emit(DragUp) })
       .on_pointercancel(fn(_event) { emit(DragCancel) })
   }
+  // 拖动中滚了页面就作废：落点判定用的那份格子坐标是**视口坐标**，页面一滚就全对不上，
+  // 再算下去会得到一个「看着对、落错格」的落点 —— 那比不作废还糟。
+  // 挂在外壳上（不在分组上）：滚的是窗口，事件落在外壳这一层才收得到。
+  // 只在拖动态存在时挂，与上面三条同一个理由：不拖的时候划过页面不该重渲染。
+  if model.drag_active {
+    shell_attrs = shell_attrs.on_scroll(fn(_event) { emit(DragCancel) })
+  }
   @html.div(
     class="dsh-shell",
     attrs=shell_attrs,

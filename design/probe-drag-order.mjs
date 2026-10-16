@@ -48,14 +48,16 @@ const hover = (x, y) => send('Input.dispatchMouseEvent', { type: 'mouseMoved', x
 
 const readOrder = () => ev(`JSON.stringify([...document.querySelectorAll('[data-name="row-group"]')].map((g) => ({ group: g.getAttribute('data-group'), rows: [...g.querySelectorAll('.dsh-case')].map((c) => c.getAttribute('data-row')) })))`).then((s) => JSON.parse(s || '[]'))
 const readCards = () => ev(`JSON.stringify([...document.querySelectorAll('.dsh-case')].map((c) => { const r = c.getBoundingClientRect(); return { row: c.getAttribute('data-row'), group: (c.closest('[data-name="row-group"]') || {}).getAttribute ? c.closest('[data-name="row-group"]').getAttribute('data-group') : null, x: r.x, y: r.y, w: r.width, h: r.height } }))`).then((s) => JSON.parse(s || '[]'))
+// 落位提示第十二轮起是**占位块**（不是那道 2px 插入线）：这个读数跟着换，
+// 量的仍是同一件事 —— 「松手前有没有落点提示、提示在哪儿」。
 const readIndicator = () => ev(`(() => {
-  const el = document.querySelector('.dsh-case.drop-before, .dsh-case.drop-after')
-  const dragging = document.querySelector('.dsh-case.dragging')
+  const el = document.querySelector('.dsh-drop-slot')
+  const dragging = document.querySelector('.dsh-case.drag-image')
   if (!el) return JSON.stringify({ present: false, dragging: !!dragging })
-  const cs = getComputedStyle(el, '::after')
-  return JSON.stringify({ present: true, row: el.getAttribute('data-row'), cls: el.className,
-    dragging: !!dragging, draggingRow: dragging ? dragging.getAttribute('data-row') : null,
-    content: cs.content, height: cs.height, background: cs.backgroundColor, top: cs.top, bottom: cs.bottom, left: cs.left, right: cs.right })
+  const r = el.getBoundingClientRect()
+  return JSON.stringify({ present: true, slotIndex: el.getAttribute('data-slot-index'),
+    slotRow: el.getAttribute('data-slot-row'), cls: el.className, w: Math.round(r.width), h: Math.round(r.height),
+    dragging: !!dragging, draggingRow: dragging ? dragging.getAttribute('data-row') : null })
 })()`).then((s) => JSON.parse(s || '{}'))
 const readNotice = () => ev(`JSON.stringify({ err: (document.querySelector('[data-name="action-notice"] .dsh-notice-text') || {}).textContent || null, toast: (document.querySelector('[data-name="flash-toast"] .dsh-toast-text') || {}).textContent || null, drawer: !!document.querySelector('.dsh-drawer') })`).then((s) => JSON.parse(s || '{}'))
 const shot = async (p) => { const s = await send('Page.captureScreenshot', { format: 'png' }); writeFileSync(p, Buffer.from(s.result.data, 'base64')) }
