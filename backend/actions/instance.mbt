@@ -282,7 +282,7 @@ async fn reap_dead_child(pid : Int) -> Unit noraise {
 /// 尽力回收我们起的僵尸子进程（不是我们的子进程时 wait 会直接报错，吞掉即可）。
 async fn reap_ours(pid : Int) -> Unit noraise {
   let registry = @store.load_registry()
-  match @store.find_record(registry.entries, Some(pid), None) {
+  match @store.find_record(registry.entries, Some(pid), None, None) {
     Some(_) =>
       try {
         let _ = @process.wait_pid(pid)
@@ -476,16 +476,21 @@ pub async fn start_instance(
   if !@json.is_dir(profile_dir) {
     fail("not-found", "profile 目录不存在：" + profile_dir)
   }
-  match running_for_profile(name) {
+  // 冲突只看这个 (home, 名字)：别的 home 里同名的那只是另一只，不该挡住这一只
+  match running_for_profile_in(name, Some(target_home)) {
     Some(hit) => {
       let port_text = match hit.port {
         Some(p) => "端口 " + p.to_string()
         None => "端口未识别"
       }
+      let home_text = match hit.home {
+        Some(h) => "，home " + h
+        None => ""
+      }
       fail(
         "conflict",
         "profile " + name + " 已经在跑（PID " + hit.pid.to_string() + "，" + port_text +
-        "）；同一个 profile 同时只允许一只实例",
+        home_text + "）；同一个 home 里同一个 profile 只允许一只实例",
       )
     }
     None => ()
@@ -745,21 +750,53 @@ async fn spawn_child(
 }
 
 ///|
-/// 同一 profile 是不是已经在跑。先看进程表（--profile），端口未知时查登记表与实例读数。
+/// 这只进程的 home：environ 里的 DSH_HOME 优先，没有再看 fd 表里有没有 …/.dsh/… 这一段。
+/// 两条都拿不到给 None（认不出）—— 不拿默认值 $HOME/.dsh 顶替，理由与探测那一侧一致。
+async fn home_of_process(item : @processes.ProcSummary) -> String? noraise {
+  match item.dsh_home {
+    Some(h) =>
+      if @json.trim_both(h) == "" {
+        @processes.fd_home_hint(item.pid)
+      } else {
+        Some(h)
+      }
+    None => @processes.fd_home_hint(item.pid)
+  }
+}
+
+///|
+/// 某个 home 里的这个 profile 是不是已经在跑。动的就是**控制台自己的 home**
+/// （profile 目录动作改 / 删的都是那儿那一份），所以 home 不用调用方给。
 pub async fn running_for_profile(name : String) -> Target? noraise {
+  let (home, _) = @runtime.resolve_dsh_home()
+  running_for_profile_in(name, Some(home))
+}
+
+///|
+/// 同一个 (home, 名字) 是不是已经在跑。先看进程表（--profile + home），
+/// 端口未知时查登记表与实例读数。
+///
+/// 判据是 (home, 名字) 而不是只有名字：**同名不同 home 是两只**，别的 home 里的同名
+/// 实例不该把这一只挡下来（隔离 home 的 web 被主线的 web 挡住，就是这一条）。
+/// home 两边都拿得到且相等才算同一只；实例那边 home 认不出时按不同处处理，
+/// 见 store 的 same_home。
+pub async fn running_for_profile_in(name : String, home : String?) -> Target? noraise {
   let report = @processes.read_processes()
   let mut hit : Target? = None
   for item in report.instances {
     match item.profile {
       Some(p) =>
         if p == name && process_alive(item.pid) {
-          hit = Some({
-            pid: item.pid,
-            port: item.port,
-            profile: Some(name),
-            home: item.dsh_home,
-            log_path: None,
-          })
+          let item_home = home_of_process(item)
+          if @store.same_home(item_home, home) {
+            hit = Some({
+              pid: item.pid,
+              port: item.port,
+              profile: Some(name),
+              home: item_home,
+              log_path: None,
+            })
+          }
         }
       None => ()
     }
@@ -775,10 +812,12 @@ pub async fn running_for_profile(name : String) -> Target? noraise {
           }
       }
     None => {
-      // 进程表里没有（argv 读不到等）：登记表里活着的那条也算在跑
+      // 进程表里没有（argv 读不到等）：登记表里活着的那条也算在跑 —— 同样按 (home, 名字) 认
       let registry = @store.load_registry()
       for r in registry.entries {
-        if r.profile == name && process_alive(r.pid) {
+        if r.profile == name &&
+          process_alive(r.pid) &&
+          @store.same_home(Some(r.home), home) {
           return Some({
             pid: r.pid,
             port: Some(r.port),
@@ -797,7 +836,7 @@ pub async fn running_for_profile(name : String) -> Target? noraise {
 /// 某 PID 在听哪个端口：先查登记表，再走实例读数（重，只在需要时走）。
 pub async fn port_of_pid(pid : Int) -> Int? noraise {
   let registry = @store.load_registry()
-  match @store.find_record(registry.entries, Some(pid), None) {
+  match @store.find_record(registry.entries, Some(pid), None, None) {
     Some(r) => Some(r.port)
     None => {
       let report = @instances.instances_report_with_settings()
@@ -826,7 +865,7 @@ pub async fn resolve_target(pid_in : Int?, port_in : Int?) -> Target raise Actio
   }
   let registry = @store.load_registry()
   let by_pid = match pid_in {
-    Some(p) => @store.find_record(registry.entries, Some(p), None)
+    Some(p) => @store.find_record(registry.entries, Some(p), None, None)
     None => None
   }
   match by_pid {

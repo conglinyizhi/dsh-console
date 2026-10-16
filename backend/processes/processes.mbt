@@ -146,6 +146,29 @@ pub async fn read_env_of(pid : Int, key : String) -> String? noraise {
 }
 
 ///|
+/// 只扫一遍 /proc/<pid>/fd，取第一个 …/.dsh/… 前缀 —— 与 holders_for_inodes 同一把尺子。
+/// 用在「进程侧只能靠 fd 表判 home」的地方（冲突判定要比 (home, 名字)）。
+/// 这是**线索**不是结论：认不出给 None，调用方不许拿默认值 $HOME/.dsh 顶替。
+pub async fn fd_home_hint(pid : Int) -> String? noraise {
+  let fd_dir = proc_root + "/" + @json.int_to_dec(pid) + "/fd"
+  let names = match @json.list_dir_result(fd_dir) {
+    Ok(list) => list
+    Err(_) => return None
+  }
+  for name in names {
+    match @json.read_link(fd_dir + "/" + name) {
+      Ok(target) =>
+        match dsh_home_prefix(target) {
+          Some(prefix) => return Some(prefix)
+          None => ()
+        }
+      Err(_) => ()
+    }
+  }
+  None
+}
+
+///|
 /// /proc/<pid>/stat 第 22 个字段：进程启动时的系统时钟滴答数。
 /// comm 里可能有空格和括号，从最后一个 ')' 之后切。
 pub async fn read_start_ticks(pid : Int) -> Int64? noraise {

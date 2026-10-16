@@ -134,12 +134,49 @@ pub async fn save_registry(entries : Array[InstanceRecord]) -> Result[Unit, Stri
 }
 
 ///|
-/// 加一条（同 pid 或同 profile 的老条目先去掉，不留重复）。
+/// 归一化一个 home 字符串：去首尾空白、去掉末尾多余的斜杠。
+/// 空串 / 只有斜杠 / 相对路径一律给空串 —— 空串的语义是「认不出」，不是「根目录」。
+pub fn trim_home(raw : String) -> String {
+  let text = @json.trim_both(raw)
+  let mut end = text.length()
+  while end > 1 && @json.slice(text, end - 1, end) == "/" {
+    end = end - 1
+  }
+  if !text.has_prefix("/") || end <= 1 {
+    ""
+  } else {
+    @json.slice(text, 0, end)
+  }
+}
+
+///|
+/// 两处 home 是不是同一处。先归一化再比。
+///
+/// 只有两边都拿得到、且归一化后相等才算同一处。一边认不出（None 或空串）时给
+/// false，也就是按「不同处」处理 —— 认不出它的 home，就没法说它跟另一处是同一处，
+/// 而按「同一处」处理会把别的 home 里的同名实例算成本地实例挡下来（隔离 home 的
+/// 那只就会一直起不来）。判据是 (home, 名字)：同名不同 home 是两只。
+pub fn same_home(a : String?, b : String?) -> Bool {
+  match (a, b) {
+    (Some(x), Some(y)) => {
+      let left = trim_home(x)
+      let right = trim_home(y)
+      left != "" && left == right
+    }
+    _ => false
+  }
+}
+
+///|
+/// 加一条。去重键是 pid 与 (home, profile)：同 pid 的老条目、以及**同一处 home 里
+/// 同名 profile** 的老条目先去掉，不留重复。
+/// 只看 profile 名是不够的：不同 home 里的同名 profile 是两只，各留各的登记。
 pub async fn add_record(entry : InstanceRecord) -> Result[Unit, String] noraise {
   let loaded = load_registry()
   let kept : Array[InstanceRecord] = []
   for r in loaded.entries {
-    if r.pid != entry.pid && r.profile != entry.profile {
+    let same_slot = r.profile == entry.profile && same_home(Some(r.home), Some(entry.home))
+    if r.pid != entry.pid && !same_slot {
       kept.push(r)
     }
   }
@@ -161,8 +198,16 @@ pub async fn remove_by_pid(pid : Int) -> Result[Unit, String] noraise {
 }
 
 ///|
-/// 找一条登记：按 pid 或按 profile。
-pub fn find_record(entries : Array[InstanceRecord], pid : Int?, profile : String?) -> InstanceRecord? {
+/// 找一条登记：按 pid，或者按 (home, profile) 一起给。
+///
+/// 按名字那条要求同时给 home：同名不同 home 是两只，只给名字认不出是哪一只，
+/// 就不认（返回 None），免得把别的 home 那一只的 logPath / 端口当成它的。
+pub fn find_record(
+  entries : Array[InstanceRecord],
+  pid : Int?,
+  profile : String?,
+  home : String?,
+) -> InstanceRecord? {
   for r in entries {
     match pid {
       Some(p) =>
@@ -172,14 +217,14 @@ pub fn find_record(entries : Array[InstanceRecord], pid : Int?, profile : String
       None => ()
     }
   }
-  for r in entries {
-    match profile {
-      Some(name) =>
-        if r.profile == name {
+  match (profile, home) {
+    (Some(name), Some(h)) =>
+      for r in entries {
+        if r.profile == name && same_home(Some(r.home), Some(h)) {
           return Some(r)
         }
-      None => ()
-    }
+      }
+    _ => ()
   }
   None
 }

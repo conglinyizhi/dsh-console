@@ -391,7 +391,7 @@ async fn own_log_path(
 ) -> String? noraise {
   match instance.pid {
     Some(pid) =>
-      match @store.find_record(@store.load_registry().entries, Some(pid), None) {
+      match @store.find_record(@store.load_registry().entries, Some(pid), None, None) {
         Some(record) => return Some(record.log_path)
         None => ()
       }
