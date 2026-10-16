@@ -374,6 +374,55 @@ dsh web 的首次握手看 URL 里的 `?token=<key>`，不带就是 401。控制
 - 这一层仍然是**纯只读**：只做 `file_size` / `read_at` / `readdir` / `mtime` 与注册表读取，
   不写盘、不建进程
 
+**状态灯三件套（第七轮加字段）**
+
+卡片图标右上角那个实心圆要判据，所以 `instances[]` 每个实例**再加三个字段**
+（其余字段一个都没动，旧消费者忽略即可）：
+
+| 字段 | 类型 | 口径 |
+| --- | --- | --- |
+| `state` | string | `running` / `fault` / `starting` |
+| `stateReason` | string | 为什么是这个状态；黄能分开说是 b 还是 c |
+| `profileHealth` | object / null | `{ missingBundles, hasPatch }`；解析不出 profile 给 `null` |
+
+**关键行为改动**：改前「签名探测不通过」的端口**根本不进列表**。现在只要**持有它的进程
+cmdline 看起来是 dsh**（与 `/api/local/processes` 同一把尺子：可执行名 `dsh`，
+或路径段里有 `@deepseek-ai/dsh/`），就**列出来并标 `fault`**，`stateReason` 里写着
+「端口在听，但签名探测不通过（成因 b）：…」。join 拿不到 PID 的端口仍然不列 ——
+无从判断它是不是 dsh，不猜。
+
+判据（写死，实现见 `instances/judge_state`）：
+
+| state | 判据 |
+| --- | --- |
+| `running` | 签名探测通过。绿由签名给：profile 有毛病也**不**把「在跑」说成「故障」，c 的事实照写进 `stateReason` 与 `profileHealth` |
+| `fault` | **b**：端口在听、持有它的进程 cmdline 看起来是 dsh，但签名探测不通过（含探测没打通 / 超时）；**c**：签名没通，且解析出的 profile 缺包 > 0 或没有 `cordis.patch.yml`。b 与 c 同时成立时以 c 起头（那是根因），b 的事实同句写出 |
+| `starting` | 本控制台刚起（`runtime.json` 里有 pid 或端口对得上的登记，且进程起不到 `start_grace_seconds` = 20 秒），端口已在听但签名还没通：可能还在启动，不是坏 |
+
+**红（停用）不在这个接口里**：没在跑的端口不可能是 LISTEN 候选，所以它不进 `instances` ——
+红由「列表里没有它」表达。没在跑的 profile 那一档（黄 c / 红）由前端拿
+`GET /api/local/profiles` 现成的 `bundles.missing` 与 `patch.exists` 自己判，后端不重复给。
+
+**为什么签名优先于 c**：使用者主力的 `web` profile 现成读数就是 `bundles.missing = 3`
+（`@deepseek-ai/dsh-experimental-agent-team-profile` / `-auto-review` / `-schedule-bundle`
+不在 profile 与 hoisted 的 `node_modules` 里，但 dsh 从自己的全局安装解析得到，实例跑得好好的）。
+让 c 覆盖签名会把这种「在跑、签名也过」的实例一律点成黄，与「绿＝签名探测通过」的判据打架；
+反过来，b 那一路本来就只能靠 c 说清根因，所以 c 在那里仍然起头。
+
+`profileHealth` 与 `GET /api/local/profiles` 的 `bundles.missing` / `patch.exists` 同源
+（同一个 profile 目录、同一套「profile 自己的 `node_modules` → `profiles/node_modules` 共享」查找，
+实现见 `profiles/profile_health`）。给 `null` 的三种原因都写在 `stateReason` 里：
+进程 cmdline 里没有 `--profile` / 实例的 DSH_HOME 读不到 / profile 目录不存在或名字不是单段。
+
+**fault 条目对写侧的影响**（有意为之，写在这里免得被当成回归）：
+
+- `archive-profile` 的「正在跑的不许归档」把 fault 条目也算在跑（它确实占着那个端口）
+- `stop-instance` / `restart-instance` 按 `port` 找目标时，fault 条目也能找到 pid（改前是 `not-found`）
+- `probe.hits` **仍是签名命中数**：fault 条目不计入，条目总数看 `instances` 长度
+
+fault 条目的 `signature` 给 `{ id: "", describe: "签名探测不通过：…", evidence: "" }` ——
+没有判据可填，不编一个 id。
+
 ## 响应外壳与状态码
 
 成功：

@@ -76,6 +76,17 @@ pub async fn read_argv(pid : Int) -> Array[String]? noraise {
 }
 
 ///|
+/// 某个 PID 的 cmdline 看起来是不是 dsh（与 read_processes 用同一把尺子：is_dsh_entry）。
+/// 读不到 cmdline 给 false —— 读不到就不认，不猜。
+/// 第七轮契约拿它判「签名探测不通过的端口要不要列出来」。
+pub async fn cmdline_looks_like_dsh(pid : Int) -> Bool noraise {
+  match read_argv(pid) {
+    Some(argv) => argv.any(fn(token) { is_dsh_entry(token) })
+    None => false
+  }
+}
+
+///|
 /// --port 8080 / --port=8080 都认；没有 --port 就是 null（不再是过滤条件）。
 pub fn read_port(argv : Array[String]) -> Int? {
   let mut i = 0

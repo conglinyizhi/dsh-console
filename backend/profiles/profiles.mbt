@@ -62,6 +62,60 @@ pub async fn read_profile_dir_mtime(dir : String) -> (Int64?, String) noraise {
 }
 
 ///|
+/// 一个已解析 profile 的体检结论（第七轮契约第一节的 profileHealth）：
+///   缺包数 = package.json 里 dsh.profile.bundles 声明了、但 profile 自己的 node_modules
+///   与共享的 profiles/node_modules 里都没有 package.json 的包个数；
+///   hasPatch = profile 目录里有没有 cordis.patch.yml。
+/// 缺的包名一并带上，状态原因里才说得清是哪几个（前端只读 missingBundles / hasPatch）。
+pub(all) struct ProfileHealth {
+  missing_bundles : Int
+  missing_names : Array[String]
+  has_patch : Bool
+  dir : String
+}
+
+///|
+/// 把 profile 名解析成 <dsh_home>/profiles/<name>；名字必须是单段（防目录穿越）。
+/// 空名、"."、".."、带路径分隔符的都拒 —— 与 set-profile-note / open-path 同款的一道校验。
+pub fn profile_dir_of(dsh_home : String, name : String) -> String? {
+  if name == "" || name == "." || name == ".." {
+    return None
+  }
+  if @json.index_of(name, "/") is Some(_) {
+    return None
+  }
+  if @json.index_of(name, "\\") is Some(_) {
+    return None
+  }
+  Some(@json.join_all([dsh_home, "profiles", name]))
+}
+
+///|
+/// 体检一只已经解析出来的 profile。目录不存在、名字不合法都给 None（不编值）。
+pub async fn profile_health(dsh_home : String, name : String) -> ProfileHealth? noraise {
+  let dir = match profile_dir_of(dsh_home, name) {
+    Some(d) => d
+    None => return None
+  }
+  if !@json.is_dir(dir) {
+    return None
+  }
+  let shared = @json.join_all([dsh_home, "profiles", "node_modules"])
+  let missing : Array[String] = []
+  for b in declared_bundles(dir) {
+    if locate_bundle_nr(b, dir, shared) == "missing" {
+      missing.push(b)
+    }
+  }
+  Some({
+    missing_bundles: missing.length(),
+    missing_names: missing,
+    has_patch: @json.exists(@json.join_path(dir, "cordis.patch.yml")),
+    dir,
+  })
+}
+
+///|
 /// 派生时给新 profile 写的备注（第五轮契约第二节）：
 /// 第一行是它的来历 `从 <源> 派生 · <本地时间>`，源 profile 原有的备注**原样接在后面**。
 ///

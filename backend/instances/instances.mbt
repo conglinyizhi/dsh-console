@@ -95,6 +95,12 @@ pub struct InstanceSummary {
   /// 进程级原因码：port-join / port-arg / process-gone / fd-unreadable / cmdline-unreadable / unscanned
   process_reason_code : String
   process_reason : String
+  /// 状态灯（第七轮契约第一节）：running / fault / starting，判据见 judge_state
+  state : String
+  /// 为什么是这个状态：黄要能分开说是 b 还是 c；红不在这个接口里（没在跑的端口不进列表）
+  state_reason : String
+  /// 解析出的 profile 体检（缺包数 + 有没有 cordis.patch.yml）；解析不出来给 None
+  health : @profiles.ProfileHealth?
 }
 
 ///|
@@ -138,6 +144,8 @@ pub struct InstancesReport {
   probe_results : Array[ProbeResult]
   probed : Int
   reached : Int
+  /// 签名命中的实例数：fault 条目不计入（条目总数看 instances 长度）
+  hits : Int
   instances : Array[InstanceSummary]
   supplement : ProcessSupplement
 }
@@ -386,6 +394,264 @@ fn find_supplement(
 }
 
 ///|
+/// 「刚起」的宽限窗口（秒）：控制台起的实例在这段时间内、端口已在听但签名还没通，
+/// 按 starting 算；超过就按故障（b）。判据见 judge_state。
+pub let start_grace_seconds : Int = 20
+
+///|
+/// 单个端口签名探测不通过时的一句话结论（用探测事实拼，不编）。
+fn probe_verdict(probe : @localapi.Probe) -> String {
+  if probe.reached {
+    match probe.status {
+      Some(code) => "HTTP " + @json.int_to_dec(code) + "，响应体不含任何 dsh 判据"
+      None => "拿到了响应，但读不出 HTTP 状态码"
+    }
+  } else {
+    match probe.error {
+      Some(e) => "探测没打通：" + e
+      None => "探测没打通"
+    }
+  }
+}
+
+///|
+/// 缺包名预览：最多三个，多了写「等 N 个」。
+fn names_preview(names : Array[String]) -> String {
+  let mut text = ""
+  let mut i = 0
+  while i < names.length() && i < 3 {
+    if text != "" {
+      text = text + "、"
+    }
+    text = text + names[i]
+    i = i + 1
+  }
+  if names.length() > 3 {
+    text = text + " 等 " + @json.int_to_dec(names.length()) + " 个"
+  }
+  text
+}
+
+///|
+/// profile 体检不通过的原因（成因 c）；体检正常给 None。
+/// 「缺包」与「没有 cordis.patch.yml」是两条独立判据，都命中就都写出来。
+fn profile_fault_text(h : @profiles.ProfileHealth) -> String? {
+  let parts : Array[String] = []
+  if h.missing_bundles > 0 {
+    parts.push(
+      "缺 " + @json.int_to_dec(h.missing_bundles) + " 个包（" + names_preview(h.missing_names) + "）",
+    )
+  }
+  if !h.has_patch {
+    parts.push("没有 cordis.patch.yml")
+  }
+  let mut text = ""
+  for p in parts {
+    if text != "" {
+      text = text + "；"
+    }
+    text = text + p
+  }
+  if text == "" { None } else { Some(text) }
+}
+
+///|
+/// 拿这条实例的 profile 体检：profile 名来自 cmdline 的 --profile，
+/// 目录按 <这只实例的 DSH_HOME>/profiles/<name> 解析。
+/// 读不到给 None + 原因（不编）；profileHealth 为 null 时全靠这句话解释。
+async fn lookup_profile_health(
+  profile : String?,
+  dsh_home : String?,
+) -> (@profiles.ProfileHealth?, String) noraise {
+  let name = match profile {
+    Some(n) => n
+    None => return (None, "进程 cmdline 里没有 --profile，解析不出 profile")
+  }
+  let home = match dsh_home {
+    Some(h) => h
+    None => return (None, "这只实例的 DSH_HOME 读不到（environ 与 fd 表里都没有）")
+  }
+  let dir = match @profiles.profile_dir_of(home, name) {
+    Some(d) => d
+    None => return (None, "profile 名不是单段目录名，不解析：" + name)
+  }
+  match @profiles.profile_health(home, name) {
+    Some(h) => (Some(h), dir)
+    None => (None, "profile 目录不存在：" + dir)
+  }
+}
+
+///|
+/// 这条实例是不是本控制台起的（runtime.json 里有 pid 或端口对得上的登记）。
+/// runtime.json 只记控制台起过的实例，外部起的一律不在里面 —— 所以它只用来判 starting。
+fn registered_instance(
+  entries : Array[@store.InstanceRecord],
+  pid : Int?,
+  port : Int,
+) -> Bool {
+  for r in entries {
+    if r.port == port {
+      return true
+    }
+    match pid {
+      Some(p) =>
+        if r.pid == p {
+          return true
+        }
+      None => ()
+    }
+  }
+  false
+}
+
+///|
+/// 状态判据（第七轮契约第一节，写死）：
+///   running  签名探测通过（绿由签名给，profile 有毛病也不把「在跑」说成「故障」；
+///            成因 c 的事实照写进 stateReason，并落在 profileHealth 字段上）
+///   fault    b：端口在听，但签名探测不通过（前提：持有它的进程 cmdline 看起来是 dsh）
+///            c：签名没通、且解析出的 profile 缺包 > 0 或没有 cordis.patch.yml
+///            b 与 c 同时成立时以 c 起头（那是根因），b 的事实一并写进同一句
+///   starting 本控制台刚起（runtime.json 有登记、进程起不到 start_grace_seconds 秒），
+///            端口已在听但签名还没通：可能还在启动，不是坏
+///
+/// 为什么签名优先：使用者主力的 web profile 现成读数就是 bundles.missing = 3
+/// （那三个 @deepseek-ai/dsh-experimental-* 不在 profile / hoisted 的 node_modules，
+/// 但 dsh 从自己的全局安装里解析得到，实例跑得好好的）。让 c 覆盖签名会把这种
+/// 「在跑、签名也过」的实例一律点成黄，与「绿＝签名探测通过」的判据打架。
+/// 反过来，b 那一路本来就只能靠 c 说清根因，所以 c 在那里仍然起头。
+///
+/// 红（停用）不在这里：没在跑的端口根本不进这个列表；没在跑的 profile 由前端按
+/// GET /api/local/profiles 的 bundles / patch 自己判（黄 c / 红都落在那一侧）。
+fn judge_state(
+  has_signature : Bool,
+  signature_id : String,
+  probe : @localapi.Probe,
+  facts : @processes.ProcFacts,
+  health : @profiles.ProfileHealth?,
+  health_source : String,
+  registered : Bool,
+) -> (String, String) {
+  let port_fault = "端口在听，但签名探测不通过（成因 b）：" + probe_verdict(probe)
+  let profile_fault = match health {
+    Some(h) => profile_fault_text(h)
+    None => None
+  }
+  if has_signature {
+    let health_note = match profile_fault {
+      Some(text) =>
+        "；profile 检查不过（成因 c）：" + text + "（" + health_source +
+        "）—— 这只实例在跑、签名也过，绿由签名给，缺包这一条记在 profileHealth 里"
+      None =>
+        match health {
+          Some(_) =>
+            "；profile 体检正常（缺包 0，有 cordis.patch.yml）：" + health_source
+          None => "；profile 体检读不到：" + health_source
+        }
+    }
+    return ("running", "签名探测通过（" + signature_id + "）" + health_note)
+  }
+  match profile_fault {
+    Some(text) =>
+      ("fault", "profile 检查不通过（成因 c）：" + text + "（" + health_source + "）；" + port_fault)
+    None =>
+      if registered && is_fresh(facts.uptime_seconds) {
+        (
+          "starting",
+          "本控制台刚起的实例（runtime.json 有登记，进程起于 " +
+          uptime_text(facts.uptime_seconds) + "）：" + port_fault + "；可能还在启动，进程起满 " +
+          @json.int_to_dec(start_grace_seconds) + " 秒仍不通就按故障（b）算",
+        )
+      } else {
+        ("fault", port_fault + pid_note(facts))
+      }
+  }
+}
+
+///|
+/// 进程起没起满宽限窗口？读不到运行时长（/proc/<pid>/stat 读不到）不算「刚起」，
+/// 按故障算 —— 拿不准时不往好里说。
+fn is_fresh(uptime_seconds : Int?) -> Bool {
+  match uptime_seconds {
+    Some(u) => u < start_grace_seconds
+    None => false
+  }
+}
+
+///|
+/// 运行时长的人话；读不到给「时长读不到」。
+fn uptime_text(uptime_seconds : Int?) -> String {
+  match uptime_seconds {
+    Some(u) => @json.int_to_dec(u) + " 秒前"
+    None => "时长读不到"
+  }
+}
+
+///|
+/// fault-b 条目补一句进程侧的凭据（PID 来自 /proc 的 join，不是猜的）。
+fn pid_note(facts : @processes.ProcFacts) -> String {
+  match facts.pid {
+    Some(p) => "；持有它的进程 PID " + @json.int_to_dec(p) + " 的 cmdline 里是 dsh 入口"
+    None => ""
+  }
+}
+
+///|
+/// 把一条探测结论 + 进程事实收成实例条目，顺手定状态（第七轮契约第一节）。
+/// signature 为 None 表示这条是「签名探测不通过、但进程看起来是 dsh」的 fault 条目：
+/// 那三个签名字段没有判据可填，id 给空串、describe 写明为什么、evidence 给空串。
+async fn summarize(
+  probe : @localapi.Probe,
+  facts : @processes.ProcFacts,
+  inode : Int64?,
+  signature : Signature?,
+  registry : Array[@store.InstanceRecord],
+) -> InstanceSummary noraise {
+  let (sig_id, sig_describe, sig_evidence) = match signature {
+    Some(s) => (s.id, s.describe, evidence(probe, s))
+    None => ("", "签名探测不通过：" + probe_verdict(probe), "")
+  }
+  let (health, health_source) = lookup_profile_health(facts.profile, facts.dsh_home)
+  let has_signature = signature is Some(_)
+  let (state, state_reason) = judge_state(
+    has_signature,
+    sig_id,
+    probe,
+    facts,
+    health,
+    health_source,
+    registered_instance(registry, facts.pid, probe.port),
+  )
+  {
+    id: "proc-\{probe.port}",
+    port: probe.port,
+    url: probe.url,
+    title: extract_title(probe.body),
+    http_status: probe.status,
+    content_type: probe.content_type,
+    signature_id: sig_id,
+    signature_describe: sig_describe,
+    signature_evidence: sig_evidence,
+    profile: facts.profile,
+    pid: facts.pid,
+    dsh_home: facts.dsh_home,
+    exe_path: facts.entry_path,
+    started_at: facts.started_at,
+    uptime_seconds: facts.uptime_seconds,
+    probe_ms: probe.ms,
+    inode,
+    version: facts.version,
+    version_source: facts.version_source,
+    profile_source: facts.profile_source,
+    dsh_home_source: facts.dsh_home_source,
+    process_reason_code: facts.reason_code,
+    process_reason: facts.reason,
+    state,
+    state_reason,
+    health,
+  }
+}
+
+///|
 /// 按当前设置跑一次扫描（读接口用）：probe.timeoutMs / probe.concurrency / probe.maxCandidates。
 pub async fn instances_report_with_settings() -> InstancesReport noraise {
   let settings = @store.load_settings().values
@@ -447,9 +713,12 @@ pub async fn instances_report(
   let settled = @localapi.probe_ports(candidates, timeout_ms, concurrency)
 
   let (supplement, with_port) = supplement_processes(holders, wanted_inodes.length())
+  // 状态判据要用「这条是不是本控制台起的」：runtime.json 只记控制台起过的实例。
+  let registry = @store.load_registry().entries
   let instances : Array[InstanceSummary] = []
   let probe_results : Array[ProbeResult] = []
   let mut reached = 0
+  let mut hits = 0
   for probe in settled {
     let signature = classify(probe)
     probe_results.push({
@@ -466,9 +735,8 @@ pub async fn instances_report(
     if probe.reached {
       reached = reached + 1
     }
-    let sig = match signature {
-      None => continue
-      Some(s) => s
+    if signature is Some(_) {
+      hits = hits + 1
     }
     // 端口 → 进程：优先 socket inode 的 join（内核给的对应关系），
     // 对不上才退回按 --port 匹配的弱证据，两条都不通就带结构化原因留空。
@@ -504,31 +772,18 @@ pub async fn instances_report(
           " 的 LISTEN 行里没有可用的 inode）",
         )
     }
-    instances.push({
-      id: "proc-\{probe.port}",
-      port: probe.port,
-      url: probe.url,
-      title: extract_title(probe.body),
-      http_status: probe.status,
-      content_type: probe.content_type,
-      signature_id: sig.id,
-      signature_describe: sig.describe,
-      signature_evidence: evidence(probe, sig),
-      profile: facts.profile,
-      pid: facts.pid,
-      dsh_home: facts.dsh_home,
-      exe_path: facts.entry_path,
-      started_at: facts.started_at,
-      uptime_seconds: facts.uptime_seconds,
-      probe_ms: probe.ms,
-      inode,
-      version: facts.version,
-      version_source: facts.version_source,
-      profile_source: facts.profile_source,
-      dsh_home_source: facts.dsh_home_source,
-      process_reason_code: facts.reason_code,
-      process_reason: facts.reason,
-    })
+    // 第七轮契约的新口径：签名没通的端口，只要持有它的进程 cmdline 看起来是 dsh，
+    // 就列出来并标 fault（b）；进程 join 不上、或 cmdline 不像 dsh 的，仍然不进列表。
+    if signature is None {
+      let pid = match facts.pid {
+        Some(p) => p
+        None => continue
+      }
+      if !@processes.cmdline_looks_like_dsh(pid) {
+        continue
+      }
+    }
+    instances.push(summarize(probe, facts, inode, signature, registry))
   }
 
   {
@@ -548,8 +803,22 @@ pub async fn instances_report(
     probe_results,
     probed: settled.length(),
     reached,
+    hits,
     instances,
     supplement,
+  }
+}
+
+///|
+/// profileHealth 字段：{ missingBundles, hasPatch }；profile 解析不出来给 null。
+fn profile_health_json(health : @profiles.ProfileHealth?) -> @json.JsonVal {
+  match health {
+    Some(h) =>
+      @json.JObj([
+        ("missingBundles", @json.jint(h.missing_bundles)),
+        ("hasPatch", @json.JBool(h.has_patch)),
+      ])
+    None => @json.JNull
   }
 }
 
@@ -614,6 +883,10 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
       ])),
       ("webUrl", @json.str_or_null(web.url)),
       ("webUrlSource", @json.JStr(web.source)),
+      // 第七轮契约：状态灯三件套（加字段，其余字段一个没动）
+      ("state", @json.JStr(item.state)),
+      ("stateReason", @json.JStr(item.state_reason)),
+      ("profileHealth", profile_health_json(item.health)),
     ]))
   }
   @json.JObj([
@@ -634,7 +907,7 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
       ("concurrency", @json.jint(report.probe_concurrency)),
       ("probed", @json.jint(report.probed)),
       ("reached", @json.jint(report.reached)),
-      ("hits", @json.jint(report.instances.length())),
+      ("hits", @json.jint(report.hits)),
     ])),
     ("signatures", @json.JArr([
       @json.JObj([
