@@ -717,7 +717,8 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     // 是「拿出去用」，不是「拿走」。组名要与里面装的东西逐字对得上。
     ("打开与复制", take),
     ("改动这只 profile", mutate),
-    ("运维", ops),
+    // 「运维」偏行话，换成直白的（使用者 2026-10-16 定的）
+    ("查看与编辑", ops),
   ]
   let blocks : Array[@html.Html] = []
   for group in groups {
