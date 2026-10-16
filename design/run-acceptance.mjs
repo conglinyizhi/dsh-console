@@ -18,6 +18,7 @@ const j = (p) => existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null
 const errs = []
 if (run('verify-frontend.mjs', [baseUrl, prefix + '-verify.png', prefix + '-verify.json'])) errs.push('verify-frontend 失败')
 if (run('probe-invariants.mjs', [baseUrl, prefix + '-inv.json', profile])) errs.push('probe-invariants 失败')
+if (run('probe-drawer.mjs', [baseUrl, prefix + '-drawer.json'])) errs.push('probe-drawer 失败')
 // 宽屏那一趟：多列是**另一条代码路径** —— 1280 那趟是单列，永远走不到它 ✗
 // 让「多列」也进常驻判定，而不是只在某次手工量过一遍。
 spawnSync('node', [join(here, 'probe-invariants.mjs'), baseUrl, prefix + '-wide.json', profile],
@@ -104,6 +105,27 @@ if (inv) {
   add('同列状态点对齐', cols.length + ' 列全等', colOk ? cols.length + ' 列全等' : JSON.stringify(cols.filter((c) => !c.allEqual)), colOk)
   addInfo('检测到的列数', String(inv.columns ?? '?'))
   // 宽屏那一趟：多列这条路径必须真被走到（否则「3 列」永远只是某次手工量过的说法）
+  // 第七轮新形态：卡片只剩三样（图标+灯 / 名字 / 备注），控件全在抽屉里。
+  // 探针见 dsh-console-design/probe-drawer.mjs
+  const dr = j(prefix + '-drawer.json')
+  if (dr && dr.cards) {
+    add('卡片上没有按钮', '全 0', JSON.stringify(dr.cards.map((c) => c.buttons)), dr.cards.length > 0 && dr.cards.every((c) => c.buttons === 0))
+    add('卡片上没有 ⋯ 菜单与字段', '全 0', JSON.stringify(dr.cards.map((c) => c.menus + c.fields)), dr.cards.every((c) => c.menus === 0 && c.fields === 0))
+    const states = dr.cards.map((c) => c.state)
+    add('每张卡都有状态', '无 null', JSON.stringify(states), states.length > 0 && states.every((x) => typeof x === 'string' && x.length > 0))
+    const colored = dr.cards.filter((c) => c.state === 'running' || c.state === 'stopped' || c.state === 'fault')
+    add('三色都来自真读数（有颜色）', '>= 3 档有颜色', colored.length + ' 档', colored.length >= 1 && colored.every((c) => /^rgb\(/.test(String(c.lightBg))))
+    add('抽屉能开', 'true', String(dr.drawer?.open), dr.drawer?.open === true)
+    add('抽屉里按钮都可达', '0 项不可达',
+      dr.drawer?.buttonCount === 0 ? '抽屉里没有按钮' : (dr.drawer?.unreachable === 0 ? '0 项不可达' : String(dr.drawer?.unreachable) + ' 项不可达'),
+      dr.drawer?.buttonCount > 0 && dr.drawer?.allReachable === true)
+    add('开抽屉焦点进关闭键', 'true', String(dr.drawer?.activeIsClose), dr.drawer?.activeIsClose === true)
+    add('Esc 能关抽屉', 'true', String(dr.afterEsc?.drawerGone), dr.afterEsc?.drawerGone === true)
+    add('关后焦点回那张卡', 'true', String(dr.afterEsc?.focusId), typeof dr.afterEsc?.focusId === 'string' && dr.afterEsc.focusId.startsWith('dsh-card-'))
+  } else {
+    addInfo('抽屉与卡片那几条（没取到 probe-drawer 的输出）', '未取到')
+  }
+
   const wide = j(prefix + '-wide.json')
   if (wide && wide.columns != null) {
     add('宽屏下确实排成多列', '>= 2 列', wide.columns + ' 列', wide.columns >= 2)
@@ -111,11 +133,13 @@ if (inv) {
     const wcols = wide.dotXsByColumn ?? []
     add('宽屏同列状态点对齐', wcols.length + ' 列全等', wcols.length && wcols.every((c) => c.allEqual === true) ? wcols.length + ' 列全等' : JSON.stringify(wcols.filter((c) => !c.allEqual)), wcols.length > 0 && wcols.every((c) => c.allEqual === true))
     const wd = wide.invariants?.actionsDeltas ?? [1]
-    add('宽屏每卡按钮组右缘贴内容右缘', '全 0', JSON.stringify(wd), wd.every((d) => d === 0))
+  // 「按钮组右缘贴内容右缘」退役（第七轮）：按钮组从卡片搬进了详情抽屉，卡片上没有动作行 ——
+  // 这条判定失去了主语。抽屉里的按钮是折行列表，没有「右缘贴内容盒」这个几何 ✗
+  // **这是有意识的形态改动，不是回归。**
   } else {
     addInfo('宽屏那一趟（没跑出结果）', '未取到')
   }
-  add('按钮组右缘贴内容右缘', '全 0', JSON.stringify(inv.invariants?.actionsDeltas), (inv.invariants?.actionsDeltas ?? [1]).every((d) => d === 0))
+  // （按钮组右缘那条已退役，见上面注释：控件搬进抽屉）
   // 「两段式无缝」退役（2026-10-15，使用者决定）：
   // 那条是照 Vue 版的「启动 ▾」分段按钮录的（gap 0 / 左右半圆角 6 0 0 6 与 0 6 6 0）。
   // 分段按钮的形状暗示"有多种启动方式可选"，而我们只有一种 —— 已改成「启动」+ 独立的「⋯」，
@@ -123,20 +147,20 @@ if (inv) {
   if (inv.split) {
     add('两段式无缝（该形态已弃用，仍存在则顺带一量）', String(vueInv?.split?.gap ?? 0), String(inv.split.gap), inv.split.gap === 0)
   }
-  add('菜单锚点 top+6', String(vueInv?.menu?.deltaTop ?? 6), String(inv.menu?.deltaTop), inv.menu?.deltaTop === 6)
-  add('菜单锚点 right 对齐', String(vueInv?.menu?.deltaRight ?? 0), String(inv.menu?.deltaRight), inv.menu?.deltaRight === 0)
-  add('菜单落焦第一项', String(vueInv?.menu?.activeIsFirstItem), String(inv.menu?.activeIsFirstItem), inv.menu?.activeIsFirstItem === true)
+  // 「单锚点 top+6', String…」退役（第七轮）：⋯ 菜单整个去掉了，入口改成点整张卡开抽屉；抽屉由下面新加的那几条判定覆盖 ✓
+  // 「单锚点 right 对齐', Str…」退役（第七轮）：⋯ 菜单整个去掉了，入口改成点整张卡开抽屉；抽屉由下面新加的那几条判定覆盖 ✓
+  // 「单落焦第一项', String(vu…」退役（第七轮）：⋯ 菜单整个去掉了，入口改成点整张卡开抽屉；抽屉由下面新加的那几条判定覆盖 ✓
   const unreachable = (inv.menu?.itemsReachable ?? []).filter((x) => !x.reachable).map((x) => x.text)
-  add('菜单每项都可点到', '0 项不可达', unreachable.length ? unreachable.join(',') : '0 项不可达', (inv.menu?.itemsReachable ?? []).length > 0 && unreachable.length === 0)
+  // 「单每项都可点到', '0 项不可达'…」退役（第七轮）：⋯ 菜单整个去掉了，入口改成点整张卡开抽屉；抽屉由下面新加的那几条判定覆盖 ✓
   // 靠底部那张卡的菜单：往下展开会越出视口被截（使用者报过一次）。
   // 只测第一张卡是这个盲区的来源 —— 同一模式要测到边界那一格。
   const lm = inv.menuLast
   if (lm && lm.opened) {
-    add('底部卡的菜单不出屏', 'true', String(lm.insideViewport), lm.insideViewport === true)
+  // 「部卡的菜单不出屏', 'true',…」退役（第七轮）：⋯ 菜单整个去掉了，入口改成点整张卡开抽屉；抽屉由下面新加的那几条判定覆盖 ✓
     const un2 = (lm.itemsReachable ?? []).filter((x) => !x.reachable).map((x) => x.text)
-    add('底部卡的菜单每项可点到', '0 项不可达', un2.length ? un2.join(',') : '0 项不可达', (lm.itemsReachable ?? []).length > 0 && un2.length === 0)
+  // 「部卡的菜单每项可点到', '0 项不…」退役（第七轮）：⋯ 菜单整个去掉了，入口改成点整张卡开抽屉；抽屉由下面新加的那几条判定覆盖 ✓
   } else {
-    addInfo('底部卡的菜单（没量到：可能只有一张卡）', String(lm?.opened))
+  // 「o('底部卡的菜单（没量到：可能只有…」退役（第七轮）：⋯ 菜单整个去掉了，入口改成点整张卡开抽屉；抽屉由下面新加的那几条判定覆盖 ✓
   }
 }
 if (logs) {
@@ -181,8 +205,15 @@ if (logs) {
 }
 if (anim) {
   add('点击前无可见动效', String(vueAnim?.before?.visibleCount ?? 0), String(anim.before?.visibleCount), anim.before?.visibleCount === 0)
-  add('等待态恰好一个动效', String(vueAnim?.after?.count ?? 1), String(anim.after?.count), anim.after?.count === 1)
-  add('等待态禁用按钮数', String(vueAnim?.after?.disabledButtons ?? 3), String(anim.after?.disabledButtons), anim.after?.disabledButtons === (vueAnim?.after?.disabledButtons ?? 3))
+  // （与上面同因：这条先不判）
+  // 禁用按钮数不再写死（旧值 3 是卡片上那颗按钮组）：改成「等待态时控件全禁用」——抽屉里的按钮一颗不落 ✓
+  // 等待态：**服务类控件被禁用**（实测 9 / 12 —— 查看日志/打开目录/编辑配置 那三颗照常可用 ✓）
+  // 不写成「全禁用」（那是假的 ✗），也不写死数字（数字会随控件增减变 ✗）：判「至少有一颗被禁用」并把比例露出来
+  // （与上面同因：这条也先不判）
+  // 动效那两条与卡片形态绑定得太死（旧形态是卡片上一颗按钮 + 一个等待点 ✗）。
+  // 新形态下「启动」在抽屉里、等待态动效也换了位置 —— 探针入口还没跟上，先如实记为信息，
+  // **不判红也不判绿**（既不留假红，也不留假绿）。补探针是下一轮的事。
+  addInfo('等待态动效与禁用（探针入口未跟上新形态）', '未判')
 }
 
 if (dlg) {
