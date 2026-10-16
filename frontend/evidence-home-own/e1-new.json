@@ -1,0 +1,81 @@
+{
+ "cards": [
+  {
+   "id": "web :3080",
+   "name": "web",
+   "light": "running"
+  },
+  {
+   "id": "zz-ghost :8410",
+   "name": "zz-ghost",
+   "light": "fault"
+  },
+  {
+   "id": "console-a",
+   "name": "console-a",
+   "light": "stopped"
+  }
+ ],
+ "picked": {
+  "id": "zz-ghost :8410",
+  "name": "zz-ghost"
+ },
+ "drawerOpen": true,
+ "fields": [
+  {
+   "label": "DSH 版本 / 来源",
+   "value": "0.2.0-rc.2（入口包）",
+   "title": "入口包 package.json 的 version：~/.local/share/pnpm/global/5/node_modules/@deepseek-ai/dsh/package.json"
+  },
+  {
+   "label": "Profile",
+   "value": "zz-ghost",
+   "title": "PID 574320 的 cmdline：--profile zz-ghost"
+  },
+  {
+   "label": "访问地址",
+   "value": "http://127.0.0.1:8410/",
+   "title": "这只实例正在 http://127.0.0.1:8410/ 上监听（要进去用「打开 Web UI」）"
+  },
+  {
+   "label": "DSH_HOME",
+   "value": "未知",
+   "title": "未知：PID 574320 的 environ 里没有 DSH_HOME，fd 表里也没有 …/.dsh/… 这一段；认不出它的 home，不按默认值 $HOME/.dsh 顶替"
+  },
+  {
+   "label": "插件数量",
+   "value": "—",
+   "title": ""
+  },
+  {
+   "label": "最近改动",
+   "value": "—",
+   "title": "这只实例解析出的 profile 名是「zz-ghost」，但 profiles 读数里没有这一只，没有目录可读最近改动（PID 574320 的 cmdline：--profile zz-ghost）"
+  }
+ ],
+ "homeField": {
+  "label": "DSH_HOME",
+  "value": "未知",
+  "title": "未知：PID 574320 的 environ 里没有 DSH_HOME，fd 表里也没有 …/.dsh/… 这一段；认不出它的 home，不按默认值 $HOME/.dsh 顶替"
+ },
+ "copyEntry": "enabled",
+ "sentinel": "__PROBE_SENTINEL_1792144872772__",
+ "clipboard": "__PROBE_SENTINEL_1792144872772__",
+ "notice": "zz-ghost :8410 的开发指令没能复制：这一行的读数里给不出它自己的 DSH_HOME（home 那一格：「未知」）—— 指令里的 DSH_HOME 与 profile 目录都得按它自己的 home 拼，拿控制台自己的 home 顶上就会把开发会话引回主线，所以这一枪不发，拼不出可粘的说明",
+ "toast": null,
+ "afterAction": null,
+ "actionRequests": [],
+ "baseUrl": "http://127.0.0.1:5561/",
+ "stub": {
+  "mode": "real",
+  "note": "未注入"
+ },
+ "clipboardGrant": {},
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shots": [
+  "/tmp/p3e/e1-new-page.png",
+  "/tmp/p3e/e1-new-card.png",
+  "/tmp/p3e/e1-new-drawer.png"
+ ]
+}

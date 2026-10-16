@@ -1,0 +1,76 @@
+{
+ "cards": [
+  {
+   "id": "web :3080",
+   "name": "web",
+   "light": "running"
+  },
+  {
+   "id": "console-a",
+   "name": "console-a",
+   "light": "stopped"
+  }
+ ],
+ "picked": {
+  "id": "console-a",
+  "name": "console-a"
+ },
+ "drawerOpen": true,
+ "fields": [
+  {
+   "label": "DSH 版本 / 来源",
+   "value": "0.2.0-rc.2（本机已安装）",
+   "title": "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+  },
+  {
+   "label": "Profile",
+   "value": "console-a",
+   "title": "磁盘上真实存在的 profile 目录名：console-a"
+  },
+  {
+   "label": "访问地址",
+   "value": "已停用，无法访问",
+   "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+  },
+  {
+   "label": "DSH_HOME",
+   "value": "未知",
+   "title": "这一版 profiles 读数里没有 dshHome：不知道这批 profile 是从哪个 home 的 profiles/ 下读出来的，所以这一格写「未知」。不拿控制台自己的 home 顶上 —— 那只是把别处的 home 说成它的"
+  },
+  {
+   "label": "插件数量",
+   "value": "声明 0 | 已装 0",
+   "title": "console-a 声明的插件都已安装"
+  },
+  {
+   "label": "最近改动",
+   "value": "10-16 17:59",
+   "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-16T09:59:18.065Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：/tmp/p3e/home-console/profiles/console-a 的 mtime"
+  }
+ ],
+ "homeField": {
+  "label": "DSH_HOME",
+  "value": "未知",
+  "title": "这一版 profiles 读数里没有 dshHome：不知道这批 profile 是从哪个 home 的 profiles/ 下读出来的，所以这一格写「未知」。不拿控制台自己的 home 顶上 —— 那只是把别处的 home 说成它的"
+ },
+ "copyEntry": "enabled",
+ "sentinel": "__PROBE_SENTINEL_1792144833687__",
+ "clipboard": "__PROBE_SENTINEL_1792144833687__",
+ "notice": "console-a 的开发指令没能复制：这一行的读数里给不出它自己的 DSH_HOME（home 那一格：「未知」）—— 指令里的 DSH_HOME 与 profile 目录都得按它自己的 home 拼，拿控制台自己的 home 顶上就会把开发会话引回主线，所以这一枪不发，拼不出可粘的说明",
+ "toast": null,
+ "afterAction": null,
+ "actionRequests": [],
+ "baseUrl": "http://127.0.0.1:5561/",
+ "stub": {
+  "mode": "strip-profiles-home",
+  "note": "桩：把 profiles 响应里的 dshHome / dshHomeSource 删掉（缺键，不编值）"
+ },
+ "clipboardGrant": {},
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shots": [
+  "/tmp/p3e/e3-new-page.png",
+  "/tmp/p3e/e3-new-card.png",
+  "/tmp/p3e/e3-new-drawer.png"
+ ]
+}

@@ -30,18 +30,6 @@ pub fn app() -> @rabbita.Val[@html.Html] {
 // ── 列表拼装 ────────────────────────────────────────────────
 
 ///|
-fn dsh_home_of(model : Model) -> String {
-  match model.profiles {
-    Some(facts) => facts.dsh_home
-    None =>
-      match model.runtime {
-        Some(facts) => facts.dsh_home
-        None => "—"
-      }
-  }
-}
-
-///|
 fn default_log_source(model : Model) -> String {
   match model.instances {
     Some(facts) =>
@@ -111,12 +99,19 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
       model.read_console) {
     return (model, @cmd.none)
   }
+  // 这批 profile 是从哪个 home 的 profiles/ 下读出来的（profiles 读数的 dshHome）。
+  // 空串 = 读数没给 home：那种卡片上那一格写「未知」、开发指令不发（见 profile_rows / own_home_of）——
+  // **不拿控制台自己的 home 顶替**，那会把这一只说到别的 home 上去。
+  let profiles_home = match model.profiles {
+    Some(facts) => facts.dsh_home
+    None => ""
+  }
   let profile_list = match model.profiles {
     Some(facts) => facts.profiles
     None => []
   }
   let running = match model.instances {
-    Some(facts) => running_rows(facts.instances, profile_list, model.console)
+    Some(facts) => running_rows(facts.instances, profile_list, model.console, profiles_home)
     None => demo_running()
   }
   // 已停止组要排除「正被某个运行中实例用着」的 profile——同一个东西不能既运行中又已停止
@@ -126,7 +121,7 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   }
   let stopped = match model.profiles {
     Some(facts) =>
-      profile_rows(facts.profiles, model.runtime, dsh_home_of(model), live_instances, model.console)
+      profile_rows(facts.profiles, model.runtime, profiles_home, live_instances, model.console)
     None => demo_stopped()
   }
   let rows : Array[Row] = []
@@ -243,11 +238,22 @@ fn params_of(pairs : Array[(String, String)]) -> String {
 }
 
 ///|
-/// 目标 profile 的参数。读不到目录名就给空数组：写动作一律以读数为准，
-/// 不拿演示数据里那个名字去打真实的东西。
+/// 目标 profile 的参数：{ profile } 或 { profile, home }。
+///
+/// home 是这一行**自己的** home（口径见 own_home_of）：带上它，后端才不用按自己的 home
+/// 去猜这一只在哪 —— start-instance 的 home 参数后端早就有了，只是一直没有 UI 够得着。
+/// 读不到自己的 home 就只发名字：**不拿控制台自己的 home 顶上** ✗，那等于指名去动别处那一份。
+/// 读不到目录名同理给空数组：写动作一律以读数为准，不拿演示数据里那个名字去打真实的东西。
 fn profile_pairs(row : Row) -> Array[(String, String)] {
   match row.profile_name {
-    Some(name) => [("profile", json_text_literal(name))]
+    Some(name) => {
+      let home = own_home_of(row)
+      if home == "" {
+        [("profile", json_text_literal(name))]
+      } else {
+        [("profile", json_text_literal(name)), ("home", json_text_literal(home))]
+      }
+    }
     None => []
   }
 }
@@ -514,17 +520,18 @@ fn parse_copy_result(text : String) -> (Bool, String) {
 }
 
 ///|
-/// 这一行的 DSH_HOME：卡上那一格就是它（运行中的卡是那一只实例自己的，已停止的卡是
-/// 控制台自己用的）。读不到（演示数据里的「—」）就不编，返回空串让调用方说清。
-fn dev_home_of(model : Model, row : Row) -> String {
-  if row.home != "" && row.home != "—" {
-    return row.home
-  }
-  let fallback = dsh_home_of(model)
-  if fallback == "—" {
-    ""
+/// 这一行**自己的** DSH_HOME：卡上那一格就是它。
+///
+/// 三种行各有各的出处，都只认它自己那一份：运行中的卡是那一只实例读出来的 home、
+/// 已停止的卡是 profiles 读数列它出来的那个 home、归档孤行是归档记录里的那个。
+/// 读不到（「—」/「未知」/ 空串）就返回空串让调用方说清 ——
+/// **绝不回落到控制台自己的 home** ✗：多 home 之后那正是这个功能要防的事（把开发会话引回主线）。
+/// 口径与后端 a 那一条一致：认不出就说认不出。
+fn own_home_of(row : Row) -> String {
+  if home_is_path(row.home) {
+    row.home
   } else {
-    fallback
+    ""
   }
 }
 
@@ -539,14 +546,16 @@ fn dev_home_of(model : Model, row : Row) -> String {
 ///   1. profile 名；2. 它在磁盘上的目录；3. DSH_HOME；4. 起它做验证的命令；5. 只改这一份的约束。
 /// 路径一律从当前读数推（目录 = <DSH_HOME>/profiles/<名>，与后端 profile_fs 同一口径），
 /// 前端不另编一份路径 —— 编出来的路径粘过去就是个打不开的目录。
+/// home 用的是**这一行自己的**那一个（见 own_home_of）：读不到就一份都不产出，
+/// 由调用方如实说「拼不出来」—— 拿控制台自己的 home 顶上，粘过去那边就会去动主线那一份。
 ///
 /// 起法与控制台的「启动」逐项对齐（见后端 actions/instance.mbt 的 start_instance）：
 /// 它在 <profile 目录> 下、带着 DSH_HOME 起 dsh --profile <名> --no-open --port <端口>。
 /// 命令里那个 8400 是 instance.basePort 的**缺省起点**（控制台也是从这一项往后找第一个
 /// 空闲端口），正文里同时写明它可以换成任何一个空闲端口 —— 写死一个数而不说这句，
 /// 端口被占时那条命令就是个起不来的命令。
-fn dev_instruction_text(model : Model, row : Row, name : String) -> String {
-  let home = dev_home_of(model, row)
+fn dev_instruction_text(row : Row, name : String) -> String {
+  let home = own_home_of(row)
   if home == "" {
     return ""
   }
@@ -583,13 +592,15 @@ fn copy_dev_action(model : Model, row_id : String, emit : @cmd.Emit[Msg]) -> (Mo
   let text = if name == "" {
     ""
   } else {
-    dev_instruction_text(model, row, name)
+    dev_instruction_text(row, name)
   }
   if text == "" {
     let why = if name == "" {
       "这一行的读数里没有 profile 目录名"
     } else {
-      "这一行的读数里没有 DSH_HOME"
+      "这一行的读数里给不出它自己的 DSH_HOME（home 那一格：「" + row.home +
+      "」）—— 指令里的 DSH_HOME 与 profile 目录都得按它自己的 home 拼，" +
+      "拿控制台自己的 home 顶上就会把开发会话引回主线，所以这一枪不发"
     }
     return (
       {

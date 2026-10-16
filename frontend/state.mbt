@@ -157,8 +157,8 @@ struct Row {
   archived_at : String?
   /// 这一行的**归档记录**属于哪个 home（只有归档孤行用得上）。
   ///
-  /// 为什么孤行要单独带一个：它的 home 那一格显示的是「—」（磁盘上没有目录，没有可读的
-  /// DSH_HOME），可取消归档必须说清撤的是哪一条记录 —— 同名两份档案在两个 home 里时，
+  /// 为什么孤行要单独带一个：孤行的 home 就来自这条记录（磁盘上没有目录可读），
+  /// 而取消归档必须说清撤的是哪一条记录 —— 同名两份档案在两个 home 里时，
   /// 只发名字会把另一份也撤掉。别处一律空串，那时用 row.home（就是这只 profile 所在的 home）。
   archive_home : String
   /// 写动作的目标：磁盘上的 profile 目录名。读不到就是 None ——
@@ -1306,11 +1306,39 @@ fn archived_row_id(name : String, home : String) -> String {
 /// 一行「档案在哪」的 home：归档孤行用记录自带的那个，其余行用它自己那一格的值。
 ///
 /// 空串 = 没有可比的值（读数为空 / 后端没给）：调用方据此退回「只按名字认」。
+/// 卡片那一格显示的 home 文本是不是一个真路径。
+///
+/// 「—」与「未知」都是**显示文本**（不适用 / 读不到），不是路径：
+/// 拿它们去拼 <home>/profiles/<名>、或者塞进 params.home，就是编一个不存在的目录出来 ✗
+/// 凡是要把那一格当路径用（拼目录 / 发参数 / 比 home）都从这一个判断过。
+fn home_is_path(text : String) -> Bool {
+  text != "" && text != "—" && text != "未知"
+}
+
+///|
+/// 两个 home 说的是不是同一个 home。
+///
+/// 只做「逐字相等，或只差一个尾部斜杠」：/a/b 与 /a/b/ 是同一个目录，
+/// 多一个斜杠就判成两处，会把同一份档案拆成两份（卡上多一条、组里少一条）。
+/// **不解析软链接**（浏览器里做不到，硬猜等于编）；空串（未知 / 没有）一律不算相等 ——
+/// 不知道就不认，这正是本文件对 home 的一贯口径。
+fn same_home(a : String, b : String) -> Bool {
+  if a == "" || b == "" {
+    return false
+  }
+  a == b || a + "/" == b || b + "/" == a
+}
+
+///|
+/// 一行「档案在哪」的 home：归档孤行用记录自带的那个，其余行用它自己那一格的值。
+///
+/// 空串 = 没有可比的值（读数为空 / 后端没给 / 那一格写的是显示文本）：调用方据此退回
+/// 「只按名字认」。**那一格是「—」/「未知」时不能当路径用**，见 home_is_path。
 fn archive_home_of(row : Row) -> String {
   if row.archive_home != "" {
     row.archive_home
-  } else if row.home == "—" || row.home == "未知" {
-    // 这两串是「值不存在 / 读不到」的显示文本，不是路径：拿它们当 home 用就是编
+  } else if !home_is_path(row.home) {
+    // 那一格是「值不存在 / 读不到」的显示文本，不是路径：拿它当 home 用就是编
     ""
   } else {
     row.home
@@ -1720,13 +1748,27 @@ fn running_rows(
   facts : Array[InstanceFact],
   profiles : Array[ProfileFact],
   console : ConsoleFacts?,
+  profiles_home : String,
 ) -> Array[Row] {
   facts.map(fn(fact) {
+    // 这一只实例自己的 home（运行时读出来的）。它同时是「按 profile 查上次启动」时要用的那一段：
+    // 后端那张表里的键是 (名字, home)，少一段就对不上 —— 查不到就直接空着，不拿别的凑
+    let instance_home = match fact.dsh_home {
+      Some(h) => h
+      None => ""
+    }
+    // 挑这只实例对应的 profile 读数：**名字与 home 都要对上**。
+    //
+    // 只按名字配是错的（多 home 之后）：另一 home 的同名 profile 的缺包数 / 插件数 /
+    // 备注 / 最近改动会挂到这只实例的卡上 —— 那就是拿别处的读数当这一只的读数 ✗
+    // 实例自己的 home 认不出（dsh_home = None）时一只都不配：读不到就说读不到，
+    // 不拿控制台这一份顶上（口径与后端 a 那一条一致）。
+    let home_matches = same_home(instance_home, profiles_home)
     let profile_fact = match fact.profile {
       Some(name) => {
         let mut found : ProfileFact? = None
         for item in profiles {
-          if item.name == name {
+          if item.name == name && home_matches {
             found = Some(item)
           }
         }
@@ -1746,12 +1788,6 @@ fn running_rows(
     let (light, light_reason, light_basis) = instance_light(fact, profile_fact)
     let health = instance_health(fact, profile_fact)
     // 第二行第三顺位：这一只真实的启动时刻优先（进程起始时间），取不到才去查控制台的记录
-    // 这一只实例自己的 home（运行时读出来的）。它同时是「按 profile 查上次启动」时要用的那一段：
-    // 后端那张表里的键是 (名字, home)，少一段就对不上 —— 查不到就直接空着，不拿别的凑
-    let instance_home = match fact.dsh_home {
-      Some(h) => h
-      None => ""
-    }
     let (last_started, last_started_source) = row_last_started(
       fact.started_at,
       "port:" + fact.port.to_string(),
@@ -1903,14 +1939,24 @@ fn patch_lock_note(fact : ProfileFact) -> String {
 
 ///|
 /// 这只 profile 是否正被某个可见进程用着。
-/// 按名字比：控制台当前只读一个 DSH_HOME，同名即同一份档案。
-/// 将来支持多 home 时，这里要改成「home + 名字」一起比。
-fn in_use_by(fact : ProfileFact, running : Array[InstanceFact]) -> Bool {
+///
+/// 判据是 **(名字, home)**：一份档案的身份是两段，同名不同 home 是两份。
+/// 只按名字比是错的 —— 多 home 之后，另一 home 的同名实例在跑就会把这一行整条藏掉 ✗
+fn in_use_by(fact : ProfileFact, running : Array[InstanceFact], profiles_home : String) -> Bool {
   for inst in running {
     match inst.profile {
       Some(used) =>
         if used == fact.name {
-          return true
+          // home 也要对上：同名不同 home 是两份档案，另一 home 的那只在跑，
+          // 不等于这一只被用着。对不上就**不认**（含两边任一认不出 home 的情形）——
+          // 认了就等于把这一行从列表里藏掉，而它其实规规矩矩地躺在磁盘上
+          let inst_home = match inst.dsh_home {
+            Some(h) => h
+            None => ""
+          }
+          if same_home(inst_home, profiles_home) {
+            return true
+          }
         }
       None => ()
     }
@@ -1980,13 +2026,13 @@ fn name_asc(a : String, b : String) -> Int {
 fn profile_rows(
   profiles : Array[ProfileFact],
   runtime : RuntimeFacts?,
-  dsh_home : String,
+  profiles_home : String,
   running : Array[InstanceFact],
   console : ConsoleFacts?,
 ) -> Array[Row] {
   let rows : Array[Row] = []
   for fact in profiles {
-    if in_use_by(fact, running) {
+    if in_use_by(fact, running, profiles_home) {
       continue
     }
     let missing = fact.bundles.missing
@@ -1999,12 +2045,12 @@ fn profile_rows(
     let (last_started, last_started_source) = row_last_started(
       None,
       "",
-      profile_id_candidates(fact.name, dsh_home),
+      profile_id_candidates(fact.name, profiles_home),
       console,
     )
     rows.push({
       // 行 id 带上 home：同名两份档案在两个 home 里时，它们是两行，各排各的
-      id: profile_row_id(fact.name, dsh_home),
+      id: profile_row_id(fact.name, profiles_home),
       name: fact.name,
       // 「本地 profile」这个标签永远为真、从不提供信息（没有「远端 profile」这种东西）→ 删掉：
       // 一只磁盘上的 profile 当然是本地的，写出来只是噪声（与「真实数据」那一类同理）。
@@ -2034,8 +2080,18 @@ fn profile_rows(
       version_hint: "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）",
       profile: fact.name,
       profile_hint: "磁盘上真实存在的 profile 目录名：" + fact.name,
-      home: dsh_home,
-      home_hint: "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）",
+      // 这一行的 home：**它自己的** —— 这只 profile 就是从 profiles_home 的 profiles/ 下被列出来的。
+      // 读数的 home 也给不出时那一格写「未知」：读不到就说读不到，
+      // 绝不拿控制台自己的 home 顶替 ✗（那会把这只 profile 说成属于一个它不属于的地方）
+      home: if profiles_home == "" { "未知" } else { profiles_home },
+      home_hint: if profiles_home == "" {
+        "这一版 profiles 读数里没有 dshHome：不知道这批 profile 是从哪个 home 的 profiles/ 下读出来的，" +
+        "所以这一格写「未知」。不拿控制台自己的 home 顶上 —— 那只是把别处的 home 说成它的"
+      } else {
+        "这只 profile 自己的 home：profiles 读数就是在 " + profiles_home +
+        "/profiles 下把这只列出来的（读数里的 dshHome / dshHomeSource）。" +
+        "它与控制台自己的 home 可以相同、也可以不同 —— 这一格说的是这一只属于哪儿，不是控制台在用什么"
+      },
       url: "已停用，无法访问",
       // 这只 profile 现在没有在跑的实例：没有地址可握手，也就没有令牌可读
       web_url: None,
@@ -2157,8 +2213,17 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     version_hint: "磁盘上没有这只 profile，没有版本可读",
     profile: record.profile,
     profile_hint: "archive.json 里的记录：" + record.profile,
-    home: "—",
-    home_hint: "磁盘上没有这只 profile",
+    // 这一行的 home 来自**归档记录自己**：磁盘上没有目录可读，但记录说了它属于哪个 home。
+    // 记录里没写（改动之前写下的那条旧记录）就如实写「—」—— 不拿控制台自己的 home 顶上 ✗：
+    // 那会把一个它不属于的 home 说成它的，开发指令也会照着那个错的 home 拼。
+    home: if record.home == "" { "—" } else { record.home },
+    home_hint: if record.home == "" {
+      "archive.json 里这条记录没写它属于哪个 home，磁盘上也没有这只 profile 的目录 —— " +
+      "这一格没有可写的值（拿控制台自己的 home 来填，就是给它安一个它不属于的 home）"
+    } else {
+      "这只 profile 属于哪个 home：读自 archive.json 的这条归档记录（磁盘上已经没有它的目录，没有别处可读）。" +
+      "这是这一只自己的 home，不是控制台当前在用的那一个"
+    },
     url: "—",
     web_url: None,
     web_url_source: "磁盘上没有这只 profile 的目录，没有实例可读，也没有令牌",
@@ -2166,8 +2231,8 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     plugin_detail: "",
     deletable: true,
     archived_at: Some(record.archived_at),
-    // 磁盘上没有目录，home 那一格仍旧显示「—」；记录自带的 home 放这里，
-    // 只用来认「取消归档撤的是哪一条」，不改那一格显示什么。
+    // 记录自带的 home 也放这里：它既是「取消归档撤的是哪一条」的判据（同名两份档案靠它分开），
+    // 也是这一行 home 那一格的值（见上面）。
     archive_home: record.home,
     profile_name: Some(record.profile),
     port_value: None,

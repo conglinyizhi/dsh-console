@@ -1,0 +1,119 @@
+{
+ "cards": [
+  {
+   "id": "web :3080",
+   "name": "web",
+   "light": "running"
+  },
+  {
+   "id": "dev-b",
+   "name": "dev-b",
+   "light": "stopped"
+  }
+ ],
+ "picked": {
+  "id": "dev-b",
+  "name": "dev-b"
+ },
+ "drawerOpen": true,
+ "fields": [
+  {
+   "label": "DSH 版本 / 来源",
+   "value": "0.2.0-rc.2（本机已安装）",
+   "title": "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+  },
+  {
+   "label": "Profile",
+   "value": "dev-b",
+   "title": "磁盘上真实存在的 profile 目录名：dev-b"
+  },
+  {
+   "label": "访问地址",
+   "value": "已停用，无法访问",
+   "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+  },
+  {
+   "label": "DSH_HOME",
+   "value": "/tmp/p3e/home-dev",
+   "title": "这只 profile 自己的 home：profiles 读数就是在 /tmp/p3e/home-dev/profiles 下把这只列出来的（读数里的 dshHome / dshHomeSource）。它与控制台自己的 home 可以相同、也可以不同 —— 这一格说的是这一只属于哪儿，不是控制台在用什么"
+  },
+  {
+   "label": "插件数量",
+   "value": "声明 0 | 已装 0",
+   "title": "dev-b 声明的插件都已安装"
+  },
+  {
+   "label": "最近改动",
+   "value": "10-16 17:59",
+   "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-16T09:59:18.000Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：/tmp/p3e/home-dev/profiles/dev-b 的 mtime"
+  }
+ ],
+ "homeField": {
+  "label": "DSH_HOME",
+  "value": "/tmp/p3e/home-dev",
+  "title": "这只 profile 自己的 home：profiles 读数就是在 /tmp/p3e/home-dev/profiles 下把这只列出来的（读数里的 dshHome / dshHomeSource）。它与控制台自己的 home 可以相同、也可以不同 —— 这一格说的是这一只属于哪儿，不是控制台在用什么"
+ },
+ "copyEntry": "enabled",
+ "sentinel": "__PROBE_SENTINEL_1792144808935__",
+ "clipboard": "【给另一个会话的插件开发任务】请在你当前这个会话里，针对下面这一只 profile 做开发，不要切进它自己的会话来改。这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n开发对象：profile「dev-b」\n它在磁盘上的目录：/tmp/p3e/home-dev/profiles/dev-b\nDSH_HOME：/tmp/p3e/home-dev\n\n起它做验证（与在控制台里点这只 profile 的「启动」等价）：\n  cd /tmp/p3e/home-dev/profiles/dev-b\n  DSH_HOME=/tmp/p3e/home-dev dsh --profile dev-b --no-open --port 8400\n  （8400 换成任何一个空闲端口都行；控制台自己也是从设置里的端口起点往后找第一个空闲的）\n\n约束（这一条是隔离的全部意义，务必守住）：\n1. 只改 /tmp/p3e/home-dev/profiles/dev-b 这一份下的文件；\n2. 不要动主线的 profile，也不要动别的 profile，各是各的一份；\n3. 改完按上面那条命令把它起一次，确认这一份真能起来。",
+ "notice": null,
+ "toast": "dev-b 的开发指令已写入剪贴板（navigator.clipboard）。",
+ "afterAction": {
+  "button": "drawer-start",
+  "state": "enabled",
+  "toast": null,
+  "notice": "dev-b 启动失败：HTTP 500 Internal Server Error | spawn-failed：实例没起来（pid 573112，日志 /tmp/p3e/home-dev/logs/console-dev-b-8400.log）：子进程已经退出；日志尾部：at runProfile (file://~/.local/share/pnpm/global/5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.0-rc.2_4983f4004aac5b5700d5a6d3a8f53a6f/node_modules/@deepseek-ai/dsh/lib/profile-boot-BZ2ZjNWi.js:241:26) / at process.processTicksAndRejections (node:internal/process/task_queues:104:5) / at async runCli (file://~/.local/share/pnpm/global/5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.0-rc.2_4983f4004aac5b5700d5a6d3a8f53a6f/node_modules/@deepseek-ai/dsh/lib/bin.js:215:5) / at async file://~/.local/share/pnpm/global/5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.0-rc.2_4983f4004aac5b5700d5a6d3a8f53a6f/node_modules/@deepseek-ai/dsh/lib/bin.js:252:23 / Node.js v26.11.1"
+ },
+ "actionRequests": [
+  {
+   "url": "/api/local/action",
+   "body": "{\"action\":\"start-instance\",\"params\":{\"profile\":\"dev-b\",\"home\":\"/tmp/p3e/home-dev\"}}"
+  }
+ ],
+ "baseUrl": "http://127.0.0.1:5561/",
+ "stub": {
+  "mode": "synth-profiles:/tmp/p3e/synth-dev-b.json",
+  "injected": {
+   "dshHome": "/tmp/p3e/home-dev",
+   "dshHomeSource": "桩：探针合成的 profiles 读数 —— 这一批 profile 属于 dev home（模拟跨 home 聚合后的读数）",
+   "profiles": [
+    {
+     "name": "dev-b",
+     "dir": "/tmp/p3e/home-dev/profiles/dev-b",
+     "isCurrent": false,
+     "packageName": null,
+     "bundles": {
+      "declared": 0,
+      "installed": 0,
+      "installedInProfile": 0,
+      "installedHoisted": 0,
+      "missing": []
+     },
+     "patch": {
+      "exists": true,
+      "lines": 3
+     },
+     "note": "",
+     "noteSource": "默认",
+     "dirMtimeMs": 1792144758000,
+     "dirMtimeSource": "/tmp/p3e/home-dev/profiles/dev-b 的 mtime",
+     "lock": {
+      "exists": false,
+      "mtime": null
+     }
+    }
+   ]
+  },
+  "note": "桩：整份 profiles 读数（dshHome + 列表）按文件合成"
+ },
+ "clipboardGrant": {},
+ "consoleIssues": [
+  "log: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+ ],
+ "consoleIssueCount": 1,
+ "shots": [
+  "/tmp/p3e/e2-new-page.png",
+  "/tmp/p3e/e2-new-card.png",
+  "/tmp/p3e/e2-new-drawer.png"
+ ]
+}

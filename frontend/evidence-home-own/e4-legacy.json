@@ -1,0 +1,45 @@
+{
+ "cards": [
+  {
+   "id": "web :3080",
+   "name": "web",
+   "light": "running"
+  },
+  {
+   "id": "zz-ghost :8410",
+   "name": "zz-ghost",
+   "light": "fault"
+  },
+  {
+   "id": "console-a",
+   "name": "console-a",
+   "light": "stopped"
+  }
+ ],
+ "archiveRows": [],
+ "archiveAction": {
+  "button": "unarchive",
+  "state": "enabled",
+  "toast": "zz-legacy 已取消归档。",
+  "notice": null
+ },
+ "actionRequests": [
+  {
+   "url": "/api/local/action",
+   "body": "{\"action\":\"unarchive-profile\",\"params\":{\"profile\":\"zz-legacy\"}}"
+  }
+ ],
+ "baseUrl": "http://127.0.0.1:5561/",
+ "stub": {
+  "mode": "real",
+  "note": "未注入"
+ },
+ "clipboardGrant": {},
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shots": [
+  "/tmp/p3e/e4-legacy-page.png",
+  "/tmp/p3e/e4-legacy-card.png",
+  "/tmp/p3e/e4-legacy-drawer.png"
+ ]
+}

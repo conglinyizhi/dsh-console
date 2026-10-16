@@ -1,0 +1,50 @@
+{
+ "cards": [
+  {
+   "id": "web :3080",
+   "name": "web",
+   "light": "running"
+  },
+  {
+   "id": "zz-ghost :8410",
+   "name": "zz-ghost",
+   "light": "fault"
+  },
+  {
+   "id": "console-a",
+   "name": "console-a",
+   "light": "stopped"
+  }
+ ],
+ "archiveRows": [
+  {
+   "id": null,
+   "text": "zz-legacy | 已归档 | 磁盘上没有这只 profile"
+  }
+ ],
+ "archiveAction": {
+  "button": "unarchive",
+  "state": "enabled",
+  "toast": "dev-b 已取消归档。",
+  "notice": null
+ },
+ "actionRequests": [
+  {
+   "url": "/api/local/action",
+   "body": "{\"action\":\"unarchive-profile\",\"params\":{\"profile\":\"dev-b\",\"home\":\"/tmp/p3e/home-dev\"}}"
+  }
+ ],
+ "baseUrl": "http://127.0.0.1:5561/",
+ "stub": {
+  "mode": "real",
+  "note": "未注入"
+ },
+ "clipboardGrant": {},
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shots": [
+  "/tmp/p3e/e4-new-page.png",
+  "/tmp/p3e/e4-new-card.png",
+  "/tmp/p3e/e4-new-drawer.png"
+ ]
+}

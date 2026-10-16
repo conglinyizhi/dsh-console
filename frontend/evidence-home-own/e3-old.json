@@ -1,0 +1,76 @@
+{
+ "cards": [
+  {
+   "id": "web :3080",
+   "name": "web",
+   "light": "running"
+  },
+  {
+   "id": "console-a",
+   "name": "console-a",
+   "light": "stopped"
+  }
+ ],
+ "picked": {
+  "id": "console-a",
+  "name": "console-a"
+ },
+ "drawerOpen": true,
+ "fields": [
+  {
+   "label": "DSH 版本 / 来源",
+   "value": "0.2.0-rc.2（本机已安装）",
+   "title": "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+  },
+  {
+   "label": "Profile",
+   "value": "console-a",
+   "title": "磁盘上真实存在的 profile 目录名：console-a"
+  },
+  {
+   "label": "访问地址",
+   "value": "已停用，无法访问",
+   "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+  },
+  {
+   "label": "DSH_HOME",
+   "value": "",
+   "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+  },
+  {
+   "label": "插件数量",
+   "value": "声明 0 | 已装 0",
+   "title": "console-a 声明的插件都已安装"
+  },
+  {
+   "label": "最近改动",
+   "value": "10-16 17:59",
+   "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-16T09:59:18.065Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：/tmp/p3e/home-console/profiles/console-a 的 mtime"
+  }
+ ],
+ "homeField": {
+  "label": "DSH_HOME",
+  "value": "",
+  "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）"
+ },
+ "copyEntry": "enabled",
+ "sentinel": "__PROBE_SENTINEL_1792144838097__",
+ "clipboard": "__PROBE_SENTINEL_1792144838097__",
+ "notice": "console-a 的开发指令没能复制：这一行的读数里没有 DSH_HOME，拼不出可粘的说明",
+ "toast": null,
+ "afterAction": null,
+ "actionRequests": [],
+ "baseUrl": "http://127.0.0.1:5562/",
+ "stub": {
+  "mode": "strip-profiles-home",
+  "note": "桩：把 profiles 响应里的 dshHome / dshHomeSource 删掉（缺键，不编值）"
+ },
+ "clipboardGrant": {},
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shots": [
+  "/tmp/p3e/e3-old-page.png",
+  "/tmp/p3e/e3-old-card.png",
+  "/tmp/p3e/e3-old-drawer.png"
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "cards": [
+  {
+   "id": "web :3080",
+   "name": "web",
+   "light": "running"
+  },
+  {
+   "id": "web-dev",
+   "name": "web-dev",
+   "light": "fault"
+  },
+  {
+   "id": "headless",
+   "name": "headless",
+   "light": "stopped"
+  },
+  {
+   "id": "review-dev",
+   "name": "review-dev",
+   "light": "fault"
+  }
+ ],
+ "picked": {
+  "id": "headless",
+  "name": "headless"
+ },
+ "drawerOpen": true,
+ "fields": [
+  {
+   "label": "DSH 版本 / 来源",
+   "value": "0.2.0-rc.2（本机已安装）",
+   "title": "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）"
+  },
+  {
+   "label": "Profile",
+   "value": "headless",
+   "title": "磁盘上真实存在的 profile 目录名：headless"
+  },
+  {
+   "label": "访问地址",
+   "value": "已停用，无法访问",
+   "title": "这只 profile 现在没有在跑，所以没有可访问的地址"
+  },
+  {
+   "label": "DSH_HOME",
+   "value": "~/.dsh",
+   "title": "这只 profile 自己的 home：profiles 读数就是在 ~/.dsh/profiles 下把这只列出来的（读数里的 dshHome / dshHomeSource）。它与控制台自己的 home 可以相同、也可以不同 —— 这一格说的是这一只属于哪儿，不是控制台在用什么"
+  },
+  {
+   "label": "插件数量",
+   "value": "声明 2 | 已装 2",
+   "title": "headless 声明的插件都已安装"
+  },
+  {
+   "label": "最近改动",
+   "value": "10-15 22:34",
+   "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T14:34:49.736Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：~/.dsh/profiles/headless 的 mtime"
+  }
+ ],
+ "homeField": {
+  "label": "DSH_HOME",
+  "value": "~/.dsh",
+  "title": "这只 profile 自己的 home：profiles 读数就是在 ~/.dsh/profiles 下把这只列出来的（读数里的 dshHome / dshHomeSource）。它与控制台自己的 home 可以相同、也可以不同 —— 这一格说的是这一只属于哪儿，不是控制台在用什么"
+ },
+ "copyEntry": "enabled",
+ "sentinel": "__PROBE_SENTINEL_1792144714959__",
+ "clipboard": "【给另一个会话的插件开发任务】请在你当前这个会话里，针对下面这一只 profile 做开发，不要切进它自己的会话来改。这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n开发对象：profile「headless」\n它在磁盘上的目录：~/.dsh/profiles/headless\nDSH_HOME：~/.dsh\n\n起它做验证（与在控制台里点这只 profile 的「启动」等价）：\n  cd ~/.dsh/profiles/headless\n  DSH_HOME=~/.dsh dsh --profile headless --no-open --port 8400\n  （8400 换成任何一个空闲端口都行；控制台自己也是从设置里的端口起点往后找第一个空闲的）\n\n约束（这一条是隔离的全部意义，务必守住）：\n1. 只改 ~/.dsh/profiles/headless 这一份下的文件；\n2. 不要动主线的 profile，也不要动别的 profile，各是各的一份；\n3. 改完按上面那条命令把它起一次，确认这一份真能起来。",
+ "notice": null,
+ "toast": "headless 的开发指令已写入剪贴板（navigator.clipboard）。",
+ "baseUrl": "http://127.0.0.1:5390/",
+ "stub": {
+  "mode": "real",
+  "note": "未注入"
+ },
+ "clipboardGrant": {},
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shots": [
+  "/tmp/p3e/after-5390-page.png",
+  "/tmp/p3e/after-5390-card.png",
+  "/tmp/p3e/after-5390-drawer.png"
+ ]
+}
