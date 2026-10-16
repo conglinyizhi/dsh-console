@@ -1,0 +1,1244 @@
+{
+ "768": {
+  "viewport": {
+   "w": 768,
+   "h": 1000
+  },
+  "page": {
+   "scrollW": 768,
+   "clientW": 768,
+   "bodyScrollW": 768,
+   "overflowX": false
+  },
+  "grids": [
+   {
+    "w": 534,
+    "tracks": [
+     534
+    ],
+    "cards": 1,
+    "rows": [
+     {
+      "y": 96,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "web :3080"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   },
+   {
+    "w": 534,
+    "tracks": [
+     534
+    ],
+    "cards": 2,
+    "rows": [
+     {
+      "y": 464,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "headless"
+      ]
+     },
+     {
+      "y": 788,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "review-dev"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   }
+  ],
+  "cards": [
+   {
+    "i": 0,
+    "name": "web :3080",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 96.69,
+     "w": 534,
+     "right": 746,
+     "bottom": 415.69
+    },
+    "contentW": 532,
+    "scrollW": 532,
+    "cardOverflow": false,
+    "contentRight": 729,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": true,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 1,
+     "cols": "500px"
+    },
+    "tailW": 271,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 1,
+    "name": "headless",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 463.83,
+     "w": 534,
+     "right": 746,
+     "bottom": 774.83
+    },
+    "contentW": 532,
+    "scrollW": 532,
+    "cardOverflow": false,
+    "contentRight": 729,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 1,
+     "cols": "500px"
+    },
+    "tailW": 271,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 2,
+    "name": "review-dev",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 786.83,
+     "w": 534,
+     "right": 746,
+     "bottom": 1087.83
+    },
+    "contentW": 532,
+    "scrollW": 532,
+    "cardOverflow": false,
+    "contentRight": 729,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 1,
+     "cols": "500px"
+    },
+    "tailW": 271,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   }
+  ],
+  "dotCols": [
+   {
+    "colX": 212,
+    "n": 3,
+    "xs": [
+     400,
+     400,
+     400
+    ],
+    "allEqual": true
+   }
+  ],
+  "injectedCount": 0,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ]
+ },
+ "900": {
+  "viewport": {
+   "w": 900,
+   "h": 1000
+  },
+  "page": {
+   "scrollW": 900,
+   "clientW": 900,
+   "bodyScrollW": 900,
+   "overflowX": false
+  },
+  "grids": [
+   {
+    "w": 666,
+    "tracks": [
+     666
+    ],
+    "cards": 1,
+    "rows": [
+     {
+      "y": 96,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "web :3080"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   },
+   {
+    "w": 666,
+    "tracks": [
+     666
+    ],
+    "cards": 2,
+    "rows": [
+     {
+      "y": 356,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "headless"
+      ]
+     },
+     {
+      "y": 568,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "review-dev"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   }
+  ],
+  "cards": [
+   {
+    "i": 0,
+    "name": "web :3080",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 96.69,
+     "w": 666,
+     "right": 878,
+     "bottom": 307.69
+    },
+    "contentW": 664,
+    "scrollW": 664,
+    "cardOverflow": false,
+    "contentRight": 861,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "306px 306px"
+    },
+    "tailW": 294,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 1,
+    "name": "headless",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 355.83,
+     "w": 666,
+     "right": 878,
+     "bottom": 556.83
+    },
+    "contentW": 664,
+    "scrollW": 664,
+    "cardOverflow": false,
+    "contentRight": 861,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "306px 306px"
+    },
+    "tailW": 224,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 2,
+    "name": "review-dev",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 568.83,
+     "w": 666,
+     "right": 878,
+     "bottom": 759.83
+    },
+    "contentW": 664,
+    "scrollW": 664,
+    "cardOverflow": false,
+    "contentRight": 861,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "306px 306px"
+    },
+    "tailW": 224,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   }
+  ],
+  "dotCols": [
+   {
+    "colX": 212,
+    "n": 3,
+    "xs": [
+     400,
+     400,
+     400
+    ],
+    "allEqual": true
+   }
+  ],
+  "injectedCount": 0,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ]
+ },
+ "1024": {
+  "viewport": {
+   "w": 1024,
+   "h": 1000
+  },
+  "page": {
+   "scrollW": 1024,
+   "clientW": 1024,
+   "bodyScrollW": 1024,
+   "overflowX": false
+  },
+  "grids": [
+   {
+    "w": 790,
+    "tracks": [
+     790
+    ],
+    "cards": 1,
+    "rows": [
+     {
+      "y": 96,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "web :3080"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   },
+   {
+    "w": 790,
+    "tracks": [
+     790
+    ],
+    "cards": 2,
+    "rows": [
+     {
+      "y": 336,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "headless"
+      ]
+     },
+     {
+      "y": 548,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "review-dev"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   }
+  ],
+  "cards": [
+   {
+    "i": 0,
+    "name": "web :3080",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 96.69,
+     "w": 790,
+     "right": 1002,
+     "bottom": 287.69
+    },
+    "contentW": 788,
+    "scrollW": 788,
+    "cardOverflow": false,
+    "contentRight": 985,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "368px 368px"
+    },
+    "tailW": 239,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 1,
+    "name": "headless",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 335.83,
+     "w": 790,
+     "right": 1002,
+     "bottom": 536.83
+    },
+    "contentW": 788,
+    "scrollW": 788,
+    "cardOverflow": false,
+    "contentRight": 985,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "368px 368px"
+    },
+    "tailW": 348,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 2,
+    "name": "review-dev",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 548.83,
+     "w": 790,
+     "right": 1002,
+     "bottom": 739.83
+    },
+    "contentW": 788,
+    "scrollW": 788,
+    "cardOverflow": false,
+    "contentRight": 985,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "368px 368px"
+    },
+    "tailW": 348,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   }
+  ],
+  "dotCols": [
+   {
+    "colX": 212,
+    "n": 3,
+    "xs": [
+     400,
+     400,
+     400
+    ],
+    "allEqual": true
+   }
+  ],
+  "injectedCount": 0,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ]
+ },
+ "1280": {
+  "viewport": {
+   "w": 1280,
+   "h": 1000
+  },
+  "page": {
+   "scrollW": 1280,
+   "clientW": 1280,
+   "bodyScrollW": 1280,
+   "overflowX": false
+  },
+  "grids": [
+   {
+    "w": 1046,
+    "tracks": [
+     1046
+    ],
+    "cards": 1,
+    "rows": [
+     {
+      "y": 96,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "web :3080"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   },
+   {
+    "w": 1046,
+    "tracks": [
+     1046
+    ],
+    "cards": 2,
+    "rows": [
+     {
+      "y": 336,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "headless"
+      ]
+     },
+     {
+      "y": 548,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "review-dev"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   }
+  ],
+  "cards": [
+   {
+    "i": 0,
+    "name": "web :3080",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 96.69,
+     "w": 1046,
+     "right": 1258,
+     "bottom": 287.69
+    },
+    "contentW": 1044,
+    "scrollW": 1044,
+    "cardOverflow": false,
+    "contentRight": 1241,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "496px 496px"
+    },
+    "tailW": 495,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 1,
+    "name": "headless",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 335.83,
+     "w": 1046,
+     "right": 1258,
+     "bottom": 536.83
+    },
+    "contentW": 1044,
+    "scrollW": 1044,
+    "cardOverflow": false,
+    "contentRight": 1241,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "496px 496px"
+    },
+    "tailW": 604,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 2,
+    "name": "review-dev",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 548.83,
+     "w": 1046,
+     "right": 1258,
+     "bottom": 739.83
+    },
+    "contentW": 1044,
+    "scrollW": 1044,
+    "cardOverflow": false,
+    "contentRight": 1241,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "496px 496px"
+    },
+    "tailW": 604,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   }
+  ],
+  "dotCols": [
+   {
+    "colX": 212,
+    "n": 3,
+    "xs": [
+     400,
+     400,
+     400
+    ],
+    "allEqual": true
+   }
+  ],
+  "injectedCount": 0,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ]
+ },
+ "1440": {
+  "viewport": {
+   "w": 1440,
+   "h": 1000
+  },
+  "page": {
+   "scrollW": 1440,
+   "clientW": 1440,
+   "bodyScrollW": 1440,
+   "overflowX": false
+  },
+  "grids": [
+   {
+    "w": 1206,
+    "tracks": [
+     597,
+     597
+    ],
+    "cards": 1,
+    "rows": [
+     {
+      "y": 96,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "web :3080"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   },
+   {
+    "w": 1206,
+    "tracks": [
+     597,
+     597
+    ],
+    "cards": 2,
+    "rows": [
+     {
+      "y": 356,
+      "count": 2,
+      "xs": [
+       212,
+       821
+      ],
+      "names": [
+       "headless",
+       "review-dev"
+      ]
+     }
+    ],
+    "firstRowCols": 2
+   }
+  ],
+  "cards": [
+   {
+    "i": 0,
+    "name": "web :3080",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 96.69,
+     "w": 597,
+     "right": 809,
+     "bottom": 307.69
+    },
+    "contentW": 595,
+    "scrollW": 595,
+    "cardOverflow": false,
+    "contentRight": 792,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "271.5px 271.5px"
+    },
+    "tailW": 225,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 1,
+    "name": "headless",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 355.83,
+     "w": 597,
+     "right": 809,
+     "bottom": 576.83
+    },
+    "contentW": 595,
+    "scrollW": 595,
+    "cardOverflow": false,
+    "contentRight": 792,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "271.5px 271.5px"
+    },
+    "tailW": 334,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 2,
+    "name": "review-dev",
+    "injected": false,
+    "card": {
+     "x": 821,
+     "y": 355.83,
+     "w": 597,
+     "right": 1418,
+     "bottom": 576.83
+    },
+    "contentW": 595,
+    "scrollW": 595,
+    "cardOverflow": false,
+    "contentRight": 1401,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 1009,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "271.5px 271.5px"
+    },
+    "tailW": 334,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   }
+  ],
+  "dotCols": [
+   {
+    "colX": 212,
+    "n": 2,
+    "xs": [
+     400,
+     400
+    ],
+    "allEqual": true
+   },
+   {
+    "colX": 821,
+    "n": 1,
+    "xs": [
+     1009
+    ],
+    "allEqual": true
+   }
+  ],
+  "injectedCount": 0,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ]
+ },
+ "1600": {
+  "viewport": {
+   "w": 1600,
+   "h": 1000
+  },
+  "page": {
+   "scrollW": 1600,
+   "clientW": 1600,
+   "bodyScrollW": 1600,
+   "overflowX": false
+  },
+  "grids": [
+   {
+    "w": 1366,
+    "tracks": [
+     677,
+     677
+    ],
+    "cards": 1,
+    "rows": [
+     {
+      "y": 96,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "web :3080"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   },
+   {
+    "w": 1366,
+    "tracks": [
+     677,
+     677
+    ],
+    "cards": 2,
+    "rows": [
+     {
+      "y": 356,
+      "count": 2,
+      "xs": [
+       212,
+       901
+      ],
+      "names": [
+       "headless",
+       "review-dev"
+      ]
+     }
+    ],
+    "firstRowCols": 2
+   }
+  ],
+  "cards": [
+   {
+    "i": 0,
+    "name": "web :3080",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 96.69,
+     "w": 677,
+     "right": 889,
+     "bottom": 307.69
+    },
+    "contentW": 675,
+    "scrollW": 675,
+    "cardOverflow": false,
+    "contentRight": 872,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "311.5px 311.5px"
+    },
+    "tailW": 305,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 1,
+    "name": "headless",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 355.83,
+     "w": 677,
+     "right": 889,
+     "bottom": 556.83
+    },
+    "contentW": 675,
+    "scrollW": 675,
+    "cardOverflow": false,
+    "contentRight": 872,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "311.5px 311.5px"
+    },
+    "tailW": 235,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 2,
+    "name": "review-dev",
+    "injected": false,
+    "card": {
+     "x": 901,
+     "y": 355.83,
+     "w": 677,
+     "right": 1578,
+     "bottom": 556.83
+    },
+    "contentW": 675,
+    "scrollW": 675,
+    "cardOverflow": false,
+    "contentRight": 1561,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 1089,
+    "headWrapped": false,
+    "subWrapped": false,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "311.5px 311.5px"
+    },
+    "tailW": 235,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   }
+  ],
+  "dotCols": [
+   {
+    "colX": 212,
+    "n": 2,
+    "xs": [
+     400,
+     400
+    ],
+    "allEqual": true
+   },
+   {
+    "colX": 901,
+    "n": 1,
+    "xs": [
+     1089
+    ],
+    "allEqual": true
+   }
+  ],
+  "injectedCount": 0,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ]
+ },
+ "1920": {
+  "viewport": {
+   "w": 1920,
+   "h": 1000
+  },
+  "page": {
+   "scrollW": 1920,
+   "clientW": 1920,
+   "bodyScrollW": 1920,
+   "overflowX": false
+  },
+  "grids": [
+   {
+    "w": 1686,
+    "tracks": [
+     554,
+     554,
+     554
+    ],
+    "cards": 1,
+    "rows": [
+     {
+      "y": 96,
+      "count": 1,
+      "xs": [
+       212
+      ],
+      "names": [
+       "web :3080"
+      ]
+     }
+    ],
+    "firstRowCols": 1
+   },
+   {
+    "w": 1686,
+    "tracks": [
+     554,
+     554,
+     554
+    ],
+    "cards": 3,
+    "rows": [
+     {
+      "y": 356,
+      "count": 3,
+      "xs": [
+       212,
+       778,
+       1344
+      ],
+      "names": [
+       "headless",
+       "review-dev",
+       "review-dev"
+      ]
+     }
+    ],
+    "firstRowCols": 3
+   }
+  ],
+  "cards": [
+   {
+    "i": 0,
+    "name": "web :3080",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 96.69,
+     "w": 554,
+     "right": 766,
+     "bottom": 307.69
+    },
+    "contentW": 552,
+    "scrollW": 552,
+    "cardOverflow": false,
+    "contentRight": 749,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "250px 250px"
+    },
+    "tailW": 182,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 1,
+    "name": "headless",
+    "injected": false,
+    "card": {
+     "x": 212,
+     "y": 355.83,
+     "w": 554,
+     "right": 766,
+     "bottom": 576.83
+    },
+    "contentW": 552,
+    "scrollW": 552,
+    "cardOverflow": false,
+    "contentRight": 749,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 400,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "250px 250px"
+    },
+    "tailW": 291,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 2,
+    "name": "review-dev",
+    "injected": false,
+    "card": {
+     "x": 778,
+     "y": 355.83,
+     "w": 554,
+     "right": 1332,
+     "bottom": 576.83
+    },
+    "contentW": 552,
+    "scrollW": 552,
+    "cardOverflow": false,
+    "contentRight": 1315,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 966,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "250px 250px"
+    },
+    "tailW": 291,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   },
+   {
+    "i": 3,
+    "name": "review-dev",
+    "injected": true,
+    "card": {
+     "x": 1344,
+     "y": 355.83,
+     "w": 554,
+     "right": 1898,
+     "bottom": 576.83
+    },
+    "contentW": 552,
+    "scrollW": 552,
+    "cardOverflow": false,
+    "contentRight": 1881,
+    "actionsDelta": 0,
+    "actionsOverflow": false,
+    "dotX": 1532,
+    "headWrapped": false,
+    "subWrapped": true,
+    "btnRows": 1,
+    "fields": {
+     "tracks": 2,
+     "cols": "250px 250px"
+    },
+    "tailW": 291,
+    "uptimeClipped": false,
+    "innerOverflow": []
+   }
+  ],
+  "dotCols": [
+   {
+    "colX": 212,
+    "n": 2,
+    "xs": [
+     400,
+     400
+    ],
+    "allEqual": true
+   },
+   {
+    "colX": 778,
+    "n": 1,
+    "xs": [
+     966
+    ],
+    "allEqual": true
+   },
+   {
+    "colX": 1344,
+    "n": 1,
+    "xs": [
+     1532
+    ],
+    "allEqual": true
+   }
+  ],
+  "injectedCount": 1,
+  "actionsDeltas": [
+   0,
+   0,
+   0,
+   0
+  ]
+ }
+}

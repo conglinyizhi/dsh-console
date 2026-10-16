@@ -248,6 +248,34 @@ select { appearance: none; -webkit-appearance: none; }
   flex-direction: column;
   gap: 12px;
 }
+/* 实例卡的栅格（两个卡片列表才有这个类，归档行那一组照旧是一列）。
+   列数由**量出来的卡片最小可用宽度**除出来，不是拍脑袋。
+   一张卡的宽卡形态（卡头一行 + 副标题五轨同行 + 字段 2 列）最小 553px：
+     内边距 32 + 边框 2 + 底板 40 + 列间距 10 + 副标题第一行 181 + 列间距 10 + 按钮组 278
+   其中 181 是副标题的 min-content（类型标轨 112 + 6 + 点槽 13 + 6 + 状态字 38），
+   278 是「打开 Web UI / 停止 / 重启 / ⋯」那一排的实际宽 —— 两个数都是量出来的
+   （把卡片钉在递增宽度上看哪一档开始溢出，推导与读数见 evidence-responsive/README.md）。
+   卡宽低于它，卡片改用窄卡形态：卡头折行、副标题尾轨折到第二行、字段塌成 1 列。
+   每列都给得下宽卡，才加列：
+     页面这侧的可变宽度 = 视口 − 侧栏 190 − 页面左右内边距 44 = 视口 − 234
+     2 列：视口 ≥ 234 + 12 + 2 × 553 = 1352
+     3 列：视口 ≥ 234 + 24 + 3 × 553 = 1917
+   **上限就是 3 列**：再宽也不加列，卡片自己变宽。列数用显式 media query 钉死 ——
+   写成 repeat(auto-fit, minmax(553px, 1fr)) 在超宽屏上会冒出第四列。 */
+.dsh-rows.dsh-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+/* 空态 / 加载态是整幅的一块，不许被切进某一列 */
+.dsh-rows.dsh-card-grid > .dsh-empty,
+.dsh-rows.dsh-card-grid > .dsh-loading { grid-column: 1 / -1; }
+@media (min-width: 1352px) {
+  .dsh-rows.dsh-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1917px) {
+  .dsh-rows.dsh-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 // ── 空态（RunningEmpty.vue / StoppedEmpty.vue） ──
 .dsh-empty {
@@ -398,9 +426,13 @@ select { appearance: none; -webkit-appearance: none; }
 // ── 实例卡（InstanceRow.vue） ──（@keyframes: dot-pulse）
 .dsh-case {
   /* 两卡共用同一套列宽，逐项左右边界可比。
-     副标题内部同样是固定轨道：类型标签列宽固定，状态点不跟着 pill 走 */
+     副标题内部同样是固定轨道：类型标签列宽固定，状态点不跟着 pill 走。
+     min-width: 0 —— 卡片现在是栅格项，默认的 min-width: auto 会让它
+     顶着自己的 min-content 不肯变窄，直接顶穿所在的那条轨（轨道是 minmax(0,1fr)）。
+     卡内该折行的都折行，所以它缩得下去。 */
   --col-kind: 112px;
   --col-state: 38px;
+  min-width: 0;
   position: relative;
   display: flex; flex-direction: column; gap: 12px;
   padding: 14px 16px 15px;
@@ -409,17 +441,28 @@ select { appearance: none; -webkit-appearance: none; }
   border-radius: $radius;
 }
 .dsh-case-head {
-  /* 三列固定栅格：图标底板（跨两行垂直居中）| 两行文本块 | 按钮组。
+  /* 三块：图标底板 | 两行文本块 | 按钮组。
+     以前是「40px / 1fr / auto」三列固定栅格，卡一窄按钮组就把中间那列挤成一条缝
+     （副标题的五个轨道只能塞在缝里）。改成 flex + wrap：放不下时**按钮组整组折到
+     第二行、仍右对齐**，文本块因此拿回整行宽度 —— 不需要断点，
+     折行阈值就是 .dsh-ident 的 flex-basis（181px，副标题的最小可读宽度）。
      两卡列宽一致，标题行左边界、副标题行左边界、按钮组右边界逐项可比 */
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
-  align-items: center; column-gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 8px;
 }
 .dsh-tile { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; }
 .dsh-tile.accent { background: rgba($ok-rgb, 0.14); color: $ok; }
 .dsh-tile.violet { background: $violet-soft; color: $violet; }
 .dsh-ident {
-  /* 标题行 + 副标题行，行间距 2px，两行同一起点、左对齐 */
+  /* 标题行 + 副标题行，行间距 2px，两行同一起点、左对齐。
+     flex-basis 181px = 副标题第一行的最小可读宽度（类型标轨 112 + 6 +
+     点槽 13 + 6 + 状态字 38）。这是卡头折行的判据：
+     内边距 32 + 边框 2 + 底板 40 + 10 + 181 + 10 + 按钮组 278 = 553px，
+     卡宽到不了 553 就把按钮组折下去，文本块拿整行 —— 硬挤的话副标题会被压没。 */
+  flex: 1 1 181px;
   min-width: 0; display: flex; flex-direction: column; gap: 2px;
 }
 /* 标题行：名字 + 「由本控制台启动」标记。做成一行 flex，标记跟在名字后面；
@@ -432,28 +475,40 @@ select { appearance: none; -webkit-appearance: none; }
   font-size: 15px; font-weight: 600; line-height: 22px; color: $text;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.dsh-kind-track {
+  /* 类型标轨道**常驻**：这一行没有类型标时（已停止的 profile 卡）轨道照样占
+     --col-kind 宽，状态点的 x 因此只由卡宽决定，不随 pill 的有无往前挪。
+     同列内的卡宽相同 —— 状态点仍然跨卡对齐（跨列比没有意义）。 */
+  flex: 0 0 var(--col-kind);
+  min-width: 0;
+  display: flex; align-items: center;
+  /* 轨道收到 0 宽时（很窄的视口）把 pill 裁在轨道里，不让那点内边距漏出去盖住状态点 */
+  overflow: hidden;
+}
 .dsh-kind {
-  grid-column: 1;
-  justify-self: start; align-self: center;
+  /* 宽度由轨道给；轨道被收窄时（很窄的视口）pill 自己省略号截断，
+     不再顶到状态点上 —— 完整文字在 title 里 */
+  display: block;
+  max-width: 100%;
   padding: 1px 6px;
   border: 1px solid $line-strong; border-radius: 999px;
   font-size: 10.5px; line-height: 1.3; color: $text-mid;
   background: $panel-soft; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .dsh-sub {
-  /* 副标题行：类型标签 + 状态点 + 状态文案 + 时长，段间只靠 6px 间距分开，不用分隔符。
-     四段都是固定轨道：第一列是固定宽度的标签列，pill 靠列首摆放，
-     所以状态点的 x 不随 pill 内容变化，两卡的点在同一列上。
-     标签列宽（112px）大于最宽 pill（102px），pill 右缘到 13px 点槽的净间距 ≥16px，
-     不再依赖"额外 padding 抵消光环"，"点吸住标签"不会回来。
+  /* 副标题行：类型标轨 + 状态点 + 状态文案 + 尾轨（运行时长 / 备注），
+     段间只靠 6px 间距分开，不用分隔符。
+     以前是四条固定轨的 grid —— 轨道不会折行，卡一窄末轨就被压成 0 宽
+     （时长和备注等于被裁掉）。现在同样四条轨、同样顺序，但用 flex + wrap：
+     前三段恒占 112 + 6 + 13 + 6 + 38 = 175px 的第一行（状态点因此在同一列上），
+     尾轨的 flex-basis 是 160px —— 行内剩不下这么多就**整条折到第二行**，
+     拿到整行宽度，而不是被挤没。
      点槽恒为 13px（7px 点 + 两边各 3px 光环），光环在槽位内，
      运行中与已停止两态几何完全一致，切状态时点不跳。 */
-  display: grid;
-  /* 第三轨常态就是 --col-state（38px，容得下「运行中」的 36px）；
-     「正在启动…」要 60px，用 max-content 让这一行自己撑开，别的行宽度不变，
-     状态点与左侧标签轨仍然一个像素都不动 */
-  grid-template-columns: var(--col-kind) 13px minmax(var(--col-state), max-content) minmax(0, 1fr);
-  align-items: center; column-gap: 6px; min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center; column-gap: 6px; row-gap: 2px; min-width: 0;
   font-size: 12px; line-height: 18px; color: $ok;
 }
 /* 运行中 / 已停止 / 启动等待：三态共用同一副标题轨道，宽度不撑破列宽 */
@@ -472,7 +527,7 @@ select { appearance: none; -webkit-appearance: none; }
    那个节点（见 view_overview 的 sub_line）。不钉死的话后面三段会各往前挪一轨，
    停止卡的状态点就跟运行中的卡错开一整列（验收项「状态点跨卡对齐」量的是同列）。 */
 .dsh-dot-slot {
-  grid-column: 2;
+  flex: 0 0 13px;
   width: 13px; height: 13px;
   display: grid; place-items: center;
 }
@@ -481,9 +536,16 @@ select { appearance: none; -webkit-appearance: none; }
   background: currentColor; box-shadow: 0 0 0 3px rgba($ok-rgb, 0.13);
 }
 .dsh-sub.off .dsh-dot { box-shadow: none; }
-.dsh-state { grid-column: 3; font-size: 12px; white-space: nowrap; }
-/* 末轨：常态一行「已运行」，启动等待期是「等待核心就绪」加一行端口探测说明 */
-.dsh-tail { grid-column: 4; display: flex; flex-direction: column; min-width: 0; }
+.dsh-state {
+  /* 不缩不涨：常态 38px 上下（「运行中」36px），等待态的「正在启动…」要 60px，
+     让它按内容自己撑开 —— 左侧状态点与类型标轨一个像素都不动 */
+  flex: 0 0 auto;
+  font-size: 12px; white-space: nowrap;
+}
+/* 末轨：常态一行「已运行」，启动等待期是「等待核心就绪」加一行端口探测说明。
+   flex-basis 160px 就是副标题的折行阈值：行内剩不到 160px 就整条折到第二行。
+   min-width: 0 让它折下去之后还能在整行宽度里继续省略，不把卡片顶宽。 */
+.dsh-tail { flex: 1 1 160px; display: flex; flex-direction: column; min-width: 0; }
 .dsh-uptime,
 .dsh-hint,
 .dsh-port-note {
@@ -512,7 +574,10 @@ select { appearance: none; -webkit-appearance: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dsh-fields {
-  /* 固定两列：6 个字段恒为 2 / 2 / 2，不随窗口宽度塌成一列或涨成四列。
+  /* 常态两列：6 个字段是 2 / 2 / 2，不随窗口宽度涨成四列。
+     只有卡宽 < 500 时才塌成一列 × 6 行（见本文件末尾的窄视口一段）——
+     那发生在单列区间里（卡宽 = 视口 − 234，即视口 < 734），
+     此时每列的值宽已经不到 110px，两列不如一行一个读得清。
      第六格是「最近改动」（profile 目录的 mtime，本地短时刻）—— 它是**最近改动**，
      不是「创建时间」：可靠的创建时间在多数文件系统上拿不到，别把标签改错。 */
   list-style: none; margin: 0; padding: 0;
@@ -545,14 +610,54 @@ select { appearance: none; -webkit-appearance: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+// ── 卡片在很窄的视口下（单列区间）再收一档 ────────────────
+// 卡头折行、副标题折行、按钮折行都不需要断点 —— 它们是 flex-basis / flex-wrap
+// 自己算出来的。只有下面这几条改的是**常量本身**（轨道宽、内边距、列数），
+// 常量没法自己变，所以按视口给。单列区间里 卡宽 = 视口 − 234
+//（侧栏 190 + 页面左右内边距 44），这个换算是干净的，断点都能倒推回卡宽。
+@media (max-width: 786px) {
+  /* 卡宽 < 553 —— 窄卡形态：字段塌成 1 列 × 6 行。
+     这一档只在单列区间里可能出现（多列区间的卡宽恒 ≥ 553），
+     所以视口断点 = 553 + 234 = 787 是等价的。 */
+  .dsh-fields { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+  /* 卡宽 < 386：内边距与类型标轨各收一档，让第一行
+     「类型标轨 + 点槽 + 状态字」还站得住 */
+  .dsh-case { --col-kind: 84px; padding: 12px 13px 13px; }
+  .dsh-case-head { column-gap: 8px; row-gap: 6px; }
+}
+@media (max-width: 460px) {
+  /* 卡宽 < 226：类型标轨整条收掉（轨道 0 宽，pill 跟着截到 0，
+     完整文字仍在 title 里）。先保状态点和状态字 —— 它们是这一行的主要读数 */
+  .dsh-case { --col-kind: 0px; }
+}
+@media (max-width: 400px) {
+  /* 到这一档，连最宽的一颗按钮（「打开 Web UI」109px）都比卡内容盒宽了 ——
+     再让按钮咬着自己的内容宽度不放，卡片就会横向溢出。
+     两层都要松手才有用：按钮组自己得能缩（min-width: 0，否则它卡在
+     min-content = 那颗最宽的按钮上），按钮才轮得到缩（文字裁在按钮里，
+     这一档没有省略号的余地）。总好过撑破卡片。
+     更宽的档都用不到这条：挤不下时按钮先折行，轮不到缩。 */
+  .dsh-actions { min-width: 0; }
+  .dsh-btn { min-width: 0; overflow: hidden; }
+  /* 字段标签同理：常态它 flex: none（不许被挤），但卡内容盒比
+     「图标 14 + 最宽标签 85」还窄时，它就成了溢出的那一环，这一档让它自己截 */
+  .dsh-field-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+
 // ── 行内按钮组与下拉菜单（InstanceActions.vue） ──
 .dsh-actions {
   /* 运行中：打开 Web UI / 停止 / 重启 / ⋯；已停止：启动 / 重启 / ⋯。
      两种状态同一个骨架，只有第一颗按钮的语义随状态翻转。
-     菜单挂在这个容器上，右缘贴卡片内容盒右缘 */
+     菜单挂在这个容器上，右缘贴卡片内容盒右缘。
+     margin-left: auto（不是 justify-self）—— 卡头折行时按钮组整组右对齐，
+     右缘仍然贴内容盒右缘，不管它在第一行还是第二行；
+     flex-wrap 让按钮自己也能折行，绝不横向溢出卡片 */
   position: relative;
-  justify-self: end;
+  margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
 }

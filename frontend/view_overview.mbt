@@ -396,33 +396,32 @@ fn sub_line(row : Row) -> @html.Html {
   }
   // 类型标签只在**真有话可说**时才产出节点：已停止的 profile 卡如果既不是默认、
   // 也没有别的类型，这一格就一个节点都不摆（空的 pill 比没有 pill 更糟 ✗）。
-  // 这一轨的宽度照旧留着 —— 状态点要跨卡对齐（验收项「状态点跨卡对齐」量的是同列），
-  // 撤掉整轨会让停止卡的点左移一整列，与运行中的卡错开。见 app.scss 的 .dsh-sub。
-  let parts : Array[@html.Html] = []
-  if row.kind.length() > 0 {
-    parts.push(
-      @html.span(
-        class="dsh-kind",
-        attrs=mark("sub-kind", ["overview", "card", row.id, "sub-line", "kind"]).title(row.kind_hint),
-        row.kind,
-      ),
+  // 但**轨道常驻**：外面那层 .dsh-kind-track 一定在 DOM 里（见 styles/app.scss）。
+  // 以前轨道宽度靠 grid 的第一条固定轨（112px）撑着，卡片改成 flex 折行之后
+  // 没有那条轨了 —— 撤掉占位会让停止卡的点左移一整轨，同列对齐就没了。
+  let kind_node : @html.Html = if row.kind.length() > 0 {
+    @html.span(
+      class="dsh-kind",
+      attrs=mark("sub-kind", ["overview", "card", row.id, "sub-line", "kind"]).title(row.kind_hint),
+      row.kind,
     )
+  } else {
+    @html.nothing
   }
-  parts.push(
+  let parts : Array[@html.Html] = [
+    @html.span(class="dsh-kind-track", [kind_node]),
     @html.span(
       class="dsh-dot-slot",
       attrs=mark("status-dot", ["overview", "card", row.id, "sub-line", "dot"]),
       [@html.i(class="dsh-dot", @html.nothing)],
     ),
-  )
-  parts.push(
     @html.span(
       class="dsh-state",
       attrs=mark("sub-state", ["overview", "card", row.id, "sub-line", "state"]),
       state_label,
     ),
-  )
-  parts.push(@html.span(class="dsh-tail", tail))
+    @html.span(class="dsh-tail", tail),
+  ]
   @html.div(
     class=sub_class,
     attrs=mark("sub-line", ["overview", "card", row.id, "sub-line"])
@@ -1015,14 +1014,14 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           if pending { "…" } else { running.length().to_string() },
           model.tag_instances,
         ),
-        @html.div(class="dsh-rows", running_list),
+        @html.div(class="dsh-rows dsh-card-grid", running_list),
         section_head(
           "stopped",
           "已停止的实例",
           if pending { "…" } else { stopped.length().to_string() },
           model.tag_profiles,
         ),
-        @html.div(class="dsh-rows", stopped_list),
+        @html.div(class="dsh-rows dsh-card-grid", stopped_list),
         archived_section(model, emit),
       ]),
   ]

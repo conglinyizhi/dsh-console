@@ -1,0 +1,88 @@
+=== 视口 700 ===
+  栅格 466px  轨数 1 (466)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 466px  轨数 1 (466)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 700 / clientW 700)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[400,400,400]}]
+  每卡: [{"n":"web :3080","w":466,"head":"折行","sub":"一行","btnRows":1,"fieldCols":1,"tailW":203,"uptimeClipped":false,"innerOver":0},{"n":"headless","w":466,"head":"一行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":203,"uptimeClipped":false,"innerOver":0},{"n":"review-dev","w":466,"head":"一行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":203,"uptimeClipped":false,"innerOver":0}]
+=== 视口 620 ===
+  栅格 386px  轨数 1 (386)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 386px  轨数 1 (386)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 620 / clientW 620)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[367,367,367]}]
+  每卡: [{"n":"web :3080","w":386,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":310,"uptimeClipped":false,"innerOver":0},{"n":"headless","w":386,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":310,"uptimeClipped":false,"innerOver":0},{"n":"review-dev","w":386,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":310,"uptimeClipped":false,"innerOver":0}]
+=== 视口 560 ===
+  栅格 326px  轨数 1 (326)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 326px  轨数 1 (326)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 560 / clientW 560)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[367,367,367]}]
+  每卡: [{"n":"web :3080","w":326,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":250,"uptimeClipped":false,"innerOver":0},{"n":"headless","w":326,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":250,"uptimeClipped":false,"innerOver":0},{"n":"review-dev","w":326,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":250,"uptimeClipped":false,"innerOver":0}]
+=== 视口 480 ===
+  栅格 246px  轨数 1 (246)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 246px  轨数 1 (246)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 480 / clientW 480)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[319,319,319]}]
+  每卡: [{"n":"web :3080","w":246,"head":"折行","sub":"折行","btnRows":2,"fieldCols":1,"tailW":218,"uptimeClipped":false,"innerOver":0},{"n":"headless","w":246,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":218,"uptimeClipped":false,"innerOver":0},{"n":"review-dev","w":246,"head":"折行","sub":"折行","btnRows":1,"fieldCols":1,"tailW":218,"uptimeClipped":false,"innerOver":0}]
+=== 视口 400 ===
+  栅格 166px  轨数 1 (166)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 166px  轨数 1 (166)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 400 / clientW 400)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[235,235,235]}]
+  每卡: [{"n":"web :3080","w":166,"head":"折行","sub":"折行","btnRows":3,"fieldCols":1,"tailW":138,"uptimeClipped":false,"innerOver":0},{"n":"headless","w":166,"head":"折行","sub":"折行","btnRows":2,"fieldCols":1,"tailW":138,"uptimeClipped":true,"innerOver":0},{"n":"review-dev","w":166,"head":"折行","sub":"折行","btnRows":2,"fieldCols":1,"tailW":138,"uptimeClipped":true,"innerOver":0}]
+=== 视口 360 ===
+  栅格 126px  轨数 1 (126)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 126px  轨数 1 (126)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 360 / clientW 360)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[235,235,235]}]
+  每卡: [{"n":"web :3080","w":126,"head":"折行","sub":"折行","btnRows":4,"fieldCols":1,"tailW":98,"uptimeClipped":true,"innerOver":0},{"n":"headless","w":126,"head":"折行","sub":"折行","btnRows":3,"fieldCols":1,"tailW":98,"uptimeClipped":true,"innerOver":0},{"n":"review-dev","w":126,"head":"折行","sub":"折行","btnRows":3,"fieldCols":1,"tailW":98,"uptimeClipped":true,"innerOver":0}]
+=== 视口 340 ===
+  栅格 106px  轨数 1 (106)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 106px  轨数 1 (106)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 340 / clientW 340)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[235,235,235]}]
+  每卡: [{"n":"web :3080","w":106,"head":"折行","sub":"折行","btnRows":4,"fieldCols":1,"tailW":78,"uptimeClipped":true,"innerOver":0},{"n":"headless","w":106,"head":"折行","sub":"折行","btnRows":3,"fieldCols":1,"tailW":78,"uptimeClipped":true,"innerOver":0},{"n":"review-dev","w":106,"head":"折行","sub":"折行","btnRows":3,"fieldCols":1,"tailW":78,"uptimeClipped":true,"innerOver":0}]
+=== 视口 320 ===
+  栅格 86px  轨数 1 (86)  卡数 1
+    第 1 行: 1 张  x = [212]  ["web :3080"]
+  栅格 86px  轨数 1 (86)  卡数 2
+    第 1 行: 1 张  x = [212]  ["headless"]
+    第 2 行: 1 张  x = [212]  ["review-dev"]
+  页面横向溢出: false (scrollW 320 / clientW 320)
+  卡内溢出(scrollWidth>clientWidth): []
+  按钮组右缘−内容右缘: [0,0,0]
+  同列状态点: [{"colX":212,"n":3,"allEqual":true,"xs":[235,235,235]}]
+  每卡: [{"n":"web :3080","w":86,"head":"折行","sub":"折行","btnRows":4,"fieldCols":1,"tailW":58,"uptimeClipped":true,"innerOver":0},{"n":"headless","w":86,"head":"折行","sub":"折行","btnRows":3,"fieldCols":1,"tailW":58,"uptimeClipped":true,"innerOver":0},{"n":"review-dev","w":86,"head":"折行","sub":"折行","btnRows":3,"fieldCols":1,"tailW":58,"uptimeClipped":true,"innerOver":0}]
