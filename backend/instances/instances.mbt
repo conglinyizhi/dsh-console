@@ -469,7 +469,12 @@ async fn lookup_profile_health(
   }
   let home = match dsh_home {
     Some(h) => h
-    None => return (None, "这只实例的 DSH_HOME 读不到（environ 与 fd 表里都没有）")
+    None =>
+      return (
+        None,
+        "这只实例的 DSH_HOME 认不出来（environ 里没有，fd 表里也没有 …/.dsh/… 这一段），" +
+        "所以它的 profile 体检读不了；这里不拿默认值 $HOME/.dsh 或控制台自己的 home 顶替",
+      )
   }
   let dir = match @profiles.profile_dir_of(home, name) {
     Some(d) => d

@@ -63,7 +63,12 @@ pub fn parse_socket_inode(target : String) -> Int64? {
 
 ///|
 /// 从 fd 链接目标里取 DSH_HOME 前缀：…/.dsh/sessions/… → …/.dsh。
-/// 只认绝对路径；路径里没有 /.dsh/ 这一段就给 None（不猜）。
+/// 只认绝对路径，且只认 /.dsh/ 这一段；路径里没有就给 None（不猜）。
+///
+/// 这是**线索**不是结论：~/.dsh-homes/<profile>/ 这类布局在这一段里认不出来，
+/// 会照样给 None。给 None 的语义是「认不出」，调用方必须如实写「未知」，
+/// 不许拿 $HOME/.dsh 之类的默认值顶替 —— 顶替一次，健康读数、日志目录、卡片 home
+/// 会一起指向别人的那一份，而且看不出错在哪。
 pub fn dsh_home_prefix(target : String) -> String? {
   if !@json.starts_with(target, "/") {
     return None
@@ -324,20 +329,17 @@ pub async fn facts_for_pid(
             Some(prefix),
             "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID " + pid_text + "）",
           )
-        None => {
-          let home = @json.home_dir()
-          if home == "" {
-            (
-              None,
-              "未知：environ 里没有 DSH_HOME，fd 表里也没有 …/.dsh/… 路径，本进程的 $HOME 也读不到",
-            )
-          } else {
-            (
-              Some(home + "/.dsh"),
-              "environ 里没有 DSH_HOME，fd 表里也没有 …/.dsh/… 路径；按默认值 $HOME/.dsh",
-            )
-          }
-        }
+        // 认不出就是认不出：不给 dsh_home，也不拿 $HOME/.dsh 顶替。
+        // 自定义 home（比如 ~/.dsh-homes/<profile>/）在这一层本来就读不出来，
+        // 顶替成默认值等于把这只实例算到主线头上 —— 它的 profileHealth、日志目录、
+        // 卡片 home、复制出去的开发指令会一起错，而且看不出错在哪。
+        None =>
+          (
+            None,
+            "未知：PID " + pid_text +
+            " 的 environ 里没有 DSH_HOME，fd 表里也没有 …/.dsh/… 这一段；认不出它的 home，" +
+            "不按默认值 $HOME/.dsh 顶替",
+          )
       }
   }
   let sys_uptime = read_uptime_seconds()
