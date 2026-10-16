@@ -480,6 +480,97 @@ fn parse_copy_result(text : String) -> (Bool, String) {
 }
 
 ///|
+/// 这一行的 DSH_HOME：卡上那一格就是它（运行中的卡是那一只实例自己的，已停止的卡是
+/// 控制台自己用的）。读不到（演示数据里的「—」）就不编，返回空串让调用方说清。
+fn dev_home_of(model : Model, row : Row) -> String {
+  if row.home != "" && row.home != "—" {
+    return row.home
+  }
+  let fallback = dsh_home_of(model)
+  if fallback == "—" {
+    ""
+  } else {
+    fallback
+  }
+}
+
+///|
+/// 「复制开发指令」要复制的那段文本：一份**给另一个会话**的任务说明，粘过去就能用。
+///
+/// 为什么是「复制一段话」而不是「就地开个开发会话」：说明要被粘到**别的** profile 的会话里，
+/// 让那边的 agent 针对这一只 profile 开发。开发会话与开发对象分开，改坏了也是坏在隔离的
+/// 那一份上，主线不受影响 —— 这就是使用者要的稳妥隔离。
+///
+/// 五样缺一不可（缺哪样，粘过去那边都得回来问）：
+///   1. profile 名；2. 它在磁盘上的目录；3. DSH_HOME；4. 起它做验证的命令；5. 只改这一份的约束。
+/// 路径一律从当前读数推（目录 = <DSH_HOME>/profiles/<名>，与后端 profile_fs 同一口径），
+/// 前端不另编一份路径 —— 编出来的路径粘过去就是个打不开的目录。
+///
+/// 起法与控制台的「启动」逐项对齐（见后端 actions/instance.mbt 的 start_instance）：
+/// 它在 <profile 目录> 下、带着 DSH_HOME 起 dsh --profile <名> --no-open --port <端口>。
+/// 命令里那个 8400 是 instance.basePort 的**缺省起点**（控制台也是从这一项往后找第一个
+/// 空闲端口），正文里同时写明它可以换成任何一个空闲端口 —— 写死一个数而不说这句，
+/// 端口被占时那条命令就是个起不来的命令。
+fn dev_instruction_text(model : Model, row : Row, name : String) -> String {
+  let home = dev_home_of(model, row)
+  if home == "" {
+    return ""
+  }
+  let dir = home + "/profiles/" + name
+  let head = "【给另一个会话的插件开发任务】请在你当前这个会话里，针对下面这一只 profile 做开发，" +
+    "不要切进它自己的会话来改。这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n"
+  let facts = "开发对象：profile「" + name + "」\n" +
+    "它在磁盘上的目录：" + dir + "\n" +
+    "DSH_HOME：" + home + "\n\n"
+  let start = "起它做验证（与在控制台里点这只 profile 的「启动」等价）：\n" +
+    "  cd " + dir + "\n" +
+    "  DSH_HOME=" + home + " dsh --profile " + name + " --no-open --port 8400\n" +
+    "  （8400 换成任何一个空闲端口都行；控制台自己也是从设置里的端口起点往后找第一个空闲的）\n\n"
+  let rules = "约束（这一条是隔离的全部意义，务必守住）：\n" +
+    "1. 只改 " + dir + " 这一份下的文件；\n" +
+    "2. 不要动主线的 profile，也不要动别的 profile，各是各的一份；\n" +
+    "3. 改完按上面那条命令把它起一次，确认这一份真能起来。"
+  head + facts + start + rules
+}
+
+///|
+/// 「复制开发指令」这一枪：文本现拼（见 dev_instruction_text），成没成由剪贴板那一次调用的
+/// 回执说了算（CopyDone）。拼不出文本时先在本地说清原因，**不往剪贴板里塞一段缺斤少两的说明** ——
+/// 那样粘过去那边还得回来问，比没复制更费事。
+fn copy_dev_action(model : Model, row_id : String, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let row = match find_row(model.rows, row_id) {
+    None => return (model, @cmd.none)
+    Some(row) => row
+  }
+  let name = match row.profile_name {
+    Some(name) => name
+    None => ""
+  }
+  let text = if name == "" {
+    ""
+  } else {
+    dev_instruction_text(model, row, name)
+  }
+  if text == "" {
+    let why = if name == "" {
+      "这一行的读数里没有 profile 目录名"
+    } else {
+      "这一行的读数里没有 DSH_HOME"
+    }
+    return (
+      {
+        ..model,
+        menu_open: "",
+        act_notice: row.name + " 的开发指令没能复制：" + why + "，拼不出可粘的说明",
+        act_notice_ok: false,
+      },
+      @cmd.none,
+    )
+  }
+  ({ ..model, menu_open: "", act_notice: "" }, copy_cmd(row.name + " 的开发指令", text, emit))
+}
+
+///|
 /// 一个写动作：发请求，并把这一行置成忙碌（同一行不会连点两次）。
 /// 目标读不到就只在本地说一句，不发请求。
 ///
@@ -1350,6 +1441,34 @@ fn commit_setting_value(
 }
 
 ///|
+/// 「恢复默认」：把这一项写回**后端给的缺省值**（GET 里那份 defaults），走与手改完全同一条 PUT。
+///
+/// 缺省值读不到时什么都不做，只把原因说清 —— 退到本地契约表里的那个数去顶，
+/// 就是在用户没要求的时候替他写了一个他不认识的数。
+fn reset_setting(model : Model, key : String, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let label = setting_label(key)
+  let value = match model.settings {
+    Some(facts) =>
+      match lookup_setting(facts.defaults, key) {
+        Some(value) => Some(value)
+        None => None
+      }
+    None => None
+  }
+  match value {
+    Some(value) => commit_setting_value(model, key, value, emit)
+    None => (
+      {
+        ..model,
+        settings_feedback: label + " 没能恢复默认：读数里没有这一项的缺省值",
+        settings_feedback_ok: false,
+      },
+      @cmd.none,
+    )
+  }
+}
+
+///|
 /// 保存结果落地：成功用后端回的新值更新这一项（PUT 回的壳与 GET 同形就用它，
 /// 不然按提交值算并把来源写成「文件」）；失败把草稿退回已保存的值并显示后端给的原因。
 fn settings_saved_state(
@@ -1386,7 +1505,7 @@ fn settings_saved_state(
       settings_saving: "",
       settings_pending: None,
       settings_draft: drafts,
-      settings_feedback: label + " 已保存：" + value_text + "（来源 文件）",
+      settings_feedback: label + " 已保存：" + value_text,
       settings_feedback_ok: true,
       tag_settings: None,
     },
@@ -1870,6 +1989,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 两条复制：裸地址（卡上「访问地址」那一行的原值）与带令牌的地址（webUrl）
         CopyUrl => copy_url_action(model, id, "访问地址", false, emit)
         CopyTokenUrl => copy_url_action(model, id, "带令牌的地址", true, emit)
+        // 复制开发指令：一段给「另一个会话」的任务说明（粘到别的 profile 的会话里用）
+        CopyDev => copy_dev_action(model, id, emit)
         // 打开工作目录 / 编辑配置：都走 POST open-path，只有 kind 不同（cli 端不给路径）
         Dir => open_path_action(model, id, "dir", "打开工作目录", emit)
         Config => open_path_action(model, id, "config", "打开配置", emit)
@@ -2146,6 +2267,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     )
     SettingCommit(key, text) => commit_setting(model, key, text, emit)
     SettingToggle(key, next) => commit_setting_value(model, key, VBool(next), emit)
+    // 恢复默认走同一条 PUT（值取后端给的缺省值，不是前端自己填一个数）
+    SettingReset(key) => reset_setting(model, key, emit)
     SettingsSaved(key, res) => settings_saved_state(model, key, res)
     // ── 写动作的回执 ───────────────────────────────────────
     // 启动走「回执 + 展示下限」两条腿；其余动作拿到回执就落定，

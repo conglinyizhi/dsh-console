@@ -1,7 +1,8 @@
 // 设置页：左索引 + 右条目。
 //
 // 左：五个分组（实例与端口 / 进程 / 日志 / 界面 / 危险动作），选中态在 model 里。
-// 右：当前分组的九个键里的那几个，每项 = 名称 + 说明 + 控件 + 「当前值 / 来源」。
+// 右：当前分组的九个键里的那几个，每项 = 名称 + 说明 + 控件。
+// 被改过的那一项（值 ≠ 缺省值）在说明下面多一颗「恢复默认」，值是缺省时那颗不出现。
 //
 // 三条纪律写在这里：
 //   1. 改动即保存（PUT /api/local/settings），成功失败都要有反馈；
@@ -129,7 +130,7 @@ fn setting_select_control(
           @html.option(
             value=n.to_string(),
             selected=true,
-            [@html.text(n.to_string() + " 行（当前值，不在候选里）")],
+            [@html.text(n.to_string() + " 行（这个值不在候选项里）")],
           ),
         )
       None =>
@@ -165,7 +166,12 @@ fn setting_select_control(
 }
 
 ///|
-/// 一个条目：左半边名称 + 说明 + 「当前值 / 来源」，右半边控件。
+/// 一个条目：左半边名称 + 说明（改过的话多一颗「恢复默认」），右半边控件。
+///
+/// 这里曾经还挂着一行元信息（「当前 5000 | 来源 文件 | 缺省 5000」）。它整行删掉了：
+/// 当前值在右边的控件里本来就看得见，而「来源」「缺省」是给改这个工具的人看的东西，
+/// 用它的人不需要知道。需要退回去的时候，那颗「恢复默认」只在**真被改过**时才出现
+/// （见 setting_reset_button）—— 没改过的项上，它一个节点都不产出。
 fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.Html {
   let facts = model.settings
   let current = match facts {
@@ -186,19 +192,10 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
     CList(options) => setting_select_control(model, def, current, options, emit)
   }
   let saving = model.settings_saving == def.key
-  // 元信息：来源是「默认」时，当前值与缺省本来就是同一个数，说一遍就够；
-  // 只有被文件改过才需要「当前 X | 缺省 Y」两栏对照。
-  let default_short = setting_default_short(model, def)
-  let meta : Array[@html.Html] = if source_text == "默认" {
-    [@html.span(class="dsh-setting-default", "默认 " + default_short)]
-  } else {
-    [
-      @html.span(class="dsh-setting-current", "当前 " + value_text),
-      @html.span(class="dsh-setting-sep", "|"),
-      @html.span(class="dsh-setting-source", "来源 " + source_text),
-      @html.span(class="dsh-setting-sep", "|"),
-      @html.span(class="dsh-setting-default", "缺省 " + default_short),
-    ]
+  // 值还是缺省 → 一颗「恢复默认」都不摆（不是摆成禁用态：那个位置上本来就不该有东西）
+  let changed = match facts {
+    Some(got) => !setting_is_default(got, def)
+    None => false
   }
   @html.div(
     class="dsh-setting",
@@ -223,11 +220,11 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
           attrs=mark("setting-desc", ["settings", "row", def.key, "desc"]),
           def.desc,
         ),
-        @html.div(
-          class="dsh-setting-meta",
-          attrs=mark("setting-meta", ["settings", "row", def.key, "meta"]),
-          meta,
-        ),
+        if changed {
+          setting_reset_button(model, def, emit)
+        } else {
+          @html.nothing
+        },
       ]),
       @html.div(class="dsh-setting-control", [
         control,
@@ -246,17 +243,34 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
 }
 
 ///|
-/// 「缺省」一栏取的是后端给的 defaults（不是本地的契约表）：
-/// 两边不一致时该看见的是后端的口径。
-fn setting_default_short(model : Model, def : SettingDef) -> String {
-  match model.settings {
-    Some(facts) =>
-      match lookup_setting(facts.defaults, def.key) {
-        Some(value) => setting_value_text(value)
-        None => "没读到"
-      }
-    None => "—"
+/// 这一项是不是**还没被改过**（当前值与缺省值相等）。
+///
+/// 三档分开办：两个值都读到且相等 → true（项上不摆「恢复默认」）；读到且不等 → false（摆）；
+/// 有一个读不到 → true（**不摆**）。最后一档是刻意的：既不知道它是不是被改过，
+/// 也不知道该写回哪个数 —— 摆一颗点下去会写错数的入口，比不摆糟得多。
+fn setting_is_default(facts : SettingsFacts, def : SettingDef) -> Bool {
+  match (setting_current(facts, def), lookup_setting(facts.defaults, def.key)) {
+    (Some(current), Some(default)) => current == default
+    _ => true
   }
+}
+
+///|
+/// 「恢复默认」那一颗 —— 只在**这一项的值不等于缺省值**时才调用（值是缺省时一个节点都不产出）。
+///
+/// 缺省值取的是后端给的 defaults，不是本地契约表：两边不一致时，该写回去的是后端的口径。
+/// 缺省值多少收进悬停，正文不占 —— 那是「想退回去」的时候才需要读的一句话。
+fn setting_reset_button(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.Html {
+  @html.button(
+    class="dsh-setting-reset",
+    type_="button",
+    disabled=model.settings_saving == def.key,
+    attrs=mark("setting-reset", ["settings", "row", def.key, "reset"])
+      .title("把这一项写回" + setting_fallback_text(def))
+      .aria_label("把" + def.label + "恢复为出厂缺省值"),
+    on_click=emit(SettingReset(def.key)),
+    [icon("refresh", size=12), @html.span("恢复默认")],
+  )
 }
 
 ///|
@@ -338,7 +352,7 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     "读设置这一步没能完成。"
   }
   let hint = if missing {
-    "读不到时不摆任何条目：把猜出来的缺省值当成当前值填上去，比空着更容易误导。"
+    "读不到时不摆任何条目：拿猜出来的数填上去，比空着更容易误导。"
   } else {
     model.settings_error
   }

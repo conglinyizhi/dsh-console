@@ -148,7 +148,7 @@ let settings_table : Array[SettingDef] = [
     key: "logs.defaultTail",
     group: "logs",
     label: "默认尾部行数",
-    desc: "打开日志页时默认读多少行尾部。日志页的来源下拉旁边写着实际读到的行数。",
+    desc: "打开日志页时默认读多少行尾部。日志页自己写着实际读到了多少行。",
     kind: CList([200, 500, 1000, 2000]),
     fallback: VInt(200),
   },

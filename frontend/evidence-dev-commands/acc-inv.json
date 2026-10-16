@@ -1,0 +1,225 @@
+{
+ "url": "http://127.0.0.1:5390/",
+ "overflow": {
+  "scrollW": 1280,
+  "clientW": 1280,
+  "overflowX": false
+ },
+ "font": {
+  "size": "14px",
+  "family": "\"PingFang SC\", \"Noto Sans CJK SC\", \"Micr"
+ },
+ "cards": [
+  {
+   "i": 0,
+   "name": "web :3080",
+   "card": {
+    "x": 212,
+    "y": 96.7,
+    "w": 1046,
+    "h": 191,
+    "right": 1258,
+    "bottom": 287.7
+   },
+   "contentRight": 1241,
+   "actionsRight": 1241,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 150.2,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 157.2
+   },
+   "kind": {
+    "x": 279,
+    "y": 144.9,
+    "w": 113,
+    "h": 17.6,
+    "right": 392,
+    "bottom": 162.5
+   }
+  },
+  {
+   "i": 1,
+   "name": "headless",
+   "card": {
+    "x": 212,
+    "y": 335.8,
+    "w": 1046,
+    "h": 201,
+    "right": 1258,
+    "bottom": 536.8
+   },
+   "contentRight": 1241,
+   "actionsRight": 1241,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 380.3,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 387.3
+   },
+   "kind": null
+  },
+  {
+   "i": 2,
+   "name": "review-dev",
+   "card": {
+    "x": 212,
+    "y": 548.8,
+    "w": 1046,
+    "h": 191,
+    "right": 1258,
+    "bottom": 739.8
+   },
+   "contentRight": 1241,
+   "actionsRight": 1241,
+   "actionsDelta": 0,
+   "dot": {
+    "x": 400,
+    "y": 602.3,
+    "w": 7,
+    "h": 7,
+    "right": 407,
+    "bottom": 609.3
+   },
+   "kind": null
+  }
+ ],
+ "invariants": {
+  "dotXsAllEqual": true,
+  "dotXs": [
+   400,
+   400,
+   400
+  ],
+  "allActionsMatchContentRight": true,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ]
+ },
+ "split": null,
+ "menu": {
+  "opened": true,
+  "rect": {
+   "x": 1089,
+   "y": 162.7,
+   "w": 152,
+   "h": 298,
+   "right": 1241,
+   "bottom": 460.7
+  },
+  "deltaTop": 6,
+  "deltaRight": 0,
+  "items": [
+   "在新标签页打开",
+   "复制访问地址",
+   "复制开发指令",
+   "重命名",
+   "备注",
+   "派生开发副本",
+   "查看日志",
+   "打开工作目录",
+   "编辑配置"
+  ],
+  "position": "absolute",
+  "offsetParentCls": "dsh-actions",
+  "parentCls": "dsh-actions",
+  "activeIsFirstItem": true,
+  "itemsReachable": [
+   {
+    "text": "在新标签页打开",
+    "reachable": true
+   },
+   {
+    "text": "复制访问地址",
+    "reachable": true
+   },
+   {
+    "text": "复制开发指令",
+    "reachable": true
+   },
+   {
+    "text": "重命名",
+    "reachable": true
+   },
+   {
+    "text": "备注",
+    "reachable": true
+   },
+   {
+    "text": "派生开发副本",
+    "reachable": true
+   },
+   {
+    "text": "查看日志",
+    "reachable": true
+   },
+   {
+    "text": "打开工作目录",
+    "reachable": true
+   },
+   {
+    "text": "编辑配置",
+    "reachable": true
+   }
+  ]
+ },
+ "menuLast": {
+  "opened": true,
+  "rect": {
+   "x": 1089,
+   "y": 614.8,
+   "w": 152,
+   "h": 259,
+   "right": 1241,
+   "bottom": 873.8
+  },
+  "viewportH": 900,
+  "insideViewport": true,
+  "flipAttr": "down",
+  "deltaTop": 6,
+  "deltaBottom": -295,
+  "deltaRight": 0,
+  "itemsReachable": [
+   {
+    "text": "查看日志",
+    "reachable": true
+   },
+   {
+    "text": "打开工作目录",
+    "reachable": true
+   },
+   {
+    "text": "编辑配置",
+    "reachable": true
+   },
+   {
+    "text": "复制开发指令",
+    "reachable": true
+   },
+   {
+    "text": "重命名",
+    "reachable": true
+   },
+   {
+    "text": "备注",
+    "reachable": true
+   },
+   {
+    "text": "归档",
+    "reachable": true
+   },
+   {
+    "text": "删除",
+    "reachable": true
+   }
+  ]
+ }
+}

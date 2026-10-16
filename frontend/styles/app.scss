@@ -624,101 +624,10 @@ select { appearance: none; -webkit-appearance: none; }
    死规则留着，下一次改动会被照着抄。 */
 .dsh-dot-danger { width: 7px; height: 7px; border-radius: 50%; background: $danger; }
 
-// ── 右栏信息面板（SideInfoPanel.vue） ──
-.dsh-side-info {
-  width: 260px;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px 16px 20px;
-  border-left: 1px solid $line;
-  background: $bg;
-  overflow-y: auto;
-}
-.dsh-info-card {
-  padding: 12px 13px 13px;
-  background: $panel;
-  border: 1px solid $line;
-  border-radius: $radius;
-}
-.dsh-info-title {
-  margin: 0 0 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: $text-mid;
-  letter-spacing: 0.2px;
-}
-.dsh-flows {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.dsh-flow {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-  padding: 9px 8px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: $panel-soft;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-.dsh-flow:hover {
-  border-color: $line-strong;
-}
-.dsh-flow-icon {
-  margin-top: 1px;
-  display: flex;
-}
-.dsh-flow-icon.accent {
-  color: $accent;
-}
-.dsh-flow-icon.violet {
-  color: $violet;
-}
-.dsh-flow-body {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-.dsh-flow-title {
-  font-size: 12px;
-  color: $text;
-}
-.dsh-flow-detail {
-  font-size: 10.5px;
-  line-height: 1.5;
-  color: $text-dim;
-}
-.dsh-flow-arrow {
-  margin-top: 2px;
-  color: $text-dim;
-  display: flex;
-}
-.dsh-notes {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
-}
-.dsh-note {
-  display: flex;
-  align-items: flex-start;
-}
-.dsh-note-text {
-  min-width: 0;
-  font-size: 11px;
-  line-height: 1.55;
-  color: $text-dim;
-}
+/* 这里原来还有一整块右栏信息面板的规则（.dsh-side-info / .dsh-info-card /
+   .dsh-flows / .dsh-flow* / .dsh-notes / .dsh-note*，260px 宽、贴右边、一条左分隔线）。
+   那一栏按使用者的判断删掉了：两个「工作流入口」按钮点了没有下文，「关于实例」三行
+   是写给实现者看的固定说明。样式跟着一起清掉 —— 留着不用的规则，下一次改动会被照着抄。 */
 
 // ── 对话框（删除确认 / 重命名 共用） ──
 //
@@ -1321,30 +1230,33 @@ select { appearance: none; -webkit-appearance: none; }
   line-height: 1.6;
   color: $text-dim;
 }
-.dsh-setting-meta {
-  display: flex;
-  flex-wrap: wrap;
+/* 「恢复默认」：**只在值不等于缺省值时才有节点**（见 view_settings 的 setting_reset_button），
+   所以这里不必写「默认态长什么样」。摆在这一条自己的说明下面 —— 它不是常用动作，
+   是「这一项被我改过、想退回去」时的出口；缺省值多少收在它的悬停里，正文不占。 */
+.dsh-setting-reset {
+  align-self: flex-start;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  margin-top: 1px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $text-mid;
   font-size: 11px;
-  color: $text-mid;
+  cursor: pointer;
 }
-.dsh-setting-current {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+.dsh-setting-reset:hover:not(:disabled) {
+  color: $accent;
+  text-decoration: underline;
 }
-.dsh-setting-source {
-  padding: 0 6px;
-  border: 1px solid $line-strong;
-  border-radius: 999px;
-  font-size: 10.5px;
-  color: $text-mid;
+.dsh-setting-reset:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
-.dsh-setting-default {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: $text-dim;
-}
-.dsh-setting-sep {
-  color: $text-dim;
+.dsh-setting-reset:focus-visible {
+  outline: 2px solid $accent;
+  outline-offset: 1px;
 }
 .dsh-setting-control {
   display: flex;

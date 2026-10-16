@@ -1,0 +1,67 @@
+{
+ "overflow": {
+  "scrollW": 1280,
+  "clientW": 1280,
+  "overflowX": false
+ },
+ "title": "日志",
+ "box": {
+  "rect": {
+   "x": 212,
+   "y": 98.5,
+   "w": 1046,
+   "h": 781.5,
+   "right": 1258,
+   "bottom": 880
+  },
+  "scrollHeight": 4094,
+  "clientHeight": 779,
+  "scrollTop": 3315,
+  "maxScrollTop": 3315,
+  "atBottom": true,
+  "scrollWidth": 1127,
+  "clientWidth": 1044,
+  "horizontalScroll": true,
+  "whiteSpace": "normal",
+  "fontFamily": "\"PingFang SC\", \"Noto Sans CJK ",
+  "fontSize": "14px"
+ },
+ "lineCount": 200,
+ "firstLine": "15:10:16.217··[retry-control@2.3.0] scheduled retry #4 provider=tokenf",
+ "lastLine": "01:21:06.236··[retry-control@2.3.0] scheduled retry #4 provider=tokenf",
+ "levels": {
+  "error": 0,
+  "warn": 0,
+  "errorColor": null,
+  "warnColor": null
+ },
+ "select": {
+  "value": "host",
+  "options": [
+   {
+    "text": "dsh :3080",
+    "value": "instance:proc-3080",
+    "disabled": false
+   },
+   {
+    "text": "————",
+    "value": "__divider__",
+    "disabled": true
+   },
+   {
+    "text": "宿主日志",
+    "value": "host",
+    "disabled": false
+   },
+   {
+    "text": "审计日志",
+    "value": "audit",
+    "disabled": false
+   }
+  ]
+ },
+ "meta": "尾部 200 行（按 200 行取） | 478.7 KB | ~/.dsh/logs/retry-control/host.log | 读于 10:30:04 | 只读",
+ "instancesAtRead": [
+  3080
+ ]
+}

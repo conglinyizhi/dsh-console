@@ -1,0 +1,335 @@
+{
+ "baseUrl": "http://127.0.0.1:5390/",
+ "clipboardGrant": {},
+ "A": {
+  "sidePanelNodes": 0,
+  "sidePanelMarks": 0,
+  "textHasWorkflowTitle": false,
+  "textHasAboutTitle": false,
+  "textHasHandback": false,
+  "overviewChildren": [
+   "dsh-overview-page"
+  ],
+  "singleColumn": true,
+  "ovRect": {
+   "x": 190,
+   "y": 0,
+   "w": 1090,
+   "h": 900,
+   "right": 1280,
+   "bottom": 900
+  },
+  "pageRect": {
+   "x": 190,
+   "y": 0,
+   "w": 1090,
+   "h": 900,
+   "right": 1280,
+   "bottom": 900
+  },
+  "mainContent": {
+   "left": 190,
+   "right": 1280
+  },
+  "pageRightVsMainContent": 0,
+  "cardCount": 3,
+  "dotXs": [
+   400,
+   400,
+   400
+  ],
+  "dotXsAllEqual": true,
+  "actionsDeltas": [
+   0,
+   0,
+   0
+  ],
+  "actionsAllZero": true,
+  "overflowX": false
+ },
+ "B": {
+  "cardCount": 3,
+  "menus": [
+   {
+    "opened": true,
+    "name": "web :3080",
+    "status": "running",
+    "menuRect": {
+     "x": 1089,
+     "y": 162.7,
+     "w": 152,
+     "h": 298
+    },
+    "labels": [
+     "在新标签页打开",
+     "复制访问地址",
+     "复制开发指令",
+     "—分隔线—",
+     "重命名",
+     "备注",
+     "派生开发副本",
+     "—分隔线—",
+     "查看日志",
+     "打开工作目录",
+     "编辑配置"
+    ],
+    "actions": [
+     "tab",
+     "copy-url",
+     "copy-dev",
+     "sep",
+     "rename",
+     "note",
+     "fork",
+     "sep",
+     "logs",
+     "dir",
+     "config"
+    ],
+    "copyDevIndex": 2,
+    "copyDevText": "复制开发指令",
+    "copyDevRect": {
+     "x": 1094,
+     "y": 227.7,
+     "w": 142,
+     "h": 30
+    },
+    "copyDevUid": "e1wmp4nq"
+   },
+   {
+    "opened": true,
+    "name": "headless",
+    "status": "stopped",
+    "menuRect": {
+     "x": 1089,
+     "y": 392.8,
+     "w": 152,
+     "h": 259
+    },
+    "labels": [
+     "查看日志",
+     "打开工作目录",
+     "编辑配置",
+     "复制开发指令",
+     "—分隔线—",
+     "重命名",
+     "备注",
+     "归档",
+     "删除"
+    ],
+    "actions": [
+     "logs",
+     "dir",
+     "config",
+     "copy-dev",
+     "sep",
+     "rename",
+     "note",
+     "archive",
+     "delete"
+    ],
+    "copyDevIndex": 3,
+    "copyDevText": "复制开发指令",
+    "copyDevRect": {
+     "x": 1094,
+     "y": 487.8,
+     "w": 142,
+     "h": 30
+    },
+    "copyDevUid": "jw1o0ue7"
+   },
+   {
+    "opened": true,
+    "name": "review-dev",
+    "status": "stopped",
+    "menuRect": {
+     "x": 1089,
+     "y": 614.8,
+     "w": 152,
+     "h": 259
+    },
+    "labels": [
+     "查看日志",
+     "打开工作目录",
+     "编辑配置",
+     "复制开发指令",
+     "—分隔线—",
+     "重命名",
+     "备注",
+     "归档",
+     "删除"
+    ],
+    "actions": [
+     "logs",
+     "dir",
+     "config",
+     "copy-dev",
+     "sep",
+     "rename",
+     "note",
+     "archive",
+     "delete"
+    ],
+    "copyDevIndex": 3,
+    "copyDevText": "复制开发指令",
+    "copyDevRect": {
+     "x": 1094,
+     "y": 709.8,
+     "w": 142,
+     "h": 30
+    },
+    "copyDevUid": "fp62d62u"
+   }
+  ],
+  "clipboard": "【给另一个会话的插件开发任务】请在你当前这个会话里，针对下面这一只 profile 做开发，不要切进它自己的会话来改。这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n开发对象：profile「web」\n它在磁盘上的目录：~/.dsh/profiles/web\nDSH_HOME：~/.dsh\n\n起它做验证（与在控制台里点这只 profile 的「启动」等价）：\n  cd ~/.dsh/profiles/web\n  DSH_HOME=~/.dsh dsh --profile web --no-open --port 8400\n  （8400 换成任何一个空闲端口都行；控制台自己也是从设置里的端口起点往后找第一个空闲的）\n\n约束（这一条是隔离的全部意义，务必守住）：\n1. 只改 ~/.dsh/profiles/web 这一份下的文件；\n2. 不要动主线的 profile，也不要动别的 profile，各是各的一份；\n3. 改完按上面那条命令把它起一次，确认这一份真能起来。",
+  "toast": {
+   "text": "web :3080 的开发指令已写入剪贴板（navigator.clipboard）。",
+   "ok": "true"
+  },
+  "copiedFrom": {
+   "cardIndex": 0,
+   "name": "web :3080",
+   "status": "running"
+  },
+  "noticeBar": "",
+  "profileCopy": {
+   "cardIndex": 1,
+   "name": "headless",
+   "status": "stopped",
+   "clipboard": "【给另一个会话的插件开发任务】请在你当前这个会话里，针对下面这一只 profile 做开发，不要切进它自己的会话来改。这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n开发对象：profile「headless」\n它在磁盘上的目录：~/.dsh/profiles/headless\nDSH_HOME：~/.dsh\n\n起它做验证（与在控制台里点这只 profile 的「启动」等价）：\n  cd ~/.dsh/profiles/headless\n  DSH_HOME=~/.dsh dsh --profile headless --no-open --port 8400\n  （8400 换成任何一个空闲端口都行；控制台自己也是从设置里的端口起点往后找第一个空闲的）\n\n约束（这一条是隔离的全部意义，务必守住）：\n1. 只改 ~/.dsh/profiles/headless 这一份下的文件；\n2. 不要动主线的 profile，也不要动别的 profile，各是各的一份；\n3. 改完按上面那条命令把它起一次，确认这一份真能起来。",
+   "toast": {
+    "text": "headless 的开发指令已写入剪贴板（navigator.clipboard）。",
+    "ok": "true"
+   }
+  }
+ },
+ "C": {
+  "noticeBarPresent": true,
+  "noticeOk": "false",
+  "noticeText": "web :3080 的开发指令没能写进剪贴板：探针：模拟剪贴板不可用；document.execCommand 也返回 false。",
+  "toastPresent": false,
+  "toastText": null
+ },
+ "D": {
+  "initial": {
+   "group": "实例与端口4",
+   "rowCount": 4,
+   "metaNodes": 0,
+   "resetNodes": 0,
+   "rows": [
+    {
+     "key": "instance.basePort",
+     "value": "8400",
+     "hasReset": false
+    },
+    {
+     "key": "probe.timeoutMs",
+     "value": "500",
+     "hasReset": false
+    },
+    {
+     "key": "probe.concurrency",
+     "value": "8",
+     "hasReset": false
+    },
+    {
+     "key": "probe.maxCandidates",
+     "value": "40",
+     "hasReset": false
+    }
+   ]
+  },
+  "textScan": {
+   "chars": 238,
+   "hits": [
+    {
+     "word": "来源",
+     "count": 0,
+     "context": ""
+    },
+    {
+     "word": "缺省",
+     "count": 0,
+     "context": ""
+    },
+    {
+     "word": "当前",
+     "count": 0,
+     "context": ""
+    }
+   ]
+  },
+  "step1Default": {
+   "found": true,
+   "value": "关",
+   "resetCount": 0,
+   "resetText": null,
+   "resetTitle": null,
+   "switchText": "关",
+   "rowInnerText": "归档区默认展开 |  | 打开实例总览时，「已归档」分组是否直接展开。 |  | 关",
+   "pageResetNodes": 0
+  },
+  "step2Changed": {
+   "found": true,
+   "value": "开",
+   "resetCount": 1,
+   "resetText": "恢复默认",
+   "resetTitle": "把这一项写回出厂缺省 关",
+   "switchText": "开",
+   "rowInnerText": "归档区默认展开 |  | 打开实例总览时，「已归档」分组是否直接展开。 |  | 恢复默认 | 开",
+   "pageResetNodes": 1
+  },
+  "step2Toast": "归档区默认展开 已保存：开",
+  "textScanNonDefault": {
+   "chars": 97,
+   "hits": [
+    {
+     "word": "来源",
+     "count": 0,
+     "context": ""
+    },
+    {
+     "word": "缺省",
+     "count": 0,
+     "context": ""
+    },
+    {
+     "word": "当前",
+     "count": 0,
+     "context": ""
+    }
+   ]
+  },
+  "step3Reset": {
+   "found": true,
+   "value": "关",
+   "resetCount": 0,
+   "resetText": null,
+   "resetTitle": null,
+   "switchText": "关",
+   "rowInnerText": "归档区默认展开 |  | 打开实例总览时，「已归档」分组是否直接展开。 |  | 关",
+   "pageResetNodes": 0
+  },
+  "step3Toast": "归档区默认展开 已保存：关",
+  "textScanAfterReset": {
+   "chars": 92,
+   "hits": [
+    {
+     "word": "来源",
+     "count": 0,
+     "context": ""
+    },
+    {
+     "word": "缺省",
+     "count": 0,
+     "context": ""
+    },
+    {
+     "word": "当前",
+     "count": 0,
+     "context": ""
+    }
+   ]
+  }
+ }
+}

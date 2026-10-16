@@ -1,6 +1,6 @@
 // 实例总览页。
 //
-// 两条分组（当前运行 / 已停止）+ 归档区 + 右栏信息面板，卡片的版式照 Vue 版逐项对齐：
+// 两条分组（当前运行 / 已停止）+ 归档区，单栏铺满内容区；卡片的版式照 Vue 版逐项对齐：
 // 两行卡头（标题行 + 副标题行）、状态点独立 13px 槽位、字段区固定两列、按钮组右缘贴卡片内容盒。
 //
 // 卡片、按钮、图标全部自建：DOM 与类名照 Vue 版逐条对齐，
@@ -22,6 +22,7 @@ fn action_name(key : ActionKey) -> String {
     Tab => "tab"
     CopyUrl => "copy-url"
     CopyTokenUrl => "copy-token-url"
+    CopyDev => "copy-dev"
     Fork => "fork"
     Rename => "rename"
     Note => "note"
@@ -31,6 +32,25 @@ fn action_name(key : ActionKey) -> String {
     Logs => "logs"
     Dir => "dir"
     Config => "config"
+  }
+}
+
+///|
+/// 「复制开发指令」那一项：认得出 profile 目录名才摆。
+///
+/// 复制出来的是给**另一个会话**的任务说明（文本见 app.mbt 的 dev_instruction_text）：
+/// 让那边的 agent 针对这一只 profile 开发，不必切进这只 profile 自己的会话 ——
+/// 那就是要的隔离。没有目标（演示数据、读数里读不到 profile 名）时一个节点都不摆：
+/// 一个点下去只会说「没有可复制的目标」的菜单项，比没有更糟。
+fn copy_dev_entry(row : Row) -> Array[MenuEntry] {
+  match row.profile_name {
+    Some(name) =>
+      if name == "" {
+        []
+      } else {
+        [MItem(CopyDev, "content-copy", "复制开发指令", false)]
+      }
+    None => []
   }
 }
 
@@ -47,6 +67,11 @@ fn running_menu(row : Row) -> Array[MenuEntry] {
   // 带令牌的地址只有真读到时才有这一项：读不到令牌就不摆一个「复制空串」出来
   if row.web_url is Some(_) {
     items.push(MItem(CopyTokenUrl, "key-variant", "复制带令牌的地址", false))
+  }
+  // 「复制开发指令」跟在这两条复制后面：菜单头上这一簇都是「把东西拿走」的动作，
+  // 往下的分界线之后才是改名 / 派生 / 删除那些会改本机状态的动作。
+  for entry in copy_dev_entry(row) {
+    items.push(entry)
   }
   items.push(MSep)
   items.push(MItem(Rename, "rename-outline", "重命名", false))
@@ -67,17 +92,23 @@ fn running_menu(row : Row) -> Array[MenuEntry] {
 
 ///|
 /// 已停止：菜单从行尾独立的 ⋯ 打开（与运行中卡同一个入口）；可删实例才多一条「删除」。
-fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
+///
+/// 「复制开发指令」摆在第一簇末尾（与运行中卡同一口径：都是「不动本机状态」的那一簇），
+/// 分隔线之后才是改名 / 备注 / 归档 / 删除这些会真的改东西的动作。
+fn stopped_menu(row : Row) -> Array[MenuEntry] {
   let items : Array[MenuEntry] = [
     MItem(Logs, "text-box-outline", "查看日志", false),
     MItem(Dir, "folder-open-outline", "打开工作目录", false),
     MItem(Config, "tune", "编辑配置", false),
-    MSep,
-    MItem(Rename, "rename-outline", "重命名", false),
-    MItem(Note, "note-text-outline", "备注", false),
-    MItem(Archive, "archive-outline", "归档", false),
   ]
-  if deletable {
+  for entry in copy_dev_entry(row) {
+    items.push(entry)
+  }
+  items.push(MSep)
+  items.push(MItem(Rename, "rename-outline", "重命名", false))
+  items.push(MItem(Note, "note-text-outline", "备注", false))
+  items.push(MItem(Archive, "archive-outline", "归档", false))
+  if row.deletable {
     items.push(MItem(Delete, "delete-outline", "删除", true))
   }
   items
@@ -124,7 +155,7 @@ fn trim_separators(entries : Array[MenuEntry]) -> Array[MenuEntry] {
 fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   let running = row.status is Running
   let entries = trim_separators(
-    if running { running_menu(row) } else { stopped_menu(row.deletable) },
+    if running { running_menu(row) } else { stopped_menu(row) },
   )
   let items : Array[@html.Html] = []
   for entry in entries {
@@ -646,48 +677,6 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 右栏：工作流入口两行 + 关于实例说明。两处都是固定文案（与 Vue 版一致）。
-fn side_info_panel() -> @html.Html {
-  let flows : Array[@html.Html] = []
-  let tones = ["accent", "violet"]
-  let icons = ["source-fork", "open-in-new"]
-  let index : Ref[Int] = Ref(0)
-  for flow in workflows {
-    let (title, detail) = flow
-    let i = index.val
-    index.val = i + 1
-    flows.push(
-      @html.button(
-        class="dsh-flow",
-        type_="button",
-        attrs=mark("workflow-entry", ["overview", "side-info", "workflow", title]),
-        [
-          @html.span(class="dsh-flow-icon " + tones[i % 2], [icon(icons[i % 2], size=16)]),
-          @html.span(class="dsh-flow-body", [
-            @html.span(class="dsh-flow-title", title),
-            @html.span(class="dsh-flow-detail", detail),
-          ]),
-          @html.span(class="dsh-flow-arrow", [icon("chevron-right")]),
-        ],
-      ),
-    )
-  }
-  let notes : Array[@html.Html] = safety_checks.map(fn(item) {
-    @html.li(class="dsh-note", [@html.span(class="dsh-note-text", item)])
-  })
-  @html.aside(class="dsh-side-info", attrs=mark("side-info", ["overview", "side-info"]), [
-    @html.div(class="dsh-info-card", [
-      @html.h2(class="dsh-info-title", "工作流入口"),
-      @html.div(class="dsh-flows", flows),
-    ]),
-    @html.div(class="dsh-info-card", [
-      @html.h2(class="dsh-info-title", "关于实例"),
-      @html.ul(class="dsh-notes", notes),
-    ]),
-  ])
-}
-
-///|
 /// 动作结果提示条 —— **只管失败**。成功那一半走 toast（见 view_shell 的 flash_toast）：
 /// 它出现几秒、自己淡出；失败留在这儿不动，直到使用者自己处理掉下一条动作。
 /// 同一条规矩的两个面：正常可以沉默，异常不能沉默 —— 所以只有成功会被自动收走 ✗
@@ -1002,6 +991,8 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.note_open.length() > 0 {
     dialogs.push(note_dialog(model, emit))
   }
+  // 单栏：这一页只有内容这一列。右边那栏（「工作流入口」两个按钮 + 「关于实例」三行说明）
+  // 已按使用者的判断删掉 —— 那些字要么是点了没下文的摆设，要么在别处已经有了入口。
   let body : Array[@html.Html] = [
       @html.section(class="dsh-overview-page", [
         @html.header(class="dsh-overview-head", [
@@ -1034,7 +1025,6 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-rows", stopped_list),
         archived_section(model, emit),
       ]),
-    side_info_panel(),
   ]
   for node in dialogs {
     body.push(node)

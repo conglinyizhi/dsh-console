@@ -1,0 +1,24 @@
+{
+ "title": "DSH 控制台",
+ "scrollW": 1280,
+ "clientW": 1280,
+ "overflowX": false,
+ "textLen": 954,
+ "textHead": "DSH 控制台\n实例总览\n日志\n设置\n回收站\n关于\n\n本机运行，仅限回环访问\n\n实例总览\n菜单里的动作会真的作用到本机实例与 profile\n＋\n新建实例\n当前运行的实例 (1)\nweb :3080\n本机监听的 dsh 实例\n运行中\n已运行 2 小时 4 分钟\n缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-aut",
+ "markers": {
+  "真实数据": false,
+  "读取失败": false,
+  "实例总览": true
+ },
+ "counts": {
+  "buttons": 16,
+  "links": 0,
+  "selects": 0,
+  "inputs": 0,
+  "cards": 3,
+  "icons": 0
+ },
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shot": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-dev-commands/acc2-verify.png.png"
+}

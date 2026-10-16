@@ -27,6 +27,9 @@ priv enum ActionKey {
   CopyUrl
   /// 复制带令牌的地址：只在真有 webUrl 时出现（读不到令牌就不摆这一项）
   CopyTokenUrl
+  /// 复制开发指令：把一段给「另一个会话」的任务说明写进剪贴板（粘贴到别的 profile 的会话里，
+  /// 让那边针对这一只 profile 开发）。认不出 profile 目录名时不摆这一项。
+  CopyDev
   Fork
   Rename
   /// 编辑这只 profile 的备注（POST set-profile-note）
@@ -389,6 +392,8 @@ priv enum Msg {
   SettingDraft(String, String)
   SettingCommit(String, String)
   SettingToggle(String, Bool)
+  /// 把这一项写回后端给的缺省值（见 app.mbt 的 reset_setting）
+  SettingReset(String)
   // 写动作的回执：row_id / action / 谁 / 做了什么（动词）/ 原始响应
   HttpDone(String, String, String, String, Result[String, Error])
   // 复制到剪贴板的回执：复制的是谁的那一条地址 / 传输层拿回来的那段 JSON
@@ -1185,17 +1190,3 @@ fn demo_stopped() -> Array[Row] {
     },
   ]
 }
-
-///|
-/// 界面上的工作流入口与「关于实例」说明（与 Vue 版同为固定文案）。
-pub let workflows : Array[(String, String)] = [
-  ("从当前实例派生开发副本", "派生隔离副本，用新端口与独立 DSH_HOME"),
-  ("将插件交回主线实例", "把插件提交回稳定实例"),
-]
-
-///|
-pub let safety_checks : Array[String] = [
-  "独立 DSH_HOME，会话与插件互不干扰",
-  "各实例可用不同 DSH 版本或来源",
-  "仅监听 127.0.0.1，不暴露到网络",
-]
