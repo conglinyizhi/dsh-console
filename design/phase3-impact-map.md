@@ -345,3 +345,28 @@ profileHealth 因此读到了主线那只同名 profile 的缺包数，而卡片
 `DSH_HOME=<控制台 home>` 与 `<home>/profiles/<名>` —— 等于把开发会话引回主线。
 **改后应然**：停止卡的 home 与开发指令都用**那只 profile 自己的 home** ✓
 **判据**：贴剪贴板回读的指令全文（`DSH_HOME` 与目录都指向那只 profile 的 home）+ 卡片上那一格的实际文本。
+---
+
+## 进度（2026-10-16）：a 与 b 已完成并核过
+
+**a ✓**（提交 `5613ef2`）：第三级回退整段删掉 —— 认不出就 `dshHome=null`、来源写「未知」，
+`profileHealth` 随之变 null，主线同名 profile 的缺包数**不再出现**。
+`dsh_home_prefix` 保持只认 `/.dsh/`（**没有放宽** ✓ 放宽等于把它改成会猜）。
+**b ✓**（提交 `881f076`）：`running_for_profile_in(name, home)`、登记去重按 pid 或 (home, profile)、
+`find_record` 按名字时要求同时给 home。实测：同一请求改前 409（被别处的同名实例挡）、改后 200。
+复现脚本与 before/after 二进制在 `/tmp/p3fix`。
+
+### a 带来的一个新不一致（下一件要处理的）
+
+a 之后「home 认不出」成了**正常状态**，但这两处仍按老习惯**回落到一个默认 home**：
+```
+backend/logs/logs.mbt:671-675    实例 home 认不出时回落到控制台自己的 home
+backend/instances/weburl.mbt:389-398  回落到 $HOME/.dsh
+```
+也就是说：a 让 profileHealth 不再张冠李戴了 ✓，但**同一只实例的日志目录与访问地址**还会按一个来路不明的 home 去算 ✗。
+**口径应与 a 一致**：认不出就如实说认不出，不要顶替。这两处是下一轮的候选（不属于 a~d，登记在此备查）。
+
+### 另一处前端的不一致（就是必做集 d）
+
+后端 profileHealth 这一格已经不再指主线 ✓，但**前端 `running_rows` / `in_use_by` 仍按名字配 profile** ✗，
+所以卡片上「缺 N 个包」那一行还可能配到控制台 home 的那一份 ✓。这条归 d。
