@@ -27,9 +27,13 @@ if (!SEL) {
   }
 }
 
+// 视口可由环境变量给：宽屏那一趟用来覆盖「多列」这条代码路径（默认仍是 1280x900，行为不变）
+const VW = Number(process.env.PROBE_VIEWPORT_W || 1280)
+const VH = Number(process.env.PROBE_VIEWPORT_H || 900)
+
 const chrome = spawn('chromium', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-extensions',
   '--hide-scrollbars', '--remote-debugging-port=' + CDP_PORT, '--user-data-dir=/tmp/chrome-probe-' + process.pid,
-  '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
+  '--window-size=' + VW + ',' + VH, 'about:blank'], { stdio: 'ignore' })
 
 let page = null
 for (let i = 0; i < 40 && !page; i++) {
@@ -49,7 +53,7 @@ ws.onmessage = (e) => {
 await new Promise((r) => { ws.onopen = r })
 const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })) })
 await send('Page.enable')
-await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false })
+await send('Emulation.setDeviceMetricsOverride', { width: VW, height: VH, deviceScaleFactor: 1, mobile: false })
 await send('Page.navigate', { url: baseUrl })
 await new Promise((r) => setTimeout(r, 4500))
 
@@ -85,7 +89,18 @@ const expr = `(() => {
   const de = document.documentElement
   const bs = getComputedStyle(document.body)
   const dotXs = cards.map((c) => c.dot && c.dot.x).filter((x) => x != null)
+  // 响应式多列之后，「跨卡对齐」要按列比：不同列的卡片起点不同，跨列比没有意义 ✗
+  // 按卡片左缘（取整到 2px，容忍亚像素）分组，各看各列内部是否全等。
+  const byCol = {}
+  for (const c of cards) {
+    if (!c.dot || c.dot.x == null || !c.card) continue
+    const k = Math.round(c.card.x / 2) * 2
+    ;(byCol[k] = byCol[k] || []).push(c.dot.x)
+  }
+  const colResults = Object.entries(byCol).map(([k, xs]) => ({ colX: Number(k), count: xs.length, allEqual: new Set(xs).size === 1, dotXs: xs }))
   return JSON.stringify({
+    columns: colResults.length,
+    dotXsByColumn: colResults,
     url: location.href,
     overflow: { scrollW: de.scrollWidth, clientW: de.clientWidth, overflowX: de.scrollWidth > de.clientWidth },
     font: { size: bs.fontSize, family: bs.fontFamily.slice(0, 40) },

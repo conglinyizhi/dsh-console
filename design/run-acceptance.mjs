@@ -18,6 +18,10 @@ const j = (p) => existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null
 const errs = []
 if (run('verify-frontend.mjs', [baseUrl, prefix + '-verify.png', prefix + '-verify.json'])) errs.push('verify-frontend 失败')
 if (run('probe-invariants.mjs', [baseUrl, prefix + '-inv.json', profile])) errs.push('probe-invariants 失败')
+// 宽屏那一趟：多列是**另一条代码路径** —— 1280 那趟是单列，永远走不到它 ✗
+// 让「多列」也进常驻判定，而不是只在某次手工量过一遍。
+spawnSync('node', [join(here, 'probe-invariants.mjs'), baseUrl, prefix + '-wide.json', profile],
+  { encoding: 'utf8', timeout: 180000, env: { ...process.env, PROBE_VIEWPORT_W: '1920', PROBE_VIEWPORT_H: '1080' } })
 // 动效探针会点「启动」真拉起一只实例。收尾放在 Node 侧：
 // 无头浏览器页面里的 fetch 实测不可靠（两次都拿不到数据），Node 这边稳。
 // 先记下起跑时就在跑的端口，收尾时只停这一轮新起来的。
@@ -93,7 +97,24 @@ if (v) {
 
 if (inv) {
   add('无横向溢出', String(vueInv?.overflow?.overflowX ?? false), String(inv.overflow?.overflowX), inv.overflow?.overflowX === false)
-  add('状态点跨卡对齐', String(vueInv?.invariants?.dotXsAllEqual), String(inv.invariants?.dotXsAllEqual), inv.invariants?.dotXsAllEqual === true)
+  // 响应式多列之后按列比：不同列的卡片起点不同，跨列比没有意义 ✗
+  // 单列时这条与原来的「跨卡对齐」等价 ✓
+  const cols = inv.dotXsByColumn ?? []
+  const colOk = cols.length > 0 && cols.every((c) => c.allEqual === true)
+  add('同列状态点对齐', cols.length + ' 列全等', colOk ? cols.length + ' 列全等' : JSON.stringify(cols.filter((c) => !c.allEqual)), colOk)
+  addInfo('检测到的列数', String(inv.columns ?? '?'))
+  // 宽屏那一趟：多列这条路径必须真被走到（否则「3 列」永远只是某次手工量过的说法）
+  const wide = j(prefix + '-wide.json')
+  if (wide && wide.columns != null) {
+    add('宽屏下确实排成多列', '>= 2 列', wide.columns + ' 列', wide.columns >= 2)
+    add('宽屏无横向溢出', 'false', String(wide.overflow?.overflowX), wide.overflow?.overflowX === false)
+    const wcols = wide.dotXsByColumn ?? []
+    add('宽屏同列状态点对齐', wcols.length + ' 列全等', wcols.length && wcols.every((c) => c.allEqual === true) ? wcols.length + ' 列全等' : JSON.stringify(wcols.filter((c) => !c.allEqual)), wcols.length > 0 && wcols.every((c) => c.allEqual === true))
+    const wd = wide.invariants?.actionsDeltas ?? [1]
+    add('宽屏每卡按钮组右缘贴内容右缘', '全 0', JSON.stringify(wd), wd.every((d) => d === 0))
+  } else {
+    addInfo('宽屏那一趟（没跑出结果）', '未取到')
+  }
   add('按钮组右缘贴内容右缘', '全 0', JSON.stringify(inv.invariants?.actionsDeltas), (inv.invariants?.actionsDeltas ?? [1]).every((d) => d === 0))
   // 「两段式无缝」退役（2026-10-15，使用者决定）：
   // 那条是照 Vue 版的「启动 ▾」分段按钮录的（gap 0 / 左右半圆角 6 0 0 6 与 0 6 6 0）。
