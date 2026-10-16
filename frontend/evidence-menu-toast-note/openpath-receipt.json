@@ -1,0 +1,41 @@
+{
+ "baseUrl": "http://127.0.0.1:5393/",
+ "cards": [
+  {
+   "i": 0,
+   "name": "web :3080",
+   "status": "running"
+  },
+  {
+   "i": 1,
+   "name": "headless",
+   "status": "stopped"
+  },
+  {
+   "i": 2,
+   "name": "review-dev",
+   "status": "stopped"
+  }
+ ],
+ "target": {
+  "i": 0,
+  "name": "web :3080",
+  "status": "running"
+ },
+ "steps": [
+  {
+   "action": "config",
+   "clicked": "clicked",
+   "toast": "web :3080 已用本机默认程序打开配置。",
+   "notice": null,
+   "kind": "toast(成功)"
+  },
+  {
+   "action": "dir",
+   "clicked": "clicked",
+   "toast": "web :3080 已用本机默认程序打开工作目录。",
+   "notice": null,
+   "kind": "toast(成功)"
+  }
+ ]
+}

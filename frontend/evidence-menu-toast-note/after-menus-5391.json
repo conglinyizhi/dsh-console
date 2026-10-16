@@ -1,0 +1,231 @@
+[
+ {
+  "name": "web :3080",
+  "status": "running",
+  "openResult": "clicked",
+  "menu": {
+   "opened": true,
+   "rows": [
+    {
+     "kind": "item",
+     "text": "在新标签页打开",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "复制访问地址",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "重命名",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "备注",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "派生开发副本",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "查看日志",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "打开工作目录",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑配置",
+     "reachable": true
+    }
+   ],
+   "labels": [
+    "在新标签页打开",
+    "复制访问地址",
+    "重命名",
+    "备注",
+    "派生开发副本",
+    "查看日志",
+    "打开工作目录",
+    "编辑配置"
+   ],
+   "sepCount": 2,
+   "sepOrphans": [],
+   "menuHTML": "<div data-name=\"row-menu\" data-uid=\"x8xqjsqh\" role=\"menu\" class=\"dsh-menu\" id=\"dsh-menu-port-3080\" data-flip=\"down\"><button data-name=\"menu-item\" data-uid=\"j8cuf1jb\" role=\"menuitem\" data-action=\"tab\" ",
+   "dom": [
+    "<button data-name=\"menu-item\" data-uid=\"j8cuf1jb\" role=\"menuitem\" data-action=\"tab\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>在新标签页打开</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"6veri2hc\" role=\"menuitem\" data-action=\"copy-url\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>复制访问地址</span></button>",
+    "<div role=\"separator\" class=\"dsh-menu-sep\"><!--[--><!--]--></div>",
+    "<button data-name=\"menu-item\" data-uid=\"5t2zth59\" role=\"menuitem\" data-action=\"rename\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>重命名</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"ph048zkl\" role=\"menuitem\" data-action=\"note\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>备注</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"t4dxk3cp\" role=\"menuitem\" data-action=\"fork\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>派生开发副本</span></button>",
+    "<div role=\"separator\" class=\"dsh-menu-sep\"><!--[--><!--]--></div>",
+    "<button data-name=\"menu-item\" data-uid=\"u27o59z2\" role=\"menuitem\" data-action=\"logs\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>查看日志</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"cgdpjdkf\" role=\"menuitem\" data-action=\"dir\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>打开工作目录</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"23sozsph\" role=\"menuitem\" data-action=\"config\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>编辑配置</span></button>"
+   ]
+  }
+ },
+ {
+  "name": "alpha",
+  "status": "stopped",
+  "openResult": "clicked",
+  "menu": {
+   "opened": true,
+   "rows": [
+    {
+     "kind": "item",
+     "text": "查看日志",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "打开工作目录",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑配置",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "重命名",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "备注",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "归档",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "删除",
+     "reachable": true
+    }
+   ],
+   "labels": [
+    "查看日志",
+    "打开工作目录",
+    "编辑配置",
+    "重命名",
+    "备注",
+    "归档",
+    "删除"
+   ],
+   "sepCount": 1,
+   "sepOrphans": [],
+   "menuHTML": "<div data-name=\"row-menu\" data-uid=\"6ymwznu4\" role=\"menu\" class=\"dsh-menu\" id=\"dsh-menu-profile-alpha\" data-flip=\"down\"><button data-name=\"menu-item\" data-uid=\"cxe1wetn\" role=\"menuitem\" data-action=\"l",
+   "dom": [
+    "<button data-name=\"menu-item\" data-uid=\"cxe1wetn\" role=\"menuitem\" data-action=\"logs\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>查看日志</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"rtebi7lo\" role=\"menuitem\" data-action=\"dir\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>打开工作目录</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"4whgfqns\" role=\"menuitem\" data-action=\"config\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>编辑配置</span></button>",
+    "<div role=\"separator\" class=\"dsh-menu-sep\"><!--[--><!--]--></div>",
+    "<button data-name=\"menu-item\" data-uid=\"gtn2cjl4\" role=\"menuitem\" data-action=\"rename\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>重命名</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"bqxiruas\" role=\"menuitem\" data-action=\"note\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>备注</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"9v6rzrrd\" role=\"menuitem\" data-action=\"archive\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>归档</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"vjga6yd5\" role=\"menuitem\" data-action=\"delete\" type=\"button\" class=\"dsh-menu-item danger\"><svg/><span>删除</span></button>"
+   ]
+  }
+ },
+ {
+  "name": "beta",
+  "status": "stopped",
+  "openResult": "clicked",
+  "menu": {
+   "opened": true,
+   "rows": [
+    {
+     "kind": "item",
+     "text": "查看日志",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "打开工作目录",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑配置",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "重命名",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "备注",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "归档",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "删除",
+     "reachable": true
+    }
+   ],
+   "labels": [
+    "查看日志",
+    "打开工作目录",
+    "编辑配置",
+    "重命名",
+    "备注",
+    "归档",
+    "删除"
+   ],
+   "sepCount": 1,
+   "sepOrphans": [],
+   "menuHTML": "<div data-name=\"row-menu\" data-uid=\"4zll576v\" role=\"menu\" class=\"dsh-menu\" id=\"dsh-menu-profile-beta\" data-flip=\"down\"><button data-name=\"menu-item\" data-uid=\"fvs9pwlw\" role=\"menuitem\" data-action=\"lo",
+   "dom": [
+    "<button data-name=\"menu-item\" data-uid=\"fvs9pwlw\" role=\"menuitem\" data-action=\"logs\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>查看日志</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"jaanmli5\" role=\"menuitem\" data-action=\"dir\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>打开工作目录</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"5g34azwn\" role=\"menuitem\" data-action=\"config\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>编辑配置</span></button>",
+    "<div role=\"separator\" class=\"dsh-menu-sep\"><!--[--><!--]--></div>",
+    "<button data-name=\"menu-item\" data-uid=\"o5trwgab\" role=\"menuitem\" data-action=\"rename\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>重命名</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"orq9t173\" role=\"menuitem\" data-action=\"note\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>备注</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"qx2lgv2g\" role=\"menuitem\" data-action=\"archive\" type=\"button\" class=\"dsh-menu-item\"><svg/><span>归档</span></button>",
+    "<button data-name=\"menu-item\" data-uid=\"ee4jcnje\" role=\"menuitem\" data-action=\"delete\" type=\"button\" class=\"dsh-menu-item danger\"><svg/><span>删除</span></button>"
+   ]
+  }
+ }
+]

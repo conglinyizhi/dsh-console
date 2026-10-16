@@ -81,6 +81,92 @@ fn route_notice_bar(model : Model) -> @html.Html {
 }
 
 ///|
+/// 成功提示的 toast：出现约 4 秒、自己淡出（到期计时挂在哪见 app.mbt 的 flash_timer）。
+///
+/// 位置在 shell 这一层，所以五个页面是同一个位置（右下角，见 app.scss 的 .dsh-toast）；
+/// 每条提示都得各自摆一次的话，「各页一致」这件事迟早会分叉。
+///
+/// **只管成功**：失败照旧留在它自己那一页不动（view_overview 的 action_notice /
+/// view_settings 的 settings_feedback）—— 正常可以沉默，异常不能沉默。
+/// 鼠标停在上面的时候那一拍不算数（FlashHover）：不许它正好在眼皮底下消失。
+///
+/// 方案 B 的兜底入口也挂在这儿：启动时自动开的那个标页可能被浏览器拦掉、也可能被用户
+/// 自己关掉，那时就在这条提示里摆一颗「打开 Web UI」—— 用户再点一下是新手势，
+/// 一定不被弹窗拦截器吃掉。按钮只在**这条提示对应的地址还在**时出现
+/// （notice_url_notice 与当前文字一致）：提示被别的动作改写之后它自动失效。
+fn flash_toast(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let (text, hint) = flash_text(model)
+  if text == "" {
+    return @html.nothing
+  }
+  let text_attrs = if hint == "" {
+    mark("flash-toast-text", ["shell", "flash-toast", "text"])
+  } else {
+    mark("flash-toast-text", ["shell", "flash-toast", "text"]).title(hint)
+  }
+  let children : Array[@html.Html] = [
+    @html.span(class="dsh-toast-text", attrs=text_attrs, text),
+  ]
+  let has_button = match model.notice_url {
+    Some(_) => model.notice_url_notice == text
+    None => false
+  }
+  if has_button {
+    children.push(
+      @html.button(
+        class="dsh-btn",
+        type_="button",
+        attrs=mark("notice-open-web-ui", ["shell", "flash-toast", "open-web-ui"])
+          .title("再点一下就在新标签页打开带令牌的地址 —— 手动点击是新手势，弹窗拦截器拦不住"),
+        on_click=emit(NoticeOpenUi),
+        [icon("open-in-new"), @html.span("打开 Web UI")],
+      ),
+    )
+  }
+  @html.div(
+    class=if model.flash_fading { "dsh-toast fading" } else { "dsh-toast" },
+    attrs=mark("flash-toast", ["shell", "flash-toast"])
+      .data_set("ok", "true")
+      .data_set("fading", if model.flash_fading { "true" } else { "false" })
+      .role("status")
+      .on_mouseenter(fn(_e) { emit(FlashHover(true)) })
+      .on_mouseleave(fn(_e) { emit(FlashHover(false)) }),
+    children,
+  )
+}
+
+///|
+/// 当前页面上正摆着的成功提示 →（正文, 悬停补充）。没有就给空串。
+///
+/// 一个函数收口，是因为有两处要问同一件事：toast 摆什么、以及 app.mbt 里那条
+/// 「这条提示是新出现的吗」的判断（新出现才重新挂计时）。
+fn flash_text(model : Model) -> (String, String) {
+  // 设置页的成功回执走自己那条 settings_feedback；其余页面的动作回执都在 act_notice 上
+  // （总览与回收站都有动作，两条路都得接上 —— 少接一条，那一页的成功就成了「什么都没发生」）
+  if model.page is Settings {
+    if model.settings_feedback_ok {
+      (model.settings_feedback, "")
+    } else {
+      ("", "")
+    }
+  } else if model.page is Overview || model.page is Trash {
+    if model.act_notice_ok {
+      let hint = if model.act_notice_hint != "" &&
+        model.act_notice_hint_for == model.act_notice {
+        model.act_notice_hint
+      } else {
+        ""
+      }
+      (model.act_notice, hint)
+    } else {
+      ("", "")
+    }
+  } else {
+    ("", "")
+  }
+}
+
+///|
 fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let body = match model.page {
     Overview => overview_view(model, emit)
@@ -95,5 +181,7 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       route_notice_bar(model),
       @html.main_(class="dsh-main", [body]),
     ]),
+    // toast 挂在 shell 这一层、不在任何一页里面：位置因此与页面无关（五个页面同一个角落）
+    flash_toast(model, emit),
   ])
 }

@@ -50,9 +50,11 @@ fn running_menu(row : Row) -> Array[MenuEntry] {
   }
   items.push(MSep)
   items.push(MItem(Rename, "rename-outline", "重命名", false))
-  items.push(MItem(Note, "note-text-outline", "编辑备注", false))
+  items.push(MItem(Note, "note-text-outline", "备注", false))
   items.push(MItem(Fork, "source-fork", "派生开发副本", false))
-  items.push(MItem(Archive, "archive-outline", "归档", false))
+  // 运行中的条目**不给归档**：一只还在跑的实例从台面上撤下去，只会让人以为它停了。
+  // 后端也挡了这一道（archive-profile 对在跑的 profile 回 conflict）—— 两层都在，
+  // 少一层就会有人从别的地方打进来。
   if row.deletable {
     items.push(MItem(Delete, "delete-outline", "删除", true))
   }
@@ -72,13 +74,44 @@ fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
     MItem(Config, "tune", "编辑配置", false),
     MSep,
     MItem(Rename, "rename-outline", "重命名", false),
-    MItem(Note, "note-text-outline", "编辑备注", false),
+    MItem(Note, "note-text-outline", "备注", false),
     MItem(Archive, "archive-outline", "归档", false),
   ]
   if deletable {
     items.push(MItem(Delete, "delete-outline", "删除", true))
   }
   items
+}
+
+///|
+fn is_sep(entry : MenuEntry) -> Bool {
+  match entry {
+    MSep => true
+    MItem(_, _, _, _) => false
+  }
+}
+
+///|
+/// 分隔线只用来分组：不该出现在菜单的头尾，也不该两条挨着。
+///
+/// 归档那一项从运行中的菜单里撤掉之后，「别留一条孤零零的线」这件事就有了真实的诱因。
+/// 撤掉那一项本身不会留下孤线（它两边都有项），这一遍是**兜底**：以后谁再摘一项，
+/// 头部 / 尾部 / 连着的那条线都不会漏出来。
+fn trim_separators(entries : Array[MenuEntry]) -> Array[MenuEntry] {
+  let out : Array[MenuEntry] = []
+  for entry in entries {
+    if is_sep(entry) {
+      if out.length() > 0 && !is_sep(out[out.length() - 1]) {
+        out.push(entry)
+      }
+    } else {
+      out.push(entry)
+    }
+  }
+  while out.length() > 0 && is_sep(out[out.length() - 1]) {
+    ignore(out.pop())
+  }
+  out
 }
 
 ///|
@@ -90,7 +123,9 @@ fn stopped_menu(deletable : Bool) -> Array[MenuEntry] {
 /// 向上时的定位在 app.scss 的 .dsh-menu[data-flip="up"]。
 fn row_menu(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   let running = row.status is Running
-  let entries = if running { running_menu(row) } else { stopped_menu(row.deletable) }
+  let entries = trim_separators(
+    if running { running_menu(row) } else { stopped_menu(row.deletable) },
+  )
   let items : Array[@html.Html] = []
   for entry in entries {
     match entry {
@@ -328,36 +363,49 @@ fn sub_line(row : Row) -> @html.Html {
       ),
     )
   }
-  @html.div(
-    class=sub_class,
-    attrs=mark("sub-line", ["overview", "card", row.id, "sub-line"])
-      .data_set("status", status_name(row.status)),
-    [
+  // 类型标签只在**真有话可说**时才产出节点：已停止的 profile 卡如果既不是默认、
+  // 也没有别的类型，这一格就一个节点都不摆（空的 pill 比没有 pill 更糟 ✗）。
+  // 这一轨的宽度照旧留着 —— 状态点要跨卡对齐（验收项「状态点跨卡对齐」量的是同列），
+  // 撤掉整轨会让停止卡的点左移一整列，与运行中的卡错开。见 app.scss 的 .dsh-sub。
+  let parts : Array[@html.Html] = []
+  if row.kind.length() > 0 {
+    parts.push(
       @html.span(
         class="dsh-kind",
         attrs=mark("sub-kind", ["overview", "card", row.id, "sub-line", "kind"]).title(row.kind_hint),
         row.kind,
       ),
-      @html.span(
-        class="dsh-dot-slot",
-        attrs=mark("status-dot", ["overview", "card", row.id, "sub-line", "dot"]),
-        [@html.i(class="dsh-dot", @html.nothing)],
-      ),
-      @html.span(
-        class="dsh-state",
-        attrs=mark("sub-state", ["overview", "card", row.id, "sub-line", "state"]),
-        state_label,
-      ),
-      @html.span(class="dsh-tail", tail),
-    ],
+    )
+  }
+  parts.push(
+    @html.span(
+      class="dsh-dot-slot",
+      attrs=mark("status-dot", ["overview", "card", row.id, "sub-line", "dot"]),
+      [@html.i(class="dsh-dot", @html.nothing)],
+    ),
+  )
+  parts.push(
+    @html.span(
+      class="dsh-state",
+      attrs=mark("sub-state", ["overview", "card", row.id, "sub-line", "state"]),
+      state_label,
+    ),
+  )
+  parts.push(@html.span(class="dsh-tail", tail))
+  @html.div(
+    class=sub_class,
+    attrs=mark("sub-line", ["overview", "card", row.id, "sub-line"])
+      .data_set("status", status_name(row.status)),
+    parts,
   )
 }
 
 ///|
-/// 卡头中间那一列：标题行 + 副标题行 +（有备注时）备注行。
+/// 卡头中间那一列：标题行 + 副标题行。
 ///
-/// 备注行**只在真有备注时**才推进这个列 —— 没有备注的卡片 DOM 与以前逐节点一致，
-/// 几何自然一个像素都不动。空串不进 DOM，也不留一个占位的空 span。
+/// 备注**不在这里**：它是人写的，跟「运行事实」那一列混在一起读起来像又一条读数。
+/// 它摆在卡片底部、字段区下面（见 card_note）——「谁在跑、跑的什么版本」是机器读数，
+/// 「这只 profile 是干什么用的」是人写的一句话，两件事在版面上分开。
 fn ident_block(row : Row) -> @html.Html {
   let parts : Array[@html.Html] = [
     @html.div(class="dsh-title-line", [
@@ -389,27 +437,6 @@ fn ident_block(row : Row) -> @html.Html {
     ]),
     sub_line(row),
   ]
-  // 备注就写在副标题行下面一行：整行左对齐、超长省略，完整内容在悬停里。
-  // 它不属于「运行事实」，所以不给图标、不跟字段区抢位置。
-  if row.user_note.length() > 0 {
-    parts.push(
-      @html.div(
-        class="dsh-note-row",
-        attrs=mark("card-note", ["overview", "card", row.id, "note"])
-          .title(
-            if row.user_note_source.length() > 0 {
-              row.user_note + "\n（" + row.user_note_source + "）"
-            } else {
-              row.user_note
-            },
-          ),
-        [
-          @html.span(class="dsh-note-tag", "备注"),
-          @html.span(class="dsh-note-text", row.user_note),
-        ],
-      ),
-    )
-  }
   @html.div(class="dsh-ident", parts)
 }
 
@@ -468,26 +495,54 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
     Accent => "open-in-new"
     Violet => "puzzle-outline"
   }
+  let children : Array[@html.Html] = [
+    @html.div(class="dsh-case-head", [
+      @html.span(class=tile_class, [icon(tile_icon, size=20)]),
+      ident_block(row),
+      instance_actions(row, model, emit),
+    ]),
+    // 字段区是 2 列 × 3 行 = 6 格。第六格是「最近改动」——
+    // 以前这里只填了 5 格，右下角空着（使用者点出来的那件事）。
+    @html.ul(class="dsh-fields", [
+      field("label-outline", "dsh-version", row.id, "DSH 版本 / 来源", row.version, row.version_hint),
+      field("layers-outline", "profile", row.id, "Profile", row.profile, row.profile_hint),
+      field("link-variant", "url", row.id, "访问地址", row.url, url_hint(row)),
+      field("home-outline", "home", row.id, "DSH_HOME", row.home, row.home_hint),
+      field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
+      field("clock-outline", "mtime", row.id, "最近改动", mtime_value(row), row.mtime_hint),
+    ]),
+  ]
+  // 备注摆在字段区**下面**：只在这一行真有备注时才多一个节点，
+  // 没有备注的卡片与以前逐节点一致（几何也就一个像素都不动）。
+  if row.user_note.length() > 0 {
+    children.push(card_note(row))
+  }
   @html.div(
     class="dsh-case",
     attrs=mark("instance-card", ["overview", "card", row.id])
       .data_set("instance", row.name),
+    children,
+  )
+}
+
+///|
+/// 卡片底部的备注行：**人写的**一句话，跟上面的机器读数分开摆。
+///
+/// 「备注」标 + 左侧一道细竖线 + 比读数淡一档的颜色（见 app.scss 的 .dsh-card-note）——
+/// 目标是一眼看出这是人写的，不是又一条读数。超长省略，完整内容在悬停里。
+fn card_note(row : Row) -> @html.Html {
+  @html.div(
+    class="dsh-card-note",
+    attrs=mark("card-note", ["overview", "card", row.id, "note"]).title(
+      if row.user_note_source.length() > 0 {
+        row.user_note + "\n（" + row.user_note_source + "）"
+      } else {
+        row.user_note
+      },
+    ),
     [
-      @html.div(class="dsh-case-head", [
-        @html.span(class=tile_class, [icon(tile_icon, size=20)]),
-        ident_block(row),
-        instance_actions(row, model, emit),
-      ]),
-      // 字段区是 2 列 × 3 行 = 6 格。第六格是「最近改动」——
-      // 以前这里只填了 5 格，右下角空着（使用者点出来的那件事）。
-      @html.ul(class="dsh-fields", [
-        field("label-outline", "dsh-version", row.id, "DSH 版本 / 来源", row.version, row.version_hint),
-        field("layers-outline", "profile", row.id, "Profile", row.profile, row.profile_hint),
-        field("link-variant", "url", row.id, "访问地址", row.url, url_hint(row)),
-        field("home-outline", "home", row.id, "DSH_HOME", row.home, row.home_hint),
-        field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
-        field("clock-outline", "mtime", row.id, "最近改动", mtime_value(row), row.mtime_hint),
-      ]),
+      @html.span(class="dsh-card-note-tag", "备注"),
+      @html.span(class="dsh-card-note-text", row.user_note),
     ],
   )
 }
@@ -633,18 +688,17 @@ fn side_info_panel() -> @html.Html {
 }
 
 ///|
-/// 动作结果提示条：成功与失败各一副脸色，失败里写清后端给的原因（conflict / not-authorized …）。
-/// 动作发不出去（这一行的读数里没有目标）也走这里，所以「没反应」这件事不会发生。
+/// 动作结果提示条 —— **只管失败**。成功那一半走 toast（见 view_shell 的 flash_toast）：
+/// 它出现几秒、自己淡出；失败留在这儿不动，直到使用者自己处理掉下一条动作。
+/// 同一条规矩的两个面：正常可以沉默，异常不能沉默 —— 所以只有成功会被自动收走 ✗
 ///
-/// 方案 B 的兜底入口也挂在这儿：启动时自动开的那个标页可能被浏览器拦掉、也可能被用户
-/// 自己关掉，那时就在这条提示里摆一颗「打开 Web UI」—— 用户再点一下是新手势，
-/// 一定不被弹窗拦截器吃掉。按钮只在**这条提示对应的地址还在**时出现
-/// （notice_url_notice 与当前文字一致）：提示条被别的动作改写之后它自动失效。
-fn action_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  if model.act_notice.length() == 0 {
+/// 失败里写清后端给的原因（conflict / not-authorized …）。
+/// 动作发不出去（这一行的读数里没有目标）也走这里，所以「没反应」这件事不会发生。
+fn action_notice(model : Model) -> @html.Html {
+  if model.act_notice.length() == 0 || model.act_notice_ok {
     return @html.nothing
   }
-  let tone = if model.act_notice_ok { " ok" } else { " err" }
+  let tone = " err"
   // 正文之外的细节（删除回执里的路径 / mode / hardDeleted）收在悬停里。
   // 只在「这段悬停确实属于当前这条提示」时挂上去：提示条被别的动作改写之后它自己失效。
   let hint = if model.act_notice_hint != "" && model.act_notice_hint_for == model.act_notice {
@@ -657,30 +711,12 @@ fn action_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   } else {
     mark("action-notice-text", ["overview", "action-notice", "text"]).title(hint)
   }
-  let children : Array[@html.Html] = [
-    @html.span(class="dsh-notice-text", attrs=text_attrs, model.act_notice),
-  ]
-  let has_button = match model.notice_url {
-    Some(_) => model.notice_url_notice == model.act_notice
-    None => false
-  }
-  if has_button {
-    children.push(
-      @html.button(
-        class="dsh-btn",
-        type_="button",
-        attrs=mark("notice-open-web-ui", ["overview", "action-notice", "open-web-ui"])
-          .title("再点一下就在新标签页打开带令牌的地址 —— 手动点击是新手势，弹窗拦截器拦不住"),
-        on_click=emit(NoticeOpenUi),
-        [icon("open-in-new"), @html.span("打开 Web UI")],
-      ),
-    )
-  }
   @html.div(
     class="dsh-notice" + tone,
-    attrs=mark("action-notice", ["overview", "action-notice"])
-      .data_set("ok", if model.act_notice_ok { "true" } else { "false" }),
-    children,
+    attrs=mark("action-notice", ["overview", "action-notice"]).data_set("ok", "false"),
+    [
+      @html.span(class="dsh-notice-text", attrs=text_attrs, model.act_notice),
+    ],
   )
 }
 
@@ -981,7 +1017,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             [@html.span(class="dsh-plus", "＋"), @html.span("新建实例")],
           ),
         ]),
-        action_notice(model, emit),
+        action_notice(model),
         section_head(
           "running",
           "当前运行的实例",

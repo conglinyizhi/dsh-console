@@ -1,0 +1,205 @@
+[
+ {
+  "name": "web :3080",
+  "status": "running",
+  "openResult": "clicked",
+  "menu": {
+   "opened": true,
+   "rows": [
+    {
+     "kind": "item",
+     "text": "在新标签页打开",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "复制访问地址",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "重命名",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑备注",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "派生开发副本",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "归档",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "查看日志",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "打开工作目录",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑配置",
+     "reachable": true
+    }
+   ],
+   "labels": [
+    "在新标签页打开",
+    "复制访问地址",
+    "重命名",
+    "编辑备注",
+    "派生开发副本",
+    "归档",
+    "查看日志",
+    "打开工作目录",
+    "编辑配置"
+   ],
+   "sepCount": 2,
+   "sepOrphans": [],
+   "menuHTML": "<div data-name=\"row-menu\" data-uid=\"x8xqj qh\" role=\"menu\" cla =\"d h-menu\" id=\"d h-menu-port-3080\" data-flip=\"down\"><button data-name=\"menu-item\" data-uid=\"j8cuf1jb\" role=\"menuitem\" data-action=\"tab\" t"
+  }
+ },
+ {
+  "name": "headless",
+  "status": "stopped",
+  "openResult": "clicked",
+  "menu": {
+   "opened": true,
+   "rows": [
+    {
+     "kind": "item",
+     "text": "查看日志",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "打开工作目录",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑配置",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "重命名",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑备注",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "归档",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "删除",
+     "reachable": true
+    }
+   ],
+   "labels": [
+    "查看日志",
+    "打开工作目录",
+    "编辑配置",
+    "重命名",
+    "编辑备注",
+    "归档",
+    "删除"
+   ],
+   "sepCount": 1,
+   "sepOrphans": [],
+   "menuHTML": "<div data-name=\"row-menu\" data-uid=\"i08yxd1 \" role=\"menu\" cla =\"d h-menu\" id=\"d h-menu-profile-headle \" data-flip=\"down\"><button data-name=\"menu-item\" data-uid=\"wg0o 23r\" role=\"menuitem\" data-action=\""
+  }
+ },
+ {
+  "name": "review-dev",
+  "status": "stopped",
+  "openResult": "clicked",
+  "menu": {
+   "opened": true,
+   "rows": [
+    {
+     "kind": "item",
+     "text": "查看日志",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "打开工作目录",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑配置",
+     "reachable": true
+    },
+    {
+     "kind": "sep",
+     "text": "",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "重命名",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "编辑备注",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "归档",
+     "reachable": true
+    },
+    {
+     "kind": "item",
+     "text": "删除",
+     "reachable": true
+    }
+   ],
+   "labels": [
+    "查看日志",
+    "打开工作目录",
+    "编辑配置",
+    "重命名",
+    "编辑备注",
+    "归档",
+    "删除"
+   ],
+   "sepCount": 1,
+   "sepOrphans": [],
+   "menuHTML": "<div data-name=\"row-menu\" data-uid=\" covz3u1\" role=\"menu\" cla =\"d h-menu\" id=\"d h-menu-profile-review-dev\" data-flip=\"down\"><button data-name=\"menu-item\" data-uid=\"9tvxvqb2\" role=\"menuitem\" data-actio"
+  }
+ }
+]

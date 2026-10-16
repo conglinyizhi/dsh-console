@@ -170,6 +170,16 @@ pub let start_delay_ms : Int = 2500
 pub let restart_lock_ms : Int = 900
 
 ///|
+/// 成功提示（toast）的寿命：出现之后这么多毫秒开始淡出。
+///
+/// 只有**成功**的提示会走：失败要留到使用者自己处理掉（见 app.mbt 的 update 外壳）。
+pub let flash_ms : Int = 4000
+
+///|
+/// toast 淡出那一小段（毫秒）：先把不透明度收下去，再撤节点。
+pub let flash_fade_ms : Int = 220
+
+///|
 /// 启动成功之后，最多重读几轮读数去等带令牌的地址。
 ///
 /// 为什么要等：令牌不在启动响应里，它在实例日志里，由 /api/local/instances 现算
@@ -293,6 +303,14 @@ struct Model {
   /// 上面那个地址属于哪一条提示条文字。与当前 act_notice 不一致时按钮不出现 ——
   /// 提示条被别的动作改写之后，按钮自己失效，不留一个对不上号的入口。
   notice_url_notice : String
+  // 成功提示的 toast（外观与位置见 view_shell 的 flash_toast，计时见 app.mbt 的 flash_timer）
+  /// 当前这条 toast 的序号。0 = 现在没有 toast。
+  /// 到期消息带着它回来：号对不上就说明这一条已经被换掉了，那一枪作废。
+  flash_serial : Int
+  /// 鼠标正停在 toast 上：这一拍不许它消失（悬停时别让它正好在眼皮底下走掉）
+  flash_hover : Bool
+  /// 正在淡出（去掉节点前的最后一小段，见 flash_fade_ms）
+  flash_fading : Bool
   // 控制台自己的状态读数（GET /api/local/console）：运行时登记 + 归档记录
   console : ConsoleFacts?
   console_error : String
@@ -333,6 +351,12 @@ priv enum Msg {
   StartTabRetry
   /// 提示条里那颗「打开 Web UI」被点了（方案 B 的兜底入口）
   NoticeOpenUi
+  /// 成功提示（toast）到点了：序号对得上才收
+  FlashExpire(Int)
+  /// 淡出那一小段走完，节点可以撤了
+  FlashRemove(Int)
+  /// 鼠标进 / 出 toast（进去之后不许它正好消失）
+  FlashHover(Bool)
   MenuToggle(String)
   MenuClose
   MenuCloseBack(String)
@@ -444,6 +468,9 @@ fn initial_model() -> Model {
     start_tab_tries: 0,
     notice_url: None,
     notice_url_notice: "",
+    flash_serial: 0,
+    flash_hover: false,
+    flash_fading: false,
     console: None,
     console_error: "",
     read_console: false,
@@ -934,12 +961,17 @@ fn profile_rows(
     rows.push({
       id: "profile:" + fact.name,
       name: fact.name,
-      kind: if fact.is_current { "本地 profile | 默认" } else { "本地 profile" },
+      // 「本地 profile」这个标签永远为真、从不提供信息（没有「远端 profile」这种东西）→ 删掉：
+      // 一只磁盘上的 profile 当然是本地的，写出来只是噪声（与「真实数据」那一类同理）。
+      // 留下的只有「默认」这半 —— 它是真信息：DSH_PROFILE 指向它。
+      // 不是默认的卡片这一格**一个节点都不产出**：不留空 pill，也不摆一个空壳（见 view_overview
+      // 的 sub_line —— 那一轨的宽度留着是为了状态点跨卡对齐，节点是真的没有）。
+      kind: if fact.is_current { "默认 profile" } else { "" },
       // 「默认」只表示 DSH_PROFILE 指向它，跟「运行中」无关 —— 这个词以前写成「当前」，会被读成正在跑
       kind_hint: if fact.is_current {
         "环境变量 DSH_PROFILE 指向这只 profile：新起的实例默认用它，不代表它正在运行"
       } else {
-        "磁盘上真实存在的 profile，当前没有对应的 dsh 进程"
+        ""
       },
       tone: Violet,
       status: Stopped,

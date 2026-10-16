@@ -699,6 +699,13 @@ fn action_receipt(
   if action == "delete-profile" {
     return delete_receipt(name, outcome)
   }
+  // 打开工作目录 / 打开配置：**到底是谁去开的，控制台不知道** —— xdg-open 按它自己的
+  // 关联挑程序（目录可能是文件管理器，配置可能是 $EDITOR 里配的那一个）。
+  // 所以正文只说「本机默认程序」，不猜一个具体的名字出来 ✗
+  // 真正用了哪个（opener + pid）在后端回执里，照旧收进悬停。
+  if action == "open-path" {
+    return (name + " 已用本机默认程序" + verb + "。", backend_hint(note))
+  }
   if action == "restore-from-trash" || action == "purge-trash-item" {
     let (text, hint) = trash_receipt(action, name, outcome)
     if text != "" {
@@ -1432,7 +1439,65 @@ fn put_setting(facts : SettingsFacts, key : String, value : SettingValue?) -> Se
 // ── 更新 ───────────────────────────────────────────────────
 
 ///|
+/// 更新循环的外壳。里面那一份照旧（update_inner），出来之后只补一件事：
+/// 页面上新出现一条成功提示时，给它挂一个到期的计时。
+///
+/// **为什么挂在出口**：设置提示的地方有近二十处（act_notice 与 settings_feedback 各一条路），
+/// 每一处都挂一次计时，就是二十处漏挂的机会；出口只有一个。
+/// 判断只看「这一拍页面上正摆着哪条成功提示」：换了一条就重新计时，同一条不重挂。
+/// 失败不在这一路上 —— 它不许自动消失（见 view_overview 的 action_notice）✗
 fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let (next, cmd) = update_inner(model, msg, emit)
+  let key = flash_key(next)
+  if key == "" {
+    if next.flash_serial == 0 {
+      (next, cmd)
+    } else {
+      ({ ..next, flash_serial: 0, flash_fading: false }, cmd)
+    }
+  } else if key == flash_key(model) && next.flash_serial != 0 {
+    // 同一条还在（或刚被鼠标重新计时过）：计时已经在跑，不重挂
+    (next, cmd)
+  } else {
+    let serial = next.flash_serial + 1
+    (
+      { ..next, flash_serial: serial, flash_fading: false, flash_hover: false },
+      @cmd.batch([cmd, @cmd.delay(emit(FlashExpire(serial)), flash_ms)]),
+    )
+  }
+}
+
+///|
+/// 「这一拍页面上摆着哪条成功提示」的身份就是它的文字。
+/// 空串 = 没有；有它才谈得上计时（见 update）。
+fn flash_key(model : Model) -> String {
+  let (text, _) = flash_text(model)
+  text
+}
+
+///|
+/// 把当前那条成功提示收掉（toast 到点了）。
+/// 连悬停补充与那颗「打开 Web UI」一起收 —— 它们本来就跟这条文字绑在一起
+/// （act_notice_hint_for / notice_url_notice），文字走了它们留着就是一段对不上号的东西。
+fn clear_flash(model : Model) -> Model {
+  let base = { ..model, flash_serial: 0, flash_fading: false, flash_hover: false }
+  if model.page is Settings {
+    { ..base, settings_feedback: "" }
+  } else {
+    // 悬停补充与那颗「打开 Web UI」跟着正文一起收：它们本来就只属于这一条文字
+    {
+      ..base,
+      act_notice: "",
+      act_notice_hint: "",
+      act_notice_hint_for: "",
+      notice_url: None,
+      notice_url_notice: "",
+    }
+  }
+}
+
+///|
+fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   // 行内动作一律先收起菜单：菜单项点下去之后菜单不该留在原地
   let model = match msg {
     RowAction(_, _) => { ..model, menu_open: "" }
@@ -2135,6 +2200,26 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
         @cmd.none,
       )
     }
+    // toast 到期：序号对不上说明这一条已经被换掉了，那一枪作废
+    FlashExpire(serial) =>
+      if serial != model.flash_serial {
+        (model, @cmd.none)
+      } else if model.flash_hover {
+        // 鼠标正停在上面：这一拍不算数，重新计一遍 —— 不许它正好在眼皮底下消失
+        (model, @cmd.delay(emit(FlashExpire(serial)), flash_ms))
+      } else {
+        (
+          { ..model, flash_fading: true },
+          @cmd.delay(emit(FlashRemove(serial)), flash_fade_ms),
+        )
+      }
+    FlashRemove(serial) =>
+      if serial != model.flash_serial {
+        (model, @cmd.none)
+      } else {
+        (clear_flash(model), @cmd.none)
+      }
+    FlashHover(on) => ({ ..model, flash_hover: on }, @cmd.none)
     Noop => (model, @cmd.none)
   }
 }

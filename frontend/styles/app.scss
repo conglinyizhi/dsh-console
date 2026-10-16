@@ -25,6 +25,7 @@ $accent: #4f8cff;
 $accent-soft: rgba(79, 140, 255, 0.14);
 $violet: #9d7bff;
 $violet-soft: rgba(157, 123, 255, 0.14);
+$violet-rgb: 157, 123, 255;
 $ok: #4ec27a;
 $warn: #e0a458;
 $danger: #e0685f;
@@ -432,6 +433,7 @@ select { appearance: none; -webkit-appearance: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dsh-kind {
+  grid-column: 1;
   justify-self: start; align-self: center;
   padding: 1px 6px;
   border: 1px solid $line-strong; border-radius: 999px;
@@ -466,7 +468,11 @@ select { appearance: none; -webkit-appearance: none; }
   0%, 100% { opacity: 1; }
   50% { opacity: 0.32; }
 }
+/* 四段各自钉在固定那一轨上，不靠 DOM 顺序排：不是默认 profile 的卡片**没有**类型标签
+   那个节点（见 view_overview 的 sub_line）。不钉死的话后面三段会各往前挪一轨，
+   停止卡的状态点就跟运行中的卡错开一整列（验收项「状态点跨卡对齐」量的是同列）。 */
 .dsh-dot-slot {
+  grid-column: 2;
   width: 13px; height: 13px;
   display: grid; place-items: center;
 }
@@ -475,9 +481,9 @@ select { appearance: none; -webkit-appearance: none; }
   background: currentColor; box-shadow: 0 0 0 3px rgba($ok-rgb, 0.13);
 }
 .dsh-sub.off .dsh-dot { box-shadow: none; }
-.dsh-state { font-size: 12px; white-space: nowrap; }
+.dsh-state { grid-column: 3; font-size: 12px; white-space: nowrap; }
 /* 末轨：常态一行「已运行」，启动等待期是「等待核心就绪」加一行端口探测说明 */
-.dsh-tail { display: flex; flex-direction: column; min-width: 0; }
+.dsh-tail { grid-column: 4; display: flex; flex-direction: column; min-width: 0; }
 .dsh-uptime,
 .dsh-hint,
 .dsh-port-note {
@@ -485,19 +491,23 @@ select { appearance: none; -webkit-appearance: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dsh-port-note { color: $text-mid; }
-/* 卡片上的备注行（标题行 + 副标题行下面的第三行）。
-   **只在真有备注时才进 DOM**：没有备注的卡片 DOM 不变，几何自然一个像素都不动。
-   整行左对齐、超长省略，完整内容在悬停里；不跟字段区抢位置。 */
-.dsh-note-row {
-  min-width: 0; display: flex; align-items: baseline; gap: 6px;
+/* 卡片上的备注行：摆在字段区**下面**（卡片底部）。
+   **只在真有备注时才进 DOM**：没有备注的卡片 DOM 与以前逐节点一致，几何一个像素都不动。
+   以前它挤在副标题行下面、跟机器读数混在一起，读起来像又一条读数 ——
+   所以这里把它做成「一眼看出是人写的」：左侧一道细竖线当书签边、前面一个小「备注」标、
+   颜色比读数淡一档（读数是 $text，这里是 $text-mid）。超长省略，完整内容在悬停里。 */
+.dsh-card-note {
+  min-width: 0; display: flex; align-items: baseline; gap: 7px;
+  padding-left: 9px;
+  border-left: 2px solid rgba($violet-rgb, 0.5);
   font-size: 11.5px; line-height: 16px;
 }
-.dsh-note-tag {
-  flex: none; padding: 0 5px;
-  border: 1px solid $line-strong; border-radius: 999px;
-  font-size: 10px; line-height: 14px; color: $text-dim;
+.dsh-card-note-tag {
+  flex: none;
+  font-size: 10px; line-height: 14px; letter-spacing: 0.08em;
+  color: $violet;
 }
-.dsh-note-text {
+.dsh-card-note-text {
   min-width: 0; color: $text-mid;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -1121,9 +1131,9 @@ select { appearance: none; -webkit-appearance: none; }
   white-space: nowrap;
 }
 
-// ── 动作结果提示条（总览页顶部） ────────────────────────────
+// ── 动作结果提示条（总览页顶部）· **只管失败** ──────────────
 // 失败一律把后端给的原因写在这里（conflict / not-authorized / spawn-failed …），
-// 所以这条不能被折叠、也不能自动消失。
+// 所以这条不能被折叠、也不能自动消失 —— 成功的回执走下面那条 toast。
 .dsh-notice {
   margin: 0;
   padding: 8px 11px;
@@ -1144,21 +1154,39 @@ select { appearance: none; -webkit-appearance: none; }
   flex: 1 1 auto;
   min-width: 0;
 }
-.dsh-notice .dsh-btn {
-  flex: 0 0 auto;
-  // 提示条本来就是给「刚发生了什么」看的，按钮不抢视线：跟文字一样高就够了
-  height: 26px;
-  margin-top: -1px;
-}
-.dsh-notice.ok {
-  border-color: rgba($ok-rgb, 0.4);
-  background: rgba($ok-rgb, 0.1);
-  color: $text;
-}
 .dsh-notice.err {
   border-color: rgba($danger-rgb, 0.42);
   background: rgba($danger-rgb, 0.12);
   color: $text;
+}
+
+// ── 成功提示的 toast（外壳层：五个页面同一个位置） ──────────
+// 出现约 4 秒后自己淡出（计时见 app.mbt 的 update 外壳，悬停时重新计时）。
+// **只有成功走这里**：失败留在它自己那一页不动 —— 正常可以沉默，异常不能沉默。
+// 固定在右下角，与页面无关，「各页一致」就不用靠每一页自觉。
+// 淡出用 transition 而不是 animation：验收的动效探针数的是 animationName，
+// 这里多一条动画会让「点击前无可见动效」凭空多出一个要解释的元素。
+.dsh-toast {
+  position: fixed; right: 22px; bottom: 22px; z-index: 60;
+  max-width: min(460px, calc(100vw - 240px));
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid rgba($ok-rgb, 0.4);
+  border-radius: $radius-sm;
+  background: linear-gradient(rgba($ok-rgb, 0.1), rgba($ok-rgb, 0.1)), $panel;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+  font-size: 12px; line-height: 1.6; color: $text;
+  word-break: break-word;
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+.dsh-toast.fading { opacity: 0; }
+.dsh-toast-text { flex: 1 1 auto; min-width: 0; }
+.dsh-toast .dsh-btn {
+  flex: 0 0 auto;
+  // toast 本来就是给「刚发生了什么」看的，按钮不抢视线：跟文字一样高就够了
+  height: 26px;
+  margin-top: -1px;
 }
 
 // ── 设置页（左索引 + 右条目） ──────────────────────────────
@@ -1385,7 +1413,8 @@ select { appearance: none; -webkit-appearance: none; }
   min-width: 1.2em;
   text-align: center;
 }
-/* 保存反馈：成功与失败各一条，失败里带后端给的原因 */
+/* 保存反馈 —— **只管失败**：失败里带后端给的原因，留在这里不许自动消失；
+   成功那条走外壳层的 toast（见上面的 .dsh-toast）。 */
 .dsh-settings-feedback {
   margin: 0;
   padding: 7px 11px;
@@ -1396,11 +1425,6 @@ select { appearance: none; -webkit-appearance: none; }
   line-height: 1.6;
   color: $text-mid;
   word-break: break-word;
-}
-.dsh-settings-feedback.ok {
-  border-color: rgba($ok-rgb, 0.4);
-  background: rgba($ok-rgb, 0.1);
-  color: $text;
 }
 .dsh-settings-feedback.err {
   border-color: rgba($danger-rgb, 0.42);

@@ -1,0 +1,140 @@
+{
+ "url": "http://127.0.0.1:5391/",
+ "cards": [
+  {
+   "name": "web :3080",
+   "card": {
+    "x": 212,
+    "y": 96.69,
+    "w": 786,
+    "h": 173,
+    "right": 998,
+    "bottom": 269.69
+   },
+   "kindText": "本机监听的 dsh 实例",
+   "kindRect": {
+    "x": 279,
+    "y": 135.86,
+    "w": 113,
+    "h": 17.64,
+    "right": 392,
+    "bottom": 153.5
+   },
+   "dotX": 400,
+   "dotSlotX": 397,
+   "noteNode": false,
+   "noteText": null,
+   "noteRect": null,
+   "fieldsRect": {
+    "x": 229,
+    "y": 165.69,
+    "w": 752,
+    "h": 88,
+    "right": 981,
+    "bottom": 253.69
+   },
+   "childCount": 2,
+   "subChildCount": 4,
+   "subKinds": [
+    "dsh-kind",
+    "dsh-dot-slot",
+    "dsh-state",
+    "dsh-tail"
+   ],
+   "noteOuterHTML": null,
+   "html": "<div data-name=\"in tance-card\" data-uid=\"38hhruar\" data-in tance=\"web :3080\" cla =\"d h-ca e\"><div cla =\"d h-ca e-head\"><"
+  },
+  {
+   "name": "alpha",
+   "card": {
+    "x": 212,
+    "y": 317.83,
+    "w": 786,
+    "h": 201,
+    "right": 998,
+    "bottom": 518.83
+   },
+   "kindText": "默认 profile",
+   "kindRect": {
+    "x": 279,
+    "y": 357,
+    "w": 70,
+    "h": 17.64,
+    "right": 349,
+    "bottom": 374.64
+   },
+   "dotX": 400,
+   "dotSlotX": 397,
+   "noteNode": true,
+   "noteText": "备注隔离环境里的备注：给 alpha 用",
+   "noteRect": {
+    "x": 229,
+    "y": 486.83,
+    "w": 752,
+    "h": 16,
+    "right": 981,
+    "bottom": 502.83
+   },
+   "fieldsRect": {
+    "x": 229,
+    "y": 386.83,
+    "w": 752,
+    "h": 88,
+    "right": 981,
+    "bottom": 474.83
+   },
+   "childCount": 3,
+   "subChildCount": 4,
+   "subKinds": [
+    "dsh-kind",
+    "dsh-dot-slot",
+    "dsh-state",
+    "dsh-tail"
+   ],
+   "noteOuterHTML": "<div data-name=\"card-note\" data-uid=\"qlo1f1fk\" title=\"隔离环境里的备注：给 alpha 用\n（文件）\" cla =\"d h-card-note\">< pan cla =\"d h-card-note-tag\">备注</ pan>< pan cla =\"d h-card-note-text\">隔离环境里的备注：给 alpha 用</ pan></div>",
+   "html": "<div data-name=\"in tance-card\" data-uid=\"w1ay6aew\" data-in tance=\"alpha\" cla =\"d h-ca e\"><div cla =\"d h-ca e-head\">< pan"
+  },
+  {
+   "name": "beta",
+   "card": {
+    "x": 212,
+    "y": 530.83,
+    "w": 786,
+    "h": 173,
+    "right": 998,
+    "bottom": 703.83
+   },
+   "kindText": null,
+   "kindRect": null,
+   "dotX": 400,
+   "dotSlotX": 397,
+   "noteNode": false,
+   "noteText": null,
+   "noteRect": null,
+   "fieldsRect": {
+    "x": 229,
+    "y": 599.83,
+    "w": 752,
+    "h": 88,
+    "right": 981,
+    "bottom": 687.83
+   },
+   "childCount": 2,
+   "subChildCount": 3,
+   "subKinds": [
+    "dsh-dot-slot",
+    "dsh-state",
+    "dsh-tail"
+   ],
+   "noteOuterHTML": null,
+   "html": "<div data-name=\"in tance-card\" data-uid=\"aehhukx9\" data-in tance=\"beta\" cla =\"d h-ca e\"><div cla =\"d h-ca e-head\">< pan "
+  }
+ ],
+ "textScan": {
+  "本地 profile": 0,
+  "默认 profile": 1,
+  "真实数据": 0
+ },
+ "bodyText": "DSH 控制台\n实例总览\n日志\n设置\n回收站\n关于\n\n本机运行，仅限回环访问\n\n实例总览\n菜单里的动作会真的作用到本机实例与 profile\n＋\n新建实例\n当前运行的实例 (1)\nweb :3080\n本机监听的 dsh 实例\n运行中\n已运行 12 小时 25 分钟\n打开 Web UI\n停止\n重启\nDSH 版本 / 来源\n0.2.0-rc.2（入口包）\nProfile\nweb\n访问地址\nhttp://127.0.0.1:3080/\nDSH_HOME\n~/.dsh\n插件数量\n—\n最近改动\n—\n已停止的实例 (2)\nalpha\n默认 profile\n已停止\ncordis.patch.yml 2 行 | 无 pnpm-lock.yaml\n启动\n重启\nDSH 版本 / 来源\n0.2.0-rc.2（本机已安装）\nProfile\nalpha\n访问地址\n已停用，无法访问\nDSH_HOME\n/tmp/r4-iso/dsh-home\n插件数量\n声明 0 | 已装 0\n最近改动\n10-15 22:53\n备注\n隔离环境里的备注：给 alpha 用\nbeta\n已停止\ncordis.patch.yml 2 行 | 无 pnpm-lock.yaml\n启动\n重启\nDSH 版本 / 来源\n0.2.0-rc.2（本机已安装）\nProfile\nbeta\n访问地址\n已停用，无法访问\nDSH_HOME\n/tmp/r4-iso/dsh-home\n插件数量\n声明 0 | 已装 0\n最近改动\n10-15 22:53\n工作流入口\n从当前实例派生开发副本\n派生隔离副本，用新端口与独立 DSH_HOME\n将插件交回主线实例\n把插件提交回稳定实例\n关于实例\n独立 DSH_HOME，会话与插件互不干扰\n各实例可用不同 DSH 版本或来源\n仅监听 127.0.0.1，不暴露到网络",
+ "shot": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-menu-toast-note/cards-5391-isolated.png"
+}

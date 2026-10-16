@@ -272,7 +272,7 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.span(class="dsh-head-note", "删掉的 profile 在这里，能恢复也能彻底删掉"),
       ]),
     ]),
-    action_notice(model, emit),
+    action_notice(model),
   ]
   for block in body {
     children.push(block)

@@ -352,6 +352,23 @@ pub async fn run_action(
     }
     "archive-profile" => {
       let profile = require_string(params, "profile")
+      // **正在跑的不许归档**：归档是「从台面上撤下来」，一只还在跑的实例撤下去，
+      // 界面读起来就像它停了 —— 那是把「还在跑」说成了别的。
+      // 界面里这一项已经藏了（见 view_overview 的 running_menu），这里再挡一道：
+      // 少一层，就有人从别处（脚本、另一个标签页）打进来。
+      let report = @instances.instances_report_with_settings()
+      for item in report.instances {
+        match item.profile {
+          Some(name) =>
+            if name == profile {
+              fail(
+                "conflict",
+                profile + " 正在跑（端口 " + item.port.to_string() + "）；先停掉它再归档",
+              )
+            }
+          None => ()
+        }
+      }
       let loaded = @store.load_archive()
       for r in loaded.entries {
         if r.profile == profile {
