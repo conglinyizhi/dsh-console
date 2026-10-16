@@ -808,12 +808,18 @@ fn detail_drawer(
     ]),
     @html.div(class="dsh-drawer-section", [
       @html.h3(class="dsh-drawer-section-title", "profile 健康"),
-      // 只说人话：缺几个包（拿得到名字就带上名字）、补丁文件在不在。
+      // 只说人话：缺几个包、补丁文件在不在。
       // 「这句话是从哪读出来的」不在这里 —— 那是这一版怎么实现的，正文一个字不占。
-      @html.p(
-        class="dsh-drawer-health",
-        attrs=mark("drawer-health", ["overview", "drawer", row.id, "health"]),
+      //
+      // **高度封顶**（第十二轮）：11 个包名整串摊在正文里会占掉大半屏。
+      // 已知那一类压成一行摘要（「缺 11 个包」），清单进悬停；
+      // 自由文本那一类最多两行，原文同样进悬停（见 view_parts 的 problem_hint）。
+      problem_hint(
+        "drawer-health",
+        ["overview", "drawer", row.id, "health"],
         row.health_text,
+        row.health_hint,
+        row.health_free,
       ),
     ]),
   ]

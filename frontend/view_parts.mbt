@@ -195,6 +195,42 @@ fn card_loading(name : String, title : String, detail : String) -> @html.Html {
 }
 
 ///|
+/// 抽屉里的一条问题提示：**高度封顶**，不许把抽屉撑高到影响操作（第十二轮）。
+///
+/// 两副形状，判据是**我们预先知不知道它长什么样**（不是内容长短）：
+///   * 已知且可枚举（缺 N 个包这类）：正文压成**一行**（超出省略号），完整清单进悬停；
+///   * 自由文本（后端报回来的错误串）：正文**最多两行**（超出省略号），原文进悬停。
+/// 形状在 app.scss 的 .dsh-problem 里定死：正文按数据长短自己折行的话，
+/// 一行、两行、五行全看数据，抽屉高度就跟着数据跑 ✗
+///
+/// hint 为空串就不挂悬停 —— 与正文逐字相同的一句不留。
+fn problem_hint(
+  name : String,
+  path : Array[String],
+  text : String,
+  hint : String,
+  free : Bool,
+) -> @html.Html {
+  let mut attrs = mark(name, path)
+  if hint != "" {
+    attrs = attrs.title(hint)
+  }
+  // 正文包一层：**裁剪的那一层不能带竖向内边距**。
+  // overflow 是裁在 padding box 上的，所以带 7px 下内边距的卡片会把第 3 行的字头
+  // 露在那 7px 里（实测过：第 3 行顶到卡片下边框上方，露出来 7px 字头）✗
+  // 现在卡片管边框与内边距、里面那层管「裁几行」，裁剪区正好是两行的内容盒。
+  @html.p(
+    class=if free {
+      "dsh-drawer-health dsh-problem is-free"
+    } else {
+      "dsh-drawer-health dsh-problem"
+    },
+    attrs=attrs,
+    [@html.span(class="dsh-problem-text", text)],
+  )
+}
+
+///|
 /// 一个字段行：左图标 + 标签 + 右值（值右对齐，超长省略，完整内容在悬停里）。
 ///
 /// 第七轮起它只出现在**详情抽屉**里（卡片只剩：图标 + 状态灯、名字、右上角端口、备注），

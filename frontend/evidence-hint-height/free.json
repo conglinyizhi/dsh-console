@@ -1,0 +1,60 @@
+{
+ "longError": "读取这只 profile 的 package.json 时失败了：EACCES: permission denied, open /home/someone/.dsh/profiles/fixture-11/package.json —— 上一次同步在 pnpm install 中途被打断，node_modules 里留下一个半装的目录，声明的包一个没装上、装上的一半又对不上 lock，后端只把原始错误串报回来，前端认不出它属于哪一条已知问题。",
+ "longKnown": "缺 11 个包：@acme/alpha-long-name、@acme/beta-long-name、@acme/gamma-long-name、@acme/delta-long-name、@acme/epsilon-long-name（这一条仍走「已知」那一副形状，用来看它会不会被顶成两行）",
+ "free": {
+  "known": {
+   "found": true,
+   "cardH": 36,
+   "innerH": 20,
+   "lineHeight": "20px",
+   "lines": 1,
+   "text": "缺 11 个包",
+   "textLen": 7,
+   "titleLen": 247,
+   "titleHead": "缺 11 个包：@acme/alpha-long",
+   "fullInTitle": false,
+   "className": "dsh-drawer-health dsh-problem",
+   "innerDisplay": "block",
+   "clamp": "none",
+   "whiteSpace": "nowrap",
+   "ellipsizedX": false,
+   "clippedY": false
+  },
+  "knownLong": {
+   "found": true,
+   "cardH": 36,
+   "innerH": 20,
+   "lineHeight": "20px",
+   "lines": 1,
+   "text": "缺 11 个包：@acme/alpha-long-name、@acme/beta-long-name、@acme/gamma-long-name、@acme/delta-long-name、@acme/epsilon-long-name（这一条仍走「已知」那一副形状，用来看它会不会被顶成两行）",
+   "textLen": 147,
+   "titleLen": 147,
+   "titleHead": "缺 11 个包：@acme/alpha-long",
+   "fullInTitle": true,
+   "className": "dsh-drawer-health dsh-problem",
+   "innerDisplay": "block",
+   "clamp": "none",
+   "whiteSpace": "nowrap",
+   "ellipsizedX": true,
+   "clippedY": false
+  },
+  "freeCase": {
+   "found": true,
+   "cardH": 56,
+   "innerH": 40,
+   "lineHeight": "20px",
+   "lines": 2,
+   "text": "读取这只 profile 的 package.json 时失败了：EACCES: permission denied, open /home/someone/.dsh/profiles/fixture-11/package.json —— 上一次同步在 pnpm install 中途被打断，node_modules 里留下一个半装的目录，声明的包一个没装上、装上的一半又对不上 lock，后端只把原始错误串报回来，前端认不出它属于哪一条已知问题。",
+   "textLen": 224,
+   "titleLen": 224,
+   "titleHead": "读取这只 profile 的 package.j",
+   "fullInTitle": true,
+   "className": "dsh-drawer-health dsh-problem is-free",
+   "innerDisplay": "flow-root",
+   "clamp": "2",
+   "whiteSpace": "normal",
+   "ellipsizedX": false,
+   "clippedY": true
+  }
+ }
+}

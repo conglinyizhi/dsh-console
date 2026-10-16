@@ -943,7 +943,38 @@ $drawer-ms: 220ms;
   margin: 0; font-size: 11px; line-height: 1.6; color: $text-dim;
   word-break: break-word;
 }
+/* 「profile 健康」那一块：一条**高度封顶**的问题提示（第十二轮）。
+   正文只给结论，完整清单 / 原文在悬停里 —— 11 个包名摊在正文里会占掉大半屏。 */
 .dsh-drawer-health { margin: 0; font-size: 12.5px; line-height: 1.6; color: $text; }
+.dsh-problem {
+  padding: 7px 10px;
+  border: 1px solid $line;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+}
+/* 裁剪的那一层**不带竖向内边距**：overflow 裁在 padding box 上，卡片那 7px 下内边距
+   会把第 3 行的字头露出来（实测过）✗ 所以内边距归卡片、裁剪归这一层。 */
+.dsh-problem-text {
+  display: block;
+  /* 已知且可枚举的那一类：正文压成**一行**，再长也不换形状。
+     nowrap 是「一行」的保证：让文本自己折行的话，一行两行五行全看数据有多长 ✗ */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 自由文本（未知那一类）：**最多两行**，超出省略号，原文在悬停里。
+   -webkit-line-clamp 是这套里唯一能做「截到第 N 行再加省略号」的属性
+   （text-overflow 只管一行）；overflow: hidden 必须跟着它，少一个都不裁。 */
+.dsh-problem.is-free .dsh-problem-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  /* 后端给的是一整条没有空格的串，折不开的话两行也放不下 */
+  overflow-wrap: anywhere;
+}
 /* 控制按钮分组：主操作 / 拿走 / 改动 / 运维，一组一行小标题 + 一片会折行的按钮 */
 .dsh-drawer-group { display: flex; flex-direction: column; gap: 6px; }
 .dsh-drawer-group + .dsh-drawer-group { margin-top: 10px; }

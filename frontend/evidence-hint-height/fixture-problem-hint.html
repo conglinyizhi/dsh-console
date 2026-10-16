@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><title>问题提示两副形状（fixture，用同一份 app.css）</title>
+<link rel="stylesheet" href="../dist/assets/app.css"></head>
+<body>
+<main class="dsh-drawer-body" style="width:520px">
+  <div class="dsh-drawer-section">
+    <h3 class="dsh-drawer-section-title">profile 健康</h3>
+    <p id="fixture-known" data-name="drawer-health" data-uid="lvbmzpqs" title="缺 11 个包：@acme/alpha-long-name、@acme/beta-long-name、@acme/gamma-long-name、@acme/delta-long-name、@acme/epsilon-long-name、@acme/zeta-long-name、@acme/eta-long-name、@acme/theta-long-name、@acme/iota-long-name、@acme/kappa-long-name、@acme/lambda-long-name" class="dsh-drawer-health dsh-problem"><span class="dsh-problem-text">缺 11 个包</span></p>
+    <p id="fixture-known-long" data-name="drawer-health" data-uid="lvbmzpqs" title="缺 11 个包：@acme/alpha-long-name、@acme/beta-long-name、@acme/gamma-long-name、@acme/delta-long-name、@acme/epsilon-long-name（这一条仍走「已知」那一副形状，用来看它会不会被顶成两行）" class="dsh-drawer-health dsh-problem"><span class="dsh-problem-text">缺 11 个包：@acme/alpha-long-name、@acme/beta-long-name、@acme/gamma-long-name、@acme/delta-long-name、@acme/epsilon-long-name（这一条仍走「已知」那一副形状，用来看它会不会被顶成两行）</span></p>
+    <p id="fixture-free" data-name="drawer-health" data-uid="lvbmzpqs" title="读取这只 profile 的 package.json 时失败了：EACCES: permission denied, open /home/someone/.dsh/profiles/fixture-11/package.json —— 上一次同步在 pnpm install 中途被打断，node_modules 里留下一个半装的目录，声明的包一个没装上、装上的一半又对不上 lock，后端只把原始错误串报回来，前端认不出它属于哪一条已知问题。" class="dsh-drawer-health dsh-problem is-free"><span class="dsh-problem-text">读取这只 profile 的 package.json 时失败了：EACCES: permission denied, open /home/someone/.dsh/profiles/fixture-11/package.json —— 上一次同步在 pnpm install 中途被打断，node_modules 里留下一个半装的目录，声明的包一个没装上、装上的一半又对不上 lock，后端只把原始错误串报回来，前端认不出它属于哪一条已知问题。</span></p>
+  </div>
+</main>
+</body></html>

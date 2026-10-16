@@ -1,0 +1,27 @@
+{
+ "clicked": "fixture-11",
+ "drawer": {
+  "found": true,
+  "cardH": 36,
+  "innerH": 20,
+  "lineHeight": "20px",
+  "lines": 1,
+  "text": "缺 11 个包",
+  "textLen": 7,
+  "titleLen": 247,
+  "titleHead": "缺 11 个包：@acme/alpha-long",
+  "fullInTitle": false,
+  "className": "dsh-drawer-health dsh-problem",
+  "innerDisplay": "block",
+  "clamp": "none",
+  "whiteSpace": "nowrap",
+  "ellipsizedX": false,
+  "clippedY": false,
+  "outerHtml": "<p data-name=\"drawer-health\" data-uid=\"lvbmzpqs\" title=\"缺 11 个包：@acme/alpha-long-name、@acme/beta-long-name、@acme/gamma-long-name、@acme/delta-long-name、@acme/epsilon-long-name、@acme/zeta-long-name、@acme/eta-long-name、@acme/theta-long-name、@acme/iota-long-name、@acme/kappa-long-name、@acme/lambda-long-name\" class=\"dsh-drawer-health dsh-problem\"><span class=\"dsh-problem-text\">缺 11 个包</span></p>",
+  "sectionH": 63,
+  "drawerBody": {
+   "scrollH": 841,
+   "clientH": 841
+  }
+ }
+}

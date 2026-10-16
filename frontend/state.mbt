@@ -205,11 +205,19 @@ struct Row {
   /// **只在悬停里出现，正文一个字都不占**：它回答的是「这个结论怎么来的」，
   /// 不是使用者要读的那句结论。
   light_basis : String
-  /// 抽屉「profile 健康」那一块的正文（缺包 / 有没有 cordis.patch.yml）。
+  /// 抽屉「profile 健康」那一块的正文。
   ///
-  /// 缺包时**带上包名**（包名在 profiles 读数里，拿得到）；拿不到名字就只说个数 ——
-  /// 「为什么没有名字」是这一版怎么实现的，不写在给使用者看的那句话里。
+  /// 分两副形状，判据是**我们预先知不知道它长什么样**（不是内容长短）：
+  ///   已知且可枚举（缺 N 个包 / cordis.patch.yml 在不在）→ 压成一行摘要，清单进 health_hint；
+  ///   自由文本（后端报回来的错误串）→ 最多两行，原文同样进 health_hint。
+  /// 形状由 view 那边的 .dsh-problem 定，这里只给数据。
   health_text : String
+  /// 上一句的**悬停全文**：已知那一类是完整清单，自由文本那一类就是原文。
+  /// 正文被压掉的字一个都不丢，全在这里；空串 = 没什么可补的，那一格就不挂悬停。
+  health_hint : String
+  /// 正文是不是**自由文本**（未知那一类）。true → 最多两行、超出省略号；
+  /// false → 一行摘要 + 省略号。已知那一类再长也不换形状。
+  health_free : Bool
 } derive(Eq)
 
 pub extend Row with Eq::{ not_equal, equal }
@@ -1169,22 +1177,22 @@ fn profile_light(fact : ProfileFact) -> (Light, String, String) {
 ///
 /// 包名清单从 profiles 读数里拿（实例那一侧只给个数）：**名字的个数与手上这个数对得上才用**，
 /// 对不上就只说个数 —— 宁可少一句，也不拿另一份读数里的名字去配这一份的个数。
-fn instance_health(fact : InstanceFact, profile_fact : ProfileFact?) -> String {
+fn instance_health(fact : InstanceFact, profile_fact : ProfileFact?) -> HealthNote {
   match fact.profile_health {
     Some(health) =>
-      health_text_of(health.has_patch, health.missing_bundles, matching_names(
+      health_note_of(health.has_patch, health.missing_bundles, matching_names(
         profile_fact,
         health.missing_bundles,
       ))
     None =>
       match profile_fact {
         Some(item) =>
-          health_text_of(
+          health_note_of(
             item.patch_exists,
             item.bundles.missing.length(),
             join_with(item.bundles.missing, "、"),
           )
-        None => "—"
+        None => no_reading_note()
       }
   }
 }
@@ -1204,18 +1212,49 @@ fn matching_names(profile_fact : ProfileFact?, count : Int) -> String {
 }
 
 ///|
-/// 健康读数的正文：缺包优先报（一只缺包的 profile 比「补丁文件不在」更值得先看），
-/// 都不缺才说「都对」。names 为空串 = 手上没有包名清单，这时**只说个数**
+/// 抽屉「profile 健康」那一块要的三个值：正文 / 悬停全文 / 是不是自由文本。
+///
+/// 分类的判据是**我们预先知不知道它长什么样**，不是内容长短：
+///   已知且可枚举（缺 N 个包 / cordis.patch.yml 在不在）→ 正文一行摘要，清单进悬停；
+///   自由文本（后端报回来的错误串）→ 正文最多两行，原文进悬停。
+/// 两类的正文都不许自己长高 —— 形状在 view 那边（.dsh-problem）定死。
+priv struct HealthNote {
+  text : String
+  hint : String
+  free : Bool
+}
+
+///|
+/// 已知且可枚举的那一类：正文一句摘要，**完整内容进悬停**。
+///
+/// 缺包优先报（一只缺包的 profile 比「补丁文件不在」更值得先看），都不缺才说「都对」。
+/// names 为空串 = 手上没有包名清单，这时正文只说个数，悬停也就没什么可补的
 /// （为什么没有名字是这一版怎么实现的，不写在给使用者看的那句话里）。
-fn health_text_of(has_patch : Bool, missing_count : Int, names : String) -> String {
+fn health_note_of(has_patch : Bool, missing_count : Int, names : String) -> HealthNote {
   if missing_count > 0 {
-    "缺 " + missing_count.to_string() + " 个包" +
-    (if names == "" { "" } else { "：" + names })
+    let count = "缺 " + missing_count.to_string() + " 个包"
+    {
+      text: count,
+      hint: count + (if names == "" { "" } else { "：" + names }),
+      free: false,
+    }
   } else if !has_patch {
-    "没有 cordis.patch.yml"
+    settled_note("没有 cordis.patch.yml")
   } else {
-    "声明的包都已安装，cordis.patch.yml 也在"
+    settled_note("声明的包都已安装，cordis.patch.yml 也在")
   }
+}
+
+///|
+/// 一句话说完、没什么可补的已知项（悬停就不挂了：与正文逐字相同的一句不留）。
+fn settled_note(text : String) -> HealthNote {
+  { text, hint: "", free: false }
+}
+
+///|
+/// 手里没有这只 profile 的健康读数：正文一个「—」，**不编一个「都对」顶上**。
+fn no_reading_note() -> HealthNote {
+  settled_note("—")
 }
 
 ///|
@@ -1622,7 +1661,7 @@ fn running_rows(
     }
     // 状态灯与「为什么是这个颜色」：实例卡只看后端的 state（后端没给就是 unknown，不猜）
     let (light, light_reason, light_basis) = instance_light(fact, profile_fact)
-    let health_text = instance_health(fact, profile_fact)
+    let health = instance_health(fact, profile_fact)
     // 第二行第三顺位：这一只真实的启动时刻优先（进程起始时间），取不到才去查控制台的记录
     let (last_started, last_started_source) = row_last_started(
       fact.started_at,
@@ -1745,7 +1784,9 @@ fn running_rows(
       light,
       light_reason,
       light_basis,
-      health_text,
+      health_text: health.text,
+      health_hint: health.hint,
+      health_free: health.free,
       last_started,
       last_started_source,
     }
@@ -1861,6 +1902,7 @@ fn profile_rows(
     let missing = fact.bundles.missing
     // 停止卡的状态灯：没有在跑 + 缺包/缺 patch 这两条判据都在 profiles 读数里（不是猜的）
     let (light, light_reason, light_basis) = profile_light(fact)
+    let health = health_note_of(fact.patch_exists, missing.length(), join_with(missing, "、"))
     // 第二行第三顺位：这一只现在没有实例可问，只能按 profile 名去控制台的记录里查
     // 「上次启动」。查不到就是空串 —— 那一行空着，不拿最近改动之类的时刻顶上
     //（最近改动是另一回事，它在抽屉第六格，口径不同）。
@@ -1932,11 +1974,9 @@ fn profile_rows(
       light_basis,
       last_started,
       last_started_source,
-      health_text: health_text_of(
-        fact.patch_exists,
-        missing.length(),
-        join_with(missing, "、"),
-      ),
+      health_text: health.text,
+      health_hint: health.hint,
+      health_free: health.free,
     })
   }
   // 已停止这一组按**最近改动降序**：新的在最上面。
@@ -2049,6 +2089,8 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     light_reason: "没有在跑；磁盘上已经没有这只 profile 了",
     light_basis: "这一行来自归档记录：磁盘上没有对应的 profile 目录，所以没有运行读数，也没有健康读数。",
     health_text: "—",
+    health_hint: "",
+    health_free: false,
   }
 }
 
@@ -2083,6 +2125,8 @@ fn demo_running() -> Array[Row] {
       light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
       light_basis: "演示数据：不是真实读数，所以没有可依据的判据。",
       health_text: "—",
+      health_hint: "",
+      health_free: false,
     },
     {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
@@ -2103,6 +2147,8 @@ fn demo_running() -> Array[Row] {
       light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
       light_basis: "演示数据：不是真实读数，所以没有可依据的判据。",
       health_text: "—",
+      health_hint: "",
+      health_free: false,
     },
   ]
 }
@@ -2129,6 +2175,8 @@ fn demo_stopped() -> Array[Row] {
       light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
       light_basis: "演示数据：不是真实读数，所以没有可依据的判据。",
       health_text: "—",
+      health_hint: "",
+      health_free: false,
     },
   ]
 }

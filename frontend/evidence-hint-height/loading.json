@@ -1,0 +1,89 @@
+{
+ "loading": {
+  "noteInDom": true,
+  "noteRole": "status",
+  "noteAriaLive": "polite",
+  "noteClass": "dsh-loading-note dsh-sr-only",
+  "noteHtml": "<div role=\"status\" aria-live=\"polite\" class=\"dsh-loading-note dsh-sr-only\"><p class=\"dsh-loading-line\">正在读取实例读数…</p><p class=\"dsh-loading-sub\">实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。</p></div>",
+  "noteText": "正在读取实例读数…实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+  "noteRect": {
+   "w": 1,
+   "h": 1
+  },
+  "noteStyle": {
+   "position": "absolute",
+   "width": "1px",
+   "height": "1px",
+   "clip": "rect(0px, 0px, 0px, 0px)",
+   "clipPath": "inset(50%)",
+   "overflow": "hidden",
+   "whiteSpace": "nowrap"
+  },
+  "skeletonTiles": 12,
+  "skeletonRowH": 70,
+  "visibleHasFour": [
+   false,
+   false,
+   false,
+   false
+  ],
+  "visibleLen": 104,
+  "visibleHead": "DSH 控制台 实例总览 日志 设置 回收站 关于 本机运行，仅限回环访问 实例总览 读取中 点卡片看读数与控制；卡片上的圆是状态灯 ＋ 新建实例 当前运行的实例 (…) 读取中 已停止的实例 (…) 读取中",
+  "visibleHasRunningHead": true,
+  "visibleHasStoppedHead": true
+ },
+ "axStatus": [
+  {
+   "role": "status",
+   "name": "",
+   "ignored": false
+  },
+  {
+   "role": "status",
+   "name": "",
+   "ignored": false
+  }
+ ],
+ "axText": [
+  {
+   "role": "StaticText",
+   "name": "正在读取实例读数…",
+   "ignored": false
+  },
+  {
+   "role": "StaticText",
+   "name": "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+   "ignored": false
+  },
+  {
+   "role": "StaticText",
+   "name": "正在读取 profile 读数…",
+   "ignored": false
+  },
+  {
+   "role": "StaticText",
+   "name": "profile 的读数还在路上，这里先摆加载态。",
+   "ignored": false
+  },
+  {
+   "role": "InlineTextBox",
+   "name": "正在读取实例读数…",
+   "ignored": false
+  },
+  {
+   "role": "InlineTextBox",
+   "name": "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+   "ignored": false
+  },
+  {
+   "role": "InlineTextBox",
+   "name": "正在读取 profile 读数…",
+   "ignored": false
+  },
+  {
+   "role": "InlineTextBox",
+   "name": "profile 的读数还在路上，这里先摆加载态。",
+   "ignored": false
+  }
+ ]
+}
