@@ -234,11 +234,11 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             attrs=mark("trash-missing-field", ["trash", "missing-field"]),
             [
               @html.span(class="dsh-empty-icon", [icon("shield-outline", size=26)]),
-              @html.p(class="dsh-empty-line", "这一版后端还没有回收站读数。"),
+              @html.p(class="dsh-empty-line", "读不到回收站里有什么。"),
               @html.p(
                 class="dsh-empty-sub",
-                "GET /api/local/console 的响应里没有 trash 字段，读不到回收站里有什么 —— " +
-                "这与「回收站是空的」不是一回事。重启控制台后端（用带这个字段的那一版）即可。",
+                "这一版控制台还没有回收站读数 —— 这与「回收站是空的」不是一回事。" +
+                "重启控制台之后再看一次。",
               ),
             ],
           ),

@@ -90,7 +90,8 @@ out.steps.noStateField = await evalJson(send, `(() => {
     drawerLight: d ? d.getAttribute('data-light') : null,
     label: d ? d.querySelector('.dsh-drawer-light-label').textContent.trim() : null,
     why: d ? d.querySelector('[data-name="drawer-why"]').textContent.trim() : null,
-    stateRaw: d ? d.querySelector('[data-name="drawer-state-raw"]').textContent.trim() : null,
+    // 技术依据在悬停里（正文一个字不占）
+    whyHover: d ? d.querySelector('[data-name="drawer-why"]').getAttribute('title') : null,
   })
 })()`)
 await shot(send, prefix + '-no-state-field.png')

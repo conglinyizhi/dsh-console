@@ -26,10 +26,27 @@ node diag-overflow.mjs           http://127.0.0.1:5390/          # 逐元素找�
 | `review-dev` | `fault` | `rgb(224, 164, 88)` | 成因 c：真读数，缺 3 个包 |
 | `headless` | `stopped` | `rgb(224, 104, 95)` | 真读数：没有在跑，包不缺、patch 也在 |
 
-**黄的两个成因分开说**（抽屉里那句「为什么」，原样摘录）：
+**四档在抽屉里各说一句人话**（`states.json` 的 `lightLabel` / `why`，原样摘录）：
 
-- b：`黄 · 故障：端口在听、持有它的进程 cmdline 看着是 dsh，但签名探测不通过（HTTP 200 text/plain，没有命中任何签名）。契约里黄的两种成因 —— b：…；c：…`
-- c：`黄 · 故障：没有在跑的实例，但这只 profile 缺 3 个包（@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle）—— 契约里黄的成因 c。`
+| 档位 | 抽屉标题 | 正文那一句（`why`） |
+| --- | --- | --- |
+| 绿 | `运行中` | `它正在 :3080 上应答` |
+| 黄 · 成因 b | `故障` | `端口在听，但不应答 dsh 的握手；这只 profile 缺 3 个包` |
+| 黄 · 成因 c | `故障` | `没有在跑；这只 profile 缺 3 个包` |
+| 红 | `已停止` | `没有在跑` |
+
+造出来的那只黄实例同时缺 3 个包（它的 profile 就是真实的 `web`），所以 b 那一句里两条成因都在，
+**分成两句、各自独立**：前半句是握手不应答，后半句是 profile 缺包；c 那一句只有缺包那半句。
+
+**技术依据收在悬停里，正文一个字不占**（`whyHover`，同一份 `states.json`）：
+
+- 绿：`判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 dsh web authentication required）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。`
+- 黄 b：`判据：这个端口在监听，但探测时没有命中 dsh 的应答（回的是 HTTP 200）。`
+- 黄 c：`判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/…（三个包名）。`
+- 红：`这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。`
+
+抽屉里不再出现成因编号、应答标识、字段名这类内部说法 —— 那些是给改这个工具的人看的。
+整个界面的可见文案扫描见 `../evidence-copy-scan/`。
 
 成因 b 的隔离环境（`fixture.mjs` 的 `startFakeDsh`）：真起一个进程，用 `exec -a` 把 argv[0]
 写成 dsh 的入口路径，HTTP 应答故意不是 dsh 签名。实测拿到：
@@ -44,25 +61,21 @@ GET http://127.0.0.1:41545/  → 200 text/plain，body = "not a dsh signature"
 是探针按契约往响应里**追加**的，它的 field 值（HTTP 200 / text/plain / 没有命中签名）逐字来自真实探测。
 `state` / `stateReason` / `profileHealth` 三个字段本身**已经落地**，绿 / 红 / 黄 c 走的都是真读数。
 
-## 二、后端还没给 state 时的诚实显示
+## 二、读不到状态时的诚实显示
 
-`probe-drawer.mjs` 第一步先注入一个脚本，把 instances 响应里的三个字段删掉
-（模拟「后端这一版还没给」），实测：
+`probe-drawer.mjs` 第一步先注入一个脚本，把 instances 响应里那三个字段删掉
+（模拟「这一版读数里没有状态这一项」），实测（`drawer.json` 的 `steps.noStateField`）：
 
 ```
 卡片 data-light = unknown，.dsh-dot.light-unknown，background-color = rgba(0, 0, 0, 0)（透明，不上色）
-aria-label      = 未知（后端没给 state）
-抽屉「状态」      = 未知（后端没给 state）
-抽屉那句为什么    = 这一版后端还没给 state 字段，颜色不猜（这一格是「未知」，不是三色里的任何一档）。
-                  已有的读数里能说的只有：签名探测通过（dsh-auth-401）；端口在听、持有它的进程像不像
-                  dsh、profile 缺不缺包，要等后端把 state 接上才说得准。
-后端 state       = 没有这个字段（这一版后端还没给）
+aria-label      = 状态未知
+抽屉「状态」      = 状态未知
+抽屉正文那一句    = 读不到状态，颜色不猜
+悬停（技术依据）  = 这一版读数里没有状态这一项，所以不上颜色。已有的探测结论：这个端口命中了
+                  dsh 的应答（HTTP 401 且响应体含 dsh web authentication required）。
 ```
 
 截图：`drawer-no-state-field.png`。
-
-profile 行上没有「不适用」与「没给」混说的问题：抽屉里那一行写的是
-`后端 state：不适用（这是磁盘上的 profile 行，不是实例读数）`。
 
 ## 三、卡片只剩三样
 

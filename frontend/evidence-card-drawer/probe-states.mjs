@@ -66,6 +66,9 @@ const spec = {
     webUrlSource: '外部实例：令牌在启动它的终端里',
     state: 'fault',
     stateReason: '端口在听、持有它的进程 cmdline 看着是 dsh，但签名探测不通过（HTTP ' + (fakeProbe.status ?? '?') + ' ' + (fakeProbe.contentType ?? '') + '，没有命中任何签名）',
+    // 与这只实例解析出的 profile（web，真读数：缺 3 个包）保持一致：
+    // 造一份「说它不缺包」的健康读数，就与同一张抽屉里的插件读数自相矛盾了。
+    // 握手这一条照样落在句子的前半句（「端口在听，但不应答 dsh 的握手」）。
     profileHealth: { missingBundles: 3, hasPatch: true },
   }],
 }
@@ -121,10 +124,17 @@ const readDrawer = `(() => {
     lightBg: lcs ? lcs.backgroundColor : null,
     lightLabel: d.querySelector('.dsh-drawer-light-label')?.textContent.trim() ?? null,
     why: d.querySelector('[data-name="drawer-why"]')?.textContent.trim() ?? null,
-    stateRaw: d.querySelector('[data-name="drawer-state-raw"]')?.textContent.trim() ?? null,
-    stateReason: d.querySelector('[data-name="drawer-state-reason"]')?.textContent.trim() ?? null,
+    // 技术依据在悬停里：正文一个字不占（哪一条握手应答命中、探测回来的是什么）
+    whyHover: d.querySelector('[data-name="drawer-why"]')?.getAttribute('title') ?? null,
+    dotHover: d.querySelector('.dsh-dot')?.getAttribute('title') ?? null,
+    dotAria: d.querySelector('.dsh-dot')?.getAttribute('aria-label') ?? null,
     health: d.querySelector('[data-name="drawer-health"]')?.textContent.trim() ?? null,
-    healthSource: d.querySelector('[data-name="drawer-health-source"]')?.textContent.trim() ?? null,
+    // 抽屉全文：可见文字 + 每一处悬停（这就是使用者真能读到的全部）
+    // 逐行收：空行去掉。这一段是模板字符串，反斜杠转义会被吃掉，所以这里一个都不用
+    text: d.innerText.split(String.fromCharCode(10)).filter((s) => s.trim().length > 0).join(String.fromCharCode(10)),
+    hovers: [...d.querySelectorAll('[title], [aria-label]')].map((e) => ({
+      name: e.getAttribute('data-name') || '', title: e.getAttribute('title') || '', aria: e.getAttribute('aria-label') || '',
+    })),
     fieldCount: d.querySelectorAll('[data-name="drawer-field"]').length,
     fieldLabels: [...d.querySelectorAll('[data-name="drawer-field"]')].map((f) => f.querySelector('.dsh-field-label').textContent.trim()),
     buttons: [...d.querySelectorAll('.dsh-drawer-body button, .dsh-drawer-head button')].map((b) => ({
@@ -171,7 +181,7 @@ console.log(JSON.stringify({
   cards: cards.map((c) => ({ name: c.name, light: c.dotClass, bg: c.dotBg, state: c.dotState, aria: c.dotAria })),
   drawers: Object.fromEntries(Object.entries(out.drawers).map(([k, v]) => [k, {
     label: v.drawer.lightLabel, bg: v.drawer.lightBg, why: v.drawer.why,
-    stateRaw: v.drawer.stateRaw, reason: v.drawer.stateReason,
+    whyHover: v.drawer.whyHover, health: v.drawer.health,
     fields: v.drawer.fieldCount, buttons: v.drawer.buttons?.length,
     unreachable: (v.drawer.buttons || []).filter((b) => !b.reachable).map((b) => b.text),
     active: v.drawer.activeElement, width: v.drawer.width, vw: v.drawer.viewportW,

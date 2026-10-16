@@ -227,7 +227,7 @@ fn lookup_setting(list : Array[SettingVal], key : String) -> SettingValue? {
 }
 
 ///|
-/// 当前值：接口没给这个键就是 None（界面写「接口未返回该键」，不拿缺省顶上）。
+/// 当前值：读数里没给这个键就是 None（界面写「读数里没有这一项」，不拿缺省顶上）。
 fn setting_current(facts : SettingsFacts, def : SettingDef) -> SettingValue? {
   lookup_setting(facts.values, def.key)
 }
@@ -237,7 +237,7 @@ fn setting_current(facts : SettingsFacts, def : SettingDef) -> SettingValue? {
 fn setting_source(facts : SettingsFacts, def : SettingDef) -> String {
   match lookup_setting(facts.sources, def.key) {
     Some(VText(text)) => text
-    _ => "接口未返回该键"
+    _ => "读数里没有这一项"
   }
 }
 

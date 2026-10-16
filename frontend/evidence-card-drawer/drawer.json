@@ -5,11 +5,11 @@
    "cardLight": "unknown",
    "cardDotClass": "dsh-dot light-unknown",
    "cardDotBg": "rgba(0, 0, 0, 0)",
-   "cardDotAria": "未知（后端没给 state）",
+   "cardDotAria": "状态未知",
    "drawerLight": "unknown",
-   "label": "未知（后端没给 state）",
-   "why": "这一版后端还没给 state 字段，颜色不猜（这一格是「未知」，不是三色里的任何一档）。已有的读数里能说的只有：签名探测通过（dsh-auth-401）；端口在听、持有它的进程像不像 dsh、profile 缺不缺包，要等后端把 state 接上才说得准。",
-   "stateRaw": "后端 state：没有这个字段（这一版后端还没给）"
+   "label": "状态未知",
+   "why": "读不到状态，颜色不猜",
+   "whyHover": "这一版读数里没有状态这一项，所以不上颜色。已有的探测结论：这个端口命中了 dsh 的应答（HTTP 401 且响应体含 \"dsh web authentication required\"）。"
   },
   "cardDom": {
    "found": true,
@@ -30,7 +30,7 @@
     "notes": 0,
     "tiles": 1
    },
-   "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（绿 · 运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\">\n<div class=\"dsh-case-head\">\n<span class=\"dsh-tile-slot\">\n<span class=\"dsh-tile accent\">\n<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\">\n<path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\">\n</path>\n</svg>\n</span>\n<span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"绿 · 运行中\" title=\"绿 · 运行中：签名探测通过（dsh-auth-401：HTTP 401 且响应体含 &quot;dsh web authentication required&quot;（dsh-client-connection 的未授权应答））。这一档由后端的 state 给（state=running）。\" class=\"dsh-dot light-run\">\n<!--[-->\n<!--]-->\n</span>\n</span>\n<span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（绿 · 运行中）\" class=\"dsh-name\">web :3080</span>\n</div>\n</article>"
+   "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\">\n<div class=\"dsh-case-head\">\n<span class=\"dsh-tile-slot\">\n<span class=\"dsh-tile accent\">\n<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\">\n<path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\">\n</path>\n</svg>\n</span>\n<span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :3080 上应答\n判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 &quot;dsh web authentication required&quot;）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\">\n<!--[-->\n<!--]-->\n</span>\n</span>\n<span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（运行中）\" class=\"dsh-name\">web :3080</span>\n</div>\n</article>"
   },
   "openByCard": {
    "open": true,
@@ -225,6 +225,6 @@
    "notes": 0,
    "tiles": 1
   },
-  "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（绿 · 运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\">\n<div class=\"dsh-case-head\">\n<span class=\"dsh-tile-slot\">\n<span class=\"dsh-tile accent\">\n<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\">\n<path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\">\n</path>\n</svg>\n</span>\n<span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"绿 · 运行中\" title=\"绿 · 运行中：签名探测通过（dsh-auth-401：HTTP 401 且响应体含 &quot;dsh web authentication required&quot;（dsh-client-connection 的未授权应答））。这一档由后端的 state 给（state=running）。\" class=\"dsh-dot light-run\">\n<!--[-->\n<!--]-->\n</span>\n</span>\n<span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（绿 · 运行中）\" class=\"dsh-name\">web :3080</span>\n</div>\n</article>"
+  "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\">\n<div class=\"dsh-case-head\">\n<span class=\"dsh-tile-slot\">\n<span class=\"dsh-tile accent\">\n<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\">\n<path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\">\n</path>\n</svg>\n</span>\n<span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :3080 上应答\n判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 &quot;dsh web authentication required&quot;）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\">\n<!--[-->\n<!--]-->\n</span>\n</span>\n<span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（运行中）\" class=\"dsh-name\">web :3080</span>\n</div>\n</article>"
  }
 }

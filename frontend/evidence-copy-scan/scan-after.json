@@ -1,0 +1,99 @@
+{
+ "base": "http://127.0.0.1:5390",
+ "viewport": {
+  "VW": 1440,
+  "VH": 950
+ },
+ "patterns": [
+  "state= 这类取值写法",
+  "stateReason",
+  "profileHealth",
+  "成因 b / 成因 c（契约编号）",
+  "签名 id / 组件名（内部标识）",
+  "后端",
+  "接口",
+  "字段",
+  "API 路径（POST/GET + 路径）",
+  "裸 API 路径",
+  "实现细节（登记文件 / 请求头）"
+ ],
+ "results": [
+  {
+   "label": "总览",
+   "path": "/",
+   "itemCount": 31,
+   "hits": []
+  },
+  {
+   "label": "总览 + 详情抽屉",
+   "path": "/",
+   "itemCount": 79,
+   "hits": [
+    {
+     "why": "实现细节（登记文件 / 请求头）",
+     "kind": "title",
+     "name": "drawer-open-web-ui",
+     "tag": "button",
+     "text": "读不到握手令牌（外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址），点了不会打开标签页"
+    }
+   ]
+  },
+  {
+   "label": "日志",
+   "path": "/logs",
+   "itemCount": 617,
+   "hits": [
+    {
+     "why": "裸 API 路径",
+     "kind": "text",
+     "name": "",
+     "tag": "span",
+     "text": "[retry-control@2.3.0] observation routes registered: /api/dsh-retry-control/state /api/dsh-retry-control/log"
+    }
+   ]
+  },
+  {
+   "label": "设置 · 实例",
+   "path": "/settings/instance",
+   "itemCount": 42,
+   "hits": []
+  },
+  {
+   "label": "设置 · 进程",
+   "path": "/settings/process",
+   "itemCount": 33,
+   "hits": []
+  },
+  {
+   "label": "设置 · 日志",
+   "path": "/settings/logs",
+   "itemCount": 31,
+   "hits": []
+  },
+  {
+   "label": "设置 · 界面",
+   "path": "/settings/ui",
+   "itemCount": 28,
+   "hits": []
+  },
+  {
+   "label": "设置 · 安全",
+   "path": "/settings/safety",
+   "itemCount": 28,
+   "hits": []
+  },
+  {
+   "label": "回收站",
+   "path": "/trash",
+   "itemCount": 11,
+   "hits": []
+  },
+  {
+   "label": "关于",
+   "path": "/about",
+   "itemCount": 20,
+   "hits": []
+  }
+ ],
+ "total": 2
+}

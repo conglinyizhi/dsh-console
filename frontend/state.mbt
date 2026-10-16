@@ -72,10 +72,10 @@ pub extend Tone with Eq::{ not_equal, equal }
 ///                   c：解析出的 profile 缺包大于 0（或没有 cordis.patch.yml）
 ///   * 红 stopped —— 没有在跑
 /// 另外两档是**状态灯自己需要的**，不是第四种颜色：
-///   * starting —— 正在起来（前端启动等待态，也认后端 state=starting）。用同一支琥珀，
+///   * starting —— 正在起来（前端启动等待态，也认读数给的 starting）。用同一支琥珀，
 ///     但文案是「正在启动」，不会被读成故障；它在动（dot-pulse），静止态一个动效都没有
-///   * unknown  —— 后端的 state 字段还没落地。**这时不猜颜色**：
-///     灯是空心的灰环，抽屉里写清「这一版后端还没给 state」（契约第七轮的要求）
+///   * unknown  —— 读数里没有状态这一项。**这时不猜颜色**：
+///     灯是空心的灰环，抽屉里写清「读不到状态，颜色不猜」
 enum Light {
   LightRun
   LightFault
@@ -187,20 +187,19 @@ struct Row {
   // ── 状态灯（第七轮） ──
   /// 卡片图标右上角那颗实心圆的档位。判据与理由见 Light 的注释。
   light : Light
-  /// **为什么是这个颜色** —— 抽屉里那一块的正文，一句话说清依据。
+  /// **为什么是这个颜色** —— 抽屉里那一块的正文：一行，说人话。
   /// 契约明确要求颜色不能是唯一信息，所以这一句不是装饰：黄的两个成因要能分开说。
   light_reason : String
-  /// 抽屉里「后端 state：…」那一行要显示的原值。
+  /// 上面那句话的技术依据：哪一条握手应答命中、探测回来的是什么、profile 那一侧怎么样。
   ///
-  /// 两种「没有值」必须分开写：实例卡上后端没给（这一版还没落地）与 profile 行上
-  /// **不适用**（它根本不是实例读数）—— 都写成「没有这个字段」就是把两件事说成一件。
-  state_raw : String
-  /// 后端给的 stateReason 原文；没给时是前端补的那句说明
-  state_reason : String
-  /// 抽屉「profile 健康」那一块的正文（缺包 / 有没有 cordis.patch.yml）
+  /// **只在悬停里出现，正文一个字都不占**：它回答的是「这个结论怎么来的」，
+  /// 不是使用者要读的那句结论。
+  light_basis : String
+  /// 抽屉「profile 健康」那一块的正文（缺包 / 有没有 cordis.patch.yml）。
+  ///
+  /// 缺包时**带上包名**（包名在 profiles 读数里，拿得到）；拿不到名字就只说个数 ——
+  /// 「为什么没有名字」是这一版怎么实现的，不写在给使用者看的那句话里。
   health_text : String
-  /// 上面那句话是从哪读出来的（instances 的 profileHealth 字段，还是 profiles 读数）
-  health_source : String
 } derive(Eq)
 
 pub extend Row with Eq::{ not_equal, equal }
@@ -460,11 +459,11 @@ fn initial_model() -> Model {
     instances_error: "",
     // 初始那几副标记是「读取中」，不是「演示数据」：请求还在路上，
     // 这时候标成演示数据与标成空数据是同一个毛病 —— 把「还没读到」说成了别的。
-    tag_runtime: pending_tag("GET /api/local/runtime 还没返回"),
-    tag_instances: pending_tag("GET /api/local/instances 还没返回"),
-    tag_profiles: pending_tag("GET /api/local/profiles 还没返回"),
-    tag_archived: pending_tag("GET /api/local/console 还没返回"),
-    tag_settings: pending_tag("GET /api/local/settings 还没读"),
+    tag_runtime: pending_tag("控制台自身的读数还没回来"),
+    tag_instances: pending_tag("实例读数还没回来"),
+    tag_profiles: pending_tag("profile 读数还没回来"),
+    tag_archived: pending_tag("归档与回收站读数还没回来"),
+    tag_settings: pending_tag("设置读数还没回来"),
     read_runtime: false,
     read_profiles: false,
     read_instances: false,
@@ -722,6 +721,38 @@ fn join_with(items : Array[String], sep : String) -> String {
 }
 
 ///|
+/// 显示用换词：读数那句「这个值是从哪读出来的」里，**「字段」这类词要拿掉**。
+///
+/// 「字段」是数据形状的说法 —— 给改这个工具的人看的。使用者要的是「从哪读到的」，
+/// 所以这里把「 字段」整段删掉（连前面那个空格一起，剩下的话照样通顺）：
+/// 「入口包 package.json 的 version 字段：/path」→「入口包 package.json 的 version：/path」。
+/// **路径、PID、文件名一个都不动**：那是这句话里真正有用的部分。
+fn plain_source(text : String) -> String {
+  let chars : Array[Char] = []
+  for c in text {
+    chars.push(c)
+  }
+  let out = StringBuilder()
+  let mut i = 0
+  while i < chars.length() {
+    if i + 2 < chars.length() &&
+      chars[i] == ' ' &&
+      chars[i + 1] == '字' &&
+      chars[i + 2] == '段' {
+      i = i + 3
+      continue
+    }
+    if i + 1 < chars.length() && chars[i] == '字' && chars[i + 1] == '段' {
+      i = i + 2
+      continue
+    }
+    out.write_char(chars[i])
+    i = i + 1
+  }
+  out.to_string()
+}
+
+///|
 /// 进程级原因码对应的短标签（卡上看得见的那一行）。空串 = 没有要说的。
 /// 与后端 reason_text 同一套码；这里只缩短，不换意思。
 fn process_note(fact : InstanceFact) -> String {
@@ -764,15 +795,19 @@ fn console_started(console : ConsoleFacts?, port : Int) -> Bool {
 // ── 状态灯（第七轮） ────────────────────────────────────────
 //
 // 卡片上只剩三样：图标 + 右上角那颗实心圆、profile 名、备注。所以「这只实例怎么样」
-// 全部压进那颗圆里，**颜色不能是唯一信息** —— 每一档都带一句为什么（light_reason），
-// 在抽屉里原样展示。
+// 全部压进那颗圆里，**颜色不能是唯一信息** —— 每一档都带一句为什么，在抽屉里展示。
+//
+// 每一档给两句话，读者不是同一个人：
+//   * light_reason —— 抽屉正文那一行，说人话（「它正在 :3080 上应答」）；
+//   * light_basis  —— 悬停里的技术依据（哪一条握手应答命中、探测回来的是什么）。
+// 正文一个字都不摆内部术语：成因编号、应答标识、组件名这些是给改这个工具的人看的。
 //
 // 三色的判据来自契约（第七轮第一节），前端不改口径：
-//   绿 = 签名探测通过；黄 = 故障（b 端口在听但签名不通过 / c profile 缺包）；红 = 没有在跑。
-// 契约里 state 由后端给。**后端没给的时候前端不猜**：
-// 实例卡走 unknown（空心灰环 + 一句「这一版后端还没给 state」）；
+//   绿 = 握手探测通过；黄 = 故障（端口在听但不应答 / profile 缺包）；红 = 没有在跑。
+// 状态由读数给。**读数没给的时候前端不猜**：
+// 实例卡走 unknown（空心灰环 + 一句「读不到状态，颜色不猜」）；
 // 已停止的 profile 卡不一样 —— 它本来就不是实例读数，它的黄/红判据（缺包、有没有 patch）
-// 全都在 profiles 读数里现成摆着，那是照契约算出来的事实，不是猜。
+// 全都在 profiles 读数里现成摆着，那是照判据算出来的事实，不是猜。
 
 ///|
 /// 状态灯的类名后缀：样式表里 .dsh-dot.light-* 那一组。
@@ -800,133 +835,231 @@ fn light_key(light : Light) -> String {
 
 ///|
 /// 档位的人话标签（悬停、抽屉标题都用它）。
+///
+/// **只写状态，不写颜色**：颜色由那颗圆自己给（颜色不能是唯一信息，但颜色也不必
+/// 在文字里再说一遍）。以前写成「绿 · 运行中」，读起来像在念色卡的编号。
 fn light_label(light : Light) -> String {
   match light {
-    LightRun => "绿 · 运行中"
-    LightFault => "黄 · 故障"
-    LightStart => "黄 · 正在启动"
-    LightStop => "红 · 停用"
-    LightUnknown => "未知（后端没给 state）"
+    LightRun => "运行中"
+    LightFault => "故障"
+    LightStart => "正在启动"
+    LightStop => "已停止"
+    LightUnknown => "状态未知"
   }
 }
 
 ///|
-/// 实例卡的状态灯：**只看后端的 state**。
+/// 一条握手应答的人话说明：把读数给的那句 describe 里**括号那半句**去掉。
 ///
-/// 后端没给就返回 None —— 调用方据此走 unknown 并说清原因，不拿签名探测的结果去替它定色。
-/// 「签名探测通过」确实是绿的判据，但「端口在听却探测不通过」这一半现在后端根本不列出来
-/// （契约第七轮改的就是这条），前端只看得到一半的判据，据此上色就是把猜出来的颜色
-/// 说得跟后端判的一样硬。
-fn instance_light(fact : InstanceFact) -> (Light, String) {
+/// 括号里写的是「这条应答是谁发的」（组件内部名），那是给改这个工具的人看的；
+/// 前半句是真的探测到了什么，使用者看得懂，也正好回答了「哪一条应答命中」。
+fn signature_plain(fact : InstanceFact) -> String {
+  let buf = StringBuilder()
+  let mut stop = false
+  for c in fact.signature_describe {
+    if stop {
+      continue
+    }
+    if c == '（' || c == '(' {
+      stop = true
+      continue
+    }
+    buf.write_char(c)
+  }
+  buf.to_string()
+}
+///|
+/// profile 那一侧的毛病（空串 = 没毛病，或者手上没有健康读数）。
+///
+/// 缺包优先说：一只缺包的 profile 比「补丁文件不在」更值得先看。
+fn profile_trouble(health : InstanceHealth?) -> String {
+  match health {
+    None => ""
+    Some(h) =>
+      if h.missing_bundles > 0 {
+        "这只 profile 缺 " + h.missing_bundles.to_string() + " 个包"
+      } else if !h.has_patch {
+        "这只 profile 的 cordis.patch.yml 不在"
+      } else {
+        ""
+      }
+  }
+}
+///|
+/// 实例的健康读数：先用实例自己带的那一份，没带就用同一只 profile 的读数顶上
+/// （同一个目录，说的是同一件事）。两处都没有才是 None —— 不拿「0 个缺包」顶上：
+/// 「读了、一个都不缺」与「没读到」不是一件事。
+fn instance_health_facts(fact : InstanceFact, profile_fact : ProfileFact?) -> InstanceHealth? {
+  match fact.profile_health {
+    Some(health) => Some(health)
+    None =>
+      match profile_fact {
+        Some(item) =>
+          Some({
+            missing_bundles: item.bundles.missing.length(),
+            has_patch: item.patch_exists,
+          })
+        None => None
+      }
+  }
+}
+///|
+/// 实例卡的状态灯：档位**只看读数里的状态**，前端不自己改口径。
+///
+/// 读数没给状态就走 unknown —— 调用方据此说清「读不到」，不拿握手探测的结果去替它定色。
+/// 返回三样：档位、抽屉正文那一句（人话）、悬停里的技术依据（这个结论是怎么来的）。
+fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, String, String) {
+  let port = fact.port.to_string()
+  let health = instance_health_facts(fact, profile_fact)
+  let trouble = profile_trouble(health)
+  let signature = signature_plain(fact)
   match fact.state {
     Some("running") =>
       (
         LightRun,
-        "绿 · 运行中：签名探测通过（" +
-        (if fact.signature_id == "" {
-          "后端没给签名 id"
+        "它正在 :" + port + " 上应答",
+        "判据：探测这个端口时命中了 dsh 的握手应答" +
+        (if signature == "" { "" } else { "（" + signature + "）" }) +
+        "。" +
+        (if trouble == "" {
+          ""
         } else {
-          fact.signature_id + "：" + fact.signature_describe
+          "profile 那一侧还有一条：" + trouble + " —— 绿灯由应答给，缺包不改颜色。"
+        }),
+      )
+    Some("fault") => {
+      // 黄的两个成因分开算：握手不应答（端口在听、进程像 dsh、应答对不上），
+      // 与 profile 那一侧有毛病（缺包 / 补丁文件不在）。两句长得不一样，
+      // 不会被一起读成一句含糊的「有点问题」。
+      let handshake_failed = fact.signature_id == ""
+      let parts : Array[String] = []
+      if handshake_failed {
+        parts.push("端口在听，但不应答 dsh 的握手")
+      }
+      if trouble != "" {
+        parts.push(trouble)
+      }
+      let reason = if parts.length() == 0 {
+        "读数把这一档判成故障，但这一版界面读不出具体是哪一条"
+      } else {
+        join_with(parts, "；")
+}
+      let basis = if handshake_failed {
+        "判据：这个端口在监听，但探测时没有命中 dsh 的应答" +
+        (if fact.http_status > 0 {
+          "（回的是 HTTP " + fact.http_status.to_string() + "）"
+        } else {
+          ""
         }) +
-        "）。这一档由后端的 state 给（state=running）。",
-      )
-    Some("fault") =>
-      (
-        LightFault,
-        "黄 · 故障：" + fact.state_reason +
-        "。契约里黄的两种成因 —— b：端口在听、持有它的进程像 dsh，但签名探测不通过；" +
-        "c：解析出的 profile 缺包大于 0（或没有 cordis.patch.yml）。",
-      )
+        "。"
+      } else {
+        "判据：握手应答是通的，这一档是 profile 那一侧给的。"
+}
+      (LightFault, reason, basis)
+    }
     Some("starting") =>
-      (LightStart, "黄 · 正在启动（这一刻不是故障）：" + fact.state_reason)
-    Some("stopped") => (LightStop, "红 · 停用：没有在跑。" + fact.state_reason)
-    Some(other) =>
+      (
+        LightStart,
+        "正在起来，端口还没开始应答",
+        "启动动作还没收尾：实例应答之后这一档会变成「运行中」。",
+      )
+    Some("stopped") => (LightStop, "没有在跑", "这个端口上现在没有实例在跑。")
+    Some(_) =>
       (
         LightUnknown,
-        "后端给的 state 是「" + other +
-        "」，这一版前端认不出这一档 —— 颜色不猜。原样的理由：" + fact.state_reason,
+        "读到的状态这一版界面认不出，颜色不猜",
+        "读数里的状态取值这一版界面没有对应的档位，所以不上颜色。",
       )
     None =>
       (
         LightUnknown,
-        "这一版后端还没给 state 字段，颜色不猜（这一格是「未知」，不是三色里的任何一档）。" +
-        "已有的读数里能说的只有：" +
-        (if fact.signature_id == "" {
-          "这个端口没有命中任何签名"
+        "读不到状态，颜色不猜",
+        "这一版读数里没有状态这一项，所以不上颜色。" +
+        (if signature == "" {
+          "已有的探测结论：这个端口没有命中 dsh 的应答。"
         } else {
-          "签名探测通过（" + fact.signature_id + "）"
-        }) +
-        "；端口在听、持有它的进程像不像 dsh、profile 缺不缺包，要等后端把 state 接上才说得准。",
+          "已有的探测结论：这个端口命中了 dsh 的应答（" + signature + "）。"
+        }),
       )
   }
 }
 
 ///|
-/// 已停止的 profile 卡：状态灯由 profiles 读数自己算（契约黄的判据 c 与红的判据都在里面）。
+/// 已停止的 profile 卡：状态灯由 profiles 读数自己算（黄的两条判据、红的那条都在里面）。
 ///
 /// 这不是「猜颜色」：没有在跑是这一组的分组条件（in_use_by 已经排掉了正在被用的那几只），
-/// 缺包与 patch 是否存在是 GET /api/local/profiles 现成给的字段，一个字都没有编。
-fn profile_light(fact : ProfileFact) -> (Light, String) {
+/// 缺包与补丁文件在不在都是读数里现成给的，一个字都没有编。
+fn profile_light(fact : ProfileFact) -> (Light, String, String) {
   let missing = fact.bundles.missing
   if missing.length() > 0 {
     (
       LightFault,
-      "黄 · 故障：没有在跑的实例，但这只 profile 缺 " + missing.length().to_string() +
-      " 个包（" + join_with(missing, "、") + "）—— 契约里黄的成因 c。",
+      "没有在跑；这只 profile 缺 " + missing.length().to_string() + " 个包",
+      "判据：这只 profile 声明的包里有这些没装上：" + join_with(missing, "、") + "。",
     )
   } else if !fact.patch_exists {
     (
       LightFault,
-      "黄 · 故障：没有在跑的实例，但这只 profile 没有 cordis.patch.yml —— 契约里黄的成因 c。",
+      "没有在跑；这只 profile 的 cordis.patch.yml 不在",
+      "判据：cordis.patch.yml 不在，这只 profile 起不来。",
     )
   } else {
     (
       LightStop,
-      "红 · 停用：没有在跑的实例，profile 的包也不缺、cordis.patch.yml 也在（契约里红的判据）。",
+      "没有在跑",
+      "这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。",
     )
   }
 }
 
 ///|
-/// 抽屉「profile 健康」那一块：正文 + 这句话是从哪读出来的。
+/// 抽屉「profile 健康」那一块的正文：只说人话 —— 缺几个包（拿得到名字就带上名字）、
+/// 补丁文件在不在。
 ///
-/// 两个来源分开说，因为它们不是同一件事：instances 的 profileHealth 是后端按这只实例
-/// 解析出来的；profiles 的 bundles/patch 是档案自己的读数。后端还没给前者时，
-/// 用后者 join 出来的结论仍然是真的（同一个 profile 目录），但**要说清是这么来的**。
-fn instance_health(fact : InstanceFact, profile_fact : ProfileFact?) -> (String, String) {
+/// 包名清单从 profiles 读数里拿（实例那一侧只给个数）：**名字的个数与手上这个数对得上才用**，
+/// 对不上就只说个数 —— 宁可少一句，也不拿另一份读数里的名字去配这一份的个数。
+fn instance_health(fact : InstanceFact, profile_fact : ProfileFact?) -> String {
   match fact.profile_health {
     Some(health) =>
-      (
-        health_text_of(health.has_patch, health.missing_bundles, ""),
-        "instances 读数的 profileHealth 字段（后端按这只实例解析出的 profile 给的）",
-      )
+      health_text_of(health.has_patch, health.missing_bundles, matching_names(
+        profile_fact,
+        health.missing_bundles,
+      ))
     None =>
       match profile_fact {
         Some(item) =>
-          (
-            health_text_of(item.patch_exists, item.bundles.missing.length(), join_with(
-              item.bundles.missing,
-              "、",
-            )),
-            "instances 读数里没有 profileHealth 字段（这一版后端还没给）；这里按 GET /api/local/profiles 的 bundles / patch join 出来的",
+          health_text_of(
+            item.patch_exists,
+            item.bundles.missing.length(),
+            join_with(item.bundles.missing, "、"),
           )
-        None =>
-          (
-            "—",
-            "这只实例没有解析出 profile，没有健康读数可读（profileHealth 字段这一版后端也还没给）",
-          )
+        None => "—"
       }
   }
 }
 
 ///|
-/// 健康读数的正文：缺包优先报（一只缺包的 profile 比「patch 不在」更值得先看），
-/// 都不缺才说「都对」。names 为空串表示手上没有包名清单（instances 的 profileHealth
-/// 只给个数），这时不编名字。
+/// profiles 读数里的包名清单，仅当它的个数与手上这个数目一致时才用（见 instance_health）。
+fn matching_names(profile_fact : ProfileFact?, count : Int) -> String {
+  match profile_fact {
+    Some(item) =>
+      if item.bundles.missing.length() == count {
+        join_with(item.bundles.missing, "、")
+      } else {
+        ""
+      }
+    None => ""
+  }
+}
+
+///|
+/// 健康读数的正文：缺包优先报（一只缺包的 profile 比「补丁文件不在」更值得先看），
+/// 都不缺才说「都对」。names 为空串 = 手上没有包名清单，这时**只说个数**
+/// （为什么没有名字是这一版怎么实现的，不写在给使用者看的那句话里）。
 fn health_text_of(has_patch : Bool, missing_count : Int, names : String) -> String {
   if missing_count > 0 {
     "缺 " + missing_count.to_string() + " 个包" +
-    (if names == "" { "（后端只给了个数，没给名字）" } else { "：" + names })
+    (if names == "" { "" } else { "：" + names })
   } else if !has_patch {
     "没有 cordis.patch.yml"
   } else {
@@ -965,8 +1098,8 @@ fn running_rows(
       None => "dsh :" + fact.port.to_string()
     }
     // 状态灯与「为什么是这个颜色」：实例卡只看后端的 state（后端没给就是 unknown，不猜）
-    let (light, light_reason) = instance_light(fact)
-    let (health_text, health_source) = instance_health(fact, profile_fact)
+    let (light, light_reason, light_basis) = instance_light(fact, profile_fact)
+    let health_text = instance_health(fact, profile_fact)
     {
       id: "port:" + fact.port.to_string(),
       name,
@@ -1008,7 +1141,7 @@ fn running_rows(
         Some(v) => v + "（入口包）"
         None => "未知"
       },
-      version_hint: fact.version_source,
+      version_hint: plain_source(fact.version_source),
       profile: match fact.profile {
         Some(profile) => profile
         None => "未知"
@@ -1078,13 +1211,8 @@ fn running_rows(
       },
       light,
       light_reason,
-      state_raw: match fact.state {
-        Some(state) => state
-        None => "没有这个字段（这一版后端还没给）"
-      },
-      state_reason: fact.state_reason,
+      light_basis,
       health_text,
-      health_source,
     }
   })
 }
@@ -1153,7 +1281,7 @@ fn mtime_value_hint(ms : Double, source : String) -> String {
 /// 读不到时那一格的悬停：把后端给的 dirMtimeSource 原样带上，不吞、也不换成一句空话。
 fn mtime_missing_hint(source : String) -> String {
   "读不到这只 profile 目录的最近改动：" +
-  (if source == "" { "后端没给原因" } else { source })
+  (if source == "" { "读数里没写原因" } else { source })
 }
 
 ///|
@@ -1196,7 +1324,7 @@ fn profile_rows(
     }
     let missing = fact.bundles.missing
     // 停止卡的状态灯：没有在跑 + 缺包/缺 patch 这两条判据都在 profiles 读数里（不是猜的）
-    let (light, light_reason) = profile_light(fact)
+    let (light, light_reason, light_basis) = profile_light(fact)
     rows.push({
       id: "profile:" + fact.name,
       name: fact.name,
@@ -1225,7 +1353,7 @@ fn profile_rows(
       },
       busy: false,
       version: version_text(runtime),
-      version_hint: "控制台后端读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）",
+      version_hint: "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）",
       profile: fact.name,
       profile_hint: "磁盘上真实存在的 profile 目录名：" + fact.name,
       home: dsh_home,
@@ -1256,16 +1384,12 @@ fn profile_rows(
       },
       light,
       light_reason,
-      // 停止卡不是实例读数：没有 state 这回事，理由里写的是前端照契约算出来的依据
-      state_raw: "不适用（这是磁盘上的 profile 行，不是实例读数）",
-      state_reason: "这一行是磁盘上的 profile，不是实例读数：实例的 state 字段对它不适用；" +
-        "状态灯按 profiles 读数里现成的两条判据给（缺包 / 有没有 cordis.patch.yml）",
+      light_basis,
       health_text: health_text_of(
         fact.patch_exists,
         missing.length(),
         join_with(missing, "、"),
       ),
-      health_source: "GET /api/local/profiles 的 bundles / patch 字段",
     })
   }
   // 已停止这一组按**最近改动降序**：新的在最上面。
@@ -1372,12 +1496,9 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     mtime_missing: "读不到",
     mtime_hint: "磁盘上没有这只 profile 的目录，没有最近改动可读（这一行来自 archive.json 的归档记录）",
     light: LightStop,
-    light_reason: "红 · 停用：没有在跑的实例；磁盘上已经没有这只 profile，所以也没有健康读数可算" +
-      "（这一行来自 archive.json 的归档记录）。",
-    state_raw: "不适用（这一行来自 archive.json 的归档记录，不是实例读数）",
-    state_reason: "这一行不是实例读数，没有 state；磁盘上也没有这只 profile 可供算健康",
+    light_reason: "没有在跑；磁盘上已经没有这只 profile 了",
+    light_basis: "这一行来自归档记录：磁盘上没有对应的 profile 目录，所以没有运行读数，也没有健康读数。",
     health_text: "—",
-    health_source: "磁盘上没有这只 profile 的目录，没有健康读数可读",
   }
 }
 
@@ -1407,11 +1528,9 @@ fn demo_running() -> Array[Row] {
       mtime_ms: None, mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
-      light_reason: "这是真实读取失败时兜底的演示数据，没有读数，颜色不猜。",
-      state_raw: "没有（演示数据，不是读数）",
-      state_reason: "演示数据：不是真实读数，没有 state 可读",
+      light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
+      light_basis: "演示数据：不是真实读数，所以没有可依据的判据。",
       health_text: "—",
-      health_source: "演示数据：不是真实读数",
     },
     {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
@@ -1427,11 +1546,9 @@ fn demo_running() -> Array[Row] {
       mtime_ms: None, mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
-      light_reason: "这是真实读取失败时兜底的演示数据，没有读数，颜色不猜。",
-      state_raw: "没有（演示数据，不是读数）",
-      state_reason: "演示数据：不是真实读数，没有 state 可读",
+      light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
+      light_basis: "演示数据：不是真实读数，所以没有可依据的判据。",
       health_text: "—",
-      health_source: "演示数据：不是真实读数",
     },
   ]
 }
@@ -1453,11 +1570,9 @@ fn demo_stopped() -> Array[Row] {
       mtime_ms: None, mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
-      light_reason: "这是真实读取失败时兜底的演示数据，没有读数，颜色不猜。",
-      state_raw: "没有（演示数据，不是读数）",
-      state_reason: "演示数据：不是真实读数，没有 state 可读",
+      light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
+      light_basis: "演示数据：不是真实读数，所以没有可依据的判据。",
       health_text: "—",
-      health_source: "演示数据：不是真实读数",
     },
   ]
 }

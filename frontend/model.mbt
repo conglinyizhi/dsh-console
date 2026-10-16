@@ -268,7 +268,7 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       dir_mtime_source: if has_key(fact, "dirMtimeMs") || has_key(fact, "dirMtimeSource") {
         str_field(fact, "dirMtimeSource")
       } else {
-        "profiles 读数里没有 dirMtimeMs 字段（这一版还没给）"
+        "这一版读数里没有「最近改动」可读"
       },
     })
   }
@@ -328,7 +328,7 @@ pub(all) struct InstanceFact {
   /// None = 这一版后端还没给这个字段（或给了个不是字符串的值）——
   /// 这时**不许猜颜色**：卡上那颗灯走「未知」那一档，抽屉里说清是后端没给。
   state : String?
-  /// 为什么是这个状态（后端原样给）。字段不在时由前端补一句「这一版还没给」。
+  /// 为什么是这个状态（读数原样给；界面不直接渲染它，见 state_reason_of）。
   state_reason : String
   /// 实例对应的 profile 健康读数；None = 这一版后端没给 profileHealth。
   /// None 与「给了但缺 0 个包」不是一件事，所以用 Option 而不是拿 0 顶上。
@@ -421,7 +421,7 @@ fn web_url_source_of(fact : Map[String, Json]) -> String {
   }
   match fact.get("webUrl") {
     Some(Json::String(_)) => ""
-    _ => "instances 读数里这一条没有 webUrl / webUrlSource 字段（这一版没给这两个字段）"
+    _ => "这一版读数里没有带令牌的地址"
   }
 }
 
@@ -439,21 +439,21 @@ fn state_of(fact : Map[String, Json]) -> String? {
 }
 
 ///|
-/// stateReason：后端给了就原样用；字段不在时补一句人话。
+/// stateReason：读数给了就原样留着；字段不在时补一句人话。
 ///
-/// 这句话是抽屉里「为什么是这个颜色」那一块的正文，**不能是空串**：
-/// 空着就成了一个没有理由的颜色。所以「后端给了 state 但没给理由」与
-/// 「这一版后端根本没给 state」分开写。
+/// **界面不再直接渲染这一句**：它是给改这个工具的人看的原文（里面有成因编号、
+/// 应答标识这些内部名），抽屉正文用的是重写过的人话、悬停里是结构化的判据。
+/// 留着它是为了让数据层忠实反映这一份读数，将来要给排查面板用也不必回头补。
 fn state_reason_of(fact : Map[String, Json]) -> String {
   let reason = str_field(fact, "stateReason")
   if has_key(fact, "state") {
     if reason != "" {
       reason
     } else {
-      "后端给了 state，但没有给 stateReason：为什么是这个状态，后端没解释"
+      "读数给了状态，但没给「为什么」"
     }
   } else {
-    "instances 读数里没有 state 字段（这一版后端还没给）"
+    "这一版读数里没有状态这一项"
   }
 }
 

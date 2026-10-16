@@ -1,13 +1,13 @@
 {
  "baseUrl": "http://127.0.0.1:5390/",
- "fakePort": 34503,
+ "fakePort": 37781,
  "fakeProbe": {
   "status": 200,
   "contentType": "text/plain",
   "body": "not a dsh signature"
  },
- "fakeCmdline": "node ~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/lib/bin.js web --port 34503 -e require('http').createServer((q,s)=>{s.writeHead(200,{'content-type':'text/plain'});s.end('not a dsh signature')}).listen(34503)",
- "fakePid": 207752,
+ "fakeCmdline": "node ~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/lib/bin.js web --port 37781 -e require('http').createServer((q,s)=>{s.writeHead(200,{'content-type':'text/plain'});s.end('not a dsh signature')}).listen(37781)",
+ "fakePid": 259190,
  "cards": [
   {
    "id": "dsh-card-port-3080",
@@ -18,22 +18,22 @@
    "dotClass": "dsh-dot light-run",
    "dotBg": "rgb(78, 194, 122)",
    "dotSize": "13pxx13px",
-   "dotAria": "绿 · 运行中",
+   "dotAria": "运行中",
    "note": null,
    "text": "web :3080"
   },
   {
-   "id": "dsh-card-port-34503",
-   "name": "web :34503",
+   "id": "dsh-card-port-37781",
+   "name": "web :37781",
    "dataLight": "fault",
    "dataStatus": "running",
    "dotState": "fault",
    "dotClass": "dsh-dot light-fault",
    "dotBg": "rgb(224, 164, 88)",
    "dotSize": "13pxx13px",
-   "dotAria": "黄 · 故障",
+   "dotAria": "故障",
    "note": null,
-   "text": "web :34503"
+   "text": "web :37781"
   },
   {
    "id": "dsh-card-profile-headless",
@@ -44,7 +44,7 @@
    "dotClass": "dsh-dot light-stop",
    "dotBg": "rgb(224, 104, 95)",
    "dotSize": "13pxx13px",
-   "dotAria": "红 · 停用",
+   "dotAria": "已停止",
    "note": "备注测试测试",
    "text": "headless备注测试测试"
   },
@@ -57,7 +57,7 @@
    "dotClass": "dsh-dot light-fault",
    "dotBg": "rgb(224, 164, 88)",
    "dotSize": "13pxx13px",
-   "dotAria": "黄 · 故障",
+   "dotAria": "故障",
    "note": null,
    "text": "review-dev"
   }
@@ -73,7 +73,7 @@
     "dotClass": "dsh-dot light-run",
     "dotBg": "rgb(78, 194, 122)",
     "dotSize": "13pxx13px",
-    "dotAria": "绿 · 运行中",
+    "dotAria": "运行中",
     "note": null,
     "text": "web :3080"
    },
@@ -88,12 +88,65 @@
     "position": "fixed",
     "lightState": "running",
     "lightBg": "rgb(78, 194, 122)",
-    "lightLabel": "绿 · 运行中",
-    "why": "绿 · 运行中：签名探测通过（dsh-auth-401：HTTP 401 且响应体含 \"dsh web authentication required\"（dsh-client-connection 的未授权应答））。这一档由后端的 state 给（state=running）。",
-    "stateRaw": "后端 state：running",
-    "stateReason": "后端 stateReason：签名探测通过（dsh-auth-401）；profile 检查不过（成因 c）：缺 3 个包（@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle）（~/.dsh/profiles/web）—— 这只实例在跑、签名也过，绿由签名给，缺包这一条记在 profileHealth 里",
-    "health": "缺 3 个包（后端只给了个数，没给名字）",
-    "healthSource": "来源：instances 读数的 profileHealth 字段（后端按这只实例解析出的 profile 给的）",
+    "lightLabel": "运行中",
+    "why": "它正在 :3080 上应答",
+    "whyHover": "判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 \"dsh web authentication required\"）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。",
+    "dotHover": "判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 \"dsh web authentication required\"）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。",
+    "dotAria": "运行中",
+    "health": "缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle",
+    "text": "web :3080\n状态\n运行中\n它正在 :3080 上应答\n读数\nDSH 版本 / 来源\n0.2.0-rc.2（入口包）\nProfile\nweb\n访问地址\nhttp://127.0.0.1:3080/\nDSH_HOME\n~/.dsh\n插件数量\n声明 13 | 已装 10\n最近改动\n10-16 10:29\nprofile 健康\n缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle\n控制\n主操作\n打开 Web UI\n停止\n重启\n拿走\n在新标签页打开\n复制访问地址\n复制开发指令\n改动这只 profile\n重命名\n备注\n派生开发副本\n运维\n查看日志\n打开工作目录\n编辑配置",
+    "hovers": [
+     {
+      "name": "drawer-close",
+      "title": "",
+      "aria": "关闭详情"
+     },
+     {
+      "name": "drawer-light",
+      "title": "判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 \"dsh web authentication required\"）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。",
+      "aria": "运行中"
+     },
+     {
+      "name": "drawer-why",
+      "title": "判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 \"dsh web authentication required\"）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "入口包 package.json 的 version：~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/package.json",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "PID 7734 的 cmdline：--profile web",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只实例正在 http://127.0.0.1:3080/ 上监听（要进去用「打开 Web UI」）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID 7734）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-16T02:29:27.893Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：~/.dsh/profiles/web 的 mtime",
+      "aria": ""
+     },
+     {
+      "name": "drawer-open-web-ui",
+      "title": "读不到握手令牌（外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址），点了不会打开标签页",
+      "aria": ""
+     }
+    ],
     "fieldCount": 6,
     "fieldLabels": [
      "DSH 版本 / 来源",
@@ -188,17 +241,17 @@
   },
   "fault": {
    "card": {
-    "id": "dsh-card-port-34503",
-    "name": "web :34503",
+    "id": "dsh-card-port-37781",
+    "name": "web :37781",
     "dataLight": "fault",
     "dataStatus": "running",
     "dotState": "fault",
     "dotClass": "dsh-dot light-fault",
     "dotBg": "rgb(224, 164, 88)",
     "dotSize": "13pxx13px",
-    "dotAria": "黄 · 故障",
+    "dotAria": "故障",
     "note": null,
-    "text": "web :34503"
+    "text": "web :37781"
    },
    "drawer": {
     "open": true,
@@ -211,12 +264,65 @@
     "position": "fixed",
     "lightState": "fault",
     "lightBg": "rgb(224, 164, 88)",
-    "lightLabel": "黄 · 故障",
-    "why": "黄 · 故障：端口在听、持有它的进程 cmdline 看着是 dsh，但签名探测不通过（HTTP 200 text/plain，没有命中任何签名）。契约里黄的两种成因 —— b：端口在听、持有它的进程像 dsh，但签名探测不通过；c：解析出的 profile 缺包大于 0（或没有 cordis.patch.yml）。",
-    "stateRaw": "后端 state：fault",
-    "stateReason": "后端 stateReason：端口在听、持有它的进程 cmdline 看着是 dsh，但签名探测不通过（HTTP 200 text/plain，没有命中任何签名）",
-    "health": "缺 3 个包（后端只给了个数，没给名字）",
-    "healthSource": "来源：instances 读数的 profileHealth 字段（后端按这只实例解析出的 profile 给的）",
+    "lightLabel": "故障",
+    "why": "端口在听，但不应答 dsh 的握手；这只 profile 缺 3 个包",
+    "whyHover": "判据：这个端口在监听，但探测时没有命中 dsh 的应答（回的是 HTTP 200）。",
+    "dotHover": "判据：这个端口在监听，但探测时没有命中 dsh 的应答（回的是 HTTP 200）。",
+    "dotAria": "故障",
+    "health": "缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle",
+    "text": "web :37781\n状态\n故障\n端口在听，但不应答 dsh 的握手；这只 profile 缺 3 个包\n读数\nDSH 版本 / 来源\n未知\nProfile\nweb\n访问地址\nhttp://127.0.0.1:37781/\nDSH_HOME\n~/.dsh\n插件数量\n声明 13 | 已装 10\n最近改动\n10-16 10:29\nprofile 健康\n缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle\n控制\n主操作\n打开 Web UI\n停止\n重启\n拿走\n在新标签页打开\n复制访问地址\n复制开发指令\n改动这只 profile\n重命名\n备注\n派生开发副本\n运维\n查看日志\n打开工作目录\n编辑配置",
+    "hovers": [
+     {
+      "name": "drawer-close",
+      "title": "",
+      "aria": "关闭详情"
+     },
+     {
+      "name": "drawer-light",
+      "title": "判据：这个端口在监听，但探测时没有命中 dsh 的应答（回的是 HTTP 200）。",
+      "aria": "故障"
+     },
+     {
+      "name": "drawer-why",
+      "title": "判据：这个端口在监听，但探测时没有命中 dsh 的应答（回的是 HTTP 200）。",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这一条是探针造的：假 dsh 没有入口包",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "PID 259190 的 cmdline：--profile web（探针按契约补的口径）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只实例正在 http://127.0.0.1:37781/ 上监听（要进去用「打开 Web UI」）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "探针按契约补的口径",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-16T02:29:27.893Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：~/.dsh/profiles/web 的 mtime",
+      "aria": ""
+     },
+     {
+      "name": "drawer-open-web-ui",
+      "title": "读不到握手令牌（外部实例：令牌在启动它的终端里），点了不会打开标签页",
+      "aria": ""
+     }
+    ],
     "fieldCount": 6,
     "fieldLabels": [
      "DSH 版本 / 来源",
@@ -319,7 +425,7 @@
     "dotClass": "dsh-dot light-stop",
     "dotBg": "rgb(224, 104, 95)",
     "dotSize": "13pxx13px",
-    "dotAria": "红 · 停用",
+    "dotAria": "已停止",
     "note": "备注测试测试",
     "text": "headless备注测试测试"
    },
@@ -334,12 +440,65 @@
     "position": "fixed",
     "lightState": "stopped",
     "lightBg": "rgb(224, 104, 95)",
-    "lightLabel": "红 · 停用",
-    "why": "红 · 停用：没有在跑的实例，profile 的包也不缺、cordis.patch.yml 也在（契约里红的判据）。",
-    "stateRaw": "后端 state：不适用（这是磁盘上的 profile 行，不是实例读数）",
-    "stateReason": "后端 stateReason：这一行是磁盘上的 profile，不是实例读数：实例的 state 字段对它不适用；状态灯按 profiles 读数里现成的两条判据给（缺包 / 有没有 cordis.patch.yml）",
+    "lightLabel": "已停止",
+    "why": "没有在跑",
+    "whyHover": "这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。",
+    "dotHover": "这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。",
+    "dotAria": "已停止",
     "health": "声明的包都已安装，cordis.patch.yml 也在",
-    "healthSource": "来源：GET /api/local/profiles 的 bundles / patch 字段",
+    "text": "headless\n状态\n已停止\n没有在跑\n读数\nDSH 版本 / 来源\n0.2.0-rc.2（本机已安装）\nProfile\nheadless\n访问地址\n已停用，无法访问\nDSH_HOME\n~/.dsh\n插件数量\n声明 2 | 已装 2\n最近改动\n10-15 22:34\nprofile 健康\n声明的包都已安装，cordis.patch.yml 也在\n备注\n备注\n测试测试\n控制\n主操作\n启动\n重启\n拿走\n复制访问地址\n复制开发指令\n改动这只 profile\n重命名\n备注\n归档\n删除\n运维\n查看日志\n打开工作目录\n编辑配置",
+    "hovers": [
+     {
+      "name": "drawer-close",
+      "title": "",
+      "aria": "关闭详情"
+     },
+     {
+      "name": "drawer-light",
+      "title": "这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。",
+      "aria": "已停止"
+     },
+     {
+      "name": "drawer-why",
+      "title": "这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "磁盘上真实存在的 profile 目录名：headless",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只 profile 现在没有在跑，所以没有可访问的地址",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "headless 声明的插件都已安装",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T14:34:49.736Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：~/.dsh/profiles/headless 的 mtime",
+      "aria": ""
+     },
+     {
+      "name": "card-note",
+      "title": "测试测试\n（文件）",
+      "aria": ""
+     }
+    ],
     "fieldCount": 6,
     "fieldLabels": [
      "DSH 版本 / 来源",
@@ -436,7 +595,7 @@
     "dotClass": "dsh-dot light-fault",
     "dotBg": "rgb(224, 164, 88)",
     "dotSize": "13pxx13px",
-    "dotAria": "黄 · 故障",
+    "dotAria": "故障",
     "note": null,
     "text": "review-dev"
    },
@@ -451,12 +610,60 @@
     "position": "fixed",
     "lightState": "fault",
     "lightBg": "rgb(224, 164, 88)",
-    "lightLabel": "黄 · 故障",
-    "why": "黄 · 故障：没有在跑的实例，但这只 profile 缺 3 个包（@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle）—— 契约里黄的成因 c。",
-    "stateRaw": "后端 state：不适用（这是磁盘上的 profile 行，不是实例读数）",
-    "stateReason": "后端 stateReason：这一行是磁盘上的 profile，不是实例读数：实例的 state 字段对它不适用；状态灯按 profiles 读数里现成的两条判据给（缺包 / 有没有 cordis.patch.yml）",
+    "lightLabel": "故障",
+    "why": "没有在跑；这只 profile 缺 3 个包",
+    "whyHover": "判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle。",
+    "dotHover": "判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle。",
+    "dotAria": "故障",
     "health": "缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle",
-    "healthSource": "来源：GET /api/local/profiles 的 bundles / patch 字段",
+    "text": "review-dev\n状态\n故障\n没有在跑；这只 profile 缺 3 个包\n读数\nDSH 版本 / 来源\n0.2.0-rc.2（本机已安装）\nProfile\nreview-dev\n访问地址\n已停用，无法访问\nDSH_HOME\n~/.dsh\n插件数量\n声明 15 | 已装 12\n最近改动\n10-15 16:16\nprofile 健康\n缺 3 个包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle\n控制\n主操作\n启动\n重启\n拿走\n复制访问地址\n复制开发指令\n改动这只 profile\n重命名\n备注\n归档\n删除\n运维\n查看日志\n打开工作目录\n编辑配置",
+    "hovers": [
+     {
+      "name": "drawer-close",
+      "title": "",
+      "aria": "关闭详情"
+     },
+     {
+      "name": "drawer-light",
+      "title": "判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle。",
+      "aria": "故障"
+     },
+     {
+      "name": "drawer-why",
+      "title": "判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle。",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "磁盘上真实存在的 profile 目录名：review-dev",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只 profile 现在没有在跑，所以没有可访问的地址",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "控制台当前使用的 DSH_HOME（来源见「关于」页的 DSH_HOME 一行）",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "缺少的包：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle",
+      "aria": ""
+     },
+     {
+      "name": "field-value",
+      "title": "这只 profile 目录的最近改动时刻（mtime 2026-10-15T08:16:50.618Z，卡上按浏览器本地时间显示）。口径是「最近改动」不是「创建时间」：多数文件系统上可靠的创建时间拿不到（ctime 会在 chmod / 改名时变，birth time 不通用）；刚派生出来的 profile 一定是最新的。来源：~/.dsh/profiles/review-dev 的 mtime",
+      "aria": ""
+     }
+    ],
     "fieldCount": 6,
     "fieldLabels": [
      "DSH 版本 / 来源",

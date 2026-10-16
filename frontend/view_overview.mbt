@@ -57,10 +57,14 @@ fn status_light(row : Row) -> @html.Html {
     attrs=mark("status-light", ["overview", "card", row.id, "light"])
       .data_set("state", light_key(row.light))
       .role("img")
-      // 悬停直接给那句「为什么」—— light_reason 自己是完整的（开头就带档位），
-      // 前面再挂一次档位标签就成了「绿 · 运行中：绿 · 运行中：…」（实测踩过）
+      // 悬停给两样：先是那句人话，再是技术依据（哪一条握手应答命中）。
+      // 档位标签不再重挂一遍：那会变成「运行中：运行中：…」（实测踩过）。
       .aria_label(light_label(row.light))
-      .title(row.light_reason),
+      .title(if row.light_basis == "" {
+        row.light_reason
+      } else {
+        row.light_reason + "\n" + row.light_basis
+      }),
     @html.nothing,
   )
 }
@@ -416,21 +420,27 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
 ///|
 /// 抽屉最上面那一块：**为什么是这个颜色**。
 ///
-/// 契约里的硬要求（颜色不能是唯一信息）就落在这里：档位标签 + 一句判据，
-/// 再把后端给的 state / stateReason 原样摆出来。黄的两种成因因此分得开：
-/// b 是「端口在听但签名探测不通过」，c 是「profile 缺包 / 没有 cordis.patch.yml」，
-/// 两句话长得不一样，不会都被读成一句「有点问题」。
+/// 契约里的硬要求（颜色不能是唯一信息）就落在这里：档位标签 + 一句人话。
+/// 黄的两个成因因此分得开：一句说「端口在听，但不应答 dsh 的握手」，另一句说
+/// 「这只 profile 缺 3 个包」—— 两句长得不一样，不会被一起读成「有点问题」。
+///
+/// **判据怎么来的收进悬停**（哪一条握手应答命中、探测回来的是什么、profile 那一侧
+/// 怎么样）：正文一个字都不占。正文是给用这个工具的人看的，技术依据是给要核对
+/// 这个结论的人看的 —— 两个读者不是同一个人。
 fn drawer_state_block(row : Row) -> @html.Html {
-  let lines : Array[@html.Html] = [
+  let mut why_attrs = mark("drawer-why", ["overview", "drawer", row.id, "state", "why"])
+  let mut dot_attrs = mark("drawer-light", ["overview", "drawer", row.id, "state", "light"])
+    .data_set("state", light_key(row.light))
+    .role("img")
+    .aria_label(light_label(row.light))
+  if row.light_basis != "" {
+    why_attrs = why_attrs.title(row.light_basis)
+    dot_attrs = dot_attrs.title(row.light_basis)
+  }
+  @html.div(class="dsh-drawer-section", [
+    @html.h3(class="dsh-drawer-section-title", "状态"),
     @html.div(class="dsh-drawer-light-line", [
-      @html.span(
-        class="dsh-dot " + light_class(row.light),
-        attrs=mark("drawer-light", ["overview", "drawer", row.id, "state", "light"])
-          .data_set("state", light_key(row.light))
-          .role("img")
-          .aria_label(light_label(row.light)),
-        @html.nothing,
-      ),
+      @html.span(class="dsh-dot " + light_class(row.light), attrs=dot_attrs, @html.nothing),
       @html.span(
         class="dsh-drawer-light-label",
         attrs=mark("drawer-light-label", ["overview", "drawer", row.id, "state", "label"])
@@ -438,30 +448,7 @@ fn drawer_state_block(row : Row) -> @html.Html {
         light_label(row.light),
       ),
     ]),
-    @html.p(
-      class="dsh-drawer-why",
-      attrs=mark("drawer-why", ["overview", "drawer", row.id, "state", "why"]),
-      row.light_reason,
-    ),
-  ]
-  // 后端给的原值原样摆出来：判据是后端下的，前端只是把它说清楚
-  lines.push(
-    @html.p(
-      class="dsh-drawer-raw",
-      attrs=mark("drawer-state-raw", ["overview", "drawer", row.id, "state", "raw"]),
-      "后端 state：" + row.state_raw,
-    ),
-  )
-  lines.push(
-    @html.p(
-      class="dsh-drawer-raw",
-      attrs=mark("drawer-state-reason", ["overview", "drawer", row.id, "state", "reason"]),
-      "后端 stateReason：" + row.state_reason,
-    ),
-  )
-  @html.div(class="dsh-drawer-section", [
-    @html.h3(class="dsh-drawer-section-title", "状态"),
-    @html.fragment(lines),
+    @html.p(class="dsh-drawer-why", attrs=why_attrs, row.light_reason),
   ])
 }
 
@@ -492,15 +479,12 @@ fn detail_drawer(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
     ]),
     @html.div(class="dsh-drawer-section", [
       @html.h3(class="dsh-drawer-section-title", "profile 健康"),
+      // 只说人话：缺几个包（拿得到名字就带上名字）、补丁文件在不在。
+      // 「这句话是从哪读出来的」不在这里 —— 那是这一版怎么实现的，正文一个字不占。
       @html.p(
         class="dsh-drawer-health",
         attrs=mark("drawer-health", ["overview", "drawer", row.id, "health"]),
         row.health_text,
-      ),
-      @html.p(
-        class="dsh-drawer-raw",
-        attrs=mark("drawer-health-source", ["overview", "drawer", row.id, "health", "source"]),
-        "来源：" + row.health_source,
       ),
     ]),
   ]

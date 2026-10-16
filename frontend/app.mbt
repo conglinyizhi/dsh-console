@@ -698,7 +698,7 @@ fn backend_hint(note : String) -> String {
   if note == "" {
     ""
   } else {
-    "后端回执：" + note
+    "回执原文：" + note
   }
 }
 
@@ -1313,7 +1313,7 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
           settings_status_text: "",
           settings_error: reason,
           settings_endpoint_missing: false,
-          tag_settings: fallback_tag("GET /api/local/settings " + reason),
+          tag_settings: fallback_tag("设置读数读取失败：" + reason),
         },
         @cmd.none,
       )
@@ -1330,7 +1330,7 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
             settings_status_text: "",
             settings_error: reason,
             settings_endpoint_missing: false,
-            tag_settings: fallback_tag("GET /api/local/settings " + reason),
+            tag_settings: fallback_tag("设置读数读取失败：" + reason),
           },
           @cmd.none,
         )
@@ -1362,7 +1362,7 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
                 settings_status_text: got.status_text,
                 settings_error: detail,
                 settings_endpoint_missing: false,
-                tag_settings: fallback_tag("GET /api/local/settings " + detail),
+                tag_settings: fallback_tag("设置读数读取失败：" + detail),
               },
               @cmd.none,
             )
@@ -1371,9 +1371,9 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
       } else {
         let missing = got.status == 404 || got.status == 501
         let detail = (if missing {
-          "后端还没有这个接口。"
+          "这台控制台还没有提供设置读数。"
         } else {
-          "后端返回了错误。"
+          "读设置时出错了。"
         }) + failure_note(got)
         (
           {
@@ -1384,7 +1384,7 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
             settings_error: detail,
             settings_endpoint_missing: missing,
             tag_settings: fallback_tag(
-              "GET /api/local/settings → " + http_status_text(got),
+              "设置读数读取失败：" + http_status_text(got),
             ),
           },
           @cmd.none,
@@ -1646,7 +1646,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 runtime: None,
                 runtime_error: reason,
                 runtime_time: time,
-                tag_runtime: fallback_tag("/api/local/runtime 读取失败：" + reason),
+                tag_runtime: fallback_tag("控制台自身读数读取失败：" + reason),
                 read_runtime: true,
               }
           }
@@ -1657,7 +1657,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             runtime: None,
             runtime_error: reason,
             runtime_time: time,
-            tag_runtime: fallback_tag("/api/local/runtime 读取失败：" + reason),
+            tag_runtime: fallback_tag("控制台自身读数读取失败：" + reason),
             read_runtime: true,
           }
         }
@@ -1681,7 +1681,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 ..model,
                 profiles: None,
                 profiles_error: reason,
-                tag_profiles: fallback_tag("/api/local/profiles 读取失败：" + reason),
+                tag_profiles: fallback_tag("profile 读数读取失败：" + reason),
                 read_profiles: true,
               }
           }
@@ -1691,7 +1691,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             ..model,
             profiles: None,
             profiles_error: reason,
-            tag_profiles: fallback_tag("/api/local/profiles 读取失败：" + reason),
+            tag_profiles: fallback_tag("profile 读数读取失败：" + reason),
             read_profiles: true,
           }
         }
@@ -1717,7 +1717,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 ..model,
                 console: None,
                 console_error: reason,
-                tag_archived: fallback_tag("/api/local/console 读取失败：" + reason),
+                tag_archived: fallback_tag("归档与回收站读数读取失败：" + reason),
                 read_console: true,
               }
           }
@@ -1727,7 +1727,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             ..model,
             console: None,
             console_error: reason,
-            tag_archived: fallback_tag("/api/local/console 读取失败：" + reason),
+            tag_archived: fallback_tag("归档与回收站读数读取失败：" + reason),
             read_console: true,
           }
         }
@@ -1751,7 +1751,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 ..model,
                 instances: None,
                 instances_error: reason,
-                tag_instances: fallback_tag("/api/local/instances 读取失败：" + reason),
+                tag_instances: fallback_tag("实例读数读取失败：" + reason),
                 read_instances: true,
               }
           }
@@ -1761,7 +1761,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             ..model,
             instances: None,
             instances_error: reason,
-            tag_instances: fallback_tag("/api/local/instances 读取失败：" + reason),
+            tag_instances: fallback_tag("实例读数读取失败：" + reason),
             read_instances: true,
           }
         }
@@ -1772,7 +1772,6 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       let time = local_time_now()
       let source = model.log_source
       let label = source_label(model, source)
-      let query = "GET /api/local/logs?source=" + js_encode_uri_component(source)
       let next = match res {
         Ok(text) =>
           match parse_logs(text) {
@@ -1808,7 +1807,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 logs: None,
                 log_error: reason,
                 log_time: time,
-                log_tag: fallback_tag(query + " 失败：" + reason),
+                log_tag: fallback_tag(label + "读取失败：" + reason),
                 log_loading: false,
               }
           }
@@ -1819,7 +1818,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             logs: None,
             log_error: reason,
             log_time: time,
-            log_tag: fallback_tag(query + " 失败：" + reason),
+            log_tag: fallback_tag(label + "读取失败：" + reason),
             log_loading: false,
           }
         }

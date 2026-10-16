@@ -339,12 +339,12 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   // 状态行是排查用的（端点、状态码），收进悬停：正文只说「读不到」这件事本身
   let detail = if model.settings_status > 0 {
-    "GET /api/local/settings → HTTP " +
+    "读设置失败：HTTP " +
     model.settings_status.to_string() +
     " " +
     model.settings_status_text
   } else {
-    "GET /api/local/settings 的请求没发出去"
+    "读设置这一枪没发出去"
   }
   let status_line = if missing {
     "这台控制台还没提供设置这一页要的读数。"
