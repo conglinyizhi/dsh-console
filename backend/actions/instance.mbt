@@ -112,26 +112,16 @@ pub struct Target {
 
 ///|
 /// 在 PATH 里找一个可执行文件（只做存在性判断，不执行任何东西）。
+/// 实现在 @json.find_in_path：找 dsh 入口（runtime 那条兜底链）也要用同一个 PATH 口径。
 pub async fn find_in_path(name : String) -> String? noraise {
-  let path = match @json.env_value("PATH") {
-    Some(p) => p
-    None => return None
-  }
-  for entry in path.split(":") {
-    let dir = @json.owned(entry)
-    if dir == "" {
-      continue
-    }
-    let candidate = @json.join_path(dir, name)
-    if @json.exists(candidate) {
-      return Some(candidate)
-    }
-  }
-  None
+  @json.find_in_path(name)
 }
 
 ///|
 /// 解析 dsh 入口：包目录 -> lib/bin.js。包目录不存在 / 入口缺失给 None。
+/// 包目录来自 @runtime.installed_dsh_dir 那条兜底链（顺 dsh shim / 全局根下按深度找 /
+/// 多份取与在跑实例一致的），与 /api/local/runtime 的 dshPackageDir 同一份结论 ——
+/// 起实例不会和读数指向两个不同的 dsh。
 pub async fn resolve_dsh_command() -> DshCommand? noraise {
   let dir = match @runtime.installed_dsh_dir() {
     Some(d) => d
@@ -524,7 +514,7 @@ pub async fn start_instance(
     None => {
       fail(
         "spawn-failed",
-        "找不到 dsh 入口：pnpm 全局目录里没有 @deepseek-ai/dsh/lib/bin.js",
+        "找不到 dsh 入口：PATH 上的 dsh 命令解不出包目录，pnpm 全局根下也没有 @deepseek-ai/dsh/lib/bin.js",
       )
       abort("unreachable: fail 一定抛错")
     }

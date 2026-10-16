@@ -1,6 +1,7 @@
 import {
   "conglinyizhi/dsh-console-backend/json",
   "conglinyizhi/dsh-console-backend/localapi",
+  "conglinyizhi/dsh-console-backend/processes",
   "moonbitlang/async",
   "moonbitlang/async/fs",
   "moonbitlang/async/types",

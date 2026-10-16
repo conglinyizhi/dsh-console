@@ -48,6 +48,27 @@ pub async fn env_raw(name : String) -> String? noraise {
 }
 
 ///|
+/// 在 PATH 里找一个可执行文件（只做存在性判断，不执行任何东西）。
+/// 找 dsh 入口与找 node / 打开器共用这一份 —— 同一个 PATH 口径只写一次。
+pub async fn find_in_path(name : String) -> String? noraise {
+  let path = match env_value("PATH") {
+    Some(p) => p
+    None => return None
+  }
+  for entry in path.split(":") {
+    let dir = owned(entry)
+    if dir == "" {
+      continue
+    }
+    let candidate = join_path(dir, name)
+    if exists(candidate) {
+      return Some(candidate)
+    }
+  }
+  None
+}
+
+///|
 /// 当前用户的家目录。
 /// 先看 $HOME；没有就从 /etc/passwd 里按 $USER 找一行（只读，不调外部命令）。
 pub async fn home_dir() -> String noraise {

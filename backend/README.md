@@ -157,7 +157,7 @@ curl -X PUT http://127.0.0.1:5390/api/local/settings \
 | `dshVersion` | string | pnpm 全局目录里 `@deepseek-ai/dsh` 的 package.json version |
 | `dshPackageName` | string | `@deepseek-ai/dsh` |
 | `dshPackageDir` | string | 命中的安装目录绝对路径 |
-| `dshSourceLabel` | string | `本机已安装` |
+| `dshSourceLabel` | string | `本机已安装` + 找到它的那条策略，形如 `本机已安装（顺 PATH 上的 dsh 命令解开包目录；与在跑实例同一份）` |
 | `backendRuntime` | string | `moonbit/native`：后端自己的运行时（**取代原 `nodeVersion`**） |
 | `backendVersion` | string | 后端自身版本，与 `moon.mod` 的 `version` 一致 |
 | `backendPackageName` | string | `conglinyizhi/dsh-console-backend` |
@@ -166,9 +166,19 @@ curl -X PUT http://127.0.0.1:5390/api/local/settings \
 | `dshProfile` | string / null | `$DSH_PROFILE`，未设置给 null |
 | `platform` | string | `linux x64 (7.2.9-arch1-1)` 形状 |
 
-搜索顺序与 Node 版一致：`~/.local/share/pnpm/global/<槽>/node_modules/@deepseek-ai/dsh`、
-`~/.pnpm-global/...`、`~/Library/pnpm/global/...`，外加每个 root 下的扁平 `node_modules`；
-多份命中时取版本最大的一份（按版本段数字比较）。
+找包目录是一条三级兜底链（`backend/runtime/runtime.mbt` 的 `find_installed_dsh`），
+按可靠性排：**① 顺 PATH 上的 `dsh` 命令**（它是 pnpm 写的 shim，脚本里写着真入口
+`<包目录>/lib/bin.js`，连 `$basedir` 的写法一起还原）→ **② 在已知全局根下按深度 ≤3 找**
+`<目录>/node_modules/@deepseek-ai/dsh` → **③ 多份候选时挑与在跑实例一致的那份**
+（先看同一个包目录，再看版本一致的那批里版本最高的），挑不出参照就取版本最高。
+
+为什么不能只按固定路径扫：pnpm v11 的全局布局是 `<根>/<槽>/<哈希>/node_modules/@deepseek-ai/dsh`，
+比老布局多一层哈希，`<根>/<槽>/node_modules/…` 那条会整条落空 —— 读数报 `dsh-package-missing`、
+起实例报找不到入口，而 `dsh --version` 一切正常。全局根除了 `~/.local/share/pnpm/global`、
+`~/.pnpm-global`、`~/Library/pnpm/global` 三个固定候选，还认 `PNPM_HOME` 与 `XDG_DATA_HOME`。
+
+用了哪条策略写进 `dshSourceLabel`，不猜也不吞。同一份结论同时喂给起实例那条路
+（`installed_dsh_dir`），读数与起实例不会指向两个不同的 dsh。
 
 **两处硬编码的修正（第二批）**：
 
