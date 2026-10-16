@@ -100,3 +100,31 @@ dsh-base/cordis.patch.yml:171   root: !!js dshHomePath('storages')
 - 「复制开发指令」里那段约束（只改这一份、别动主线）在多 home 之后**会更硬** ✓（连状态都不在一处了）。
 - 归档/回收站语义不变 ✓（只多一个 home 维度）。
 - 派生时若目标 home 不同，`node_modules` 那份「缺包」提示照旧成立 ✓。
+---
+
+## 决定（2026-10-16，使用者拍板）：选 B 层
+
+> 「B，要不然这个软件的隔离功能不可靠」
+
+B 层 = 日志、技能、缓存、home 根下的插件目录都要隔离。
+这些东西走 DSH_HOME 相对路径或 dshHomePath 服务，profile 层的 patch 覆盖不到 ✗，
+所以：每只开发用 profile 必须有自己的一份 DSH_HOME —— 第三、四节是必做项，砍不掉。
+
+### 口径跟着改
+
+1. Phase 2.5（profile 层 patch 挪 root）在独立 home 方案下大部分不再需要 ——
+   给了 profile 自己的 home，sessions、storages、logs、cache、技能、home 根插件目录天然都在里面。
+2. 但凭据那一条仍然必做且方式不变：credentials 那一行配 config.path 指向共用那一份，
+   绝不能用符号链接（写入走 writeFileAtomic，rename 会替换掉链接本身，每个 home 里会多一份明文密钥副本，Phase 0 已实测）。
+3. 技能有两个根要显式处理：$DSH_HOME/skills 与 ~/.agents/skills 是独立的两个，
+   独立 home 不会自动继承后者 —— 要么显式链接，要么明确开发 profile 不挂全局技能（这是要定的取舍）。
+4. Phase 3 多一条前置：动手前先追清控制台自己是怎么列会话的
+   （Phase 0b 只确认后端不直接扫 sessions 目录，没追出真实来源）。
+   否则会出现会话挪走了、控制台里看不见了。
+
+### 工作顺序
+
+1. 追清控制台的会话列表来源（Phase 3 前置，小）
+2. 定技能那个取舍（挂链接还是各用各的）
+3. Phase 3：控制台多 home 改造（跨 home 聚合 profile、实例按 home 归位、备注归档回收站的键带上 home）
+4. Phase 4：迁移（已有 fork 不强制迁，提供双向迁移动作，失败可回退）
