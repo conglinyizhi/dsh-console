@@ -300,7 +300,7 @@ fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
 ///|
 /// 抽屉里那一组控制按钮 —— **今天行菜单里有的一个不少**。
 ///
-/// 顺序照原来的菜单骨架：先主操作（打开 / 起停 / 重启），再「把东西拿走」那一簇
+/// 顺序照原来的菜单骨架：先主操作（打开 / 起停 / 重启），再「打开与复制」那一簇
 /// （开新标签、两条复制、复制开发指令），然后是会改本机状态的（重命名 / 备注 / 派生 /
 /// 归档 / 删除），最后是运维三项（查看日志 / 打开工作目录 / 编辑配置）。
 fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
@@ -397,7 +397,9 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
   ]
   let groups : Array[(String, Array[@html.Html])] = [
     ("主操作", main),
-    ("拿走", take),
+    // 「拿走」读起来像破坏性动作（"从这儿拿走"），而里面装的是在新标签页打开与两处复制 ——
+    // 是「拿出去用」，不是「拿走」。组名要与里面装的东西逐字对得上。
+    ("打开与复制", take),
     ("改动这只 profile", mutate),
     ("运维", ops),
   ]
