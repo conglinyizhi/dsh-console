@@ -114,6 +114,11 @@ if (SECTIONS.includes('drag')) {
 }
 
 // ── stuck：拖到列表之外松手，之后划过列表不许还画着落位线 ──
+// 口径变更（第十三轮，使用者要求）：甩到列表下方**不再作废**，而是落到最后一格 ——
+// 原先纵向有 ±32px 宽容带，出带即无落点，于是「拖到最后」这个动作永远够不着 ✗。
+// 现在只有横向出栅格、或进到另一组才作废 ✓
+// 所以这一段现在验的是两件事：① 松手被外壳那份安全网接住（不留卡住的拖动状态 ✓）
+// ② 落到最后一格并写回（orderAfter 里最后一条应当是被拖的那条 ✓）
 if (SECTIONS.includes('stuck')) {
   const cards = await readCards()
   const group = cards.filter((c) => c.group === 'stopped')
