@@ -280,8 +280,14 @@ extern "js" fn js_drop_freeze(dragged : String) -> String =
   #|     return { id: el.getAttribute('data-row') || '', top: r.top, bottom: r.bottom };
   #|   }).filter((c) => c.id);
   #|   const g = grid.getBoundingClientRect();
+  #|   // 别组的盒子一起冻下来：落点判定要知道指针有没有**进到另一组**里（跨组不落）。
+  #|   // 别组在这次拖动里不动（摆格子只摆被拖的那一组），所以冻一份就够，不必每动一下重量。
+  #|   const others = [...document.querySelectorAll('[data-name="row-group"]')].filter((el) => el !== grid).map((el) => {
+  #|     const r = el.getBoundingClientRect();
+  #|     return { group: el.getAttribute('data-group') || '', top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+  #|   });
   #|   globalThis.__dshDropRef = { group: grid.getAttribute('data-group') || '', cards: cards,
-  #|     top: g.top, bottom: g.bottom, left: g.left, right: g.right, dragged: dragged };
+  #|     top: g.top, bottom: g.bottom, left: g.left, right: g.right, others: others, dragged: dragged };
   #|   const r = card.getBoundingClientRect();
   #|   const out = { w: r.width, h: r.height };
   #|   // 冻下来的那一刻就挂上「滚了就作废」的监听：坐标是视口坐标，页面一滚就全对不上了。
@@ -310,25 +316,55 @@ extern "js" fn js_drop_clear() -> Unit =
 
 ///|
 /// 指针底下是哪一条：返回一段 JSON `{"row":"<行 id>","group":"running|stopped","rank":N}`，
-/// 指针在那一组之外（拖出列表 / 页面滚过）就给空串。
+/// 只有两种情形给空串（这一次没有落点）：指针**横向离开这一组的栅格**、或**进到另一组**里
+/// （另加页面滚过那一路，见 js_drop_scrolled）。
 ///
 /// `rank` 是**插入位次**，也就是结果里那个格子序号：插到某一条之前 = 它在「其余 n-1 条」里的位次，
 /// 之后 = 位次 + 1。前端的落点算法（state.mbt 的 insert_at_index）只认这一个数 ——
 /// 「指针越过谁的中间线」这个判定因此从代码里搬到了画面上：占位块就摆在那一格。
 ///
+/// **纵向不设界（第十三轮改，口径变更）**：落点由「指针与各块中心的关系」算，任何 y 都算得出
+/// 一个位次 —— 越过最后一块的下沿 = **最后一格**（rank 走到 n，由 insert_at_index 收口成 n-1）、
+/// 越过第一块的上沿 = **第一格**（rank 0）。旧版在列表上下各留 32px 宽容带、出带即作废，
+/// 于是最后 / 最前那一格**永远够不着**：指针要越过那一块才能到那一格，而越过就已经出带 ——
+/// 使用者报的「拖不到最后面」就是这一条。
+///
+/// 两头是**先收口、再算中间**两步：中间那一段按「离得最近的那一条 + 指针在它上半还是下半」定，
+/// 栅格的行间距有 12px，只认「正压在某一条上」会让这 12px 里什么提示都没有；
+/// 而两头不能交给「最近一条」（同一行各块底边相同、距离并列，取并列里的第一个会落到
+/// 最后一行的第一格）。两步合起来：任何纵向位置都给出一个位次。
+///
 /// 判定按冻结下来的那份格子走，不按活的 DOM：条目正在让位，活的位置会让落点自己跳。
-/// 指针在两条之间的缝里时取**离得最近的那一条**，再按它在缝的上半还是下半决定前后 ——
-/// 栅格的行间距有 12px，只认「正压在某一条上」会让这 12px 里什么提示都没有。
 extern "js" fn js_drop_target(x : Double, y : Double) -> String =
   #| (x, y) => {
   #|   const ref = globalThis.__dshDropRef;
   #|   if (!ref || ref.cards.length < 2) return '';
-  #|   // 落在列表之外：这一次拖动不算落点（松手 = 作废），一个节点都不该画。
-  #|   // **判据只看纵向**：落点是「插到第几格」，而格子序号只由 y 定（多列时列由顺序推，
-  #|   // 与指针的 x 无关）—— 把 x 也收进列表左右缘里，会把「往右边那一列拖」判成出界，
-  #|   // 而它明明是在这一组里排序。纵向留 32px 的宽容带：贴着第一行上沿 / 最后一行下沿
-  #|   // 拖仍算数；甩到列表下面很远（那个位置已经不是这个列表了）才算作废。
-  #|   if (y < ref.top - 32 || y > ref.bottom + 32) return '';
+  #|   // 只有两种情形算「这一次没有落点」：
+  #|   //   ① 指针**横向**离开这一组的栅格 —— 它已经不在这一片的排序里了。
+  #|   //      留 24px 宽容带：纵向拖的时候手往旁边偏一点，不该把落点整个判没。
+  #|   //      （栅格的左右缘跨着全部列，所以「往右边那一列拖」仍在缘内 ✓）
+  #|   //   ② 指针**进到另一组**里 —— 两组是语义，跨组拖动不合并两组，
+  #|   //      在那儿画一个占位块等于答应了做不到的事。
+  #|   // 纵向**不设界**：落点由「指针与各块中心的关系」算，任何 y 都算得出一个位次 ——
+  #|   // 越过最后一块 = 最后一格、越过第一块 = 第一格（见上面的说明）。
+  #|   const padX = 24;
+  #|   if (x < ref.left - padX || x > ref.right + padX) return '';
+  #|   for (const g of ref.others || []) {
+  #|     if (x >= g.left && x <= g.right && y >= g.top && y <= g.bottom) return '';
+  #|   }
+  #|   // 两头的**收口**先判，不能靠「离得最近那一条」—— 指针在最后一行下方时，
+  #|   // 那一行各块的底边相同、距离并列，取并列里的第一个会落到「最后一行的第一格」，
+  #|   // 而不是最后那一格（实测：3 条排一行时落在第 1 格而不是第 2 格）。
+  #|   // 越过第一块的上沿 = 第一格（rank 0）、越过最后一块的下沿 = 最后一格（rank n，
+  #|   // 由 insert_at_index 收口成 n-1）—— 中间那一段才交给下面那套「最近一条 + 上半/下半」。
+  #|   let topMost = ref.cards[0].top;
+  #|   let bottomMost = ref.cards[0].bottom;
+  #|   for (const c of ref.cards) {
+  #|     if (c.top < topMost) topMost = c.top;
+  #|     if (c.bottom > bottomMost) bottomMost = c.bottom;
+  #|   }
+  #|   if (y <= topMost) return JSON.stringify({ row: ref.cards[0].id, group: ref.group, rank: 0 });
+  #|   if (y >= bottomMost) return JSON.stringify({ row: ref.cards[ref.cards.length - 1].id, group: ref.group, rank: ref.cards.length });
   #|   let best = ref.cards[0];
   #|   let bestD = null;
   #|   for (const c of ref.cards) {
@@ -339,6 +375,7 @@ extern "js" fn js_drop_target(x : Double, y : Double) -> String =
   #|   const mid = (best.top + best.bottom) / 2;
   #|   const after = y > mid;
   #|   const i = ref.cards.indexOf(best);
+  #|   // 中间这一段 rank 落在 0..n-1 里（两头已经先返回），不必再收口
   #|   const rank = after ? i + 1 : i;
   #|   return JSON.stringify({ row: best.id, group: ref.group, rank: rank });
   #| }

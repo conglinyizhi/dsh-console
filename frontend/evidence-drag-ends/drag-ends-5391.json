@@ -1,0 +1,1210 @@
+{
+ "url": "http://127.0.0.1:5391/",
+ "stateDir": "/tmp/dsh-drag-iso",
+ "trials": [
+  {
+   "name": "拖到最末（越过最后一块下沿）",
+   "group": "stopped",
+   "from": "profile:web-dev",
+   "release": {
+    "x": 868,
+    "y": 345
+   },
+   "orderBefore": [
+    "profile:web-dev",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "frames": [
+    {
+     "i": 1,
+     "pointer": {
+      "x": 405,
+      "y": 262
+     },
+     "slotVisual": 1,
+     "slotDeclared": 1,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 415,
+      "y": 276
+     }
+    },
+    {
+     "i": 2,
+     "pointer": {
+      "x": 471,
+      "y": 274
+     },
+     "slotVisual": 1,
+     "slotDeclared": 1,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 481,
+      "y": 288
+     }
+    },
+    {
+     "i": 3,
+     "pointer": {
+      "x": 537,
+      "y": 286
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 547,
+      "y": 300
+     }
+    },
+    {
+     "i": 4,
+     "pointer": {
+      "x": 603,
+      "y": 298
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 613,
+      "y": 312
+     }
+    },
+    {
+     "i": 5,
+     "pointer": {
+      "x": 669,
+      "y": 309
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 679,
+      "y": 323
+     }
+    },
+    {
+     "i": 6,
+     "pointer": {
+      "x": 735,
+      "y": 321
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 745,
+      "y": 335
+     }
+    },
+    {
+     "i": 7,
+     "pointer": {
+      "x": 801,
+      "y": 333
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 811,
+      "y": 347
+     }
+    },
+    {
+     "i": 8,
+     "pointer": {
+      "x": 868,
+      "y": 345
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 878,
+      "y": 359
+     }
+    }
+   ],
+   "preview": {
+    "slotVisual": 2,
+    "slotDeclared": 2,
+    "slotIsLastCell": true,
+    "slotInLastRow": true,
+    "slotIsLastOfLastRow": true,
+    "rowCounts": [
+     3
+    ],
+    "count": 3,
+    "cells": [
+     {
+      "cell": 0,
+      "row": "profile:headless",
+      "slot": false,
+      "x": 212,
+      "y": 215,
+      "w": 253,
+      "h": 70
+     },
+     {
+      "cell": 1,
+      "row": "profile:review-dev",
+      "slot": false,
+      "x": 477,
+      "y": 215,
+      "w": 253,
+      "h": 70
+     },
+     {
+      "cell": 2,
+      "row": null,
+      "slot": true,
+      "x": 741,
+      "y": 215,
+      "w": 253,
+      "h": 70
+     }
+    ]
+   },
+   "orderAfter": [
+    "profile:headless",
+    "profile:review-dev",
+    "profile:web-dev"
+   ],
+   "orderFileAfter": "[\"port:3080\",\"profile:headless\",\"profile:review-dev\",\"profile:web-dev\"]",
+   "landedAt": 2,
+   "consistent": true,
+   "declaredMatchesVisual": true,
+   "slotEveryFrame": true
+  },
+  {
+   "name": "拖到最前（越过第一块上沿）",
+   "group": "stopped",
+   "from": "profile:web-dev",
+   "release": {
+    "x": 339,
+    "y": 175
+   },
+   "orderBefore": [
+    "profile:headless",
+    "profile:review-dev",
+    "profile:web-dev"
+   ],
+   "frames": [
+    {
+     "i": 1,
+     "pointer": {
+      "x": 801,
+      "y": 241
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 811,
+      "y": 255
+     }
+    },
+    {
+     "i": 2,
+     "pointer": {
+      "x": 735,
+      "y": 231
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 745,
+      "y": 245
+     }
+    },
+    {
+     "i": 3,
+     "pointer": {
+      "x": 669,
+      "y": 222
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 679,
+      "y": 236
+     }
+    },
+    {
+     "i": 4,
+     "pointer": {
+      "x": 603,
+      "y": 213
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 613,
+      "y": 227
+     }
+    },
+    {
+     "i": 5,
+     "pointer": {
+      "x": 537,
+      "y": 203
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 547,
+      "y": 217
+     }
+    },
+    {
+     "i": 6,
+     "pointer": {
+      "x": 471,
+      "y": 194
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 481,
+      "y": 208
+     }
+    },
+    {
+     "i": 7,
+     "pointer": {
+      "x": 405,
+      "y": 184
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 415,
+      "y": 198
+     }
+    },
+    {
+     "i": 8,
+     "pointer": {
+      "x": 339,
+      "y": 175
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 349,
+      "y": 189
+     }
+    }
+   ],
+   "preview": {
+    "slotVisual": 0,
+    "slotDeclared": 0,
+    "slotIsLastCell": false,
+    "slotInLastRow": true,
+    "slotIsLastOfLastRow": false,
+    "rowCounts": [
+     3
+    ],
+    "count": 3,
+    "cells": [
+     {
+      "cell": 0,
+      "row": null,
+      "slot": true,
+      "x": 212,
+      "y": 215,
+      "w": 253,
+      "h": 70
+     },
+     {
+      "cell": 1,
+      "row": "profile:headless",
+      "slot": false,
+      "x": 477,
+      "y": 215,
+      "w": 253,
+      "h": 70
+     },
+     {
+      "cell": 2,
+      "row": "profile:review-dev",
+      "slot": false,
+      "x": 741,
+      "y": 215,
+      "w": 253,
+      "h": 70
+     }
+    ]
+   },
+   "orderAfter": [
+    "profile:web-dev",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "orderFileAfter": "[\"port:3080\",\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]",
+   "landedAt": 0,
+   "consistent": true,
+   "declaredMatchesVisual": true,
+   "slotEveryFrame": true
+  },
+  {
+   "name": "多行：拖到最末",
+   "group": "stopped",
+   "from": "profile:web-dev",
+   "release": {
+    "x": 647,
+    "y": 591
+   },
+   "orderBefore": [
+    "profile:web-dev",
+    "profile:fx-end-1",
+    "profile:fx-end-2",
+    "profile:fx-end-3",
+    "profile:fx-end-4",
+    "profile:fx-end-5",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "frames": [
+    {
+     "i": 1,
+     "pointer": {
+      "x": 390,
+      "y": 293
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 400,
+      "y": 307
+     }
+    },
+    {
+     "i": 2,
+     "pointer": {
+      "x": 427,
+      "y": 335
+     },
+     "slotVisual": 3,
+     "slotDeclared": 3,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 437,
+      "y": 349
+     }
+    },
+    {
+     "i": 3,
+     "pointer": {
+      "x": 463,
+      "y": 378
+     },
+     "slotVisual": 4,
+     "slotDeclared": 4,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 473,
+      "y": 392
+     }
+    },
+    {
+     "i": 4,
+     "pointer": {
+      "x": 500,
+      "y": 421
+     },
+     "slotVisual": 5,
+     "slotDeclared": 5,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 510,
+      "y": 435
+     }
+    },
+    {
+     "i": 5,
+     "pointer": {
+      "x": 537,
+      "y": 463
+     },
+     "slotVisual": 6,
+     "slotDeclared": 6,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 547,
+      "y": 477
+     }
+    },
+    {
+     "i": 6,
+     "pointer": {
+      "x": 574,
+      "y": 506
+     },
+     "slotVisual": 7,
+     "slotDeclared": 7,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 584,
+      "y": 520
+     }
+    },
+    {
+     "i": 7,
+     "pointer": {
+      "x": 610,
+      "y": 548
+     },
+     "slotVisual": 7,
+     "slotDeclared": 7,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 620,
+      "y": 562
+     }
+    },
+    {
+     "i": 8,
+     "pointer": {
+      "x": 647,
+      "y": 591
+     },
+     "slotVisual": 7,
+     "slotDeclared": 7,
+     "slotIsLastOfLastRow": true,
+     "slots": 1,
+     "ghost": {
+      "x": 657,
+      "y": 605
+     }
+    }
+   ],
+   "preview": {
+    "slotVisual": 7,
+    "slotDeclared": 7,
+    "slotIsLastCell": true,
+    "slotInLastRow": true,
+    "slotIsLastOfLastRow": true,
+    "rowCounts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "count": 8,
+    "cells": [
+     {
+      "cell": 0,
+      "row": "profile:fx-end-1",
+      "slot": false,
+      "x": 212,
+      "y": 215,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 1,
+      "row": "profile:fx-end-2",
+      "slot": false,
+      "x": 506,
+      "y": 215,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 2,
+      "row": "profile:fx-end-3",
+      "slot": false,
+      "x": 212,
+      "y": 297,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 3,
+      "row": "profile:fx-end-4",
+      "slot": false,
+      "x": 506,
+      "y": 297,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 4,
+      "row": "profile:fx-end-5",
+      "slot": false,
+      "x": 212,
+      "y": 379,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 5,
+      "row": "profile:headless",
+      "slot": false,
+      "x": 506,
+      "y": 379,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 6,
+      "row": "profile:review-dev",
+      "slot": false,
+      "x": 212,
+      "y": 461,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 7,
+      "row": null,
+      "slot": true,
+      "x": 506,
+      "y": 461,
+      "w": 282,
+      "h": 70
+     }
+    ]
+   },
+   "orderAfter": [
+    "profile:fx-end-1",
+    "profile:fx-end-2",
+    "profile:fx-end-3",
+    "profile:fx-end-4",
+    "profile:fx-end-5",
+    "profile:headless",
+    "profile:review-dev",
+    "profile:web-dev"
+   ],
+   "orderFileAfter": "[\"port:3080\",\"profile:fx-end-1\",\"profile:fx-end-2\",\"profile:fx-end-3\",\"profile:fx-end-4\",\"profile:fx-end-5\",\"profile:headless\",\"profile:review-dev\",\"profile:web-dev\"]",
+   "landedAt": 7,
+   "consistent": true,
+   "declaredMatchesVisual": true,
+   "slotEveryFrame": true
+  },
+  {
+   "name": "多行：拖到最前",
+   "group": "stopped",
+   "from": "profile:web-dev",
+   "release": {
+    "x": 353,
+    "y": 175
+   },
+   "orderBefore": [
+    "profile:fx-end-1",
+    "profile:fx-end-2",
+    "profile:fx-end-3",
+    "profile:fx-end-4",
+    "profile:fx-end-5",
+    "profile:headless",
+    "profile:review-dev",
+    "profile:web-dev"
+   ],
+   "frames": [
+    {
+     "i": 1,
+     "pointer": {
+      "x": 610,
+      "y": 456
+     },
+     "slotVisual": 6,
+     "slotDeclared": 6,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 620,
+      "y": 470
+     }
+    },
+    {
+     "i": 2,
+     "pointer": {
+      "x": 574,
+      "y": 416
+     },
+     "slotVisual": 5,
+     "slotDeclared": 5,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 584,
+      "y": 430
+     }
+    },
+    {
+     "i": 3,
+     "pointer": {
+      "x": 537,
+      "y": 376
+     },
+     "slotVisual": 4,
+     "slotDeclared": 4,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 547,
+      "y": 390
+     }
+    },
+    {
+     "i": 4,
+     "pointer": {
+      "x": 500,
+      "y": 336
+     },
+     "slotVisual": 3,
+     "slotDeclared": 3,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 510,
+      "y": 350
+     }
+    },
+    {
+     "i": 5,
+     "pointer": {
+      "x": 463,
+      "y": 295
+     },
+     "slotVisual": 2,
+     "slotDeclared": 2,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 473,
+      "y": 309
+     }
+    },
+    {
+     "i": 6,
+     "pointer": {
+      "x": 427,
+      "y": 255
+     },
+     "slotVisual": 1,
+     "slotDeclared": 1,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 437,
+      "y": 269
+     }
+    },
+    {
+     "i": 7,
+     "pointer": {
+      "x": 390,
+      "y": 215
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 400,
+      "y": 229
+     }
+    },
+    {
+     "i": 8,
+     "pointer": {
+      "x": 353,
+      "y": 175
+     },
+     "slotVisual": 0,
+     "slotDeclared": 0,
+     "slotIsLastOfLastRow": false,
+     "slots": 1,
+     "ghost": {
+      "x": 363,
+      "y": 189
+     }
+    }
+   ],
+   "preview": {
+    "slotVisual": 0,
+    "slotDeclared": 0,
+    "slotIsLastCell": false,
+    "slotInLastRow": false,
+    "slotIsLastOfLastRow": false,
+    "rowCounts": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "count": 8,
+    "cells": [
+     {
+      "cell": 0,
+      "row": null,
+      "slot": true,
+      "x": 212,
+      "y": 215,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 1,
+      "row": "profile:fx-end-1",
+      "slot": false,
+      "x": 506,
+      "y": 215,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 2,
+      "row": "profile:fx-end-2",
+      "slot": false,
+      "x": 212,
+      "y": 297,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 3,
+      "row": "profile:fx-end-3",
+      "slot": false,
+      "x": 506,
+      "y": 297,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 4,
+      "row": "profile:fx-end-4",
+      "slot": false,
+      "x": 212,
+      "y": 379,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 5,
+      "row": "profile:fx-end-5",
+      "slot": false,
+      "x": 506,
+      "y": 379,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 6,
+      "row": "profile:headless",
+      "slot": false,
+      "x": 212,
+      "y": 461,
+      "w": 282,
+      "h": 70
+     },
+     {
+      "cell": 7,
+      "row": "profile:review-dev",
+      "slot": false,
+      "x": 506,
+      "y": 461,
+      "w": 282,
+      "h": 70
+     }
+    ]
+   },
+   "orderAfter": [
+    "profile:web-dev",
+    "profile:fx-end-1",
+    "profile:fx-end-2",
+    "profile:fx-end-3",
+    "profile:fx-end-4",
+    "profile:fx-end-5",
+    "profile:headless",
+    "profile:review-dev"
+   ],
+   "orderFileAfter": "[\"port:3080\",\"profile:web-dev\",\"profile:fx-end-1\",\"profile:fx-end-2\",\"profile:fx-end-3\",\"profile:fx-end-4\",\"profile:fx-end-5\",\"profile:headless\",\"profile:review-dev\"]",
+   "landedAt": 0,
+   "consistent": true,
+   "declaredMatchesVisual": true,
+   "slotEveryFrame": true
+  }
+ ],
+ "voids": [
+  {
+   "name": "拖进另一组",
+   "from": "profile:web-dev",
+   "to": "port:3080",
+   "orderBefore": [
+    {
+     "group": "running",
+     "rows": [
+      "port:3080"
+     ]
+    },
+    {
+     "group": "stopped",
+     "rows": [
+      "profile:web-dev",
+      "profile:headless",
+      "profile:review-dev"
+     ]
+    }
+   ],
+   "duringDrag": {
+    "slots": 0,
+    "ghosts": 1,
+    "dragActive": true
+   },
+   "orderAfter": [
+    {
+     "group": "running",
+     "rows": [
+      "port:3080"
+     ]
+    },
+    {
+     "group": "stopped",
+     "rows": [
+      "profile:web-dev",
+      "profile:headless",
+      "profile:review-dev"
+     ]
+    }
+   ],
+   "orderSame": true,
+   "notice": {
+    "text": null,
+    "drawer": false
+   }
+  },
+  {
+   "name": "横向拖出栅格很远",
+   "from": "profile:web-dev",
+   "gridLeft": 212,
+   "gridRight": 1578,
+   "releaseX": 92,
+   "clearsPad": true,
+   "orderBefore": [
+    {
+     "group": "running",
+     "rows": [
+      "port:3080"
+     ]
+    },
+    {
+     "group": "stopped",
+     "rows": [
+      "profile:web-dev",
+      "profile:headless",
+      "profile:review-dev"
+     ]
+    }
+   ],
+   "duringDrag": {
+    "slots": 0,
+    "ghosts": 1,
+    "dragActive": true
+   },
+   "orderAfter": [
+    {
+     "group": "running",
+     "rows": [
+      "port:3080"
+     ]
+    },
+    {
+     "group": "stopped",
+     "rows": [
+      "profile:web-dev",
+      "profile:headless",
+      "profile:review-dev"
+     ]
+    }
+   ],
+   "orderSame": true,
+   "notice": {
+    "text": null,
+    "drawer": false
+   }
+  }
+ ],
+ "regressions": {
+  "click": {
+   "row": "profile:headless",
+   "moved": 3,
+   "during": {
+    "slots": 0,
+    "ghosts": 0
+   },
+   "drawerOpen": true,
+   "orderSame": true
+  },
+  "narrow": {
+   "viewport": 720,
+   "during": {
+    "slots": 0,
+    "ghosts": 0,
+    "dragActive": false
+   },
+   "orderSame": true
+  }
+ },
+ "orderPathFromApi": "/tmp/dsh-drag-iso/dsh-console/order.json",
+ "orderIsolated": true,
+ "layoutSingle": {
+  "stopped": {
+   "grid": {
+    "left": 212,
+    "right": 1258,
+    "top": 215,
+    "bottom": 285
+   },
+   "rows": [
+    3
+   ],
+   "cards": [
+    {
+     "row": "profile:web-dev",
+     "cell": 0,
+     "x": 212,
+     "y": 215
+    },
+    {
+     "row": "profile:headless",
+     "cell": 1,
+     "x": 477,
+     "y": 215
+    },
+    {
+     "row": "profile:review-dev",
+     "cell": 2,
+     "x": 741,
+     "y": 215
+    }
+   ]
+  },
+  "running": {
+   "left": 212,
+   "right": 1258,
+   "top": 97,
+   "bottom": 167
+  },
+  "viewport": 1280
+ },
+ "topBandSingle": {
+  "firstTop": 215,
+  "runningBottom": 167,
+  "releaseY": 175,
+  "aboveFirst": true,
+  "belowRunning": true
+ },
+ "layoutMulti": {
+  "grid": {
+   "left": 212,
+   "right": 788,
+   "top": 215,
+   "bottom": 531
+  },
+  "rows": [
+   2,
+   2,
+   2,
+   2
+  ],
+  "count": 8,
+  "cards": [
+   {
+    "row": "profile:web-dev",
+    "cell": 0,
+    "x": 212,
+    "y": 215
+   },
+   {
+    "row": "profile:fx-end-1",
+    "cell": 1,
+    "x": 506,
+    "y": 215
+   },
+   {
+    "row": "profile:fx-end-2",
+    "cell": 2,
+    "x": 212,
+    "y": 297
+   },
+   {
+    "row": "profile:fx-end-3",
+    "cell": 3,
+    "x": 506,
+    "y": 297
+   },
+   {
+    "row": "profile:fx-end-4",
+    "cell": 4,
+    "x": 212,
+    "y": 379
+   },
+   {
+    "row": "profile:fx-end-5",
+    "cell": 5,
+    "x": 506,
+    "y": 379
+   },
+   {
+    "row": "profile:headless",
+    "cell": 6,
+    "x": 212,
+    "y": 461
+   },
+   {
+    "row": "profile:review-dev",
+    "cell": 7,
+    "x": 506,
+    "y": 461
+   }
+  ],
+  "viewport": 810
+ },
+ "topBandMulti": {
+  "firstTop": 215,
+  "runningBottom": 167,
+  "releaseY": 175,
+  "aboveFirst": true,
+  "belowRunning": true
+ },
+ "checks": [
+  {
+   "name": "拖到最末：拖动中有占位块",
+   "pass": true,
+   "detail": "8 帧，占位块每帧 1 个"
+  },
+  {
+   "name": "拖到最末：占位块在最后一格",
+   "pass": true,
+   "detail": "第 2 格 / 共 3 格"
+  },
+  {
+   "name": "拖到最末：预览与结果逐格一致",
+   "pass": true,
+   "detail": "占位块第 2 格 → 落在第 2 格"
+  },
+  {
+   "name": "拖到最末：落在最后一格",
+   "pass": true,
+   "detail": "[\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"] → [\"profile:headless\",\"profile:review-dev\",\"profile:web-dev\"]"
+  },
+  {
+   "name": "拖到最末：占位块声明与摆位同格",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "拖到最前：拖动中有占位块",
+   "pass": true,
+   "detail": "8 帧，占位块每帧 1 个"
+  },
+  {
+   "name": "拖到最前：占位块在第 0 格",
+   "pass": true,
+   "detail": "第 0 格"
+  },
+  {
+   "name": "拖到最前：预览与结果逐格一致",
+   "pass": true,
+   "detail": "占位块第 0 格 → 落在第 0 格"
+  },
+  {
+   "name": "拖到最前：落在第一格",
+   "pass": true,
+   "detail": "[\"profile:headless\",\"profile:review-dev\",\"profile:web-dev\"] → [\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]"
+  },
+  {
+   "name": "多行：占位块在最后一格",
+   "pass": true,
+   "detail": "第 7 格 / 共 8 格，各行条数 [2,2,2,2]"
+  },
+  {
+   "name": "多行：最后一格在最后一行的最后一列",
+   "pass": true,
+   "detail": "各行条数 [2,2,2,2]，共 4 行"
+  },
+  {
+   "name": "多行：预览与结果逐格一致",
+   "pass": true,
+   "detail": "占位块第 7 格 → 落在第 7 格"
+  },
+  {
+   "name": "多行：落在最后一行的最后一格",
+   "pass": true,
+   "detail": "[\"profile:web-dev\",\"profile:fx-end-1\",\"profile:fx-end-2\",\"profile:fx-end-3\",\"profile:fx-end-4\",\"profile:fx-end-5\",\"profile:headless\",\"profile:review-dev\"] → [\"profile:fx-end-1\",\"profile:fx-end-2\",\"profile:fx-end-3\",\"profile:fx-end-4\",\"profile:fx-end-5\",\"profile:headless\",\"profile:review-dev\",\"profile:web-dev\"]"
+  },
+  {
+   "name": "多行：拖到最前落在第 0 格",
+   "pass": true,
+   "detail": "占位块第 0 格 → 落在第 0 格"
+  },
+  {
+   "name": "作废（拖进另一组）：拖动中没有占位块",
+   "pass": true,
+   "detail": "{\"slots\":0,\"ghosts\":1,\"dragActive\":true}"
+  },
+  {
+   "name": "作废（拖进另一组）：顺序不变",
+   "pass": true,
+   "detail": "{\"before\":[\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"],\"after\":[\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]}"
+  },
+  {
+   "name": "作废（横向拖出栅格很远）：拖动中没有占位块",
+   "pass": true,
+   "detail": "{\"slots\":0,\"ghosts\":1,\"dragActive\":true}"
+  },
+  {
+   "name": "作废（横向拖出栅格很远）：顺序不变",
+   "pass": true,
+   "detail": "{\"before\":[\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"],\"after\":[\"profile:web-dev\",\"profile:headless\",\"profile:review-dev\"]}"
+  },
+  {
+   "name": "点击不误触发（位移 3px 未过阈值）",
+   "pass": true,
+   "detail": "{\"row\":\"profile:headless\",\"moved\":3,\"during\":{\"slots\":0,\"ghosts\":0},\"drawerOpen\":true,\"orderSame\":true}"
+  },
+  {
+   "name": "窄屏 720（<726）不响应拖动",
+   "pass": true,
+   "detail": "{\"viewport\":720,\"during\":{\"slots\":0,\"ghosts\":0,\"dragActive\":false},\"orderSame\":true}"
+  }
+ ]
+}

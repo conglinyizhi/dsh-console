@@ -2147,7 +2147,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 没按下过：划过卡片也会冒泡到这里，什么都不做
         (model, @cmd.none)
       } else if buttons == 0 {
-        // 没有任何键按着：这一次的抬起没收到（松手在列表之外），
+        // 没有任何键按着：这一次的抬起没收到（松手在页面之外，抬到窗口外面那一下不送到页面），
         // 当作作废。**顺序不动** —— 没提交过的东西没有什么要回滚的。
         (
           reset_drag(model),
@@ -2178,8 +2178,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 第一格（指针底下那条的 id）只用来查组：落点本身由 rank 定
         let (_, group, rank) = drop_target_of(x, y)
         let size = lift_sizes_of(model.drag_id)
-        // 只有落在**同一组**的条目上才算落点：两组是语义，跨组拖动不合并两组，
+        // 只有落在**同一组**里才算落点：两组是语义，跨组拖动不合并两组，
         // 画一个占位块在那儿等于答应了做不到的事。
+        // 「指针进到另一组」在 dom.mbt 那一层就已经返回空（那一组的盒子冻在 others 里）；
+        // 这里再按组名核一次，是同一件事的第二道 —— 那边管「指针在哪儿的盒子」，
+        // 这边管「这个组名是不是被拖那一条的组」。
         let same_group = group != "" && group == group_of_row_id(model, model.drag_id)
         let ids = if same_group { current_group_ids(model, group) } else { [] }
         let n = ids.length()
@@ -2231,7 +2234,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           drag_suppress_click: true,
         }
         match moved {
-          // 落在列表之外 / 跨组 / 组里只有这一条：这一次拖动作废，顺序不动，也不发请求
+          // 横向出栅格 / 跨组 / 组里只有这一条：这一次拖动作废，顺序不动，也不发请求
           None => (cleared, @cmd.batch([reorder_after_render(), clear_cells_after_render()]))
           Some(ids) => commit_order(cleared, dragged, ids, emit)
         }

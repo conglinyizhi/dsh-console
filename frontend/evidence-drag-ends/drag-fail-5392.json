@@ -1,0 +1,63 @@
+{
+ "url": "http://127.0.0.1:5392/",
+ "sections": [
+  "drag"
+ ],
+ "orderPath": "/tmp/dsh-drag-ro/dsh-console/order.json",
+ "orderFileBefore": null,
+ "drag": {
+  "group": "stopped",
+  "from": "profile:web-dev",
+  "to": "profile:review-dev",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "steps": [],
+  "indicator": {
+   "present": true,
+   "slotIndex": "1",
+   "slotRow": "profile:web-dev",
+   "cls": "dsh-case dsh-drop-slot ghost-tile",
+   "w": 253,
+   "h": 70,
+   "dragging": true,
+   "draggingRow": "profile:web-dev"
+  },
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:headless",
+     "profile:review-dev"
+    ]
+   }
+  ],
+  "orderFileAfter": null,
+  "notice": {
+   "err": "顺序没保存：HTTP 500 Internal Server Error | io-error：顺序没能写进 /tmp/dsh-drag-ro/dsh-console/order.json：写临时文件失败：/tmp/dsh-drag-ro/dsh-console/order.json.tmp-494117-1792140657227-1（OSError(\"@fs.open(): \\\"/tmp/dsh-drag-ro/dsh-console/order.json.tmp-494117-1792140657227-1\\\": Permission denied\")）",
+   "toast": null,
+   "drawer": false
+  }
+ },
+ "orderFileEnd": null
+}
