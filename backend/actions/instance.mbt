@@ -15,7 +15,9 @@
 // 命中就把事实翻译成人话（见 detect_arg_rejection / arg_rejection_message），不把日志尾巴丢出去。
 //
 // 端口、进程、信号的口径：
-//   · 端口从 instance.basePort 起找第一个空闲（空闲 = /proc/net/tcp(6) 里任何状态都没占）；
+//   · 端口从 instance.basePort 起找第一个空闲（空闲 = /proc/net/tcp(6) 里没有 LISTEN，且运行登记里没有）；
+//     显式指定的端口**不预判**：交给这一次 bind 当裁判，起不来就报日志里那句 errno 原话
+//     （TIME_WAIT 不是占用 —— 实例停掉后自己留下的那条 TIME_WAIT 曾经把重启挡回来过）；
 //   · 起完要等到真的 LISTEN 才算成功，超时或子进程提前退出都算失败，并把子进程收掉；
 //   · 停止是 SIGTERM -> 等 process.stopGraceMs -> SIGKILL；
 //   · 全程只写三个地方：实例日志、runtime.json、audit.jsonl。
@@ -182,9 +184,21 @@ fn parse_hex(s : String) -> Int {
 }
 
 ///|
-/// /proc/net/tcp(6) 里出现过的本地端口 —— 不筛状态：
-/// 一条 TIME_WAIT 或半开的连接也意味着这个端口不该拿来起新实例。
-pub async fn busy_ports() -> Array[Int] noraise {
+/// /proc/net/tcp(6) 状态列里 LISTEN 的码。
+pub let listen_state : String = "0A"
+
+///|
+/// /proc/net/tcp(6) 里**正在听**的本地端口 —— 只认状态列 0A（LISTEN），别的状态一律不算。
+///
+/// 为什么不看别的状态：TIME-WAIT（06）、FIN-WAIT、CLOSE-WAIT、CLOSE 这些都是连接关掉之后的
+/// 残留，那段时间端口上**没有任何东西在听**，内核允许重新 bind（监听侧带 SO_REUSEADDR 即可，
+/// node 的 server.listen 默认就带）。把它们算成「被占用」会挑掉其实空着的口 ——
+/// 实测过的那一次：实例被停掉时自己留下一条 local=<原端口> 的 TIME-WAIT，重启就被它挡回来，
+/// 而端口上明明什么都没在听。
+///
+/// 两张表都读：IPv4 在 /proc/net/tcp，IPv6 在 /proc/net/tcp6（`::1` 上的监听只出现在后者，
+/// 只听 v6 的服务也不会在 v4 那张表里留行）。
+pub async fn listening_ports() -> Array[Int] noraise {
   let out : Array[Int] = []
   for file in ["/proc/net/tcp", "/proc/net/tcp6"] {
     let text = match @json.read_text_file(file) {
@@ -193,7 +207,8 @@ pub async fn busy_ports() -> Array[Int] noraise {
     }
     for line in text.split("\n") {
       let cols = @json.split_ws(@json.owned(line))
-      if cols.length() < 4 {
+      // 列序：0 sl、1 local_address、2 rem_address、3 st —— 表头行只有两列，在这里被筛掉
+      if cols.length() < 4 || cols[3] != listen_state {
         continue
       }
       let parts = @json.split_ws(cols[1].replace_all(old=":", new=" "))
@@ -210,9 +225,11 @@ pub async fn busy_ports() -> Array[Int] noraise {
 }
 
 ///|
-/// 从 base 起找第一个空闲端口。找不到给 None（不瞎扩大范围）。
+/// 从 base 起找第一个空闲端口。空闲 = /proc/net/tcp(6) 里没有 LISTEN，且运行登记里没有 ——
+/// 只有真的有人在听的口才跳过（改前连 TIME-WAIT 这类残留也一起跳，白扔掉空着的口）。
+/// 找不到给 None（不瞎扩大范围）。
 pub async fn pick_free_port(base : Int) -> Int? noraise {
-  let used = busy_ports()
+  let used = listening_ports()
   let registry = @store.load_registry()
   let mut candidate = base
   let mut tried = 0
@@ -443,6 +460,56 @@ pub fn arg_rejection_message(
 }
 
 ///|
+/// 「这一次 bind 没成」在日志里的特征词（比对前先小写）。
+/// 认的是 bind 这件事自己的 errno 名（EADDRINUSE / EADDRNOTAVAIL）与内核拼出来的那几句原话。
+/// EACCES 只在它跟 listen / bind 挨着时才认：单独一句 permission denied 可能来自文件操作，
+/// 不该算在 bind 头上（认错会把归因带到别处去）。
+let bind_failure_markers : Array[String] = [
+  "eaddrinuse",
+  "eaddrnotavail",
+  "address already in use",
+  "address in use",
+  "address not available",
+  "cannot assign requested address",
+  "listen eacces",
+  "bind eacces",
+]
+
+///|
+/// 从「本次启动新写出来的日志」里找 bind 失败的那一行原话（找不着给 None）。
+///
+/// 端口到底能不能用，由内核在 bind 那一刻说了算；这里只把进程写下来的那句原话带回去
+/// （形如 `Error: listen EADDRINUSE: address already in use 127.0.0.1:8400`：errno 名与端口都在里面），
+/// 不按 /proc/net/tcp 再替内核猜一个理由。认不出来就返回 None，那时按日志尾部如实交代。
+pub fn detect_bind_failure(text : String) -> String? {
+  for line in text.split("\n") {
+    let raw = @json.owned(line)
+    let probe = @json.to_lower(raw)
+    if bind_failure_markers.any(fn(m) { @json.index_of(probe, m) is Some(_) }) {
+      return Some(@json.trim_both(raw))
+    }
+  }
+  None
+}
+
+///|
+/// 端口起不来时的人话诊断：把这次 bind 的原话贴出来，并说清它来自哪。
+/// 与「参数被拒」那条一样，正文是证据，不是我们自己编的结论。
+pub fn bind_failure_message(
+  profile : String,
+  port : Int,
+  pid : Int,
+  log_path : String,
+  evidence : String,
+  detail : String,
+) -> String {
+  "端口 " + port.to_string() + " 起不来：这次 bind 没成，进程写下的原话是「" + evidence +
+  "」。这句话来自这次 bind（errno 与端口都在里面），不是我们按 /proc/net/tcp 猜的。" +
+  "换一个端口，或先腾出这个端口" + "（profile " + profile + "，pid " + pid.to_string() +
+  "，日志 " + log_path + "，" + detail + "）"
+}
+
+///|
 /// 起一个实例。任何一步失败都把已经起的子进程收掉，不留僵尸。
 pub async fn start_instance(
   profile : String,
@@ -490,10 +557,9 @@ pub async fn start_instance(
       if p < 1 || p > 65535 {
         fail("bad-params", "port 超出范围 1..65535：" + p.to_string())
       }
-      let used = busy_ports()
-      if used.contains(p) {
-        fail("conflict", "端口 " + p.to_string() + " 已被占用（/proc/net/tcp 里有这条记录）")
-      }
+      // 这里**不预判**端口有没有被占：/proc 那张表判不出「有人在听」——
+      // TIME-WAIT 这类残留会被误当成占用（重启沿用老端口就是这么被自己挡回来的）。
+      // 真正的裁判是这次 bind：起不来就按日志里操作系统给的原话报，见 bind_failure_message。
       p
     }
     None =>
@@ -588,14 +654,23 @@ pub async fn start_instance(
           "spawn-failed",
           arg_rejection_message(name, pid, log_path, rejection, detail),
         )
-      None => {
-        let tail = tail_text_lines(fresh, 5)
-        fail(
-          "spawn-failed",
-          "实例没起来（pid " + pid.to_string() + "，日志 " + log_path + "）：" + detail +
-          (if tail == "" { "" } else { "；日志尾部：" + tail }),
-        )
-      }
+      None =>
+        match detect_bind_failure(fresh) {
+          // 这一次 bind 被内核挡下了：报它的原话，不另编一个「端口被占」的结论
+          Some(evidence) =>
+            fail(
+              "conflict",
+              bind_failure_message(name, chosen, pid, log_path, evidence, detail),
+            )
+          None => {
+            let tail = tail_text_lines(fresh, 5)
+            fail(
+              "spawn-failed",
+              "实例没起来（pid " + pid.to_string() + "，日志 " + log_path + "）：" + detail +
+              (if tail == "" { "" } else { "；日志尾部：" + tail }),
+            )
+          }
+        }
     }
   }
   let boot_ms = (@async.now() - began).to_int()

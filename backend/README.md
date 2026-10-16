@@ -500,9 +500,9 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 
 | action | 真实做的事 | 关键边界 |
 | --- | --- | --- |
-| `start-instance` | `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`，等它答出 dsh web 签名才算起成功 | 同 profile 已在跑 → `conflict`（message 里有 pid 与端口）；端口占用 → `conflict`；起不来 → 收掉子进程，message 给「参数被拒」的人话诊断（见「哪些 profile 能起成常驻实例」）或日志尾部 |
+| `start-instance` | `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`，等它答出 dsh web 签名才算起成功 | 同 profile 已在跑 → `conflict`（message 里有 pid 与端口）；端口**真**被占 → `conflict`，message 贴的是这次 bind 报的原话（见下面「端口占用的裁判是 bind」）；起不来 → 收掉子进程，message 给「参数被拒」的人话诊断（见「哪些 profile 能起成常驻实例」）或日志尾部 |
 | `stop-instance` | SIGTERM → 等 `process.stopGraceMs` → 仍在则 SIGKILL | 目标必须在运行登记或进程表里认得出是 dsh，否则 `not-found`（不误杀别的 pid） |
-| `restart-instance` | 先停后起，端口与 profile 沿用原来的 | 认不出 profile → `not-found` |
+| `restart-instance` | 先停后起，端口与 profile 沿用原来的 | 认不出 profile → `not-found`；老端口上只剩 TIME-WAIT 这类残留时**照常起得来**（残留不是占用，见下面「端口占用的裁判是 bind」） |
 | `fork-profile` | 递归复制 profile 目录（**跳过 node_modules**，那是 pnpm 安装产物，提升目录仍解析得到），**再给新 profile 写一条"出生证明"备注** | 新名默认 `<原名>-dev`，重名自动加 `-2`/`-3`…；给了 port 就顺手把新 profile 起起来。拷贝口径写明：**「已拷 N 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可」**（`outcome.filesCopied` 是真实拷过去的文件数）。备注见下面「派生出的新 profile 怎么认得出」 |
 | `rename-profile` | 改磁盘上的目录名 | 空名 / 非法字符 / 重名 / 正在运行 都拒 |
 | `set-profile-note` | 写备注：非空 `text` 原子写进 `<profile 目录>/.dsh-note.txt`（覆盖旧的）；**空串 = 删掉那个文件** | 名字先过白名单、再确认解析到 `profilesRoot` 之内（**目录穿越拒 `bad-params`**）；目录不存在 `not-found`；超过 2000 字符 `bad-params`；写不动 `io-error`。`text` 不 trim（前后空格是用户写的），**缺 `text` 键 ≠ 空串**：缺键 `bad-params` |
@@ -553,6 +553,34 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
    收尾的 `reap_after_failure` 因此在每条「子进程已经不在」的分支上都补了一次 `wait_pid`
    （只对已经死掉的 pid 调，不会阻塞；不是自己的子进程时报 `ECHILD`，吞掉）。
 
+### 端口占用的裁判是 bind，不是 /proc/net/tcp
+
+- **找空闲口（从 `instance.basePort` 往后扫）只认 LISTEN**：`/proc/net/tcp(6)` 状态列等于 `0A` 的才算
+  「有人在听」。TIME-WAIT(06)、FIN-WAIT、CLOSE-WAIT、CLOSE 都是连接关掉之后的残留，
+  那段时间端口上**没有任何东西在听**，监听侧带 `SO_REUSEADDR`（node 的 `server.listen` 默认带）
+  就 bind 得上 —— 把它们算成「被占用」，等于白扔掉空着的口。
+- **显式指定的端口（起实例带 `port`、重启沿用老端口）在这里不预判**：`/proc` 那张表判不出
+  「有没有人在听」（见上一条），预判只会猜错。真正的裁判是这一次 bind：起不来就报
+  **进程写下的原话**，形如 `Error: listen EADDRINUSE: address already in use 127.0.0.1:8400`
+  （errno 名与端口都在里面），不再由控制台替内核编一句「/proc/net/tcp 里有这条记录」。
+
+`busy_ports()` 这次只有两个调用点，两处都过了一遍：找空闲口那处改成只认 LISTEN（`listening_ports()`，
+比改前更准，不再跳过其实空着的口）；显式端口那处不再需要它，预判整段删掉。
+
+**这条规矩是拿一次真事故换来的**：实例被停掉时自己留下一条 `local=<原端口>` 的 TIME-WAIT，
+重启沿用老端口时被自己的残留挡回来 —— 页面一瞬间是空的（老实例已经停了，新实例没起来），
+换个端口重试就成功。实测复现（远端，独立 home / state / 端口，改前改后两组二进制对照）：
+
+| 场景 | 改前（basePort=8420） | 改后（basePort=8430） |
+| --- | --- | --- |
+| basePort 上有 TIME-WAIT、没人听 | 跳过，起在 basePort+1 | 直接用 basePort |
+| 指定端口上有 TIME-WAIT | `conflict`：「端口 8421 已被占用（/proc/net/tcp 里有这条记录）」 | 起得来，实例就在 8421 上 |
+| 指定端口上真有 LISTEN | `conflict`（同上那句猜的） | `conflict`：「这次 bind 没成，进程写下的原话是 Error: listen EADDRINUSE: address already in use 127.0.0.1:8450」 |
+| 带着一条活连接重启（事故形状） | `conflict`，实例没起来 | 重启成功，TIME-WAIT 与新监听并存 |
+
+**IPv4 与 IPv6 两张表都读**：`/proc/net/tcp` 与 `/proc/net/tcp6`（`::1` 上的监听只出现在后者）。
+改前改后都读两张表，这次动的是「哪一列算数」—— 状态列不是 `0A` 的一律不算。
+
 ### 哪些 profile 能起成常驻实例
 
 起实例的 argv 是 `node <dsh包目录>/lib/bin.js --profile <名> --no-open --port <端口>`。
@@ -583,6 +611,17 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
   {"ok":false,"readOnly":false,"readAt":"2026-10-15T07:40:00.000Z","error":{
     "code":"spawn-failed",
     "message":"profile headless 的 app 不接受服务参数（--no-open），它不是服务型 profile，起不成常驻实例。子进程已经退出（pid 4321，日志 /home/u/.dsh/logs/console-headless-8400.log）。日志里写着：error: unknown option '--no-open'。要跑这种 profile，按它自己的用法跑一次（dsh --profile headless …），别拿它起常驻实例"}}
+  ```
+
+- **命中「这次 bind 没成」**（日志里有 `EADDRINUSE` / `EADDRNOTAVAIL` 这类 errno 名，
+  或 `address already in use` 这种原话；`EACCES` 只在跟 `listen` / `bind` 挨着时才算 ——
+  单独一句 `permission denied` 可能来自文件操作，不往 bind 上归因）：错误码仍是契约里的
+  `conflict`（409），message 把**原话**贴出来，并说清它来自这次 bind、不是我们按 `/proc/net/tcp` 猜的：
+
+  ```json
+  {"ok":false,"readOnly":false,"readAt":"2026-10-16T12:16:00.000Z","error":{
+    "code":"conflict",
+    "message":"端口 8450 起不来：这次 bind 没成，进程写下的原话是「Error: listen EADDRINUSE: address already in use 127.0.0.1:8450」。这句话来自这次 bind（errno 与端口都在里面），不是我们按 /proc/net/tcp 猜的。换一个端口，或先腾出这个端口（profile iso，pid 21034，日志 …/logs/console-iso-8450.log，子进程已经退出）"}}
   ```
 
 - **没命中**（启动就崩、bundle 解析不了、profile 自身有毛病等）：维持原来的形状 ——
@@ -647,7 +686,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `probe.timeoutMs` | 500 | 实例签名探测的单口超时（`instances.probe.timeoutMs` 回显的就是生效值） |
 | `probe.concurrency` | 8 | 探测并发（`instances.probe.concurrency` 回显） |
 | `probe.maxCandidates` | 40 | 候选端口上限（`instances.candidateLimit` 回显，超了照旧截断并带 `truncatedNote`） |
-| `instance.basePort` | 8400 | 起实例 / 派生时找空闲端口的起点（实测改 8500 后新实例就在 8500） |
+| `instance.basePort` | 8400 | 起实例 / 派生时找空闲端口的起点（实测改 8500 后新实例就在 8500）；空闲 = 该端口在 `/proc/net/tcp(6)` 里**没有 LISTEN**，且运行登记里没有 —— TIME-WAIT 这类残留不算占用 |
 | `process.detach` | true | 起实例是否脱离控制台（见上一节） |
 | `process.stopGraceMs` | 5000 | 停止时 SIGTERM 到 SIGKILL 的宽限（实测 grace=0 → 直接 SIGKILL，`sigkillSent:true`；grace=5000 → 只发 SIGTERM） |
 | `logs.defaultTail` | 200 | 日志接口不带 tail 参数时的缺省（实测 50 → 回 50 行，500 → 回 500 行；显式 tail 不受影响） |
