@@ -1,0 +1,35 @@
+模式 real  视口 1280  栅格 4 列（252.5px 252.5px 252.5px 252.5px）  溢出 false
+
+[running+none] dsh-card-port-3080  灯=running  卡片=252.5×70
+  DOM 文本: "web3080"
+  节点: {"name":true,"port":true,"note":false,"dot":true,"tile":true,"noteTag":false}
+  名字: {"左缘":279,"宽":134.5,"高":22,"行数":1,"文":"web"}
+  端口: {"文":"3080","右缘":447.5,"宽":24,"行数":1,"字号":"12.5px"}
+  备注: null
+  差值: {"nameLeft":50,"portRight":0,"portGapFromName":10,"noteLeft":null,"noteTextLeft":null,"noteTopBelowHead":null,"dotFromTile":{"dx":30,"dy":-3,"dRight":3},"dotFromCardRight":-192.5}
+  图标位 {"x":229,"y":111.7,"w":40,"h":40,"right":269,"bottom":151.7}  灯 {"x":259,"y":108.7,"w":13,"h":13,"right":272,"bottom":121.7}  灯相对图标位 {"dx":30,"dy":-3,"dRight":3}
+
+[stopped+note] dsh-card-profile-headless  灯=stopped  卡片=252.5×96
+  DOM 文本: "headless测试测试"
+  节点: {"name":true,"port":false,"note":true,"dot":true,"tile":true,"noteTag":false}
+  名字: {"左缘":279,"宽":168.5,"高":22,"行数":1,"文":"headless"}
+  端口: null
+  备注: {"左缘":229,"顶":279.8,"高":16,"线":"2px rgba(157, 123, 255, 0.5)","左内边距":"9px","正文左缘":240}
+  差值: {"nameLeft":50,"portRight":null,"portGapFromName":null,"noteLeft":0,"noteTextLeft":11,"noteTopBelowHead":10,"dotFromTile":{"dx":30,"dy":-3,"dRight":3},"dotFromCardRight":-192.5}
+  图标位 {"x":229,"y":229.8,"w":40,"h":40,"right":269,"bottom":269.8}  灯 {"x":259,"y":226.8,"w":13,"h":13,"right":272,"bottom":239.8}  灯相对图标位 {"dx":30,"dy":-3,"dRight":3}
+
+[stopped+none] dsh-card-profile-review-dev  灯=fault  卡片=252.5×96
+  DOM 文本: "review-dev"
+  节点: {"name":true,"port":false,"note":false,"dot":true,"tile":true,"noteTag":false}
+  名字: {"左缘":543.5,"宽":168.5,"高":22,"行数":1,"文":"review-dev"}
+  端口: null
+  备注: null
+  差值: {"nameLeft":50,"portRight":null,"portGapFromName":null,"noteLeft":null,"noteTextLeft":null,"noteTopBelowHead":null,"dotFromTile":{"dx":30,"dy":-3,"dRight":3},"dotFromCardRight":-192.5}
+  图标位 {"x":493.5,"y":229.8,"w":40,"h":40,"right":533.5,"bottom":269.8}  灯 {"x":523.5,"y":226.8,"w":13,"h":13,"right":536.5,"bottom":239.8}  灯相对图标位 {"dx":30,"dy":-3,"dRight":3}
+
+四情况计数: {"running+none":1,"stopped+note":1,"stopped+none":1}
+视口 1280（4 列）: 卡片 3 张，端口右缘不齐或换行的 0，溢出 false，端口右缘差值 [0,null,null]
+视口 768（2 列）: 卡片 3 张，端口右缘不齐或换行的 0，溢出 false，端口右缘差值 [0,null,null]
+视口 360（1 列）: 卡片 3 张，端口右缘不齐或换行的 0，溢出 false，端口右缘差值 [0,null,null]
+
+控制台问题: 无

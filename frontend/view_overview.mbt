@@ -1,6 +1,8 @@
 // 实例总览页（第七轮：卡片变条目 + 右侧覆盖式详情抽屉）。
 //
-// 卡片上**只剩三样**：图标 + 右上角那颗实心状态圆、profile 名（在跑的带端口）、备注。
+// 卡片上**只剩三样**，各占一处：左上 profile 名、右上端口（只在运行中那一条）、
+// 下方一行备注（有才进 DOM）。图标在左边，那颗实心状态圆挂在**图标**右上角 ——
+// 它与条目右上角的端口是两处位置，别混。
 // 六格读数、按钮组、行尾的 ⋯ 菜单全部撤走 —— 点整张卡是打开详情的唯一入口。
 // 读数与控制按钮一个都没丢，它们搬进了右侧的覆盖式抽屉（见 detail_drawer）。
 //
@@ -116,7 +118,45 @@ fn card_attrs(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
 }
 
 ///|
-/// 一张实例卡：图标 + 右上角状态灯、profile 名、备注（有才显示）。
+/// 条目左上角那个名字：**只要 profile 名**，端口另起一个节点摆到右上角。
+///
+/// 运行中那一条的 row.name 是「profile 名 : 端口」拼成的一串（state.mbt 拼的，
+/// 抽屉标题、卡片 aria-label、data-instance 都用它）——卡片这里只取前半截，
+/// 把端口让给右上角那一格。已停止的行走不到这一步：它本来就没有端口。
+fn card_name_text(row : Row) -> String {
+  match row.port_value {
+    Some(port) => {
+      let suffix = " :" + port.to_string()
+      let n = row.name.length()
+      let m = suffix.length()
+      // 只在这个尾巴真在时裁：读数里名字与端口对不上时原样显示，不硬裁出一个半截名字
+      if n > m && row.name[n - m:] == suffix[:] {
+        row.name[0:n - m].to_owned()
+      } else {
+        row.name
+      }
+    }
+    None => row.name
+  }
+}
+
+///|
+/// 条目**右上角**那一格：这只实例正在监听的端口号。**只有运行中那一条有**。
+///
+/// 与状态灯不是一处位置：灯在图标右上角（.dsh-dot，挂在 .dsh-tile-slot 里），
+/// 这一格在条目的右上角、右缘贴内容盒右缘（中间的名字把它顶过去）。
+/// 没有在跑就不产出这个节点 —— 与备注同一口径：没有就是没有，不摆一个空位。
+fn card_port(row : Row, port : Int) -> @html.Html {
+  @html.span(
+    class="dsh-card-port",
+    attrs=mark("card-port", ["overview", "card", row.id, "port"]),
+    port.to_string(),
+  )
+}
+
+///|
+/// 一张实例卡：左边图标 + 右上角状态灯，**左上** profile 名、**右上** 端口（运行中才有），
+/// 下面一行备注（有才显示）。
 fn instance_card(row : Row, _model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let tile_class = match row.tone {
     Accent => "dsh-tile accent"
@@ -126,21 +166,29 @@ fn instance_card(row : Row, _model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
     Accent => "open-in-new"
     Violet => "puzzle-outline"
   }
-  let children : Array[@html.Html] = [
-    @html.div(class="dsh-case-head", [
-      @html.span(class="dsh-tile-slot", [
-        @html.span(class=tile_class, [icon(tile_icon, size=20)]),
-        status_light(row),
-      ]),
-      @html.span(
-        class="dsh-name",
-        attrs=mark("card-name", ["overview", "card", row.id, "name"]).title(
-          row.name + "（" + light_label(row.light) + "）",
-        ),
-        row.name,
-      ),
+  let head : Array[@html.Html] = [
+    @html.span(class="dsh-tile-slot", [
+      @html.span(class=tile_class, [icon(tile_icon, size=20)]),
+      status_light(row),
     ]),
+    @html.span(
+      class="dsh-name",
+      attrs=mark("card-name", ["overview", "card", row.id, "name"]).title(
+        row.name + "（" + light_label(row.light) + "）",
+      ),
+      card_name_text(row),
+    ),
   ]
+  // 端口只在运行中那一条产出：名字那一格已经腾干净了，这个节点是它唯一的落点
+  match row.status {
+    Running =>
+      match row.port_value {
+        Some(port) => head.push(card_port(row, port))
+        None => ()
+      }
+    _ => ()
+  }
+  let children : Array[@html.Html] = [@html.div(class="dsh-case-head", head)]
   // 备注只在这一行真有内容时才多一个节点：没有备注的卡片 DOM 逐节点一致
   if row.user_note.length() > 0 {
     children.push(card_note(row))
@@ -156,8 +204,12 @@ fn instance_card(row : Row, _model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
 ///|
 /// 卡片底部的备注行：**人写的**一句话，与机器读数分开摆。
 ///
-/// 「备注」标 + 左侧一道细竖线 + 比读数淡一档的颜色（见 app.scss 的 .dsh-card-note）——
+/// 左侧一道细竖线 + 比读数淡一档的颜色（见 app.scss 的 .dsh-card-note）——
 /// 目标是一眼看出这是人写的，不是又一条读数。超长省略，完整内容在悬停里。
+///
+/// **不带「备注」二字**：这一行整个就是备注，标签只是把同一句话说两遍；
+/// 抽屉里那一处上面有分组标题「备注」顶着，更不需要这一标。竖线留着 ——
+/// 那是「这是人写的」的记号。
 fn card_note(row : Row) -> @html.Html {
   @html.div(
     class="dsh-card-note",
@@ -168,10 +220,7 @@ fn card_note(row : Row) -> @html.Html {
         row.user_note
       },
     ),
-    [
-      @html.span(class="dsh-card-note-tag", "备注"),
-      @html.span(class="dsh-card-note-text", row.user_note),
-    ],
+    [@html.span(class="dsh-card-note-text", row.user_note)],
   )
 }
 

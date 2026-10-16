@@ -1,0 +1,2371 @@
+{
+ "baseUrl": "http://127.0.0.1:5390",
+ "views": [
+  {
+   "tag": "1280",
+   "viewport": {
+    "w": 1280,
+    "h": 900
+   },
+   "loading": {
+    "url": "/",
+    "viewport": {
+     "w": 1280,
+     "h": 900
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 1090,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 1090,
+      "h": 900
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 4,
+      "trackSizes": [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212,
+       476,
+       742,
+       1006
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212,
+       476,
+       742,
+       1006
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     },
+     {
+      "tracks": 4,
+      "trackSizes": [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212,
+       476,
+       742,
+       1006
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 362.3,
+       "w": 252.5,
+       "h": 70
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212,
+       476,
+       742,
+       1006
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 362.3,
+       "w": 252.5,
+       "h": 70
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     }
+    ],
+    "loading": {
+     "tag": "section",
+     "display": "contents",
+     "dataName": "running-loading",
+     "dataState": "loading",
+     "childCount": 7,
+     "placeholderCount": 12,
+     "firstPlaceholders": [
+      {
+       "x": 212,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      },
+      {
+       "x": 476.5,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      },
+      {
+       "x": 741,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      }
+     ],
+     "placeholderHeights": [
+      70
+     ],
+     "placeholderWidths": [
+      252.5
+     ],
+     "placeholderBoxes": [
+      "14px 16px / 1px / 10px"
+     ],
+     "tileSizes": [
+      "40.0x40.0"
+     ],
+     "nameBarSizes": [
+      "120.0x12.0"
+     ],
+     "skeletonCursor": "auto",
+     "skeletonBg": "rgb(27, 29, 33)",
+     "note": {
+      "role": "status",
+      "ariaLive": "polite",
+      "text": "正在读取实例读数…实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+      "lines": [
+       "正在读取实例读数…",
+       "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。"
+      ],
+      "rect": {
+       "x": 212,
+       "y": 260.7,
+       "w": 1046,
+       "h": 53.5
+      }
+     },
+     "noteCount": 2,
+     "placeholdersAriaHidden": 12,
+     "placeholdersWithRole": 0,
+     "placeholdersWithTabindex": 0,
+     "placeholdersWithClickHandler": 0,
+     "buttonsInside": 0,
+     "linksInside": 0,
+     "roleButtonsInside": 0,
+     "tabbablesInside": 0,
+     "acceptanceQuery": 0,
+     "tabbableInPage": 6,
+     "tabbableInsideLoading": 0
+    },
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 1046,
+      "h": 32.5
+     },
+     "badges": [
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 306.8,
+        "y": 22.3,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 1193,
+        "y": 64.6,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 1193,
+        "y": 330.2,
+        "w": 65,
+        "h": 20
+       }
+      }
+     ],
+     "note": {
+      "x": 381.8,
+      "y": 24.1,
+      "w": 209,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 64.5,
+      "w": 1046,
+      "h": 20.1
+     },
+     {
+      "x": 212,
+      "y": 330.2,
+      "w": 1046,
+      "h": 20.1
+     }
+    ],
+    "cards": {
+     "count": 0,
+     "rects": [],
+     "heights": [],
+     "widths": [],
+     "withNote": 0,
+     "buttonsInside": 0,
+     "colXs": []
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (…)",
+     "已停止的实例 (…)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 0,
+    "regionHtml": "<section data-name=\"running-loading\" data-uid=\"ra4wwwez\" data-state=\"loading\" class=\"dsh-loading\"><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div ari"
+   },
+   "loaded": {
+    "url": "/",
+    "viewport": {
+     "w": 1280,
+     "h": 900
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 1090,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 1090,
+      "h": 900
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 4,
+      "trackSizes": [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 1,
+      "itemClasses": [
+       "dsh-case"
+      ],
+      "colXs": [
+       212
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 1,
+      "cardColXs": [
+       212
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      },
+      "overflowX": false
+     },
+     {
+      "tracks": 4,
+      "trackSizes": [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ],
+      "gap": "12px",
+      "domChildren": 2,
+      "itemCount": 2,
+      "itemClasses": [
+       "dsh-case",
+       "dsh-case"
+      ],
+      "colXs": [
+       212,
+       476
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 214.8,
+       "w": 252.5,
+       "h": 96
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 2,
+      "cardColXs": [
+       212,
+       476
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 214.8,
+       "w": 252.5,
+       "h": 96
+      },
+      "overflowX": false
+     }
+    ],
+    "loading": null,
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 1046,
+      "h": 32.5
+     },
+     "badges": [],
+     "note": {
+      "x": 306.8,
+      "y": 24.1,
+      "w": 209,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 64.5,
+      "w": 1046,
+      "h": 20.1
+     },
+     {
+      "x": 212,
+      "y": 182.7,
+      "w": 1046,
+      "h": 20.1
+     }
+    ],
+    "cards": {
+     "count": 3,
+     "rects": [
+      {
+       "x": 212,
+       "y": 96.7,
+       "w": 252.5,
+       "h": 70
+      },
+      {
+       "x": 212,
+       "y": 214.8,
+       "w": 252.5,
+       "h": 96
+      },
+      {
+       "x": 476.5,
+       "y": 214.8,
+       "w": 252.5,
+       "h": 96
+      }
+     ],
+     "heights": [
+      70,
+      96
+     ],
+     "widths": [
+      252.5,
+      252.5,
+      252.5
+     ],
+     "withNote": 1,
+     "buttonsInside": 0,
+     "colXs": [
+      212,
+      476
+     ]
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (1)",
+     "已停止的实例 (2)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 3,
+    "regionHtml": null
+   },
+   "compare": {
+    "mainWidth": [
+     1090,
+     1090
+    ],
+    "gridTracks": [
+     [
+      4,
+      4
+     ],
+     [
+      4,
+      4
+     ]
+    ],
+    "gridTrackSizes": [
+     [
+      [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ],
+      [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ]
+     ],
+     [
+      [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ],
+      [
+       "252.5px",
+       "252.5px",
+       "252.5px",
+       "252.5px"
+      ]
+     ]
+    ],
+    "firstItemXY": [
+     [
+      [
+       212,
+       96.7
+      ],
+      [
+       212,
+       96.7
+      ]
+     ],
+     [
+      [
+       212,
+       362.3
+      ],
+      [
+       212,
+       214.8
+      ]
+     ]
+    ],
+    "placeholderColsVsCards": [
+     [
+      [
+       212,
+       476,
+       742,
+       1006
+      ],
+      [
+       212
+      ]
+     ],
+     [
+      [
+       212,
+       476,
+       742,
+       1006
+      ],
+      [
+       212,
+       476
+      ]
+     ]
+    ],
+    "widthPerCol": [
+     [
+      252.5,
+      252.5
+     ],
+     [
+      252.5,
+      252.5
+     ]
+    ],
+    "pageOverflowX": [
+     false,
+     false
+    ],
+    "emptyStates": [
+     0,
+     0
+    ],
+    "headHeight": [
+     32.5,
+     32.5
+    ],
+    "headBadges": [
+     [
+      "读取中",
+      "读取中",
+      "读取中"
+     ],
+     []
+    ]
+   }
+  },
+  {
+   "tag": "1920",
+   "viewport": {
+    "w": 1920,
+    "h": 1080
+   },
+   "loading": {
+    "url": "/",
+    "viewport": {
+     "w": 1920,
+     "h": 1080
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 1730,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 1730,
+      "h": 1080
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 6,
+      "trackSizes": [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212,
+       496,
+       778,
+       1062,
+       1344,
+       1628
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212,
+       496,
+       778,
+       1062,
+       1344,
+       1628
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     },
+     {
+      "tracks": 6,
+      "trackSizes": [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212,
+       496,
+       778,
+       1062,
+       1344,
+       1628
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 280.3,
+       "w": 271,
+       "h": 70
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212,
+       496,
+       778,
+       1062,
+       1344,
+       1628
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 280.3,
+       "w": 271,
+       "h": 70
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     }
+    ],
+    "loading": {
+     "tag": "section",
+     "display": "contents",
+     "dataName": "running-loading",
+     "dataState": "loading",
+     "childCount": 7,
+     "placeholderCount": 12,
+     "firstPlaceholders": [
+      {
+       "x": 212,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      },
+      {
+       "x": 495,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      },
+      {
+       "x": 778,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      }
+     ],
+     "placeholderHeights": [
+      70
+     ],
+     "placeholderWidths": [
+      271
+     ],
+     "placeholderBoxes": [
+      "14px 16px / 1px / 10px"
+     ],
+     "tileSizes": [
+      "40.0x40.0"
+     ],
+     "nameBarSizes": [
+      "120.0x12.0"
+     ],
+     "skeletonCursor": "auto",
+     "skeletonBg": "rgb(27, 29, 33)",
+     "note": {
+      "role": "status",
+      "ariaLive": "polite",
+      "text": "正在读取实例读数…实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+      "lines": [
+       "正在读取实例读数…",
+       "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。"
+      ],
+      "rect": {
+       "x": 212,
+       "y": 178.7,
+       "w": 1686,
+       "h": 53.5
+      }
+     },
+     "noteCount": 2,
+     "placeholdersAriaHidden": 12,
+     "placeholdersWithRole": 0,
+     "placeholdersWithTabindex": 0,
+     "placeholdersWithClickHandler": 0,
+     "buttonsInside": 0,
+     "linksInside": 0,
+     "roleButtonsInside": 0,
+     "tabbablesInside": 0,
+     "acceptanceQuery": 0,
+     "tabbableInPage": 6,
+     "tabbableInsideLoading": 0
+    },
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 1686,
+      "h": 32.5
+     },
+     "badges": [
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 306.8,
+        "y": 22.3,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 1833,
+        "y": 64.6,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 1833,
+        "y": 248.2,
+        "w": 65,
+        "h": 20
+       }
+      }
+     ],
+     "note": {
+      "x": 381.8,
+      "y": 24.1,
+      "w": 209,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 64.5,
+      "w": 1686,
+      "h": 20.1
+     },
+     {
+      "x": 212,
+      "y": 248.2,
+      "w": 1686,
+      "h": 20.1
+     }
+    ],
+    "cards": {
+     "count": 0,
+     "rects": [],
+     "heights": [],
+     "widths": [],
+     "withNote": 0,
+     "buttonsInside": 0,
+     "colXs": []
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (…)",
+     "已停止的实例 (…)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 0,
+    "regionHtml": "<section data-name=\"running-loading\" data-uid=\"ra4wwwez\" data-state=\"loading\" class=\"dsh-loading\"><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div ari"
+   },
+   "loaded": {
+    "url": "/",
+    "viewport": {
+     "w": 1920,
+     "h": 1080
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 1730,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 1730,
+      "h": 1080
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 6,
+      "trackSizes": [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 1,
+      "itemClasses": [
+       "dsh-case"
+      ],
+      "colXs": [
+       212
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 1,
+      "cardColXs": [
+       212
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      },
+      "overflowX": false
+     },
+     {
+      "tracks": 6,
+      "trackSizes": [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ],
+      "gap": "12px",
+      "domChildren": 2,
+      "itemCount": 2,
+      "itemClasses": [
+       "dsh-case",
+       "dsh-case"
+      ],
+      "colXs": [
+       212,
+       496
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 214.8,
+       "w": 271,
+       "h": 96
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 2,
+      "cardColXs": [
+       212,
+       496
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 214.8,
+       "w": 271,
+       "h": 96
+      },
+      "overflowX": false
+     }
+    ],
+    "loading": null,
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 1686,
+      "h": 32.5
+     },
+     "badges": [],
+     "note": {
+      "x": 306.8,
+      "y": 24.1,
+      "w": 209,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 64.5,
+      "w": 1686,
+      "h": 20.1
+     },
+     {
+      "x": 212,
+      "y": 182.7,
+      "w": 1686,
+      "h": 20.1
+     }
+    ],
+    "cards": {
+     "count": 3,
+     "rects": [
+      {
+       "x": 212,
+       "y": 96.7,
+       "w": 271,
+       "h": 70
+      },
+      {
+       "x": 212,
+       "y": 214.8,
+       "w": 271,
+       "h": 96
+      },
+      {
+       "x": 495,
+       "y": 214.8,
+       "w": 271,
+       "h": 96
+      }
+     ],
+     "heights": [
+      70,
+      96
+     ],
+     "widths": [
+      271,
+      271,
+      271
+     ],
+     "withNote": 1,
+     "buttonsInside": 0,
+     "colXs": [
+      212,
+      496
+     ]
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (1)",
+     "已停止的实例 (2)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 3,
+    "regionHtml": null
+   },
+   "compare": {
+    "mainWidth": [
+     1730,
+     1730
+    ],
+    "gridTracks": [
+     [
+      6,
+      6
+     ],
+     [
+      6,
+      6
+     ]
+    ],
+    "gridTrackSizes": [
+     [
+      [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ],
+      [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ]
+     ],
+     [
+      [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ],
+      [
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px",
+       "271px"
+      ]
+     ]
+    ],
+    "firstItemXY": [
+     [
+      [
+       212,
+       96.7
+      ],
+      [
+       212,
+       96.7
+      ]
+     ],
+     [
+      [
+       212,
+       280.3
+      ],
+      [
+       212,
+       214.8
+      ]
+     ]
+    ],
+    "placeholderColsVsCards": [
+     [
+      [
+       212,
+       496,
+       778,
+       1062,
+       1344,
+       1628
+      ],
+      [
+       212
+      ]
+     ],
+     [
+      [
+       212,
+       496,
+       778,
+       1062,
+       1344,
+       1628
+      ],
+      [
+       212,
+       496
+      ]
+     ]
+    ],
+    "widthPerCol": [
+     [
+      271,
+      271
+     ],
+     [
+      271,
+      271
+     ]
+    ],
+    "pageOverflowX": [
+     false,
+     false
+    ],
+    "emptyStates": [
+     0,
+     0
+    ],
+    "headHeight": [
+     32.5,
+     32.5
+    ],
+    "headBadges": [
+     [
+      "读取中",
+      "读取中",
+      "读取中"
+     ],
+     []
+    ]
+   }
+  },
+  {
+   "tag": "768",
+   "viewport": {
+    "w": 768,
+    "h": 900
+   },
+   "loading": {
+    "url": "/",
+    "viewport": {
+     "w": 768,
+     "h": 900
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 578,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 578,
+      "h": 900
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 2,
+      "trackSizes": [
+       "261px",
+       "261px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212,
+       486
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 96.7,
+       "w": 261,
+       "h": 70
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212,
+       486
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 96.7,
+       "w": 261,
+       "h": 70
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     },
+     {
+      "tracks": 2,
+      "trackSizes": [
+       "261px",
+       "261px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212,
+       486
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 444.3,
+       "w": 261,
+       "h": 70
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212,
+       486
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 444.3,
+       "w": 261,
+       "h": 70
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     }
+    ],
+    "loading": {
+     "tag": "section",
+     "display": "contents",
+     "dataName": "running-loading",
+     "dataState": "loading",
+     "childCount": 7,
+     "placeholderCount": 12,
+     "firstPlaceholders": [
+      {
+       "x": 212,
+       "y": 96.7,
+       "w": 261,
+       "h": 70
+      },
+      {
+       "x": 485,
+       "y": 96.7,
+       "w": 261,
+       "h": 70
+      },
+      {
+       "x": 212,
+       "y": 178.7,
+       "w": 261,
+       "h": 70
+      }
+     ],
+     "placeholderHeights": [
+      70
+     ],
+     "placeholderWidths": [
+      261
+     ],
+     "placeholderBoxes": [
+      "14px 16px / 1px / 10px"
+     ],
+     "tileSizes": [
+      "40.0x40.0"
+     ],
+     "nameBarSizes": [
+      "120.0x12.0"
+     ],
+     "skeletonCursor": "auto",
+     "skeletonBg": "rgb(27, 29, 33)",
+     "note": {
+      "role": "status",
+      "ariaLive": "polite",
+      "text": "正在读取实例读数…实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+      "lines": [
+       "正在读取实例读数…",
+       "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。"
+      ],
+      "rect": {
+       "x": 212,
+       "y": 342.7,
+       "w": 534,
+       "h": 53.5
+      }
+     },
+     "noteCount": 2,
+     "placeholdersAriaHidden": 12,
+     "placeholdersWithRole": 0,
+     "placeholdersWithTabindex": 0,
+     "placeholdersWithClickHandler": 0,
+     "buttonsInside": 0,
+     "linksInside": 0,
+     "roleButtonsInside": 0,
+     "tabbablesInside": 0,
+     "acceptanceQuery": 0,
+     "tabbableInPage": 6,
+     "tabbableInsideLoading": 0
+    },
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 534,
+      "h": 32.5
+     },
+     "badges": [
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 306.8,
+        "y": 22.3,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 681,
+        "y": 64.6,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 681,
+        "y": 412.2,
+        "w": 65,
+        "h": 20
+       }
+      }
+     ],
+     "note": {
+      "x": 381.8,
+      "y": 24.1,
+      "w": 209,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 64.5,
+      "w": 534,
+      "h": 20.1
+     },
+     {
+      "x": 212,
+      "y": 412.2,
+      "w": 534,
+      "h": 20.1
+     }
+    ],
+    "cards": {
+     "count": 0,
+     "rects": [],
+     "heights": [],
+     "widths": [],
+     "withNote": 0,
+     "buttonsInside": 0,
+     "colXs": []
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (…)",
+     "已停止的实例 (…)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 0,
+    "regionHtml": "<section data-name=\"running-loading\" data-uid=\"ra4wwwez\" data-state=\"loading\" class=\"dsh-loading\"><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div ari"
+   },
+   "loaded": {
+    "url": "/",
+    "viewport": {
+     "w": 768,
+     "h": 900
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 578,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 578,
+      "h": 900
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 2,
+      "trackSizes": [
+       "261px",
+       "261px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 1,
+      "itemClasses": [
+       "dsh-case"
+      ],
+      "colXs": [
+       212
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 96.7,
+       "w": 261,
+       "h": 70
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 1,
+      "cardColXs": [
+       212
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 96.7,
+       "w": 261,
+       "h": 70
+      },
+      "overflowX": false
+     },
+     {
+      "tracks": 2,
+      "trackSizes": [
+       "261px",
+       "261px"
+      ],
+      "gap": "12px",
+      "domChildren": 2,
+      "itemCount": 2,
+      "itemClasses": [
+       "dsh-case",
+       "dsh-case"
+      ],
+      "colXs": [
+       212,
+       486
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 214.8,
+       "w": 261,
+       "h": 96
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 2,
+      "cardColXs": [
+       212,
+       486
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 214.8,
+       "w": 261,
+       "h": 96
+      },
+      "overflowX": false
+     }
+    ],
+    "loading": null,
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 534,
+      "h": 32.5
+     },
+     "badges": [],
+     "note": {
+      "x": 306.8,
+      "y": 24.1,
+      "w": 209,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 64.5,
+      "w": 534,
+      "h": 20.1
+     },
+     {
+      "x": 212,
+      "y": 182.7,
+      "w": 534,
+      "h": 20.1
+     }
+    ],
+    "cards": {
+     "count": 3,
+     "rects": [
+      {
+       "x": 212,
+       "y": 96.7,
+       "w": 261,
+       "h": 70
+      },
+      {
+       "x": 212,
+       "y": 214.8,
+       "w": 261,
+       "h": 96
+      },
+      {
+       "x": 485,
+       "y": 214.8,
+       "w": 261,
+       "h": 96
+      }
+     ],
+     "heights": [
+      70,
+      96
+     ],
+     "widths": [
+      261,
+      261,
+      261
+     ],
+     "withNote": 1,
+     "buttonsInside": 0,
+     "colXs": [
+      212,
+      486
+     ]
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (1)",
+     "已停止的实例 (2)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 3,
+    "regionHtml": null
+   },
+   "compare": {
+    "mainWidth": [
+     578,
+     578
+    ],
+    "gridTracks": [
+     [
+      2,
+      2
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "gridTrackSizes": [
+     [
+      [
+       "261px",
+       "261px"
+      ],
+      [
+       "261px",
+       "261px"
+      ]
+     ],
+     [
+      [
+       "261px",
+       "261px"
+      ],
+      [
+       "261px",
+       "261px"
+      ]
+     ]
+    ],
+    "firstItemXY": [
+     [
+      [
+       212,
+       96.7
+      ],
+      [
+       212,
+       96.7
+      ]
+     ],
+     [
+      [
+       212,
+       444.3
+      ],
+      [
+       212,
+       214.8
+      ]
+     ]
+    ],
+    "placeholderColsVsCards": [
+     [
+      [
+       212,
+       486
+      ],
+      [
+       212
+      ]
+     ],
+     [
+      [
+       212,
+       486
+      ],
+      [
+       212,
+       486
+      ]
+     ]
+    ],
+    "widthPerCol": [
+     [
+      261,
+      261
+     ],
+     [
+      261,
+      261
+     ]
+    ],
+    "pageOverflowX": [
+     false,
+     false
+    ],
+    "emptyStates": [
+     0,
+     0
+    ],
+    "headHeight": [
+     32.5,
+     32.5
+    ],
+    "headBadges": [
+     [
+      "读取中",
+      "读取中",
+      "读取中"
+     ],
+     []
+    ]
+   }
+  },
+  {
+   "tag": "360",
+   "viewport": {
+    "w": 360,
+    "h": 900
+   },
+   "loading": {
+    "url": "/",
+    "viewport": {
+     "w": 360,
+     "h": 900
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 170,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 170,
+      "h": 900
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 1,
+      "trackSizes": [
+       "126px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 227.2,
+       "w": 126,
+       "h": 60
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 227.2,
+       "w": 126,
+       "h": 60
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     },
+     {
+      "tracks": 1,
+      "trackSizes": [
+       "126px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 7,
+      "itemClasses": [
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-skeleton",
+       "dsh-loading-note"
+      ],
+      "colXs": [
+       212
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 835.2,
+       "w": 126,
+       "h": 60
+      },
+      "placeholderCount": 6,
+      "placeholderColXs": [
+       212
+      ],
+      "firstPlaceholder": {
+       "x": 212,
+       "y": 835.2,
+       "w": 126,
+       "h": 60
+      },
+      "cardCount": 0,
+      "cardColXs": [],
+      "firstCard": null,
+      "overflowX": false
+     }
+    ],
+    "loading": {
+     "tag": "section",
+     "display": "contents",
+     "dataName": "running-loading",
+     "dataState": "loading",
+     "childCount": 7,
+     "placeholderCount": 12,
+     "firstPlaceholders": [
+      {
+       "x": 212,
+       "y": 227.2,
+       "w": 126,
+       "h": 60
+      },
+      {
+       "x": 212,
+       "y": 299.2,
+       "w": 126,
+       "h": 60
+      },
+      {
+       "x": 212,
+       "y": 371.2,
+       "w": 126,
+       "h": 60
+      }
+     ],
+     "placeholderHeights": [
+      60
+     ],
+     "placeholderWidths": [
+      126
+     ],
+     "placeholderBoxes": [
+      "12px 13px / 1px / 10px"
+     ],
+     "tileSizes": [
+      "34.0x34.0"
+     ],
+     "nameBarSizes": [
+      "56.0x12.0"
+     ],
+     "skeletonCursor": "auto",
+     "skeletonBg": "rgb(27, 29, 33)",
+     "note": {
+      "role": "status",
+      "ariaLive": "polite",
+      "text": "正在读取实例读数…实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+      "lines": [
+       "正在读取实例读数…",
+       "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。"
+      ],
+      "rect": {
+       "x": 212,
+       "y": 659.2,
+       "w": 126,
+       "h": 87.6
+      }
+     },
+     "noteCount": 2,
+     "placeholdersAriaHidden": 12,
+     "placeholdersWithRole": 0,
+     "placeholdersWithTabindex": 0,
+     "placeholdersWithClickHandler": 0,
+     "buttonsInside": 0,
+     "linksInside": 0,
+     "roleButtonsInside": 0,
+     "tabbablesInside": 0,
+     "acceptanceQuery": 0,
+     "tabbableInPage": 6,
+     "tabbableInsideLoading": 0
+    },
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 126,
+      "h": 122.8
+     },
+     "badges": [
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 212,
+        "y": 54.5,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 273,
+        "y": 175,
+        "w": 65,
+        "h": 20
+       }
+      },
+      {
+       "text": "读取中",
+       "cls": "dsh-badge pending",
+       "rect": {
+        "x": 273,
+        "y": 783,
+        "w": 65,
+        "h": 20
+       }
+      }
+     ],
+     "note": {
+      "x": 212,
+      "y": 80.5,
+      "w": 126,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 154.8,
+      "w": 126,
+      "h": 60.4
+     },
+     {
+      "x": 212,
+      "y": 762.8,
+      "w": 126,
+      "h": 60.4
+     }
+    ],
+    "cards": {
+     "count": 0,
+     "rects": [],
+     "heights": [],
+     "widths": [],
+     "withNote": 0,
+     "buttonsInside": 0,
+     "colXs": []
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (…)",
+     "已停止的实例 (…)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 0,
+    "regionHtml": "<section data-name=\"running-loading\" data-uid=\"ra4wwwez\" data-state=\"loading\" class=\"dsh-loading\"><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div aria-hidden=\"true\" class=\"dsh-skeleton\"><div class=\"dsh-skeleton-head\"><span class=\"dsh-skeleton-tile\"><!--[--><!--]--></span><span class=\"dsh-skeleton-name\"><!--[--><!--]--></span></div></div><div ari"
+   },
+   "loaded": {
+    "url": "/",
+    "viewport": {
+     "w": 360,
+     "h": 900
+    },
+    "pageOverflowX": false,
+    "main": {
+     "width": 170,
+     "rect": {
+      "x": 190,
+      "y": 0,
+      "w": 170,
+      "h": 900
+     },
+     "overflowX": false
+    },
+    "grids": [
+     {
+      "tracks": 1,
+      "trackSizes": [
+       "126px"
+      ],
+      "gap": "12px",
+      "domChildren": 1,
+      "itemCount": 1,
+      "itemClasses": [
+       "dsh-case"
+      ],
+      "colXs": [
+       212
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 161,
+       "w": 126,
+       "h": 60
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 1,
+      "cardColXs": [
+       212
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 161,
+       "w": 126,
+       "h": 60
+      },
+      "overflowX": false
+     },
+     {
+      "tracks": 1,
+      "trackSizes": [
+       "126px"
+      ],
+      "gap": "12px",
+      "domChildren": 2,
+      "itemCount": 2,
+      "itemClasses": [
+       "dsh-case",
+       "dsh-case"
+      ],
+      "colXs": [
+       212
+      ],
+      "firstItem": {
+       "x": 212,
+       "y": 269.1,
+       "w": 126,
+       "h": 86
+      },
+      "placeholderCount": 0,
+      "placeholderColXs": [],
+      "firstPlaceholder": null,
+      "cardCount": 2,
+      "cardColXs": [
+       212
+      ],
+      "firstCard": {
+       "x": 212,
+       "y": 269.1,
+       "w": 126,
+       "h": 86
+      },
+      "overflowX": false
+     }
+    ],
+    "loading": null,
+    "head": {
+     "rect": {
+      "x": 212,
+      "y": 16,
+      "w": 126,
+      "h": 96.8
+     },
+     "badges": [],
+     "note": {
+      "x": 212,
+      "y": 54.5,
+      "w": 126,
+      "h": 16.3
+     }
+    },
+    "sectionHeadRects": [
+     {
+      "x": 212,
+      "y": 128.8,
+      "w": 126,
+      "h": 20.1
+     },
+     {
+      "x": 212,
+      "y": 237,
+      "w": 126,
+      "h": 20.1
+     }
+    ],
+    "cards": {
+     "count": 3,
+     "rects": [
+      {
+       "x": 212,
+       "y": 161,
+       "w": 126,
+       "h": 60
+      },
+      {
+       "x": 212,
+       "y": 269.1,
+       "w": 126,
+       "h": 86
+      },
+      {
+       "x": 212,
+       "y": 367.1,
+       "w": 126,
+       "h": 60
+      }
+     ],
+     "heights": [
+      60,
+      86
+     ],
+     "widths": [
+      126,
+      126,
+      126
+     ],
+     "withNote": 1,
+     "buttonsInside": 0,
+     "colXs": [
+      212
+     ]
+    },
+    "emptyStates": 0,
+    "sectionTitles": [
+     "当前运行的实例 (1)",
+     "已停止的实例 (2)"
+    ],
+    "animations": {
+     "count": 0,
+     "names": []
+    },
+    "dotCount": 3,
+    "regionHtml": null
+   },
+   "compare": {
+    "mainWidth": [
+     170,
+     170
+    ],
+    "gridTracks": [
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      1
+     ]
+    ],
+    "gridTrackSizes": [
+     [
+      [
+       "126px"
+      ],
+      [
+       "126px"
+      ]
+     ],
+     [
+      [
+       "126px"
+      ],
+      [
+       "126px"
+      ]
+     ]
+    ],
+    "firstItemXY": [
+     [
+      [
+       212,
+       227.2
+      ],
+      [
+       212,
+       161
+      ]
+     ],
+     [
+      [
+       212,
+       835.2
+      ],
+      [
+       212,
+       269.1
+      ]
+     ]
+    ],
+    "placeholderColsVsCards": [
+     [
+      [
+       212
+      ],
+      [
+       212
+      ]
+     ],
+     [
+      [
+       212
+      ],
+      [
+       212
+      ]
+     ]
+    ],
+    "widthPerCol": [
+     [
+      126,
+      126
+     ],
+     [
+      126,
+      126
+     ]
+    ],
+    "pageOverflowX": [
+     false,
+     false
+    ],
+    "emptyStates": [
+     0,
+     0
+    ],
+    "headHeight": [
+     122.8,
+     96.8
+    ],
+    "headBadges": [
+     [
+      "读取中",
+      "读取中",
+      "读取中"
+     ],
+     []
+    ]
+   }
+  }
+ ],
+ "interaction": {
+  "hit": {
+   "point": {
+    "x": 338.3,
+    "y": 131.7
+   },
+   "hitClass": "dsh-skeleton-name",
+   "hitInside": true
+  },
+  "before": {
+   "url": "/",
+   "skeletons": 12,
+   "cards": 0,
+   "drawer": false,
+   "scrim": false,
+   "dialog": false,
+   "active": "body",
+   "gridItems": [
+    1,
+    1
+   ],
+   "regionStillThere": true
+  },
+  "after": {
+   "url": "/",
+   "skeletons": 12,
+   "cards": 0,
+   "drawer": false,
+   "scrim": false,
+   "dialog": false,
+   "active": "body",
+   "gridItems": [
+    1,
+    1
+   ],
+   "regionStillThere": true
+  },
+  "clickChanged": false,
+  "tabWalk": [
+   "button.dsh-nav-item",
+   "button.dsh-nav-item",
+   "button.dsh-nav-item",
+   "button.dsh-nav-item",
+   "button.dsh-nav-item",
+   "button.dsh-new-btn",
+   "body",
+   "button.dsh-nav-item",
+   "button.dsh-nav-item",
+   "button.dsh-nav-item",
+   "button.dsh-nav-item",
+   "button.dsh-nav-item"
+  ],
+  "tabLandedOnPlaceholder": false,
+  "tabMoved": true
+ },
+ "columns": {
+  "note": "克隆只为量列轨（data-clone=1），量完整页重载，不进任何提交",
+  "placeholderColXs": [
+   212,
+   496,
+   778,
+   1062,
+   1344,
+   1628
+  ],
+  "placeholderTracks": 6,
+  "clonedCardColXs": [
+   212,
+   496,
+   778,
+   1062,
+   1344,
+   1628
+  ],
+  "clonedTracks": 6,
+  "clonedWidths": [
+   271
+  ],
+  "clonedHeights": [
+   70
+  ],
+  "placeholderWidths": [
+   "271px",
+   "271px",
+   "271px",
+   "271px",
+   "271px",
+   "271px"
+  ],
+  "sameXs": true
+ },
+ "consoleIssues": []
+}

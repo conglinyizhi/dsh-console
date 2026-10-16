@@ -1,0 +1,1459 @@
+{
+ "base": "http://127.0.0.1:5390",
+ "mode": "fixture",
+ "at": "2026-10-16T05:57:21.647Z",
+ "steps": {
+  "360": {
+   "url": "http://127.0.0.1:5390/",
+   "viewport": {
+    "w": 360,
+    "h": 900
+   },
+   "overflowX": false,
+   "scrollW": 360,
+   "clientW": 360,
+   "gridTracks": 1,
+   "gridCols": "126px",
+   "cards": [
+    {
+     "id": "dsh-card-port-3080",
+     "instance": "web :3080",
+     "status": "running",
+     "light": "running",
+     "case": "running+none",
+     "text": "web3080",
+     "nodes": {
+      "name": true,
+      "port": true,
+      "note": false,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 161,
+      "w": 126,
+      "h": 60,
+      "right": 338,
+      "bottom": 221
+     },
+     "content": {
+      "left": 226,
+      "right": 324,
+      "top": 174,
+      "bottom": 208,
+      "paddingLeft": 13,
+      "paddingRight": 13,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 226,
+      "y": 174,
+      "w": 98,
+      "h": 34,
+      "right": 324,
+      "bottom": 208
+     },
+     "name": {
+      "x": 268,
+      "y": 180,
+      "w": 24,
+      "h": 22,
+      "right": 292,
+      "bottom": 202,
+      "text": "web",
+      "lineBoxes": 1
+     },
+     "port": {
+      "x": 300,
+      "y": 183,
+      "w": 24,
+      "h": 16,
+      "right": 324,
+      "bottom": 199,
+      "text": "3080",
+      "lineBoxes": 1,
+      "font": "12.5px",
+      "color": "rgba(232, 230, 225, 0.82)"
+     },
+     "note": null,
+     "slot": {
+      "x": 226,
+      "y": 174,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 208
+     },
+     "tile": {
+      "x": 226,
+      "y": 174,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 208
+     },
+     "dot": {
+      "x": 250,
+      "y": 171,
+      "w": 13,
+      "h": 13,
+      "right": 263,
+      "bottom": 184
+     },
+     "deltas": {
+      "nameLeft": 42,
+      "portRight": 0,
+      "portGapFromName": 8,
+      "noteLeft": null,
+      "noteTextLeft": null,
+      "noteTopBelowHead": null,
+      "dotFromTile": {
+       "dx": 24,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -75
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile accent\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :3080 上应答 判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 &quot;dsh web authentication required&quot;）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\"></span></span><span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（运行中）\" class=\"dsh-name\">web</span><span data-name=\"card-port\" data-uid=\"96xfaeh2\" class=\"dsh-card-port\">3080</span></div></article>"
+    },
+    {
+     "id": "dsh-card-port-41545",
+     "instance": "fx-run-note :41545",
+     "status": "running",
+     "light": "running",
+     "case": "running+note",
+     "text": "fx-run-note41545测试测试",
+     "nodes": {
+      "name": true,
+      "port": true,
+      "note": true,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 233,
+      "w": 126,
+      "h": 86,
+      "right": 338,
+      "bottom": 319
+     },
+     "content": {
+      "left": 226,
+      "right": 324,
+      "top": 246,
+      "bottom": 306,
+      "paddingLeft": 13,
+      "paddingRight": 13,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 226,
+      "y": 246,
+      "w": 98,
+      "h": 34,
+      "right": 324,
+      "bottom": 280
+     },
+     "name": {
+      "x": 268,
+      "y": 252,
+      "w": 18,
+      "h": 22,
+      "right": 286,
+      "bottom": 274,
+      "text": "fx-run-note",
+      "lineBoxes": 1
+     },
+     "port": {
+      "x": 294,
+      "y": 255,
+      "w": 30,
+      "h": 16,
+      "right": 324,
+      "bottom": 271,
+      "text": "41545",
+      "lineBoxes": 1,
+      "font": "12.5px",
+      "color": "rgba(232, 230, 225, 0.82)"
+     },
+     "note": {
+      "x": 226,
+      "y": 290,
+      "w": 98,
+      "h": 16,
+      "right": 324,
+      "bottom": 306,
+      "text": "测试测试",
+      "lineBoxes": 1,
+      "borderLeft": "2px rgba(157, 123, 255, 0.5)",
+      "paddingLeft": "9px",
+      "textBox": {
+       "x": 237,
+       "y": 290,
+       "w": 48,
+       "h": 16,
+       "right": 285,
+       "bottom": 306
+      }
+     },
+     "slot": {
+      "x": 226,
+      "y": 246,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 280
+     },
+     "tile": {
+      "x": 226,
+      "y": 246,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 280
+     },
+     "dot": {
+      "x": 250,
+      "y": 243,
+      "w": 13,
+      "h": 13,
+      "right": 263,
+      "bottom": 256
+     },
+     "deltas": {
+      "nameLeft": 42,
+      "portRight": 0,
+      "portGapFromName": 8,
+      "noteLeft": 0,
+      "noteTextLeft": 11,
+      "noteTopBelowHead": 10,
+      "dotFromTile": {
+       "dx": 24,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -75
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"8qhs8auo\" data-instance=\"fx-run-note :41545\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"fx-run-note :41545 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-41545\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile accent\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"vd5kppu1\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :41545 上应答 判据：探测这个端口时命中了 dsh 的握手应答（桩 fixture：签名那一栏照抄真实例）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\"></span></span><span data-name=\"card-name\" data-uid=\"fg1g9g7r\" title=\"fx-run-note :41545（运行中）\" class=\"dsh-name\">fx-run-note</span><span data-name=\"card-port\" data-uid=\"sdobmtg7\" class=\"dsh-card-port\">41545</span></div><div data-name=\"card-note\" data-uid=\"kmkzk7ew\" title=\"测试测试 （文件）\" class=\"dsh-card-note\"><span class=\"dsh-card-note-text\">测试测试</span></div></article>"
+    },
+    {
+     "id": "dsh-card-profile-headless",
+     "instance": "headless",
+     "status": "stopped",
+     "light": "stopped",
+     "case": "stopped+note",
+     "text": "headless测试测试",
+     "nodes": {
+      "name": true,
+      "port": false,
+      "note": true,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 367.1,
+      "w": 126,
+      "h": 86,
+      "right": 338,
+      "bottom": 453.1
+     },
+     "content": {
+      "left": 226,
+      "right": 324,
+      "top": 380.1,
+      "bottom": 440.1,
+      "paddingLeft": 13,
+      "paddingRight": 13,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 226,
+      "y": 380.1,
+      "w": 98,
+      "h": 34,
+      "right": 324,
+      "bottom": 414.1
+     },
+     "name": {
+      "x": 268,
+      "y": 386.1,
+      "w": 56,
+      "h": 22,
+      "right": 324,
+      "bottom": 408.1,
+      "text": "headless",
+      "lineBoxes": 1
+     },
+     "port": null,
+     "note": {
+      "x": 226,
+      "y": 424.1,
+      "w": 98,
+      "h": 16,
+      "right": 324,
+      "bottom": 440.1,
+      "text": "测试测试",
+      "lineBoxes": 1,
+      "borderLeft": "2px rgba(157, 123, 255, 0.5)",
+      "paddingLeft": "9px",
+      "textBox": {
+       "x": 237,
+       "y": 424.1,
+       "w": 48,
+       "h": 16,
+       "right": 285,
+       "bottom": 440.1
+      }
+     },
+     "slot": {
+      "x": 226,
+      "y": 380.1,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 414.1
+     },
+     "tile": {
+      "x": 226,
+      "y": 380.1,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 414.1
+     },
+     "dot": {
+      "x": 250,
+      "y": 377.1,
+      "w": 13,
+      "h": 13,
+      "right": 263,
+      "bottom": 390.1
+     },
+     "deltas": {
+      "nameLeft": 42,
+      "portRight": null,
+      "portGapFromName": null,
+      "noteLeft": 0,
+      "noteTextLeft": 11,
+      "noteTopBelowHead": 10,
+      "dotFromTile": {
+       "dx": 24,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -75
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"56dajw30\" data-instance=\"headless\" data-status=\"stopped\" data-light=\"stopped\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"headless —— 点开看读数与控制（已停止）\" class=\"dsh-case\" id=\"dsh-card-profile-headless\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile violet\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"3dmd3h85\" data-state=\"stopped\" role=\"img\" aria-label=\"已停止\" title=\"没有在跑 这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。\" class=\"dsh-dot light-stop\"></span></span><span data-name=\"card-name\" data-uid=\"42rjxdej\" title=\"headless（已停止）\" class=\"dsh-name\">headless</span></div><div data-name=\"card-note\" data-uid=\"ijk2ly38\" title=\"测试测试 （文件）\" class=\"dsh-card-note\"><span class=\"dsh-card-note-text\">测试测试</span></div></article>"
+    },
+    {
+     "id": "dsh-card-profile-review-dev",
+     "instance": "review-dev",
+     "status": "stopped",
+     "light": "fault",
+     "case": "stopped+none",
+     "text": "review-dev",
+     "nodes": {
+      "name": true,
+      "port": false,
+      "note": false,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 465.1,
+      "w": 126,
+      "h": 60,
+      "right": 338,
+      "bottom": 525.1
+     },
+     "content": {
+      "left": 226,
+      "right": 324,
+      "top": 478.1,
+      "bottom": 512.1,
+      "paddingLeft": 13,
+      "paddingRight": 13,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 226,
+      "y": 478.1,
+      "w": 98,
+      "h": 34,
+      "right": 324,
+      "bottom": 512.1
+     },
+     "name": {
+      "x": 268,
+      "y": 484.1,
+      "w": 56,
+      "h": 22,
+      "right": 324,
+      "bottom": 506.1,
+      "text": "review-dev",
+      "lineBoxes": 1
+     },
+     "port": null,
+     "note": null,
+     "slot": {
+      "x": 226,
+      "y": 478.1,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 512.1
+     },
+     "tile": {
+      "x": 226,
+      "y": 478.1,
+      "w": 34,
+      "h": 34,
+      "right": 260,
+      "bottom": 512.1
+     },
+     "dot": {
+      "x": 250,
+      "y": 475.1,
+      "w": 13,
+      "h": 13,
+      "right": 263,
+      "bottom": 488.1
+     },
+     "deltas": {
+      "nameLeft": 42,
+      "portRight": null,
+      "portGapFromName": null,
+      "noteLeft": null,
+      "noteTextLeft": null,
+      "noteTopBelowHead": null,
+      "dotFromTile": {
+       "dx": 24,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -75
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"6alh2f4j\" data-instance=\"review-dev\" data-status=\"stopped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"review-dev —— 点开看读数与控制（故障）\" class=\"dsh-case\" id=\"dsh-card-profile-review-dev\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile violet\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"bvfxx5ae\" data-state=\"fault\" role=\"img\" aria-label=\"故障\" title=\"没有在跑；这只 profile 缺 3 个包 判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle。\" class=\"dsh-dot light-fault\"></span></span><span data-name=\"card-name\" data-uid=\"uao96y5y\" title=\"review-dev（故障）\" class=\"dsh-name\">review-dev</span></div></article>"
+    }
+   ]
+  },
+  "768": {
+   "url": "http://127.0.0.1:5390/",
+   "viewport": {
+    "w": 768,
+    "h": 900
+   },
+   "overflowX": false,
+   "scrollW": 768,
+   "clientW": 768,
+   "gridTracks": 2,
+   "gridCols": "261px 261px",
+   "cards": [
+    {
+     "id": "dsh-card-port-3080",
+     "instance": "web :3080",
+     "status": "running",
+     "light": "running",
+     "case": "running+none",
+     "text": "web3080",
+     "nodes": {
+      "name": true,
+      "port": true,
+      "note": false,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 96.7,
+      "w": 261,
+      "h": 96,
+      "right": 473,
+      "bottom": 192.7
+     },
+     "content": {
+      "left": 229,
+      "right": 456,
+      "top": 111.7,
+      "bottom": 177.7,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 229,
+      "y": 111.7,
+      "w": 227,
+      "h": 40,
+      "right": 456,
+      "bottom": 151.7
+     },
+     "name": {
+      "x": 279,
+      "y": 120.7,
+      "w": 143,
+      "h": 22,
+      "right": 422,
+      "bottom": 142.7,
+      "text": "web",
+      "lineBoxes": 1
+     },
+     "port": {
+      "x": 432,
+      "y": 123.7,
+      "w": 24,
+      "h": 16,
+      "right": 456,
+      "bottom": 139.7,
+      "text": "3080",
+      "lineBoxes": 1,
+      "font": "12.5px",
+      "color": "rgba(232, 230, 225, 0.82)"
+     },
+     "note": null,
+     "slot": {
+      "x": 229,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 151.7
+     },
+     "tile": {
+      "x": 229,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 151.7
+     },
+     "dot": {
+      "x": 259,
+      "y": 108.7,
+      "w": 13,
+      "h": 13,
+      "right": 272,
+      "bottom": 121.7
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": 0,
+      "portGapFromName": 10,
+      "noteLeft": null,
+      "noteTextLeft": null,
+      "noteTopBelowHead": null,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -201
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile accent\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :3080 上应答 判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 &quot;dsh web authentication required&quot;）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\"></span></span><span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（运行中）\" class=\"dsh-name\">web</span><span data-name=\"card-port\" data-uid=\"96xfaeh2\" class=\"dsh-card-port\">3080</span></div></article>"
+    },
+    {
+     "id": "dsh-card-port-41545",
+     "instance": "fx-run-note :41545",
+     "status": "running",
+     "light": "running",
+     "case": "running+note",
+     "text": "fx-run-note41545测试测试",
+     "nodes": {
+      "name": true,
+      "port": true,
+      "note": true,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 485,
+      "y": 96.7,
+      "w": 261,
+      "h": 96,
+      "right": 746,
+      "bottom": 192.7
+     },
+     "content": {
+      "left": 502,
+      "right": 729,
+      "top": 111.7,
+      "bottom": 177.7,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 502,
+      "y": 111.7,
+      "w": 227,
+      "h": 40,
+      "right": 729,
+      "bottom": 151.7
+     },
+     "name": {
+      "x": 552,
+      "y": 120.7,
+      "w": 137,
+      "h": 22,
+      "right": 689,
+      "bottom": 142.7,
+      "text": "fx-run-note",
+      "lineBoxes": 1
+     },
+     "port": {
+      "x": 699,
+      "y": 123.7,
+      "w": 30,
+      "h": 16,
+      "right": 729,
+      "bottom": 139.7,
+      "text": "41545",
+      "lineBoxes": 1,
+      "font": "12.5px",
+      "color": "rgba(232, 230, 225, 0.82)"
+     },
+     "note": {
+      "x": 502,
+      "y": 161.7,
+      "w": 227,
+      "h": 16,
+      "right": 729,
+      "bottom": 177.7,
+      "text": "测试测试",
+      "lineBoxes": 1,
+      "borderLeft": "2px rgba(157, 123, 255, 0.5)",
+      "paddingLeft": "9px",
+      "textBox": {
+       "x": 513,
+       "y": 161.7,
+       "w": 48,
+       "h": 16,
+       "right": 561,
+       "bottom": 177.7
+      }
+     },
+     "slot": {
+      "x": 502,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 542,
+      "bottom": 151.7
+     },
+     "tile": {
+      "x": 502,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 542,
+      "bottom": 151.7
+     },
+     "dot": {
+      "x": 532,
+      "y": 108.7,
+      "w": 13,
+      "h": 13,
+      "right": 545,
+      "bottom": 121.7
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": 0,
+      "portGapFromName": 10,
+      "noteLeft": 0,
+      "noteTextLeft": 11,
+      "noteTopBelowHead": 10,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -201
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"8qhs8auo\" data-instance=\"fx-run-note :41545\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"fx-run-note :41545 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-41545\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile accent\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"vd5kppu1\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :41545 上应答 判据：探测这个端口时命中了 dsh 的握手应答（桩 fixture：签名那一栏照抄真实例）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\"></span></span><span data-name=\"card-name\" data-uid=\"fg1g9g7r\" title=\"fx-run-note :41545（运行中）\" class=\"dsh-name\">fx-run-note</span><span data-name=\"card-port\" data-uid=\"sdobmtg7\" class=\"dsh-card-port\">41545</span></div><div data-name=\"card-note\" data-uid=\"kmkzk7ew\" title=\"测试测试 （文件）\" class=\"dsh-card-note\"><span class=\"dsh-card-note-text\">测试测试</span></div></article>"
+    },
+    {
+     "id": "dsh-card-profile-headless",
+     "instance": "headless",
+     "status": "stopped",
+     "light": "stopped",
+     "case": "stopped+note",
+     "text": "headless测试测试",
+     "nodes": {
+      "name": true,
+      "port": false,
+      "note": true,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 240.8,
+      "w": 261,
+      "h": 96,
+      "right": 473,
+      "bottom": 336.8
+     },
+     "content": {
+      "left": 229,
+      "right": 456,
+      "top": 255.8,
+      "bottom": 321.8,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 229,
+      "y": 255.8,
+      "w": 227,
+      "h": 40,
+      "right": 456,
+      "bottom": 295.8
+     },
+     "name": {
+      "x": 279,
+      "y": 264.8,
+      "w": 177,
+      "h": 22,
+      "right": 456,
+      "bottom": 286.8,
+      "text": "headless",
+      "lineBoxes": 1
+     },
+     "port": null,
+     "note": {
+      "x": 229,
+      "y": 305.8,
+      "w": 227,
+      "h": 16,
+      "right": 456,
+      "bottom": 321.8,
+      "text": "测试测试",
+      "lineBoxes": 1,
+      "borderLeft": "2px rgba(157, 123, 255, 0.5)",
+      "paddingLeft": "9px",
+      "textBox": {
+       "x": 240,
+       "y": 305.8,
+       "w": 48,
+       "h": 16,
+       "right": 288,
+       "bottom": 321.8
+      }
+     },
+     "slot": {
+      "x": 229,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 295.8
+     },
+     "tile": {
+      "x": 229,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 295.8
+     },
+     "dot": {
+      "x": 259,
+      "y": 252.8,
+      "w": 13,
+      "h": 13,
+      "right": 272,
+      "bottom": 265.8
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": null,
+      "portGapFromName": null,
+      "noteLeft": 0,
+      "noteTextLeft": 11,
+      "noteTopBelowHead": 10,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -201
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"56dajw30\" data-instance=\"headless\" data-status=\"stopped\" data-light=\"stopped\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"headless —— 点开看读数与控制（已停止）\" class=\"dsh-case\" id=\"dsh-card-profile-headless\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile violet\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"3dmd3h85\" data-state=\"stopped\" role=\"img\" aria-label=\"已停止\" title=\"没有在跑 这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。\" class=\"dsh-dot light-stop\"></span></span><span data-name=\"card-name\" data-uid=\"42rjxdej\" title=\"headless（已停止）\" class=\"dsh-name\">headless</span></div><div data-name=\"card-note\" data-uid=\"ijk2ly38\" title=\"测试测试 （文件）\" class=\"dsh-card-note\"><span class=\"dsh-card-note-text\">测试测试</span></div></article>"
+    },
+    {
+     "id": "dsh-card-profile-review-dev",
+     "instance": "review-dev",
+     "status": "stopped",
+     "light": "fault",
+     "case": "stopped+none",
+     "text": "review-dev",
+     "nodes": {
+      "name": true,
+      "port": false,
+      "note": false,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 485,
+      "y": 240.8,
+      "w": 261,
+      "h": 96,
+      "right": 746,
+      "bottom": 336.8
+     },
+     "content": {
+      "left": 502,
+      "right": 729,
+      "top": 255.8,
+      "bottom": 321.8,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 502,
+      "y": 255.8,
+      "w": 227,
+      "h": 40,
+      "right": 729,
+      "bottom": 295.8
+     },
+     "name": {
+      "x": 552,
+      "y": 264.8,
+      "w": 177,
+      "h": 22,
+      "right": 729,
+      "bottom": 286.8,
+      "text": "review-dev",
+      "lineBoxes": 1
+     },
+     "port": null,
+     "note": null,
+     "slot": {
+      "x": 502,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 542,
+      "bottom": 295.8
+     },
+     "tile": {
+      "x": 502,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 542,
+      "bottom": 295.8
+     },
+     "dot": {
+      "x": 532,
+      "y": 252.8,
+      "w": 13,
+      "h": 13,
+      "right": 545,
+      "bottom": 265.8
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": null,
+      "portGapFromName": null,
+      "noteLeft": null,
+      "noteTextLeft": null,
+      "noteTopBelowHead": null,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -201
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"6alh2f4j\" data-instance=\"review-dev\" data-status=\"stopped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"review-dev —— 点开看读数与控制（故障）\" class=\"dsh-case\" id=\"dsh-card-profile-review-dev\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile violet\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"bvfxx5ae\" data-state=\"fault\" role=\"img\" aria-label=\"故障\" title=\"没有在跑；这只 profile 缺 3 个包 判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle。\" class=\"dsh-dot light-fault\"></span></span><span data-name=\"card-name\" data-uid=\"uao96y5y\" title=\"review-dev（故障）\" class=\"dsh-name\">review-dev</span></div></article>"
+    }
+   ]
+  },
+  "1280": {
+   "url": "http://127.0.0.1:5390/",
+   "viewport": {
+    "w": 1280,
+    "h": 900
+   },
+   "overflowX": false,
+   "scrollW": 1280,
+   "clientW": 1280,
+   "gridTracks": 4,
+   "gridCols": "252.5px 252.5px 252.5px 252.5px",
+   "cards": [
+    {
+     "id": "dsh-card-port-3080",
+     "instance": "web :3080",
+     "status": "running",
+     "light": "running",
+     "case": "running+none",
+     "text": "web3080",
+     "nodes": {
+      "name": true,
+      "port": true,
+      "note": false,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 96.7,
+      "w": 252.5,
+      "h": 96,
+      "right": 464.5,
+      "bottom": 192.7
+     },
+     "content": {
+      "left": 229,
+      "right": 447.5,
+      "top": 111.7,
+      "bottom": 177.7,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 229,
+      "y": 111.7,
+      "w": 218.5,
+      "h": 40,
+      "right": 447.5,
+      "bottom": 151.7
+     },
+     "name": {
+      "x": 279,
+      "y": 120.7,
+      "w": 134.5,
+      "h": 22,
+      "right": 413.5,
+      "bottom": 142.7,
+      "text": "web",
+      "lineBoxes": 1
+     },
+     "port": {
+      "x": 423.5,
+      "y": 123.7,
+      "w": 24,
+      "h": 16,
+      "right": 447.5,
+      "bottom": 139.7,
+      "text": "3080",
+      "lineBoxes": 1,
+      "font": "12.5px",
+      "color": "rgba(232, 230, 225, 0.82)"
+     },
+     "note": null,
+     "slot": {
+      "x": 229,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 151.7
+     },
+     "tile": {
+      "x": 229,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 151.7
+     },
+     "dot": {
+      "x": 259,
+      "y": 108.7,
+      "w": 13,
+      "h": 13,
+      "right": 272,
+      "bottom": 121.7
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": 0,
+      "portGapFromName": 10,
+      "noteLeft": null,
+      "noteTextLeft": null,
+      "noteTopBelowHead": null,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -192.5
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"38hhruar\" data-instance=\"web :3080\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-3080\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile accent\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"clt18y9i\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :3080 上应答 判据：探测这个端口时命中了 dsh 的握手应答（HTTP 401 且响应体含 &quot;dsh web authentication required&quot;）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\"></span></span><span data-name=\"card-name\" data-uid=\"3mvsupwm\" title=\"web :3080（运行中）\" class=\"dsh-name\">web</span><span data-name=\"card-port\" data-uid=\"96xfaeh2\" class=\"dsh-card-port\">3080</span></div></article>"
+    },
+    {
+     "id": "dsh-card-port-41545",
+     "instance": "fx-run-note :41545",
+     "status": "running",
+     "light": "running",
+     "case": "running+note",
+     "text": "fx-run-note41545测试测试",
+     "nodes": {
+      "name": true,
+      "port": true,
+      "note": true,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 476.5,
+      "y": 96.7,
+      "w": 252.5,
+      "h": 96,
+      "right": 729,
+      "bottom": 192.7
+     },
+     "content": {
+      "left": 493.5,
+      "right": 712,
+      "top": 111.7,
+      "bottom": 177.7,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 493.5,
+      "y": 111.7,
+      "w": 218.5,
+      "h": 40,
+      "right": 712,
+      "bottom": 151.7
+     },
+     "name": {
+      "x": 543.5,
+      "y": 120.7,
+      "w": 128.5,
+      "h": 22,
+      "right": 672,
+      "bottom": 142.7,
+      "text": "fx-run-note",
+      "lineBoxes": 1
+     },
+     "port": {
+      "x": 682,
+      "y": 123.7,
+      "w": 30,
+      "h": 16,
+      "right": 712,
+      "bottom": 139.7,
+      "text": "41545",
+      "lineBoxes": 1,
+      "font": "12.5px",
+      "color": "rgba(232, 230, 225, 0.82)"
+     },
+     "note": {
+      "x": 493.5,
+      "y": 161.7,
+      "w": 218.5,
+      "h": 16,
+      "right": 712,
+      "bottom": 177.7,
+      "text": "测试测试",
+      "lineBoxes": 1,
+      "borderLeft": "2px rgba(157, 123, 255, 0.5)",
+      "paddingLeft": "9px",
+      "textBox": {
+       "x": 504.5,
+       "y": 161.7,
+       "w": 48,
+       "h": 16,
+       "right": 552.5,
+       "bottom": 177.7
+      }
+     },
+     "slot": {
+      "x": 493.5,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 533.5,
+      "bottom": 151.7
+     },
+     "tile": {
+      "x": 493.5,
+      "y": 111.7,
+      "w": 40,
+      "h": 40,
+      "right": 533.5,
+      "bottom": 151.7
+     },
+     "dot": {
+      "x": 523.5,
+      "y": 108.7,
+      "w": 13,
+      "h": 13,
+      "right": 536.5,
+      "bottom": 121.7
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": 0,
+      "portGapFromName": 10,
+      "noteLeft": 0,
+      "noteTextLeft": 11,
+      "noteTopBelowHead": 10,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -192.5
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"8qhs8auo\" data-instance=\"fx-run-note :41545\" data-status=\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"fx-run-note :41545 —— 点开看读数与控制（运行中）\" class=\"dsh-case\" id=\"dsh-card-port-41545\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile accent\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"vd5kppu1\" data-state=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :41545 上应答 判据：探测这个端口时命中了 dsh 的握手应答（桩 fixture：签名那一栏照抄真实例）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" class=\"dsh-dot light-run\"></span></span><span data-name=\"card-name\" data-uid=\"fg1g9g7r\" title=\"fx-run-note :41545（运行中）\" class=\"dsh-name\">fx-run-note</span><span data-name=\"card-port\" data-uid=\"sdobmtg7\" class=\"dsh-card-port\">41545</span></div><div data-name=\"card-note\" data-uid=\"kmkzk7ew\" title=\"测试测试 （文件）\" class=\"dsh-card-note\"><span class=\"dsh-card-note-text\">测试测试</span></div></article>"
+    },
+    {
+     "id": "dsh-card-profile-headless",
+     "instance": "headless",
+     "status": "stopped",
+     "light": "stopped",
+     "case": "stopped+note",
+     "text": "headless测试测试",
+     "nodes": {
+      "name": true,
+      "port": false,
+      "note": true,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 212,
+      "y": 240.8,
+      "w": 252.5,
+      "h": 96,
+      "right": 464.5,
+      "bottom": 336.8
+     },
+     "content": {
+      "left": 229,
+      "right": 447.5,
+      "top": 255.8,
+      "bottom": 321.8,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 229,
+      "y": 255.8,
+      "w": 218.5,
+      "h": 40,
+      "right": 447.5,
+      "bottom": 295.8
+     },
+     "name": {
+      "x": 279,
+      "y": 264.8,
+      "w": 168.5,
+      "h": 22,
+      "right": 447.5,
+      "bottom": 286.8,
+      "text": "headless",
+      "lineBoxes": 1
+     },
+     "port": null,
+     "note": {
+      "x": 229,
+      "y": 305.8,
+      "w": 218.5,
+      "h": 16,
+      "right": 447.5,
+      "bottom": 321.8,
+      "text": "测试测试",
+      "lineBoxes": 1,
+      "borderLeft": "2px rgba(157, 123, 255, 0.5)",
+      "paddingLeft": "9px",
+      "textBox": {
+       "x": 240,
+       "y": 305.8,
+       "w": 48,
+       "h": 16,
+       "right": 288,
+       "bottom": 321.8
+      }
+     },
+     "slot": {
+      "x": 229,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 295.8
+     },
+     "tile": {
+      "x": 229,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 269,
+      "bottom": 295.8
+     },
+     "dot": {
+      "x": 259,
+      "y": 252.8,
+      "w": 13,
+      "h": 13,
+      "right": 272,
+      "bottom": 265.8
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": null,
+      "portGapFromName": null,
+      "noteLeft": 0,
+      "noteTextLeft": 11,
+      "noteTopBelowHead": 10,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -192.5
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"56dajw30\" data-instance=\"headless\" data-status=\"stopped\" data-light=\"stopped\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"headless —— 点开看读数与控制（已停止）\" class=\"dsh-case\" id=\"dsh-card-profile-headless\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile violet\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"3dmd3h85\" data-state=\"stopped\" role=\"img\" aria-label=\"已停止\" title=\"没有在跑 这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。\" class=\"dsh-dot light-stop\"></span></span><span data-name=\"card-name\" data-uid=\"42rjxdej\" title=\"headless（已停止）\" class=\"dsh-name\">headless</span></div><div data-name=\"card-note\" data-uid=\"ijk2ly38\" title=\"测试测试 （文件）\" class=\"dsh-card-note\"><span class=\"dsh-card-note-text\">测试测试</span></div></article>"
+    },
+    {
+     "id": "dsh-card-profile-review-dev",
+     "instance": "review-dev",
+     "status": "stopped",
+     "light": "fault",
+     "case": "stopped+none",
+     "text": "review-dev",
+     "nodes": {
+      "name": true,
+      "port": false,
+      "note": false,
+      "dot": true,
+      "tile": true,
+      "noteTag": false
+     },
+     "card": {
+      "x": 476.5,
+      "y": 240.8,
+      "w": 252.5,
+      "h": 96,
+      "right": 729,
+      "bottom": 336.8
+     },
+     "content": {
+      "left": 493.5,
+      "right": 712,
+      "top": 255.8,
+      "bottom": 321.8,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "borderLeft": 1,
+      "borderRight": 1
+     },
+     "head": {
+      "x": 493.5,
+      "y": 255.8,
+      "w": 218.5,
+      "h": 40,
+      "right": 712,
+      "bottom": 295.8
+     },
+     "name": {
+      "x": 543.5,
+      "y": 264.8,
+      "w": 168.5,
+      "h": 22,
+      "right": 712,
+      "bottom": 286.8,
+      "text": "review-dev",
+      "lineBoxes": 1
+     },
+     "port": null,
+     "note": null,
+     "slot": {
+      "x": 493.5,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 533.5,
+      "bottom": 295.8
+     },
+     "tile": {
+      "x": 493.5,
+      "y": 255.8,
+      "w": 40,
+      "h": 40,
+      "right": 533.5,
+      "bottom": 295.8
+     },
+     "dot": {
+      "x": 523.5,
+      "y": 252.8,
+      "w": 13,
+      "h": 13,
+      "right": 536.5,
+      "bottom": 265.8
+     },
+     "deltas": {
+      "nameLeft": 50,
+      "portRight": null,
+      "portGapFromName": null,
+      "noteLeft": null,
+      "noteTextLeft": null,
+      "noteTopBelowHead": null,
+      "dotFromTile": {
+       "dx": 30,
+       "dy": -3,
+       "dRight": 3
+      },
+      "dotFromCardRight": -192.5
+     },
+     "html": "<article data-name=\"instance-card\" data-uid=\"6alh2f4j\" data-instance=\"review-dev\" data-status=\"stopped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-haspopup=\"dialog\" aria-label=\"review-dev —— 点开看读数与控制（故障）\" class=\"dsh-case\" id=\"dsh-card-profile-review-dev\"><div class=\"dsh-case-head\"><span class=\"dsh-tile-slot\"><span class=\"dsh-tile violet\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"dsh-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></svg></span><span data-name=\"status-light\" data-uid=\"bvfxx5ae\" data-state=\"fault\" role=\"img\" aria-label=\"故障\" title=\"没有在跑；这只 profile 缺 3 个包 判据：这只 profile 声明的包里有这些没装上：@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle。\" class=\"dsh-dot light-fault\"></span></span><span data-name=\"card-name\" data-uid=\"uao96y5y\" title=\"review-dev（故障）\" class=\"dsh-name\">review-dev</span></div></article>"
+    }
+   ]
+  }
+ },
+ "fixture": {
+  "note": "instances[1]（proc-41545 / fx-run-note）与 profiles[0]（fx-run-note）是造的，其余实例行与 profile 是真读数",
+  "syntheticInstance": {
+   "id": "proc-41545",
+   "port": 41545,
+   "url": "http://127.0.0.1:41545/",
+   "title": null,
+   "httpStatus": 401,
+   "contentType": "text/plain; charset=utf-8",
+   "signature": {
+    "id": "dsh-auth-401",
+    "describe": "桩 fixture：签名那一栏照抄真实例",
+    "evidence": "fixture"
+   },
+   "profile": "fx-run-note",
+   "pid": 7734,
+   "dshHome": "~/.dsh",
+   "exePath": "~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/lib/bin.js",
+   "startedAt": "2026-10-16T00:25:35.284Z",
+   "uptimeSeconds": 19907,
+   "probeMs": 2,
+   "inode": 149796,
+   "version": "0.2.0-rc.2",
+   "versionSource": "入口包 package.json 的 version 字段：~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/package.json",
+   "profileSource": "PID 7734 的 cmdline：--profile web",
+   "dshHomeSource": "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID 7734）",
+   "processReason": {
+    "code": "port-join",
+    "message": "端口对应的 socket inode 在 /proc/<pid>/fd 里对到了持有进程"
+   },
+   "webUrl": null,
+   "webUrlSource": "外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址",
+   "state": "running",
+   "stateReason": "桩 fixture：把一只带备注的 profile 摆成运行中的实例行 —— 本机真实组合里没有这一种",
+   "profileHealth": {
+    "missingBundles": 3,
+    "hasPatch": true
+   }
+  },
+  "syntheticProfile": {
+   "name": "fx-run-note",
+   "dir": "~/.dsh/profiles/fx-run-note",
+   "isCurrent": false,
+   "packageName": "dsh-profile-headless",
+   "bundles": {
+    "declared": 2,
+    "installed": 2,
+    "installedInProfile": 0,
+    "installedHoisted": 2,
+    "missing": []
+   },
+   "patch": {
+    "exists": true,
+    "lines": 4
+   },
+   "note": "测试测试",
+   "noteSource": "文件",
+   "dirMtimeMs": 1792074889736,
+   "dirMtimeSource": "桩 fixture：这一只 profile 是造的（运行中 + 有备注那一路），不指向磁盘上的任何目录",
+   "lock": {
+    "exists": false,
+    "mtime": null
+   }
+  },
+  "realInstance": {
+   "id": "proc-3080",
+   "port": 3080,
+   "url": "http://127.0.0.1:3080/",
+   "title": null,
+   "httpStatus": 401,
+   "contentType": "text/plain; charset=utf-8",
+   "signature": {
+    "id": "dsh-auth-401",
+    "describe": "HTTP 401 且响应体含 \"dsh web authentication required\"（dsh-client-connection 的未授权应答）",
+    "evidence": "dsh web authentication required; reopen the URL printed by dsh web."
+   },
+   "profile": "web",
+   "pid": 7734,
+   "dshHome": "~/.dsh",
+   "exePath": "~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/lib/bin.js",
+   "startedAt": "2026-10-16T00:25:35.284Z",
+   "uptimeSeconds": 19907,
+   "probeMs": 2,
+   "inode": 149796,
+   "version": "0.2.0-rc.2",
+   "versionSource": "入口包 package.json 的 version 字段：~/.local/share/pnpm/global/v11/499c6f07a790dd7f679cefbbb26ef27a4ada938b7769be3aeb15c04209a68b61/node_modules/@deepseek-ai/dsh/package.json",
+   "profileSource": "PID 7734 的 cmdline：--profile web",
+   "dshHomeSource": "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID 7734）",
+   "processReason": {
+    "code": "port-join",
+    "message": "端口对应的 socket inode 在 /proc/<pid>/fd 里对到了持有进程"
+   },
+   "webUrl": null,
+   "webUrlSource": "外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— ~/.dsh/logs/console-web-3080.log：文件不存在或读不到状态；~/.dsh/logs 下最近 1 份 .log（每份只读尾部 200 行）里没有 :3080/?token= 的地址",
+   "state": "running",
+   "stateReason": "签名探测通过（dsh-auth-401）；profile 检查不过（成因 c）：缺 3 个包（@deepseek-ai/dsh-experimental-agent-team-profile、@deepseek-ai/dsh-experimental-auto-review、@deepseek-ai/dsh-experimental-schedule-bundle）（~/.dsh/profiles/web）—— 这只实例在跑、签名也过，绿由签名给，缺包这一条记在 profileHealth 里",
+   "profileHealth": {
+    "missingBundles": 3,
+    "hasPatch": true
+   }
+  },
+  "realProfileNames": [
+   "headless",
+   "review-dev",
+   "web"
+  ]
+ },
+ "clips": {
+  "running+none": "cases-running+none.png",
+  "running+note": "cases-running+note.png",
+  "stopped+note": "cases-stopped+note.png",
+  "stopped+none": "cases-stopped+none.png"
+ },
+ "consoleIssues": []
+}

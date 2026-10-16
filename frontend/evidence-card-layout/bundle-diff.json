@@ -1,0 +1,216 @@
+[
+ {
+  "id": "dsh-card-port-3080",
+  "case": "running+none",
+  "status": "running",
+  "deltas": {
+   "card": "同",
+   "content": "同",
+   "head": "同",
+   "tile": "同",
+   "dot": "同",
+   "name": {
+    "w": -34,
+    "right": -34
+   },
+   "port": "改前没有",
+   "dotFromTile": "同"
+  },
+  "nodes": {
+   "before": {
+    "name": true,
+    "port": false,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   },
+   "after": {
+    "name": true,
+    "port": true,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   }
+  },
+  "textBefore": "web :3080",
+  "textAfter": "web3080"
+ },
+ {
+  "id": "dsh-card-profile-headless",
+  "case": "stopped+note",
+  "status": "stopped",
+  "deltas": {
+   "card": "同",
+   "content": "同",
+   "head": "同",
+   "tile": "同",
+   "dot": "同",
+   "name": "同",
+   "note": "同",
+   "dotFromTile": "同"
+  },
+  "nodes": {
+   "before": {
+    "name": true,
+    "port": false,
+    "note": true,
+    "dot": true,
+    "tile": true,
+    "noteTag": true
+   },
+   "after": {
+    "name": true,
+    "port": false,
+    "note": true,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   }
+  },
+  "textBefore": "headless备注测试测试",
+  "textAfter": "headless测试测试"
+ },
+ {
+  "id": "dsh-card-profile-review-dev",
+  "case": "stopped+none",
+  "status": "stopped",
+  "deltas": {
+   "card": "同",
+   "content": "同",
+   "head": "同",
+   "tile": "同",
+   "dot": "同",
+   "name": "同",
+   "dotFromTile": "同"
+  },
+  "nodes": {
+   "before": {
+    "name": true,
+    "port": false,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   },
+   "after": {
+    "name": true,
+    "port": false,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   }
+  },
+  "textBefore": "review-dev",
+  "textAfter": "review-dev"
+ },
+ {
+  "id": "dsh-card-port-3080",
+  "case": "running+none",
+  "status": "running",
+  "deltas": {
+   "card": "同",
+   "content": "同",
+   "head": "同",
+   "tile": "同",
+   "dot": "同",
+   "name": {
+    "w": -32,
+    "right": -32
+   },
+   "port": "改前没有",
+   "dotFromTile": "同"
+  },
+  "nodes": {
+   "before": {
+    "name": true,
+    "port": false,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   },
+   "after": {
+    "name": true,
+    "port": true,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   }
+  },
+  "textBefore": "web :3080",
+  "textAfter": "web3080"
+ },
+ {
+  "id": "dsh-card-profile-headless",
+  "case": "stopped+note",
+  "status": "stopped",
+  "deltas": {
+   "card": "同",
+   "content": "同",
+   "head": "同",
+   "tile": "同",
+   "dot": "同",
+   "name": "同",
+   "note": "同",
+   "dotFromTile": "同"
+  },
+  "nodes": {
+   "before": {
+    "name": true,
+    "port": false,
+    "note": true,
+    "dot": true,
+    "tile": true,
+    "noteTag": true
+   },
+   "after": {
+    "name": true,
+    "port": false,
+    "note": true,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   }
+  },
+  "textBefore": "headless备注测试测试",
+  "textAfter": "headless测试测试"
+ },
+ {
+  "id": "dsh-card-profile-review-dev",
+  "case": "stopped+none",
+  "status": "stopped",
+  "deltas": {
+   "card": "同",
+   "content": "同",
+   "head": "同",
+   "tile": "同",
+   "dot": "同",
+   "name": "同",
+   "dotFromTile": "同"
+  },
+  "nodes": {
+   "before": {
+    "name": true,
+    "port": false,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   },
+   "after": {
+    "name": true,
+    "port": false,
+    "note": false,
+    "dot": true,
+    "tile": true,
+    "noteTag": false
+   }
+  },
+  "textBefore": "review-dev",
+  "textAfter": "review-dev"
+ }
+]

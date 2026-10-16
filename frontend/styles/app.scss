@@ -493,7 +493,9 @@ select { appearance: none; -webkit-appearance: none; }
 
 // ── 实例卡（第七轮：卡片变条目） ──（@keyframes: dot-pulse）
 //
-// 卡片只有三样：图标（右上角一颗实心状态灯）、profile 名、备注（有才显示）。
+// 卡片只有三样，各占一处：**左上** profile 名、**右上** 端口号（只在运行中那一条）、
+// 下面一行备注（有才进 DOM）。图标在左边，那颗实心状态灯挂在**图标**右上角 ——
+// 与条目右上角的端口是两处位置，改任何一处先看清改的是哪一个。
 // 六格读数、按钮组、⋯ 菜单都搬进了右侧抽屉（样式见下面「详情抽屉」一节）。
 .dsh-case {
   /* min-width: 0 —— 卡片是栅格项，默认的 min-width: auto 会让它顶着自己的
@@ -515,8 +517,9 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-case:hover { background: $panel-soft; border-color: $line-strong; }
 .dsh-case:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 .dsh-case-head {
-  /* 两块：图标底板（带状态灯） | 名字。名字 flex: 1 1 auto + min-width: 0，
-     卡窄到放不下时先省略名字，图标与状态灯一个像素都不动。 */
+  /* 三块：图标底板（带状态灯） | 名字 | 端口号。
+     名字 flex: 1 1 auto + min-width: 0，卡窄到放不下时先省略名字 ——
+     图标、状态灯、端口一个像素都不动（端口 flex: none + nowrap，挤不掉也不换行）。 */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -534,6 +537,16 @@ select { appearance: none; -webkit-appearance: none; }
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px; font-weight: 600; line-height: 22px; color: $text;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 端口号：条目**右上角**那一格。名字占满中间那块余量，把它顶到内容盒右缘。
+   只在运行中的条目上出现（没有在跑就没有这个节点）。
+   等宽字、比名字淡一档 —— 它是机器的读数，不该跟名字抢眼睛；
+   line-height 16 < 图标位 40，所以带端口的条目高度与不带的一模一样。 */
+.dsh-card-port {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; line-height: 16px; color: $text-mid;
+  white-space: nowrap;
 }
 
 // ── 状态灯：图标右上角那颗实心圆（第七轮） ──（@keyframes: dot-pulse）
@@ -578,18 +591,16 @@ select { appearance: none; -webkit-appearance: none; }
 
 /* 卡片上的备注行：摆在名字**下面**。
    **只在真有备注时才进 DOM**：没有备注的卡片 DOM 与以前逐节点一致。
-   做成一「一眼看出是人写的」：左侧一道细竖线当书签边、前面一个小「备注」标、
-   颜色比读数淡一档（读数是 $text，这里是 $text-mid）。超长省略，完整内容在悬停里。 */
+   做成一「一眼看出是人写的」：左侧一道细竖线当书签边、
+   颜色比读数淡一档（读数是 $text，这里是 $text-mid）。超长省略，完整内容在悬停里。
+   **不带「备注」标**：这一行整个就是备注，那一标是把同一句话说两遍
+   （抽屉里那一处上面还有分组标题顶着）。竖线留着，那是「人写的」的记号。
+   注：这一行**不参与**「同列状态点对齐」那条不变量 —— 它挂在卡片底下，与灯无关。 */
 .dsh-card-note {
-  min-width: 0; display: flex; align-items: baseline; gap: 7px;
+  min-width: 0; display: flex; align-items: baseline;
   padding-left: 9px;
   border-left: 2px solid rgba($violet-rgb, 0.5);
   font-size: 11.5px; line-height: 16px;
-}
-.dsh-card-note-tag {
-  flex: none;
-  font-size: 10px; line-height: 14px; letter-spacing: 0.08em;
-  color: $violet;
 }
 .dsh-card-note-text {
   min-width: 0; color: $text-mid;
