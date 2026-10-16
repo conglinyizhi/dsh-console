@@ -1,0 +1,178 @@
+{
+ "baseUrl": "http://127.0.0.1:5390",
+ "steps": {
+  "wide": {
+   "cardId": "dsh-card-port-3080",
+   "openedByClick": {
+    "open": true,
+    "drawerNodes": 1,
+    "state": "open",
+    "rect": {
+     "x": 760,
+     "w": 520,
+     "right": 1280
+    },
+    "vw": 1280,
+    "pointerEvents": "auto",
+    "anim": "dsh-drawer-in",
+    "buttonCount": 13,
+    "allReachable": true,
+    "active": "dsh-drawer-close"
+   },
+   "closingMidway": {
+    "open": true,
+    "drawerNodes": 1,
+    "state": "closing",
+    "rect": {
+     "x": 940.5,
+     "w": 520,
+     "right": 1460.5
+    },
+    "vw": 1280,
+    "pointerEvents": "none",
+    "anim": "dsh-drawer-out",
+    "buttonCount": 13,
+    "allReachable": false,
+    "active": "dsh-card-port-3080"
+   },
+   "afterEsc": {
+    "open": false,
+    "drawerNodes": 0,
+    "active": "dsh-card-port-3080"
+   },
+   "afterScrimClick": {
+    "open": false,
+    "drawerNodes": 0,
+    "active": "dsh-card-port-3080"
+   },
+   "closeButtonBox": {
+    "x": 1249,
+    "y": 29
+   },
+   "afterCloseButton": {
+    "open": false,
+    "drawerNodes": 0,
+    "active": "dsh-card-port-3080"
+   },
+   "reopenDuringClosing": {
+    "open": true,
+    "drawerNodes": 1,
+    "state": "open",
+    "rect": {
+     "x": 760,
+     "w": 520,
+     "right": 1280
+    },
+    "vw": 1280,
+    "pointerEvents": "auto",
+    "anim": "dsh-drawer-in",
+    "buttonCount": 13,
+    "allReachable": true,
+    "active": "dsh-drawer-close"
+   },
+   "afterReopenEsc": {
+    "open": false,
+    "drawerNodes": 0,
+    "active": "dsh-card-port-3080"
+   },
+   "widthAtOpen": {
+    "x": 760,
+    "w": 520,
+    "right": 1280
+   }
+  },
+  "narrow": {
+   "cardId": "dsh-card-port-3080",
+   "openedByClick": {
+    "open": true,
+    "drawerNodes": 1,
+    "state": "open",
+    "rect": {
+     "x": 0,
+     "w": 360,
+     "right": 360
+    },
+    "vw": 360,
+    "pointerEvents": "auto",
+    "anim": "dsh-drawer-in",
+    "buttonCount": 13,
+    "allReachable": true,
+    "active": "dsh-drawer-close"
+   },
+   "closingMidway": {
+    "open": true,
+    "drawerNodes": 1,
+    "state": "closing",
+    "rect": {
+     "x": 125,
+     "w": 360,
+     "right": 485
+    },
+    "vw": 360,
+    "pointerEvents": "none",
+    "anim": "dsh-drawer-out",
+    "buttonCount": 13,
+    "allReachable": false,
+    "active": "dsh-card-port-3080"
+   },
+   "afterEsc": {
+    "open": false,
+    "drawerNodes": 0,
+    "active": "dsh-card-port-3080"
+   },
+   "afterScrimClick": {
+    "open": true,
+    "drawerNodes": 1,
+    "state": "open",
+    "rect": {
+     "x": 0,
+     "w": 360,
+     "right": 360
+    },
+    "vw": 360,
+    "pointerEvents": "auto",
+    "anim": "dsh-drawer-in",
+    "buttonCount": 13,
+    "allReachable": true,
+    "active": "BODY"
+   },
+   "closeButtonBox": {
+    "x": 329,
+    "y": 29
+   },
+   "afterCloseButton": {
+    "open": false,
+    "drawerNodes": 0,
+    "active": "dsh-card-port-3080"
+   },
+   "reopenDuringClosing": {
+    "open": true,
+    "drawerNodes": 1,
+    "state": "open",
+    "rect": {
+     "x": 0,
+     "w": 360,
+     "right": 360
+    },
+    "vw": 360,
+    "pointerEvents": "auto",
+    "anim": "dsh-drawer-in",
+    "buttonCount": 13,
+    "allReachable": true,
+    "active": "dsh-drawer-close"
+   },
+   "afterReopenEsc": {
+    "open": false,
+    "drawerNodes": 0,
+    "active": "dsh-card-port-3080"
+   },
+   "widthAtOpen": {
+    "x": 0,
+    "w": 360,
+    "right": 360
+   }
+  }
+ },
+ "consoleIssues": [],
+ "card": null
+}

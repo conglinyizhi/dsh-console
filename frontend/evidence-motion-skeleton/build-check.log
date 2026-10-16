@@ -1,0 +1,40 @@
+== moon check --target js ==
+Warning: Dependency `hackwaly/moonback@0.8.1` is deprecated: Use moonbitlang/moonback instead
+  required through conglinyizhi/dsh-console-frontend@0.1.0 -> moonbit-community/rabbita@0.15.7 -> hackwaly/moonback@0.8.1
+Finished. moon: no work to do
+
+== 0/4 清 dist/ ==
+
+== 1/4 编样式（precss）==
+Warning: Dependency `hackwaly/moonback@0.8.1` is deprecated: Use moonbitlang/moonback instead
+  required through conglinyizhi/dsh-console-frontend@0.1.0 -> moonbit-community/rabbita@0.15.7 -> hackwaly/moonback@0.8.1
+wrote dist/assets/app.css (34632 bytes)
+
+== 2/4 编客户端应用（--target js --release）==
+Warning: Dependency `hackwaly/moonback@0.8.1` is deprecated: Use moonbitlang/moonback instead
+  required through conglinyizhi/dsh-console-frontend@0.1.0 -> moonbit-community/rabbita@0.15.7 -> hackwaly/moonback@0.8.1
+Finished. moon: no work to do
+
+== 3/4 拷产物到 dist/ ==
+
+== 4/4 预压缩静态资源（gzip -9 -n -k）==
+
+产物：
+dist:
+总计 16
+drwxr-xr-x  3 clyzhi clyzhi 4096 10月16日 15:14 .
+drwxr-xr-x 24 clyzhi clyzhi 4096 10月16日 15:14 ..
+drwxr-xr-x  3 clyzhi clyzhi 4096 10月16日 15:14 assets
+-rw-------  1 clyzhi clyzhi  983 10月16日 15:14 index.html
+
+dist/assets:
+总计 2072
+drwxr-xr-x 3 clyzhi clyzhi    4096 10月16日 15:14 .
+drwxr-xr-x 3 clyzhi clyzhi    4096 10月16日 15:14 ..
+-rw-r--r-- 1 clyzhi clyzhi   34632 10月16日 15:14 app.css
+-rw-r--r-- 1 clyzhi clyzhi    5128 10月16日 15:14 app.css.gz
+-rw-r--r-- 1 clyzhi clyzhi 1850950 10月16日 15:14 app.js
+-rw-r--r-- 1 clyzhi clyzhi  210681 10月16日 15:14 app.js.gz
+drwxr-xr-x 2 clyzhi clyzhi    4096 10月16日 15:14 licenses
+
+check 通过。

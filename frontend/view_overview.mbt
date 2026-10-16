@@ -622,7 +622,18 @@ fn drawer_state_block(row : Row) -> @html.Html {
 ///   父子结构下点面板会冒泡到遮罩上。兄弟结构下「点外部关闭」天然成立，
 ///   与既有对话框同一套做法（见 view_parts 的 dialog）。
 /// - 窄屏占满宽度、宽屏固定宽度，内容自己滚（见 app.scss 的 .dsh-drawer）
-fn detail_drawer(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+///
+/// closing = 这一只正在**收**（滑出那一段，节点还留着一小会儿，见 app.mbt 的 DrawerClose）：
+/// 内容一字不差，只有 data-state 换成 closing —— 动画挂在那个属性上，判断也挂在它上面。
+fn detail_drawer(
+  row : Row,
+  model : Model,
+  emit : @cmd.Emit[Msg],
+  closing : Bool,
+) -> @html.Html {
+  // 开 / 收两种状态。样式里 .dsh-drawer 与 .dsh-drawer-scrim 各挂一套 keyframes，
+  // 收的那一只对指针关掉（半透明的面板不该再吃点击）
+  let state = if closing { "closing" } else { "open" }
   let fields = @html.ul(class="dsh-fields", [
     field("label-outline", "dsh-version", row.id, "DSH 版本 / 来源", row.version, row.version_hint),
     field("layers-outline", "profile", row.id, "Profile", row.profile, row.profile_hint),
@@ -679,7 +690,8 @@ fn detail_drawer(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   @html.fragment([
     @html.div(
       class="dsh-drawer-scrim",
-      attrs=mark("drawer-scrim", ["overview", "drawer", row.id, "scrim"]),
+      attrs=mark("drawer-scrim", ["overview", "drawer", row.id, "scrim"])
+        .data_set("state", state),
       on_click=emit(DrawerClose),
       @html.nothing,
     ),
@@ -691,6 +703,7 @@ fn detail_drawer(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
         .aria_modal("true")
         .aria_label("详情 " + row.name)
         .data_set("light", light_key(row.light))
+        .data_set("state", state)
         .on_keydown(fn(event) {
           if event.key() == "Escape" {
             emit(DrawerClose)
@@ -1156,7 +1169,14 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 详情抽屉：同一时刻只开一个，开着的那一行必须在（列表重建后行没了就自动不开，
   // 见 app.mbt 的 rebuild —— 抽屉指向一个不存在的行会留下一个关不掉的空面板）。
   match find_row(model.rows, model.drawer_id) {
-    Some(row) => body.push(detail_drawer(row, model, emit))
+    Some(row) => body.push(detail_drawer(row, model, emit, false))
+    None => ()
+  }
+  // 正在收的那一只：节点多留 drawer_anim_ms，让滑出看得见。它只是**一段动画的寿命** ——
+  // 焦点早就回卡片了，指针也被它自己那套样式关掉了；走完由 DrawerClosed 撤节点。
+  // 行没了（收的这 220ms 里列表重建过）就什么都不画，与开着的那一只同一口径。
+  match find_row(model.rows, model.drawer_closing) {
+    Some(row) => body.push(detail_drawer(row, model, emit, true))
     None => ()
   }
   @html.div(

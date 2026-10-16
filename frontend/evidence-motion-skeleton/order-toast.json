@@ -1,0 +1,56 @@
+{
+ "baseUrl": "http://127.0.0.1:5533",
+ "viewport": {
+  "w": 1280,
+  "h": 900
+ },
+ "consoleIssues": [],
+ "orderPath": "/tmp/dsh-console-fixture/state/dsh-console/order.json",
+ "orderFileBefore": "[\"port:3080\",\"profile:web-dev\",\"profile:plain\",\"profile:bare\"]",
+ "drag": {
+  "group": "stopped",
+  "from": "profile:web-dev",
+  "to": "profile:bare",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:plain",
+     "profile:bare"
+    ]
+   }
+  ]
+ },
+ "toast": {
+  "text": "顺序已保存",
+  "title": "顺序表已写入 /tmp/dsh-console-fixture/state/dsh-console/order.json（4 条）",
+  "err": null,
+  "rect": {
+   "x": 1185,
+   "y": 848.8,
+   "w": 60,
+   "h": 19.2
+  }
+ },
+ "orderFileAfter": "[\"port:3080\",\"profile:plain\",\"profile:bare\",\"profile:web-dev\"]",
+ "shot": "order-toast.png",
+ "toastAfterHover": {
+  "text": "顺序已保存",
+  "title": "顺序表已写入 /tmp/dsh-console-fixture/state/dsh-console/order.json（4 条）",
+  "err": null,
+  "rect": {
+   "x": 1185,
+   "y": 848.8,
+   "w": 60,
+   "h": 19.2
+  }
+ },
+ "shotHover": "order-toast-hover.png"
+}

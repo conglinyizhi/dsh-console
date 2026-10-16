@@ -124,8 +124,13 @@ fn loading_block(name : String, title : String, detail : String) -> @html.Html {
 /// 为什么要另起一副形状：卡片瘦成条目之后（图标位 + 名字 / 端口 / 备注），原来那块
 /// 「整幅居中 + 一行字」已经不是卡片的样子了 —— 读数回来、卡片一进来，
 /// 主区宽度、列数、第一张卡的起点全都要跳一次。这里改成在**同一个栅格**里摆占位块：
-/// 外层 .dsh-loading 在栅格下是 display: contents（不生成盒子），里面的块直接成为
-/// 栅格项，与真卡片共用同一套列轨、间距与断点，所以「正在读」到「读到了」布局不跳。
+/// 外层 .dsh-loading 在栅格下是 display: contents（不生成盒子），里面那条
+/// .dsh-skeleton-row 横跨整幅、成为一条栅格项，占位块在它里面用与真卡片**同一套列轨**
+/// 摆开，所以「正在读」到「读到了」列轨与宽度不跳。
+///
+/// **一行封顶**（第十一轮）：这一条盒子只有一行高，第 2 行往后裁掉 —— 6 块占位块在
+/// 4 列时铺成两行、2 列时三行，骨架屏会把下面的分组一路顶下去，读数回来再弹回来。
+/// 现在任何列数下每个分组最多占一行（一行的高度就是真条目那一行）。
 ///
 /// 与空态的界线照旧（空态是虚线框 + 居中图标）：这里说的是「还没读到」，
 /// 不是「扫完了确实没有」。
@@ -138,12 +143,12 @@ fn loading_block(name : String, title : String, detail : String) -> @html.Html {
 /// 说明摆在占位块**下面**（不是上面）：这样第一块与将来的第一张卡落在同一个位置，
 /// 上下也不跳。说明只此一处，占位块里一个字都不写。
 fn card_loading(name : String, title : String, detail : String) -> @html.Html {
-  // 摆 6 块：栅格上限就是 6 列，宽屏那一档正好铺满一排；窄屏就是 6 行。
+  // 摆 6 块：栅格上限就是 6 列，宽屏那一档正好铺满一排。
   // 这个数不是读数 —— 真有几张卡要等读数回来才知道，这里不假装知道。
   let count = 6
-  let children : Array[@html.Html] = []
+  let tiles : Array[@html.Html] = []
   for i = 0; i < count; i = i + 1 {
-    children.push(
+    tiles.push(
       @html.div(
         class="dsh-skeleton",
         attrs=@html.Attrs::build().aria_hidden("true"),
@@ -159,6 +164,13 @@ fn card_loading(name : String, title : String, detail : String) -> @html.Html {
       ),
     )
   }
+  // 占位块装进一层「最多一行」的盒子：**它就是一条栅格项**（横跨整幅），
+  // 里面用与真卡片**同一套列轨**摆那 6 块 —— 一排铺满视口这一档的列数就对了，
+  // 多出来的几行被这一层裁掉（见 app.scss 的 .dsh-skeleton-row）。
+  // 这样不必在 JS 里量列数，骨架屏也不会把下面的分组顶下去。
+  let children : Array[@html.Html] = [
+    @html.div(class="dsh-skeleton-row", tiles),
+  ]
   children.push(
     @html.div(
       class="dsh-loading-note",

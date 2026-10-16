@@ -2052,14 +2052,49 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       if model.drag_suppress_click {
         ({ ..model, drag_suppress_click: false }, @cmd.none)
       } else {
-        ({ ..model, drawer_id: id }, focus_after_render(drawer_close_id()))
+        // 又把抽屉打开了：正在收的那一只当场作废（同一行会撞出两个 #dsh-drawer-close），
+        // 它那条计时回来时号对不上，自己会是空枪
+        (
+          { ..model, drawer_id: id, drawer_closing: "" },
+          focus_after_render(drawer_close_id()),
+        )
       }
     // 关抽屉：点外部 / Esc / 关闭键三条路都走这里，焦点一律回触发它的那张卡 ——
     // 焦点落在被卸载的节点上会掉到 body，键盘用户于是从页首重新 Tab。
-    DrawerClose => (
-      { ..model, drawer_id: "" },
-      focus_after_render(card_id(model.drawer_id)),
-    )
+    //
+    // **焦点立刻就走**，不等滑出那一段：动画期间抽屉的节点还在文档里，
+    // 那 220ms 里焦点要是还留在抽屉里（关闭键），键盘用户 Tab 一下又回到面板上。
+    // 节点由 DrawerClosed 在动画走完之后撤掉（那之前它挂着 data-state="closing"，
+    // 样式按它放滑出那一段，并把它对指针关掉 —— 半透明的面板不该再吃点击）。
+    DrawerClose =>
+      if model.drawer_id == "" {
+        // 已经关了（连按两下 Esc、遮罩与键盘各来一次）：不动焦点，也不留空枪
+        (model, @cmd.none)
+      } else if prefers_reduced_motion() {
+        // 「减少动效」：不做位移也不淡出，节点当场撤掉（样式里那条 media query 关的是
+        // 开的那一半；收的这半边要连节点都不留，所以在这里判）
+        (
+          { ..model, drawer_id: "", drawer_closing: "" },
+          focus_after_render(card_id(model.drawer_id)),
+        )
+      } else {
+        (
+          { ..model, drawer_id: "", drawer_closing: model.drawer_id },
+          @cmd.batch([
+            focus_after_render(card_id(model.drawer_id)),
+            // 号用的是**正在收的那一行**（model.drawer_closing 此刻还是上一拍的值）
+            @cmd.delay(emit(DrawerClosed(model.drawer_id)), drawer_anim_ms),
+          ]),
+        )
+      }
+    // 滑出走完了：这一枪的号还对得上才撤节点。中间又开过抽屉的话（号被清掉或换了一行）
+    // 什么都不做 —— 不然会把刚开的那一只撤下去。
+    DrawerClosed(id) =>
+      if model.drawer_closing == id {
+        ({ ..model, drawer_closing: "" }, @cmd.none)
+      } else {
+        (model, @cmd.none)
+      }
 
     // ── 拖动排序（第十轮）──────────────────────────────────
     //
@@ -2163,8 +2198,22 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     OrderDone(res) => {
       let (ok, text) = interpret_http(res)
       if ok {
-        // 成功：顺序在松手那一刻就已经就地生效了，这里只是报一句
-        ({ ..model, act_notice: text, act_notice_ok: true, order_before: [] }, @cmd.none)
+        // 成功：顺序在松手那一刻就已经就地生效了，这里只是报一句。
+        //
+        // 正文只留「顺序已保存」：后端那句话说的是「顺序表已写入 <落盘路径>（N 条）」——
+        // 「顺序表」是内部的叫法，落盘路径也不是使用者要读的东西（第六轮契约第二节：
+        // 细节收进悬停，正文说人话）。路径与条数一个字都没丢，它们在悬停里。
+        (
+          {
+            ..model,
+            act_notice: "顺序已保存",
+            act_notice_ok: true,
+            act_notice_hint: text,
+            act_notice_hint_for: "顺序已保存",
+            order_before: [],
+          },
+          @cmd.none,
+        )
       } else {
         // 失败：**回滚到提交前那一份**。停在「看着是新的、其实没存下」比不做还糟 ——
         // 下一次刷新列表会跳回原样，而使用者不知道自己刚才拖的那一下去哪了。

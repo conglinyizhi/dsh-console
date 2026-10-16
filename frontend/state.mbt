@@ -247,6 +247,17 @@ pub let flash_ms : Int = 4000
 pub let flash_fade_ms : Int = 220
 
 ///|
+/// 详情抽屉开、合那一段动画的时长（毫秒）。
+///
+/// **出入同一条**：一个快一个慢看着别扭（进 200 / 出 100 像被弹回去）。
+/// 取值在 180–240 之间（使用者给的范围），与样式里 .dsh-drawer 的 animation 时长
+/// 是同一个数 —— 改一处得改另一处。
+///
+/// **上限是硬的**：收起来那一段走完之后节点才撤，验收探针在 Esc 之后等 700ms
+/// 就断言「抽屉没了」；这个数超过 300 就会让那条判定误报。
+pub let drawer_anim_ms : Int = 220
+
+///|
 /// 启动成功之后，最多重读几轮读数去等带令牌的地址。
 ///
 /// 为什么要等：令牌不在启动响应里，它在实例日志里，由 /api/local/instances 现算
@@ -298,6 +309,10 @@ struct Model {
   /// 抽屉是**覆盖式**的（position: fixed 贴右侧，不占文档流），卡片因此不必为它让位。
   /// 关抽屉时焦点回到触发它的那张卡 —— 卡有稳定的 DOM id（见 card_id），不必再存一个返回值。
   drawer_id : String
+  /// 正在滑出、还没撤节点的那一行（空串 = 没有）。**这一格只是一段动画的寿命**：
+  /// 关上之后节点还留 drawer_anim_ms，让滑出看得见；到点由 DrawerClosed 撤掉。
+  /// 它不参与任何判定 —— 焦点、点击、键盘都按「抽屉已经关了」走。
+  drawer_closing : String
   // ── 拖动排序（第十轮） ──
   //
   // 状态分三块：**表**（order）、**这一次拖动的过程**（drag_*）、**写回失败的回滚点**
@@ -475,6 +490,9 @@ priv enum Msg {
   OrderDone(Result[String, Error])
   /// 关抽屉：点外部 / Esc / 关闭按钮都走这一条。焦点回触发它的那张卡。
   DrawerClose
+  /// 抽屉滑出那一段走完了，节点可以撤了（带的是正在收的那一行的 id：
+  /// 号对不上说明这中间抽屉又开了，那一枪作废）。
+  DrawerClosed(String)
   StartTick(String)
   RestartTick
   RenameInput(String)
@@ -538,6 +556,7 @@ fn initial_model() -> Model {
     built: false,
     rows: [],
     drawer_id: "",
+    drawer_closing: "",
     order: [],
     drag_id: "",
     drag_start_x: 0.0,

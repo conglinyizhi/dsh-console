@@ -1,0 +1,1576 @@
+{
+ "baseUrl": "http://127.0.0.1:5390",
+ "views": [
+  {
+   "tag": "1920",
+   "viewport": {
+    "w": 1920,
+    "h": 1080
+   },
+   "expectedCols": 6,
+   "loading": {
+    "viewport": {
+     "w": 1920,
+     "h": 1080
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 1730,
+     "h": 1080,
+     "right": 1920,
+     "bottom": 1080
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 1686,
+      "tracks": "271px 271px 271px 271px 271px 271px",
+      "trackCount": 6,
+      "row": {
+       "x": 212,
+       "y": 96.7,
+       "w": 1686,
+       "h": 70,
+       "right": 1898,
+       "bottom": 166.7
+      },
+      "rowMaxHeight": "70px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 70,
+      "skeletonCount": 6,
+      "visibleCount": 6,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 96.7,
+        "w": 271,
+        "h": 70,
+        "right": 483,
+        "bottom": 166.7
+       },
+       {
+        "x": 495,
+        "y": 96.7,
+        "w": 271,
+        "h": 70,
+        "right": 766,
+        "bottom": 166.7
+       },
+       {
+        "x": 778,
+        "y": 96.7,
+        "w": 271,
+        "h": 70,
+        "right": 1049,
+        "bottom": 166.7
+       },
+       {
+        "x": 1061,
+        "y": 96.7,
+        "w": 271,
+        "h": 70,
+        "right": 1332,
+        "bottom": 166.7
+       },
+       {
+        "x": 1344,
+        "y": 96.7,
+        "w": 271,
+        "h": 70,
+        "right": 1615,
+        "bottom": 166.7
+       },
+       {
+        "x": 1627,
+        "y": 96.7,
+        "w": 271,
+        "h": 70,
+        "right": 1898,
+        "bottom": 166.7
+       }
+      ],
+      "hiddenRects": [],
+      "note": {
+       "x": 212,
+       "y": 178.7,
+       "w": 1686,
+       "h": 53.5,
+       "right": 1898,
+       "bottom": 232.2
+      },
+      "cards": []
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 1686,
+      "tracks": "271px 271px 271px 271px 271px 271px",
+      "trackCount": 6,
+      "row": {
+       "x": 212,
+       "y": 280.3,
+       "w": 1686,
+       "h": 70,
+       "right": 1898,
+       "bottom": 350.3
+      },
+      "rowMaxHeight": "70px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 70,
+      "skeletonCount": 6,
+      "visibleCount": 6,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 280.3,
+        "w": 271,
+        "h": 70,
+        "right": 483,
+        "bottom": 350.3
+       },
+       {
+        "x": 495,
+        "y": 280.3,
+        "w": 271,
+        "h": 70,
+        "right": 766,
+        "bottom": 350.3
+       },
+       {
+        "x": 778,
+        "y": 280.3,
+        "w": 271,
+        "h": 70,
+        "right": 1049,
+        "bottom": 350.3
+       },
+       {
+        "x": 1061,
+        "y": 280.3,
+        "w": 271,
+        "h": 70,
+        "right": 1332,
+        "bottom": 350.3
+       },
+       {
+        "x": 1344,
+        "y": 280.3,
+        "w": 271,
+        "h": 70,
+        "right": 1615,
+        "bottom": 350.3
+       },
+       {
+        "x": 1627,
+        "y": 280.3,
+        "w": 271,
+        "h": 70,
+        "right": 1898,
+        "bottom": 350.3
+       }
+      ],
+      "hiddenRects": [],
+      "note": {
+       "x": 212,
+       "y": 362.3,
+       "w": 1686,
+       "h": 36.4,
+       "right": 1898,
+       "bottom": 398.7
+      },
+      "cards": []
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "loaded": {
+    "viewport": {
+     "w": 1920,
+     "h": 1080
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 1730,
+     "h": 1080,
+     "right": 1920,
+     "bottom": 1080
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 1686,
+      "tracks": "271px 271px 271px 271px 271px 271px",
+      "trackCount": 6,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "port:3080",
+        "rect": {
+         "x": 212,
+         "y": 96.7,
+         "w": 271,
+         "h": 70,
+         "right": 483,
+         "bottom": 166.7
+        }
+       }
+      ]
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 1686,
+      "tracks": "271px 271px 271px 271px 271px 271px",
+      "trackCount": 6,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "profile:headless",
+        "rect": {
+         "x": 212,
+         "y": 214.8,
+         "w": 271,
+         "h": 70,
+         "right": 483,
+         "bottom": 284.8
+        }
+       },
+       {
+        "row": "profile:web-dev",
+        "rect": {
+         "x": 495,
+         "y": 214.8,
+         "w": 271,
+         "h": 70,
+         "right": 766,
+         "bottom": 284.8
+        }
+       },
+       {
+        "row": "profile:review-dev",
+        "rect": {
+         "x": 778,
+         "y": 214.8,
+         "w": 271,
+         "h": 70,
+         "right": 1049,
+         "bottom": 284.8
+        }
+       }
+      ]
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "compare": [
+    {
+     "group": "running",
+     "tracks": [
+      6,
+      6
+     ],
+     "trackSizes": [
+      "271px 271px 271px 271px 271px 271px",
+      "271px 271px 271px 271px 271px 271px"
+     ],
+     "gridWidth": [
+      1686,
+      1686
+     ],
+     "skeletonRowHeight": 70,
+     "cardHeight": 70,
+     "cardHeights": [
+      70
+     ],
+     "firstItemXY": [
+      [
+       212,
+       96.7
+      ],
+      [
+       212,
+       96.7
+      ]
+     ],
+     "placeholderX": [
+      212,
+      495,
+      778,
+      1061,
+      1344,
+      1627
+     ],
+     "cardX": [
+      212
+     ],
+     "placeholderW": [
+      271,
+      271,
+      271,
+      271,
+      271,
+      271
+     ],
+     "cardW": [
+      271
+     ]
+    },
+    {
+     "group": "stopped",
+     "tracks": [
+      6,
+      6
+     ],
+     "trackSizes": [
+      "271px 271px 271px 271px 271px 271px",
+      "271px 271px 271px 271px 271px 271px"
+     ],
+     "gridWidth": [
+      1686,
+      1686
+     ],
+     "skeletonRowHeight": 70,
+     "cardHeight": 70,
+     "cardHeights": [
+      70,
+      70,
+      70
+     ],
+     "firstItemXY": [
+      [
+       212,
+       280.3
+      ],
+      [
+       212,
+       214.8
+      ]
+     ],
+     "placeholderX": [
+      212,
+      495,
+      778,
+      1061,
+      1344,
+      1627
+     ],
+     "cardX": [
+      212,
+      495,
+      778
+     ],
+     "placeholderW": [
+      271,
+      271,
+      271,
+      271,
+      271,
+      271
+     ],
+     "cardW": [
+      271,
+      271,
+      271
+     ]
+    }
+   ],
+   "mainWidth": [
+    1730,
+    1730
+   ]
+  },
+  {
+   "tag": "1280",
+   "viewport": {
+    "w": 1280,
+    "h": 900
+   },
+   "expectedCols": 4,
+   "loading": {
+    "viewport": {
+     "w": 1280,
+     "h": 900
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 1090,
+     "h": 900,
+     "right": 1280,
+     "bottom": 900
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 1046,
+      "tracks": "252.5px 252.5px 252.5px 252.5px",
+      "trackCount": 4,
+      "row": {
+       "x": 212,
+       "y": 96.7,
+       "w": 1046,
+       "h": 70,
+       "right": 1258,
+       "bottom": 166.7
+      },
+      "rowMaxHeight": "70px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 152,
+      "skeletonCount": 6,
+      "visibleCount": 4,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 96.7,
+        "w": 252.5,
+        "h": 70,
+        "right": 464.5,
+        "bottom": 166.7
+       },
+       {
+        "x": 476.5,
+        "y": 96.7,
+        "w": 252.5,
+        "h": 70,
+        "right": 729,
+        "bottom": 166.7
+       },
+       {
+        "x": 741,
+        "y": 96.7,
+        "w": 252.5,
+        "h": 70,
+        "right": 993.5,
+        "bottom": 166.7
+       },
+       {
+        "x": 1005.5,
+        "y": 96.7,
+        "w": 252.5,
+        "h": 70,
+        "right": 1258,
+        "bottom": 166.7
+       }
+      ],
+      "hiddenRects": [
+       {
+        "x": 212,
+        "y": 178.7,
+        "w": 252.5,
+        "h": 70,
+        "right": 464.5,
+        "bottom": 248.7
+       },
+       {
+        "x": 476.5,
+        "y": 178.7,
+        "w": 252.5,
+        "h": 70,
+        "right": 729,
+        "bottom": 248.7
+       }
+      ],
+      "note": {
+       "x": 212,
+       "y": 178.7,
+       "w": 1046,
+       "h": 53.5,
+       "right": 1258,
+       "bottom": 232.2
+      },
+      "cards": []
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 1046,
+      "tracks": "252.5px 252.5px 252.5px 252.5px",
+      "trackCount": 4,
+      "row": {
+       "x": 212,
+       "y": 280.3,
+       "w": 1046,
+       "h": 70,
+       "right": 1258,
+       "bottom": 350.3
+      },
+      "rowMaxHeight": "70px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 152,
+      "skeletonCount": 6,
+      "visibleCount": 4,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 280.3,
+        "w": 252.5,
+        "h": 70,
+        "right": 464.5,
+        "bottom": 350.3
+       },
+       {
+        "x": 476.5,
+        "y": 280.3,
+        "w": 252.5,
+        "h": 70,
+        "right": 729,
+        "bottom": 350.3
+       },
+       {
+        "x": 741,
+        "y": 280.3,
+        "w": 252.5,
+        "h": 70,
+        "right": 993.5,
+        "bottom": 350.3
+       },
+       {
+        "x": 1005.5,
+        "y": 280.3,
+        "w": 252.5,
+        "h": 70,
+        "right": 1258,
+        "bottom": 350.3
+       }
+      ],
+      "hiddenRects": [
+       {
+        "x": 212,
+        "y": 362.3,
+        "w": 252.5,
+        "h": 70,
+        "right": 464.5,
+        "bottom": 432.3
+       },
+       {
+        "x": 476.5,
+        "y": 362.3,
+        "w": 252.5,
+        "h": 70,
+        "right": 729,
+        "bottom": 432.3
+       }
+      ],
+      "note": {
+       "x": 212,
+       "y": 362.3,
+       "w": 1046,
+       "h": 36.4,
+       "right": 1258,
+       "bottom": 398.7
+      },
+      "cards": []
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "loaded": {
+    "viewport": {
+     "w": 1280,
+     "h": 900
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 1090,
+     "h": 900,
+     "right": 1280,
+     "bottom": 900
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 1046,
+      "tracks": "252.5px 252.5px 252.5px 252.5px",
+      "trackCount": 4,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "port:3080",
+        "rect": {
+         "x": 212,
+         "y": 96.7,
+         "w": 252.5,
+         "h": 70,
+         "right": 464.5,
+         "bottom": 166.7
+        }
+       }
+      ]
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 1046,
+      "tracks": "252.5px 252.5px 252.5px 252.5px",
+      "trackCount": 4,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "profile:headless",
+        "rect": {
+         "x": 212,
+         "y": 214.8,
+         "w": 252.5,
+         "h": 70,
+         "right": 464.5,
+         "bottom": 284.8
+        }
+       },
+       {
+        "row": "profile:web-dev",
+        "rect": {
+         "x": 476.5,
+         "y": 214.8,
+         "w": 252.5,
+         "h": 70,
+         "right": 729,
+         "bottom": 284.8
+        }
+       },
+       {
+        "row": "profile:review-dev",
+        "rect": {
+         "x": 741,
+         "y": 214.8,
+         "w": 252.5,
+         "h": 70,
+         "right": 993.5,
+         "bottom": 284.8
+        }
+       }
+      ]
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "compare": [
+    {
+     "group": "running",
+     "tracks": [
+      4,
+      4
+     ],
+     "trackSizes": [
+      "252.5px 252.5px 252.5px 252.5px",
+      "252.5px 252.5px 252.5px 252.5px"
+     ],
+     "gridWidth": [
+      1046,
+      1046
+     ],
+     "skeletonRowHeight": 70,
+     "cardHeight": 70,
+     "cardHeights": [
+      70
+     ],
+     "firstItemXY": [
+      [
+       212,
+       96.7
+      ],
+      [
+       212,
+       96.7
+      ]
+     ],
+     "placeholderX": [
+      212,
+      476.5,
+      741,
+      1005.5
+     ],
+     "cardX": [
+      212
+     ],
+     "placeholderW": [
+      252.5,
+      252.5,
+      252.5,
+      252.5
+     ],
+     "cardW": [
+      252.5
+     ]
+    },
+    {
+     "group": "stopped",
+     "tracks": [
+      4,
+      4
+     ],
+     "trackSizes": [
+      "252.5px 252.5px 252.5px 252.5px",
+      "252.5px 252.5px 252.5px 252.5px"
+     ],
+     "gridWidth": [
+      1046,
+      1046
+     ],
+     "skeletonRowHeight": 70,
+     "cardHeight": 70,
+     "cardHeights": [
+      70,
+      70,
+      70
+     ],
+     "firstItemXY": [
+      [
+       212,
+       280.3
+      ],
+      [
+       212,
+       214.8
+      ]
+     ],
+     "placeholderX": [
+      212,
+      476.5,
+      741,
+      1005.5
+     ],
+     "cardX": [
+      212,
+      476.5,
+      741
+     ],
+     "placeholderW": [
+      252.5,
+      252.5,
+      252.5,
+      252.5
+     ],
+     "cardW": [
+      252.5,
+      252.5,
+      252.5
+     ]
+    }
+   ],
+   "mainWidth": [
+    1090,
+    1090
+   ]
+  },
+  {
+   "tag": "768",
+   "viewport": {
+    "w": 768,
+    "h": 900
+   },
+   "expectedCols": 2,
+   "loading": {
+    "viewport": {
+     "w": 768,
+     "h": 900
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 578,
+     "h": 900,
+     "right": 768,
+     "bottom": 900
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 534,
+      "tracks": "261px 261px",
+      "trackCount": 2,
+      "row": {
+       "x": 212,
+       "y": 96.7,
+       "w": 534,
+       "h": 70,
+       "right": 746,
+       "bottom": 166.7
+      },
+      "rowMaxHeight": "70px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 234,
+      "skeletonCount": 6,
+      "visibleCount": 2,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 96.7,
+        "w": 261,
+        "h": 70,
+        "right": 473,
+        "bottom": 166.7
+       },
+       {
+        "x": 485,
+        "y": 96.7,
+        "w": 261,
+        "h": 70,
+        "right": 746,
+        "bottom": 166.7
+       }
+      ],
+      "hiddenRects": [
+       {
+        "x": 212,
+        "y": 178.7,
+        "w": 261,
+        "h": 70,
+        "right": 473,
+        "bottom": 248.7
+       },
+       {
+        "x": 485,
+        "y": 178.7,
+        "w": 261,
+        "h": 70,
+        "right": 746,
+        "bottom": 248.7
+       },
+       {
+        "x": 212,
+        "y": 260.7,
+        "w": 261,
+        "h": 70,
+        "right": 473,
+        "bottom": 330.7
+       },
+       {
+        "x": 485,
+        "y": 260.7,
+        "w": 261,
+        "h": 70,
+        "right": 746,
+        "bottom": 330.7
+       }
+      ],
+      "note": {
+       "x": 212,
+       "y": 178.7,
+       "w": 534,
+       "h": 53.5,
+       "right": 746,
+       "bottom": 232.2
+      },
+      "cards": []
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 534,
+      "tracks": "261px 261px",
+      "trackCount": 2,
+      "row": {
+       "x": 212,
+       "y": 280.3,
+       "w": 534,
+       "h": 70,
+       "right": 746,
+       "bottom": 350.3
+      },
+      "rowMaxHeight": "70px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 234,
+      "skeletonCount": 6,
+      "visibleCount": 2,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 280.3,
+        "w": 261,
+        "h": 70,
+        "right": 473,
+        "bottom": 350.3
+       },
+       {
+        "x": 485,
+        "y": 280.3,
+        "w": 261,
+        "h": 70,
+        "right": 746,
+        "bottom": 350.3
+       }
+      ],
+      "hiddenRects": [
+       {
+        "x": 212,
+        "y": 362.3,
+        "w": 261,
+        "h": 70,
+        "right": 473,
+        "bottom": 432.3
+       },
+       {
+        "x": 485,
+        "y": 362.3,
+        "w": 261,
+        "h": 70,
+        "right": 746,
+        "bottom": 432.3
+       },
+       {
+        "x": 212,
+        "y": 444.3,
+        "w": 261,
+        "h": 70,
+        "right": 473,
+        "bottom": 514.3
+       },
+       {
+        "x": 485,
+        "y": 444.3,
+        "w": 261,
+        "h": 70,
+        "right": 746,
+        "bottom": 514.3
+       }
+      ],
+      "note": {
+       "x": 212,
+       "y": 362.3,
+       "w": 534,
+       "h": 36.4,
+       "right": 746,
+       "bottom": 398.7
+      },
+      "cards": []
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "loaded": {
+    "viewport": {
+     "w": 768,
+     "h": 900
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 578,
+     "h": 900,
+     "right": 768,
+     "bottom": 900
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 534,
+      "tracks": "261px 261px",
+      "trackCount": 2,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "port:3080",
+        "rect": {
+         "x": 212,
+         "y": 96.7,
+         "w": 261,
+         "h": 70,
+         "right": 473,
+         "bottom": 166.7
+        }
+       }
+      ]
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 534,
+      "tracks": "261px 261px",
+      "trackCount": 2,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "profile:headless",
+        "rect": {
+         "x": 212,
+         "y": 214.8,
+         "w": 261,
+         "h": 70,
+         "right": 473,
+         "bottom": 284.8
+        }
+       },
+       {
+        "row": "profile:web-dev",
+        "rect": {
+         "x": 485,
+         "y": 214.8,
+         "w": 261,
+         "h": 70,
+         "right": 746,
+         "bottom": 284.8
+        }
+       },
+       {
+        "row": "profile:review-dev",
+        "rect": {
+         "x": 212,
+         "y": 296.8,
+         "w": 261,
+         "h": 70,
+         "right": 473,
+         "bottom": 366.8
+        }
+       }
+      ]
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "compare": [
+    {
+     "group": "running",
+     "tracks": [
+      2,
+      2
+     ],
+     "trackSizes": [
+      "261px 261px",
+      "261px 261px"
+     ],
+     "gridWidth": [
+      534,
+      534
+     ],
+     "skeletonRowHeight": 70,
+     "cardHeight": 70,
+     "cardHeights": [
+      70
+     ],
+     "firstItemXY": [
+      [
+       212,
+       96.7
+      ],
+      [
+       212,
+       96.7
+      ]
+     ],
+     "placeholderX": [
+      212,
+      485
+     ],
+     "cardX": [
+      212
+     ],
+     "placeholderW": [
+      261,
+      261
+     ],
+     "cardW": [
+      261
+     ]
+    },
+    {
+     "group": "stopped",
+     "tracks": [
+      2,
+      2
+     ],
+     "trackSizes": [
+      "261px 261px",
+      "261px 261px"
+     ],
+     "gridWidth": [
+      534,
+      534
+     ],
+     "skeletonRowHeight": 70,
+     "cardHeight": 70,
+     "cardHeights": [
+      70,
+      70,
+      70
+     ],
+     "firstItemXY": [
+      [
+       212,
+       280.3
+      ],
+      [
+       212,
+       214.8
+      ]
+     ],
+     "placeholderX": [
+      212,
+      485
+     ],
+     "cardX": [
+      212,
+      485,
+      212
+     ],
+     "placeholderW": [
+      261,
+      261
+     ],
+     "cardW": [
+      261,
+      261,
+      261
+     ]
+    }
+   ],
+   "mainWidth": [
+    578,
+    578
+   ]
+  },
+  {
+   "tag": "360",
+   "viewport": {
+    "w": 360,
+    "h": 900
+   },
+   "expectedCols": 1,
+   "loading": {
+    "viewport": {
+     "w": 360,
+     "h": 900
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 170,
+     "h": 900,
+     "right": 360,
+     "bottom": 900
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 126,
+      "tracks": "126px",
+      "trackCount": 1,
+      "row": {
+       "x": 212,
+       "y": 227.2,
+       "w": 126,
+       "h": 60,
+       "right": 338,
+       "bottom": 287.2
+      },
+      "rowMaxHeight": "60px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 420,
+      "skeletonCount": 6,
+      "visibleCount": 1,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 227.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 287.2
+       }
+      ],
+      "hiddenRects": [
+       {
+        "x": 212,
+        "y": 299.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 359.2
+       },
+       {
+        "x": 212,
+        "y": 371.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 431.2
+       },
+       {
+        "x": 212,
+        "y": 443.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 503.2
+       },
+       {
+        "x": 212,
+        "y": 515.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 575.2
+       },
+       {
+        "x": 212,
+        "y": 587.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 647.2
+       }
+      ],
+      "note": {
+       "x": 212,
+       "y": 299.2,
+       "w": 126,
+       "h": 87.6,
+       "right": 338,
+       "bottom": 386.8
+      },
+      "cards": []
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 126,
+      "tracks": "126px",
+      "trackCount": 1,
+      "row": {
+       "x": 212,
+       "y": 475.2,
+       "w": 126,
+       "h": 60,
+       "right": 338,
+       "bottom": 535.2
+      },
+      "rowMaxHeight": "60px",
+      "rowOverflow": "hidden",
+      "rowScrollHeight": 420,
+      "skeletonCount": 6,
+      "visibleCount": 1,
+      "visibleRects": [
+       {
+        "x": 212,
+        "y": 475.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 535.2
+       }
+      ],
+      "hiddenRects": [
+       {
+        "x": 212,
+        "y": 547.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 607.2
+       },
+       {
+        "x": 212,
+        "y": 619.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 679.2
+       },
+       {
+        "x": 212,
+        "y": 691.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 751.2
+       },
+       {
+        "x": 212,
+        "y": 763.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 823.2
+       },
+       {
+        "x": 212,
+        "y": 835.2,
+        "w": 126,
+        "h": 60,
+        "right": 338,
+        "bottom": 895.2
+       }
+      ],
+      "note": {
+       "x": 212,
+       "y": 547.2,
+       "w": 126,
+       "h": 72.8,
+       "right": 338,
+       "bottom": 620.1
+      },
+      "cards": []
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "loaded": {
+    "viewport": {
+     "w": 360,
+     "h": 900
+    },
+    "main": {
+     "x": 190,
+     "y": 0,
+     "w": 170,
+     "h": 900,
+     "right": 360,
+     "bottom": 900
+    },
+    "groups": [
+     {
+      "group": "running",
+      "gridWidth": 126,
+      "tracks": "126px",
+      "trackCount": 1,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "port:3080",
+        "rect": {
+         "x": 212,
+         "y": 161,
+         "w": 126,
+         "h": 66,
+         "right": 338,
+         "bottom": 227
+        }
+       }
+      ]
+     },
+     {
+      "group": "stopped",
+      "gridWidth": 126,
+      "tracks": "126px",
+      "trackCount": 1,
+      "row": null,
+      "rowMaxHeight": null,
+      "rowOverflow": null,
+      "rowScrollHeight": null,
+      "skeletonCount": 0,
+      "visibleCount": 0,
+      "visibleRects": [],
+      "hiddenRects": [],
+      "note": null,
+      "cards": [
+       {
+        "row": "profile:headless",
+        "rect": {
+         "x": 212,
+         "y": 275.1,
+         "w": 126,
+         "h": 66,
+         "right": 338,
+         "bottom": 341.1
+        }
+       },
+       {
+        "row": "profile:web-dev",
+        "rect": {
+         "x": 212,
+         "y": 353.1,
+         "w": 126,
+         "h": 66,
+         "right": 338,
+         "bottom": 419.1
+        }
+       },
+       {
+        "row": "profile:review-dev",
+        "rect": {
+         "x": 212,
+         "y": 431.1,
+         "w": 126,
+         "h": 66,
+         "right": 338,
+         "bottom": 497.1
+        }
+       }
+      ]
+     }
+    ],
+    "pageOverflowX": false,
+    "animations": {
+     "count": 0,
+     "names": []
+    }
+   },
+   "compare": [
+    {
+     "group": "running",
+     "tracks": [
+      1,
+      1
+     ],
+     "trackSizes": [
+      "126px",
+      "126px"
+     ],
+     "gridWidth": [
+      126,
+      126
+     ],
+     "skeletonRowHeight": 60,
+     "cardHeight": 66,
+     "cardHeights": [
+      66
+     ],
+     "firstItemXY": [
+      [
+       212,
+       227.2
+      ],
+      [
+       212,
+       161
+      ]
+     ],
+     "placeholderX": [
+      212
+     ],
+     "cardX": [
+      212
+     ],
+     "placeholderW": [
+      126
+     ],
+     "cardW": [
+      126
+     ]
+    },
+    {
+     "group": "stopped",
+     "tracks": [
+      1,
+      1
+     ],
+     "trackSizes": [
+      "126px",
+      "126px"
+     ],
+     "gridWidth": [
+      126,
+      126
+     ],
+     "skeletonRowHeight": 60,
+     "cardHeight": 66,
+     "cardHeights": [
+      66,
+      66,
+      66
+     ],
+     "firstItemXY": [
+      [
+       212,
+       475.2
+      ],
+      [
+       212,
+       275.1
+      ]
+     ],
+     "placeholderX": [
+      212
+     ],
+     "cardX": [
+      212,
+      212,
+      212
+     ],
+     "placeholderW": [
+      126
+     ],
+     "cardW": [
+      126,
+      126,
+      126
+     ]
+    }
+   ],
+   "mainWidth": [
+    170,
+    170
+   ]
+  }
+ ],
+ "consoleIssues": []
+}

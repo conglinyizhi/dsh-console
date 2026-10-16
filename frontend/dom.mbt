@@ -232,6 +232,21 @@ extern "js" fn js_iso_time_ms(ms : Double) -> String =
   #| }
 
 ///|
+/// 使用者是不是把动效关了（prefers-reduced-motion: reduce）。1 = 关了。
+///
+/// 只有一处问它：抽屉收起来那一段 —— 那个设置下**不做任何位移与淡入淡出**，
+/// 节点当场撤掉，而不是留着等一段看不见的动画走完（留着的这段时间它还盖着页面）。
+/// 样式里有同一条 media query 把动画关掉（开的那一半归它管）；这里问一遍是为了
+/// 连节点都不留。返回 Int 而不是 Bool：FFI 的数值边界最不容易出岔子。
+extern "js" fn js_reduced_motion() -> Int =
+  #| () => (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 1 : 0
+
+///|
+fn prefers_reduced_motion() -> Bool {
+  js_reduced_motion() == 1
+}
+
+///|
 /// 视口宽度（CSS 像素，取整）。
 ///
 /// 拖动排序要按它判「窄屏不响应」：单列那一档（< 726px）里，纵向拖动与页面滚动
