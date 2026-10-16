@@ -509,13 +509,14 @@ select { appearance: none; -webkit-appearance: none; }
   background: $text-dim;
 }
 .dsh-dot.light-run { background: $ok; box-shadow: 0 0 0 2px rgba($ok-rgb, 0.2); }
-.dsh-dot.light-fault { background: $warn; box-shadow: 0 0 0 2px rgba($warn-rgb, 0.2); }
+/* 光晕是「它还活着」的信号 —— 只有运行中才发。故障与停用发光会把信号稀释掉 ✗ */
+.dsh-dot.light-fault { background: $warn; }
 .dsh-dot.light-start {
   background: $warn;
   box-shadow: 0 0 0 2px rgba($warn-rgb, 0.2);
   animation: dot-pulse 900ms ease-in-out infinite;
 }
-.dsh-dot.light-stop { background: $danger; box-shadow: 0 0 0 2px rgba($danger-rgb, 0.2); }
+.dsh-dot.light-stop { background: $danger; }
 /* 没读到 state：不上色。空心灰环 + 一圈底色描边，一眼看出「这一格没有读数」 */
 .dsh-dot.light-unknown { background: transparent; border-color: $text-dim; box-shadow: none; }
 /* 抽屉里的那一颗：跟着标题走，不绝对定位 */
