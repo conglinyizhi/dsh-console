@@ -484,7 +484,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
 **对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
 
-### 十个动作
+### 十一个动作
 
 | action | 真实做的事 | 关键边界 |
 | --- | --- | --- |
@@ -498,6 +498,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `archive-profile` | 往 `archive.json` 追加一条 `{ profile, archivedAt }` | **不动磁盘上的 profile**；同一个 profile 已在归档区 → `conflict` |
 | `unarchive-profile` | 删掉那条记录 | 没有这条 → `not-found` |
 | `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
+| `set-row-order` | 把**整份**手动顺序原子写进 `<状态目录>/order.json`：一个行 id 的字符串数组，元素只认 `port:<端口号>` 与 `profile:<名字>` | 不是字符串 / id 形状不对 / 有重复 / 超 5000 条 → `bad-params`；写不动 `io-error`。空数组合法（= 清空顺序表，回到自动排序）。**不做增量合并**：调用方给的就是要落盘的那一份 —— 增量式接口要后端先读一份当前顺序再算，两次并发拖动会互相覆盖 |
 
 ### 派生出的新 profile 怎么认得出（第五轮）
 
@@ -695,15 +696,27 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 
 ```
 GET /api/local/console → { ok, readOnly:true, readAt, data:{
-  stateDir, settingsPath, runtimePath, archivePath, auditPath, trashDir,
+  stateDir, settingsPath, runtimePath, archivePath, auditPath, orderPath, trashDir,
   deleteToTrash, deleteToTrashSource,
   runtime:[{ pid, port, home, profile, startedAt, logPath, detached, alive }],
   archive:[{ profile, archivedAt }],
+  order:["port:3080", "profile:web", ...],
+  lastStarted:[{ id, at, source }],
   notes:[] } }
 ```
 
 前端用它标出「由本控制台启动」的实例、渲染归档区；动作成功后重新拉一遍读数即可（`instances` 里
 控制台起的实例与手工起的实例一视同仁，签名与 `processReason` 都照旧）。
+
+`order` 是手动排序的**显式顺序表**（`order.json` 的原样）。空数组 = 没拖过 = 列表走自动排序；
+表里没有的行（新出现的实例 / 新加的 profile）由前端按自动规则排在已排好的之后，
+运行中与已停止**两组各自排**，不合并成一张表（组是语义）。
+
+`lastStarted` 是每只实例 / 每只 profile **最后一次被启动**的时刻，同一个 id 只留 `at` 最大的那一条。
+两份控制台自己的记录合起来出：`runtime.json` 的 `startedAt`（每条登记同时产出 `port:` 与 `profile:` 两条 id），
+以及 `audit.jsonl` 里 `action="start-instance"` 且 `ok=true` 的行（失败的启动不算启动过）。
+审计滚动之后主文件只保留最近若干条，更早的历史在 `.archive/` 里，这一版**不读归档** ——
+「上次启动」要的是最近那一次，最近的必然在主文件里。读不动的文件把原因写进 `notes`，不静默。
 
 `deleteToTrash` 是**生效值**（与删除动作在 `store/settings.mbt` 读的是同一处），
 `deleteToTrashSource` 说它来自文件还是默认（取值与 `/api/local/settings` 的 `sources` 同一套：
@@ -740,6 +753,7 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 | 运行登记 | `$XDG_STATE_HOME/dsh-console/runtime.json` | `store/registry.mbt` |
 | 归档记录 | `$XDG_STATE_HOME/dsh-console/archive.json` | `store/archive.mbt` |
 | 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（追加；超 8 MiB 滚动，归档进同目录 `.archive/`） | `store/audit.mbt` |
+| 手动顺序 | `$XDG_STATE_HOME/dsh-console/order.json`（**顶层就是字符串数组**，元素是 `port:<端口号>` / `profile:<名字>`；空数组 = 没拖过） | `store/order.mbt` |
 | 回收站 | `$XDG_STATE_HOME/dsh-console/trash/<profile>-<毫秒>/` | `actions/profile_fs.mbt`（`deleteToTrash=true`） |
 | profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
 | profile 备注 | `<profile 目录>/.dsh-note.txt`（空串语义 = 删掉它；**派生时也写这一个文件**） | `actions/profile_fs.mbt`（`set-profile-note` 与 `fork-profile`） |

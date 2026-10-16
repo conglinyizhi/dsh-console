@@ -5,6 +5,7 @@
 //   settings.json  设置值（原子写）
 //   runtime.json   控制台起过的实例登记（原子写，只记我们起的）
 //   archive.json   归档记录（原子写）
+//   order.json     手动排序的显式顺序表：一个行 id 的字符串数组（原子写）
 //   audit.jsonl    动作审计（平时只追加，超 8 MiB 滚动；归档在同目录 .archive/）
 //   trash/         删除进回收站的落点（deleteToTrash=true 时的目标）
 //
@@ -18,6 +19,7 @@ pub struct StatePaths {
   runtime : String
   archive : String
   audit : String
+  order : String
   trash : String
 }
 
@@ -35,6 +37,7 @@ pub async fn state_paths() -> StatePaths noraise {
     runtime: @json.join_path(dir, "runtime.json"),
     archive: @json.join_path(dir, "archive.json"),
     audit: @json.join_path(dir, "audit.jsonl"),
+    order: @json.join_path(dir, "order.json"),
     trash: @json.join_path(dir, "trash"),
   }
 }

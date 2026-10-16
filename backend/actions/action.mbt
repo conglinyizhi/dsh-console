@@ -135,6 +135,67 @@ fn require_note_text(params : Json) -> String raise ActionError {
 }
 
 ///|
+/// 取「整份新顺序」参数：order 必须是一个字符串数组，每一项都是一个认得出的行 id。
+///
+/// 每一条都当场拒掉，一条都不放过：
+///   · 缺参数 / 不是数组 / 元素不是字符串 —— 那是调用方写错了，不是「清空」
+///   · id 形状不对（不是 port:<数字> 或 profile:<名字>）
+///   · 同一个 id 出现两次 —— 带重复项的顺序表读的时候必然有一份是废的
+///   · 条数超上限
+/// 空数组是合法的：那是「清空顺序表」，页面回到自动排序。
+///
+/// 这里**不做合并**：调用方给的就是要落盘的那一份。增量式接口（「把 A 挪到 B 前」）
+/// 要后端先读一份当前顺序再算，两次并发拖动就会互相覆盖；整份提交的语义是明确的 ——
+/// 谁的请求后到，谁那一份算数。
+fn require_order_ids(params : Json) -> Array[String] raise ActionError {
+  let raw = match @json.json_field(params, "order") {
+    Some(v) => v
+    None => {
+      fail("bad-params", "缺少参数 order（整份新顺序的行 id 数组）")
+      abort("unreachable: fail 一定抛错")
+    }
+  }
+  let items = match raw {
+    Array(list) => list
+    _ => {
+      fail("bad-params", "order 要是一个字符串数组")
+      abort("unreachable: fail 一定抛错")
+    }
+  }
+  if items.length() > @store.order_max_ids {
+    fail(
+      "bad-params",
+      "order 最多 " + @store.order_max_ids.to_string() + " 条，收到 " + items.length().to_string() +
+      " 条",
+    )
+    abort("unreachable: fail 一定抛错")
+  }
+  let ids : Array[String] = []
+  for item in items {
+    let id = match @json.json_string(item) {
+      Some(s) => @json.trim_both(s)
+      None => {
+        fail("bad-params", "order 的每一项都要是字符串")
+        abort("unreachable: fail 一定抛错")
+      }
+    }
+    if !@store.order_id_valid(id) {
+      fail(
+        "bad-params",
+        "order 里有认不出的行 id：" + id + "（只认 port:<端口号> 与 profile:<名字>）",
+      )
+      abort("unreachable: fail 一定抛错")
+    }
+    if ids.contains(id) {
+      fail("bad-params", "order 里有重复的行 id：" + id)
+      abort("unreachable: fail 一定抛错")
+    }
+    ids.push(id)
+  }
+  ids
+}
+
+///|
 /// 写一行审计（失败不让动作失败，把原因回给调用方拼进 note）。
 async fn audit(
   action : String,
@@ -492,6 +553,37 @@ pub async fn run_action(
           "note",
           @json.JStr(
             "回收站里的「" + outcome.profile + "」已经彻底删掉（" + size + "），无法恢复",
+          ),
+        ),
+      ])
+    }
+    // ── 手动排序（第十轮）────────────────────────────────
+    // 使用者拖着条目换位置，前端把**整份新顺序**提交上来。落盘是原子写，写不进去就
+    // 如实失败（io-error）—— 顺序没存下而回一句「已保存」，页面刷新后列表会跳回原样，
+    // 而使用者不知道为什么。params 原样进审计：那一行流水就是这份顺序表的变更记录。
+    "set-row-order" => {
+      let ids = require_order_ids(params)
+      match @store.save_order(ids) {
+        Ok(_) => ()
+        Err(e) => {
+          fail("io-error", "顺序没能写进 " + paths.order + "：" + e)
+          abort("unreachable: fail 一定抛错")
+        }
+      }
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("count", @json.jint(ids.length())),
+          ("orderPath", @json.JStr(paths.order)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            if ids.length() == 0 {
+              "顺序表已清空，列表回到自动排序"
+            } else {
+              "顺序表已写入 " + paths.order + "（" + ids.length().to_string() + " 条）"
+            },
           ),
         ),
       ])

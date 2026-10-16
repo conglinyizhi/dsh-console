@@ -1,0 +1,69 @@
+{
+ "url": "http://127.0.0.1:5533/",
+ "sections": [
+  "drag"
+ ],
+ "orderPath": "/tmp/dsh-console-fixture/state/dsh-console/order.json",
+ "orderFileBefore": "[\"port:3080\",\"port:5199\",\"profile:plain\",\"profile:bare\",\"profile:web-dev\"]",
+ "drag": {
+  "group": "stopped",
+  "from": "profile:plain",
+  "to": "profile:web-dev",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080",
+     "port:5199"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:bare",
+     "profile:web-dev"
+    ]
+   }
+  ],
+  "steps": [],
+  "indicator": {
+   "present": true,
+   "row": "profile:web-dev",
+   "cls": "dsh-case drop-after",
+   "dragging": true,
+   "draggingRow": "profile:plain",
+   "content": "\"\"",
+   "height": "2px",
+   "background": "rgb(79, 140, 255)",
+   "top": "73px",
+   "bottom": "-7px",
+   "left": "0px",
+   "right": "0px"
+  },
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080",
+     "port:5199"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:bare",
+     "profile:web-dev"
+    ]
+   }
+  ],
+  "orderFileAfter": "[\"port:3080\",\"port:5199\",\"profile:plain\",\"profile:bare\",\"profile:web-dev\"]",
+  "notice": {
+   "err": "顺序没保存：HTTP 500 Internal Server Error | io-error：顺序没能写进 /tmp/dsh-console-fixture/state/dsh-console/order.json：写临时文件失败：/tmp/dsh-console-fixture/state/dsh-console/order.json.tmp-343564-1792132854941-5（OSError(\"@fs.open(): \\\"/tmp/dsh-console-fixture/state/dsh-console/order.json.tmp-343564-1792132854941-5\\\": Permission denied\")）",
+   "toast": null,
+   "drawer": false
+  }
+ },
+ "orderFileEnd": "[\"port:3080\",\"port:5199\",\"profile:plain\",\"profile:bare\",\"profile:web-dev\"]"
+}

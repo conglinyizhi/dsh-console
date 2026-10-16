@@ -306,6 +306,11 @@ pub(all) struct InstanceFact {
   profile : String?
   dsh_home : String?
   uptime_seconds : Int?
+  /// 这只实例**真实**的启动时刻（UTC ISO）。后端从进程起始时间推出来，不是控制台记的。
+  /// None = 读不到 —— 卡片第二行的「上次启动」这时才退回控制台自己的记录
+  /// （runtime.json 的 startedAt / audit.jsonl 的 start-instance）；两处都没有就不写那一行，
+  /// **绝不拿一个别的时刻顶上**。
+  started_at : String?
   /// 入口包 …/node_modules/@deepseek-ai/dsh/package.json 的 version；读不到是 None
   version : String?
   /// 下面几条都是「这个值是从哪读出来的 / 为什么读不到」，原样来自后端，不在前端编
@@ -384,6 +389,7 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
       profile: opt_str_field(fact, "profile"),
       dsh_home: opt_str_field(fact, "dshHome"),
       uptime_seconds: int_field(fact, "uptimeSeconds"),
+      started_at: opt_str_field(fact, "startedAt"),
       version: opt_str_field(fact, "version"),
       version_source: str_field(fact, "versionSource"),
       profile_source: str_field(fact, "profileSource"),
@@ -644,6 +650,22 @@ pub(all) struct ConsoleTrash {
 pub extend ConsoleTrash with Eq::{ not_equal, equal }
 
 ///|
+/// 一条「上次启动」读数（GET /api/local/console 的 lastStarted[]）。
+///
+/// 后端把两份控制台记录并成一张表（runtime.json 的 startedAt、audit.jsonl 里
+/// start-instance 且成功的那一笔），同一个 id 只留最近的那一条。前端只负责按 id 查。
+pub(all) struct LastStartedFact {
+  /// 行 id，与 Row.id 同一套：port:<端口号> / profile:<名字>
+  id : String
+  /// 启动时刻（UTC ISO，后端原样给）。空串 = 这一条没有可用时刻，不渲染。
+  at : String
+  /// 这个时刻从哪读出来的（人话，直接进悬停）
+  source : String
+} derive(Eq)
+
+pub extend LastStartedFact with Eq::{ not_equal, equal }
+
+///|
 /// 控制台自己的状态读数。这一份不在契约里那五个只读接口之列：
 /// runtime.json / archive.json 是两份状态文件，浏览器读不到文件系统，
 /// 后端为此单开了一个只读端点（GET /api/local/console）。
@@ -662,6 +684,16 @@ pub(all) struct ConsoleFacts {
   archive : Array[ConsoleArchive]
   /// 回收站条目（后端按删除时刻倒序给，最近删的在前）
   trash : Array[ConsoleTrash]
+  /// 手动排序的顺序表（order.json 的原样：一个行 id 的数组，顺序即使用者拖出来的顺序）。
+  ///
+  /// **空数组 = 没拖过** —— 那时列表走自动排序（运行中按实例、已停止按最近改动降序）。
+  /// 字段不在（这一版后端还没有它）与空数组在这里是同一件事：都退回自动排序，
+  /// 因为两者的行为要求完全一样：没有顺序可用就用自动的。
+  order : Array[String]
+  /// order.json 的路径（后端原样给；空串 = 这一版后端没给）。只在提示里出现。
+  order_path : String
+  /// 每只实例 / 每只 profile 最后一次被启动的时刻（后端已按 at 降序并去重）
+  last_started : Array[LastStartedFact]
   /// 响应里**有没有** trash 这个字段。
   ///
   /// 与「字段在、但为空」分开：字段不在 = 这一版后端还没有这个读数（页面上要说清是读不到，
@@ -710,6 +742,23 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
       size_source: str_field(entry, "sizeSource"),
     })
   }
+  let order : Array[String] = []
+  for item in arr_field(data, "order") {
+    match item {
+      Json::String(id) => order.push(id)
+      _ => ()
+    }
+  }
+  let last_started : Array[LastStartedFact] = []
+  for item in arr_field(data, "lastStarted") {
+    guard item is Json::Object(entry) else { continue }
+    let at = str_field(entry, "at")
+    let id = str_field(entry, "id")
+    // 没有 id 或没有时刻的条目直接丢掉：一条查不到的读数，摆在表里只会让查表的人以为有
+    if id != "" && at != "" {
+      last_started.push({ id, at, source: str_field(entry, "source") })
+    }
+  }
   let notes : Array[String] = []
   for note in arr_field(data, "notes") {
     match note {
@@ -727,6 +776,9 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     runtime,
     archive,
     trash,
+    order,
+    order_path: str_field(data, "orderPath"),
+    last_started,
     trash_present: has_key(data, "trash"),
     notes,
   })

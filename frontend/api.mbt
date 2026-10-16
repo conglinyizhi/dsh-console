@@ -183,3 +183,30 @@ fn action_cmd(
     },
   )
 }
+
+///|
+/// POST /api/local/action 的 **set-row-order**：body 是 { action, params: { order: [...] } }。
+///
+/// 为什么单开一条而不是复用 action_cmd：这条回执要做一件别处不做的事 ——
+/// 失败时把顺序**回滚**到提交前那一份（见 app.mbt 的 OrderDone）。
+/// 复用的话，回执里就分不出「这一笔是排序」还是别的动作，回滚会打在不相干的动作上。
+///
+/// params 里的顺序表用 json_text_literal 逐个转义：行 id 是「port:<数字>」或
+/// 「profile:<名字>」，名字里什么字符都可能出现，手拼字符串迟早拼出一个坏 JSON。
+fn order_action_cmd(ids : Array[String], emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  let items = ids.map(fn(id) { json_text_literal(id) })
+  let params = "{\"order\":[" + join_with(items, ",") + "]}"
+  let body = action_body("set-row-order", params)
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(OrderDone(res)) },
+    async fn() {
+      let text : String = js_http_call(
+        "POST",
+        "/api/local/action",
+        body,
+        write_headers(),
+      ).wait().cast()
+      text
+    },
+  )
+}

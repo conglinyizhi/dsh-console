@@ -101,6 +101,9 @@ fn console_mark(row : Row) -> @html.Html {
 fn card_attrs(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
   mark("instance-card", ["overview", "card", row.id])
     .data_set("instance", row.name)
+    // 行 id 也写进 DOM：指针拖动的落点判定要按它认行（见 dom.mbt 的 js_drop_target）。
+    // 与卡片自己的 DOM id 分开：那个是给焦点用的短串（dsh-card-…），这个要与 row.id 一字不差。
+    .data_set("row", row.id)
     .data_set("status", status_name(row.status))
     .data_set("light", light_key(row.light))
     .role("button")
@@ -108,9 +111,20 @@ fn card_attrs(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
     .aria_haspopup("dialog")
     .aria_label(row.name + " —— 点开看读数与控制（" + light_label(row.light) + "）")
     .on_click(fn(_event) { emit(DrawerOpen(row.id)) })
+    // 指针按下只是**记住起点**：位移过阈值才算拖动（判在 update_inner 的 DragDown）。
+    // 这里**不 preventDefault**：掐掉默认行为会把随后的 click 一起掐掉，
+    // 而点整张卡是打开抽屉的唯一入口 —— 拖动与点击必须共存。
+    .on_pointerdown(fn(event) {
+      emit(DragDown(row.id, event.get_client_x(), event.get_client_y()))
+    })
     .on_keydown(fn(event) {
-      if event.key() == "Enter" || event.key() == " " {
+      let key = event.key()
+      if key == "Enter" || key == " " {
         emit(DrawerOpen(row.id))
+      } else if (key == "ArrowUp" || key == "ArrowDown") && event.ctrl_key() {
+        // 键盘换位。用 Ctrl+方向键而不是裸方向键：裸方向键要留给页面滚动与焦点移动，
+        // 抢过来会让键盘用户在列表里走不动路。
+        emit(ReorderKey(row.id, if key == "ArrowUp" { -1 } else { 1 }))
       } else {
         @cmd.none
       }
@@ -141,11 +155,15 @@ fn card_name_text(row : Row) -> String {
 }
 
 ///|
-/// 条目**右上角**那一格：这只实例正在监听的端口号。**只有运行中那一条有**。
+/// 条目**第一行右侧**那一格：这只实例正在监听的端口号。
 ///
 /// 与状态灯不是一处位置：灯在图标右上角（.dsh-dot，挂在 .dsh-tile-slot 里），
-/// 这一格在条目的右上角、右缘贴内容盒右缘（中间的名字把它顶过去）。
-/// 没有在跑就不产出这个节点 —— 与备注同一口径：没有就是没有，不摆一个空位。
+/// 这一格在第一行的右端（中间的名字把它顶过去）。
+///
+/// **判据是「这一行知不知道端口」，不是「灯是不是绿的」**：故障那一档里
+/// 「端口在听、签名不通」正是最该一眼看到「它占着哪个端口」的时候，
+/// 拿颜色当开关会恰好把它藏起来。没有端口就不产出这个节点 ——
+/// 与第二行同一口径：没有就是没有，不摆一个空位。
 fn card_port(row : Row, port : Int) -> @html.Html {
   @html.span(
     class="dsh-card-port",
@@ -155,9 +173,14 @@ fn card_port(row : Row, port : Int) -> @html.Html {
 }
 
 ///|
-/// 一张实例卡：左边图标 + 右上角状态灯，**左上** profile 名、**右上** 端口（运行中才有），
-/// 下面一行备注（有才显示）。
-fn instance_card(row : Row, _model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+/// 一张实例条目：**图标在左、竖跨两行**；右边两行 ——
+/// 第一行是 profile 名 + 端口号（知道端口才有），第二行是备注，没有备注就写「上次启动」。
+///
+/// 两行的行高加起来正好等于图标那一块的高度（22 + 2 + 16 = 40），所以
+/// **有没有第二行，条目的高度都是 70px**（14 + 1 + 40 + 1 + 14），
+/// 与第七轮「没有备注的条目」逐像素一致 —— 响应式列数就是从这个高度推出来的。
+/// 只有一行的时候整块靠 justify-content: center 居中，名字的基线也跟着落在原处。
+fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let tile_class = match row.tone {
     Accent => "dsh-tile accent"
     Violet => "dsh-tile violet"
@@ -166,11 +189,8 @@ fn instance_card(row : Row, _model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
     Accent => "open-in-new"
     Violet => "puzzle-outline"
   }
+  // 第一行：名字占满余下的宽度，把端口顶到右端
   let head : Array[@html.Html] = [
-    @html.span(class="dsh-tile-slot", [
-      @html.span(class=tile_class, [icon(tile_icon, size=20)]),
-      status_light(row),
-    ]),
     @html.span(
       class="dsh-name",
       attrs=mark("card-name", ["overview", "card", row.id, "name"]).title(
@@ -179,25 +199,114 @@ fn instance_card(row : Row, _model : Model, emit : @cmd.Emit[Msg]) -> @html.Html
       card_name_text(row),
     ),
   ]
-  // 端口只在运行中那一条产出：名字那一格已经腾干净了，这个节点是它唯一的落点
-  match row.status {
-    Running =>
-      match row.port_value {
-        Some(port) => head.push(card_port(row, port))
-        None => ()
-      }
-    _ => ()
+  match row.port_value {
+    Some(port) => head.push(card_port(row, port))
+    None => ()
   }
-  let children : Array[@html.Html] = [@html.div(class="dsh-case-head", head)]
-  // 备注只在这一行真有内容时才多一个节点：没有备注的卡片 DOM 逐节点一致
-  if row.user_note.length() > 0 {
-    children.push(card_note(row))
+  let lines : Array[@html.Html] = [@html.div(class="dsh-case-head", head)]
+  // 第二行只在这一行真有内容时才多一个节点：两条都没有时 DOM 逐节点与从前一致
+  match card_second_line(row) {
+    Some(node) => lines.push(node)
+    None => ()
   }
   @html.article(
     id=card_id(row.id),
-    class="dsh-case",
+    class=card_class(row, model),
     attrs=card_attrs(row, emit),
-    children,
+    [
+      @html.span(class="dsh-tile-slot", [
+        @html.span(class=tile_class, [icon(tile_icon, size=20)]),
+        status_light(row),
+      ]),
+      @html.div(class="dsh-case-body", lines),
+    ],
+  )
+}
+
+
+///|
+/// 一组条目的容器（「当前运行的实例」/「已停止的实例」各一个）。
+///
+/// 这一层给的是**分组语义**：落点判定要知道指针底下那一条属于哪一组
+/// （跨组不许放，两组不合并），以及拖动过程中整组的文字不许被选中。
+///
+/// 指针的按下 / 移动 / 松开**不挂在这里**，挂在外壳（见 view_shell 的 page_view）：
+/// 拖到列表之外再松手时，组这一层收不到抬起，拖动状态会一直挂着。
+/// 外壳包着整页，指针在页面里哪儿都是一路冒泡上去的。
+fn row_group(
+  group : String,
+  children : Array[@html.Html],
+  model : Model,
+  _emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let attrs = mark("row-group", ["overview", "rows", group]).data_set("group", group)
+  if model.drag_active {
+    @html.div(class="dsh-rows dsh-card-grid dsh-drag-active", attrs=attrs, children)
+  } else {
+    @html.div(class="dsh-rows dsh-card-grid", attrs=attrs, children)
+  }
+}
+
+///|
+/// 条目的类名：常态是 `dsh-case`，拖动过程中多两档。
+///
+///   dragging   正被拖着的那一条（淡一档，一眼看出手在哪儿）
+///   drop-before / drop-after  落位提示挂在这一条上（那一侧画一道插入线）
+///
+/// 落位提示**不挂在被拖的那一条自己身上**：指针停在它自己上面时提示会自己跳，
+/// 那是「要往这儿插」，而它本来就在这儿。
+fn card_class(row : Row, model : Model) -> String {
+  let base = if model.drag_active && model.drag_id == row.id {
+    "dsh-case dragging"
+  } else {
+    "dsh-case"
+  }
+  if model.drag_active && model.drag_over == row.id && model.drag_id != row.id {
+    if model.drag_over_after {
+      base + " drop-after"
+    } else {
+      base + " drop-before"
+    }
+  } else {
+    base
+  }
+}
+
+///|
+/// 条目第二行画什么：**有备注写备注**；没有备注才轮到「上次启动」；
+/// 两个都没有就**不产出这一行**（空着，不写任何占位）。
+///
+/// 顺序不能反：备注是人写的，人写的东西优先 —— 机器读数不该把人写的话挤掉。
+fn card_second_line(row : Row) -> @html.Html? {
+  if row.user_note.length() > 0 {
+    return Some(card_note(row))
+  }
+  let short = js_short_time(row.last_started)
+  // 解析不出时刻（读数里是个不成形状的串）就当没有：写一行「上次启动 —」看着像有读数，
+  // 其实没有 —— 那比空着更容易被误读。
+  if short == "" {
+    return None
+  }
+  Some(card_stamp(row, short))
+}
+
+///|
+/// 条目第二行的**机器**那一档：上次启动时刻。
+///
+/// 与备注行同一处位置，但**不带左侧那道细线** —— 那道线是「这是人写的」的记号，
+/// 时间是机器的读数，挂上去就是把两种东西说成一种。颜色也更淡一档（$text-dim）。
+fn card_stamp(row : Row, short : String) -> @html.Html {
+  @html.div(
+    class="dsh-card-stamp",
+    attrs=mark("card-started", ["overview", "card", row.id, "started"]).title(
+      "上次启动：" + short +
+      (if row.last_started_source == "" {
+        ""
+      } else {
+        "\n（" + row.last_started_source + "）"
+      }),
+    ),
+    [@html.span(class="dsh-card-stamp-text", "上次启动 " + short)],
   )
 }
 
@@ -952,13 +1061,12 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 ///|
 /// 实例总览页。
 fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let running = model.rows.filter(fn(row) {
-    row.archived_at is None && row.status is Running
-  })
-  // 启动等待中的行留在原分组，所以「已停止」组把 starting 一起算进来
-  let stopped = model.rows.filter(fn(row) {
-    row.archived_at is None && !(row.status is Running)
-  })
+  // 两组各自的顺序都在这里定：自动排序（运行中按实例、已停止按最近改动降序）
+  // 之上再叠一层手动顺序表（见 state.mbt 的 display_groups）。
+  // **在取的时候算，不在 rebuild 里算**：顺序表会随拖动变，而 rebuild 一趟只跑一次，
+  // 放那儿的话拖完松手页面会停在旧顺序上。
+  // 启动等待中的行留在原分组，所以「已停止」组把 starting 一起算进来。
+  let (running, stopped) = display_groups(model)
   // 读数还没落地：这一格摆加载态（与真条目同形的占位块，见 card_loading），
   // 空态只在真读到空的时候出现
   let pending = readings_pending(model)
@@ -1031,14 +1139,14 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         if pending { "…" } else { running.length().to_string() },
         model.tag_instances,
       ),
-      @html.div(class="dsh-rows dsh-card-grid", running_list),
+      row_group("running", running_list, model, emit),
       section_head(
         "stopped",
         "已停止的实例",
         if pending { "…" } else { stopped.length().to_string() },
         model.tag_profiles,
       ),
-      @html.div(class="dsh-rows dsh-card-grid", stopped_list),
+      row_group("stopped", stopped_list, model, emit),
       archived_section(model, emit),
     ]),
   ]

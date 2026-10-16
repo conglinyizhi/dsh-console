@@ -148,9 +148,12 @@ fn card_loading(name : String, title : String, detail : String) -> @html.Html {
         class="dsh-skeleton",
         attrs=@html.Attrs::build().aria_hidden("true"),
         [
-          @html.div(class="dsh-skeleton-head", [
-            @html.span(class="dsh-skeleton-tile", @html.nothing),
+          // 形状与真条目一一对应（第十轮：左图标竖跨两行 + 右两行），
+          // 几何见 app.scss 的 .dsh-skeleton 一节 —— 改一处就得改另一处。
+          @html.span(class="dsh-skeleton-tile", @html.nothing),
+          @html.div(class="dsh-skeleton-body", [
             @html.span(class="dsh-skeleton-name", @html.nothing),
+            @html.span(class="dsh-skeleton-sub", @html.nothing),
           ]),
         ],
       ),

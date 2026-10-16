@@ -377,14 +377,17 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-skeleton {
   /* min-width: 0 与 .dsh-case 同因：它是栅格项，默认的 min-width: auto 会顶穿所在的那条轨 */
   min-width: 0;
-  display: flex; flex-direction: column;
+  /* 第十轮跟着条目一起改成「左图标 + 右两行」：条目现在是两行，占位块还是
+     一行的话，读数回来那一刻形状对不上，那正是这一块存在的理由。 */
+  display: flex; flex-direction: row; align-items: center; gap: 10px;
   padding: 14px 16px;
   background: $panel;
   border: 1px solid $line;
   border-radius: $radius;
 }
-.dsh-skeleton-head {
-  display: flex; align-items: center; gap: 10px; min-width: 0;
+.dsh-skeleton-body {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 6px;
 }
 /* 图标位：真卡片那一块 40×40 的底板，这里只是一块灰 */
 .dsh-skeleton-tile {
@@ -399,6 +402,15 @@ select { appearance: none; -webkit-appearance: none; }
   flex: 1 1 auto; min-width: 0; max-width: 120px;
   height: 12px; border-radius: 6px;
   background: rgba(255, 255, 255, 0.07);
+}
+/* 第二行那一格：条目第二行可能是一条备注、也可能是一个时刻、也可能没有。
+   占位块取中间那一档（有内容但更短更淡），高度 8 < 真条目的 16 ——
+   它比真条目矮，所以**永远不会把占位块撑得比真条目高**：
+   读数回来时只可能往上收，不会往下跳。 */
+.dsh-skeleton-sub {
+  width: 64px; max-width: 60%;
+  height: 8px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
 }
 /* 说明那一行：占满整行（它是栅格项，不跟占位块挤一列）。
    text-align 显式写 left：.dsh-loading 的居中会沿继承传下来，而这一行是
@@ -491,21 +503,26 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-trash-btn.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
 .dsh-trash-btn.danger:hover { background: rgba($danger-rgb, 0.12); }
 
-// ── 实例卡（第七轮：卡片变条目） ──（@keyframes: dot-pulse）
+// ── 实例条目（第七轮变条目，第十轮改两行） ──（@keyframes: dot-pulse）
 //
-// 卡片只有三样，各占一处：**左上** profile 名、**右上** 端口号（只在运行中那一条）、
-// 下面一行备注（有才进 DOM）。图标在左边，那颗实心状态灯挂在**图标**右上角 ——
-// 与条目右上角的端口是两处位置，改任何一处先看清改的是哪一个。
+// 第十轮起是**左图标 + 右两行**：图标在左、竖跨两行；右边第一行是 profile 名 + 端口号
+// （知道端口才有），第二行是备注，没有备注就写「上次启动」。
+// 那颗实心状态灯仍然挂在**图标**右上角，与第一行右端的端口是两处位置，别混。
 // 六格读数、按钮组、⋯ 菜单都搬进了右侧抽屉（样式见下面「详情抽屉」一节）。
+//
+// **两条行高加起来正好等于图标那一块的高度**（22 + 2 + 16 = 40），所以有没有第二行，
+// 条目高度都是 70px（14 + 1 + 40 + 1 + 14）—— 与第七轮「没有备注的条目」逐像素一致。
+// 响应式列数（下面 .dsh-rows.dsh-card-grid 那一段）就是从这个宽度推出来的，
+// 改这里的任何一条常量都要回头看那一段的算式。
 .dsh-case {
-  /* min-width: 0 —— 卡片是栅格项，默认的 min-width: auto 会让它顶着自己的
+  /* min-width: 0 —— 条目是栅格项，默认的 min-width: auto 会让它顶着自己的
      min-content 不肯变窄，直接顶穿所在的那条轨（轨道是 minmax(0,1fr)）。
-     名字与备注都带省略号，所以它一路缩得下去，任何宽度都不横向溢出。
+     名字、备注、时刻都带省略号，所以它一路缩得下去，任何宽度都不横向溢出。
      整张卡是一个 role=button 的 article：鼠标点、Enter、空格都能开抽屉，
      所以这里要有 :hover / :focus-visible 的可点样子（不是靠里面藏一颗按钮）。 */
   min-width: 0;
   position: relative;
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: row; align-items: center; gap: 10px;
   padding: 14px 16px;
   background: $panel;
   border: 1px solid $line;
@@ -516,8 +533,18 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-case:hover { background: $panel-soft; border-color: $line-strong; }
 .dsh-case:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+/* 右半那两行。justify-content: center 是**关键的一条**：
+   只有一行的时候（没有备注也没有时刻），这一行要落在图标的正中间 ——
+   与第七轮「名字在 40px 行里居中」的位置一模一样，条目因此逐像素不变。
+   min-width: 0 与 .dsh-case 同因：它是 flex 项，默认的 min-width: auto
+   会让长名字把条目顶宽。 */
+.dsh-case-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
 .dsh-case-head {
-  /* 三块：图标底板（带状态灯） | 名字 | 端口号。
+  /* 两块：名字 | 端口号。
      名字 flex: 1 1 auto + min-width: 0，卡窄到放不下时先省略名字 ——
      图标、状态灯、端口一个像素都不动（端口 flex: none + nowrap，挤不掉也不换行）。 */
   display: flex;
@@ -538,10 +565,12 @@ select { appearance: none; -webkit-appearance: none; }
   font-size: 15px; font-weight: 600; line-height: 22px; color: $text;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* 端口号：条目**右上角**那一格。名字占满中间那块余量，把它顶到内容盒右缘。
-   只在运行中的条目上出现（没有在跑就没有这个节点）。
+/* 端口号：第一行右端那一格。名字占满中间那块余量，把它顶到内容盒右缘。
+   **判据是「这一行知不知道端口」，不是「灯是不是绿的」**：故障那一档里
+   「端口在听、签名不通」正是最该看见「它占着哪个端口」的时候，拿颜色当开关
+   会恰好把它藏起来。不知道端口就没有这个节点。
    等宽字、比名字淡一档 —— 它是机器的读数，不该跟名字抢眼睛；
-   line-height 16 < 图标位 40，所以带端口的条目高度与不带的一模一样。 */
+   line-height 16 < 第一行行高 22，所以带端口的条目高度与不带的一模一样。 */
 .dsh-card-port {
   flex: none;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -589,8 +618,8 @@ select { appearance: none; -webkit-appearance: none; }
   50% { opacity: 0.32; }
 }
 
-/* 卡片上的备注行：摆在名字**下面**。
-   **只在真有备注时才进 DOM**：没有备注的卡片 DOM 与以前逐节点一致。
+/* 条目上的备注行：第二行。
+   **只在真有备注时才进 DOM**；没有备注而有时刻时，这一格换成下面那个时刻行。
    做成一「一眼看出是人写的」：左侧一道细竖线当书签边、
    颜色比读数淡一档（读数是 $text，这里是 $text-mid）。超长省略，完整内容在悬停里。
    **不带「备注」标**：这一行整个就是备注，那一标是把同一句话说两遍
@@ -606,6 +635,44 @@ select { appearance: none; -webkit-appearance: none; }
   min-width: 0; color: $text-mid;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* 条目第二行的**机器**那一档：没有备注时写「上次启动 <短时刻>」。
+   **没有左侧那道细线** —— 那道线是「这是人写的」的记号（见上面 .dsh-card-note），
+   时间是机器的读数，给它挂上同一道线就是把两种东西说成一种。
+   颜色再淡一档（$text-dim），与备注（$text-mid）分开一档层级。
+   与备注同一处位置、同一套省略规则，所以两档互换时第二行的高度都是 16px，
+   条目高度一个像素都不动。 */
+.dsh-card-stamp {
+  min-width: 0; display: flex; align-items: baseline;
+  font-size: 11.5px; line-height: 16px;
+}
+.dsh-card-stamp-text {
+  min-width: 0; color: $text-dim;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+// ── 拖动排序（第十轮） ──
+//
+// 全部靠指针事件 + 一个类名，没有原生 HTML5 拖放（它的拖影与放下判定在无头浏览器里
+// 既验不了也不好控）。三样视觉：
+//   .dragging     正被拖着的那一条淡一档
+//   .drop-before / .drop-after  落位提示：在目标那一侧画一道插入线（::after，2px）
+//   .dsh-drag-active  整组：拖动中禁掉文字选中，光标改成抓着
+// 插入线画在盒子**外面**（top: -7 / bottom: -7），正好落在 12px 的栅格间隙里，
+// 不占任何布局位置 —— 所以提示出现与消失都不会把条目挤动一下。
+.dsh-card-grid.dsh-drag-active { user-select: none; cursor: grabbing; }
+.dsh-case.dragging { opacity: 0.55; }
+.dsh-case.drop-before::after,
+.dsh-case.drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: $accent;
+  pointer-events: none;
+}
+.dsh-case.drop-before::after { top: -7px; }
+.dsh-case.drop-after::after { bottom: -7px; }
 .dsh-fields {
   /* 常态两列：6 个字段是 2 / 2 / 2，不随窗口宽度涨成四列。
      只有卡宽 < 500 时才塌成一列 × 6 行（见本文件末尾的窄视口一段）——
@@ -651,8 +718,10 @@ select { appearance: none; -webkit-appearance: none; }
   /* 卡宽 < 386：内边距与图标各收一档（40 → 34），名字那一段多留出 12px。
      占位块跟着一起收（同一组选择器，改一条两条都动）——
      只收一边的话，读数回来那一刻高度会差 12px。 */
-  .dsh-case, .dsh-skeleton { padding: 12px 13px; }
-  .dsh-case-head, .dsh-skeleton-head { gap: 8px; }
+  /* 图标与右半之间的间隙第十轮起挂在条目本身上（以前挂在卡头那个盒子上），
+     所以这一条要跟着一起改名字：只改一边的话，窄屏下条目会突然宽 2px。 */
+  .dsh-case, .dsh-skeleton { padding: 12px 13px; gap: 8px; }
+  .dsh-case-head { gap: 8px; }
   .dsh-tile, .dsh-skeleton-tile { width: 34px; height: 34px; border-radius: 8px; }
 }
 @media (max-width: 420px) {

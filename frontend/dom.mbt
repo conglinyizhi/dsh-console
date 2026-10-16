@@ -232,6 +232,38 @@ extern "js" fn js_iso_time_ms(ms : Double) -> String =
   #| }
 
 ///|
+/// 视口宽度（CSS 像素，取整）。
+///
+/// 拖动排序要按它判「窄屏不响应」：单列那一档（< 726px）里，纵向拖动与页面滚动
+/// 会互相打架 —— 拖一次条目，页面跟着滚。断点用的是与样式里那条 media query
+/// 同一个数（.dsh-rows.dsh-card-grid 的 2 列起点），两处必须一起改。
+extern "js" fn js_viewport_width() -> Int =
+  #| () => Math.round(window.innerWidth || 0)
+
+///|
+/// 指针底下是哪一条：返回一段 JSON `{"row":"<行 id>","group":"running|stopped","after":bool}`，
+/// 底下没有条目就给空串。
+///
+/// 为什么用 elementFromPoint 而不是自己算几何：条目是栅格项，列数与列宽全由
+/// media query 决定，前端再算一遍就多出一份**会跟样式分叉**的几何 ——
+/// 分叉之后落位线会画在视觉上的隔壁那一列。浏览器自己是唯一的裁判。
+/// after = 指针落在了这一条的下半部分（插到它后面）。
+extern "js" fn js_drop_target(x : Double, y : Double) -> String =
+  #| (x, y) => {
+  #|   const el = document.elementFromPoint(x, y);
+  #|   if (!el || typeof el.closest !== 'function') return '';
+  #|   const card = el.closest('[data-row]');
+  #|   if (!card) return '';
+  #|   const row = card.getAttribute('data-row') || '';
+  #|   if (!row) return '';
+  #|   const grid = card.closest('[data-name="row-group"]');
+  #|   const group = grid ? (grid.getAttribute('data-group') || '') : '';
+  #|   const r = card.getBoundingClientRect();
+  #|   return JSON.stringify({ row: row, group: group, after: y > r.top + r.height / 2 });
+  #| }
+
+
+///|
 /// 渲染完成之后再聚焦：菜单打开要落到第一项，关闭要把焦点还给触发元素。
 /// 用 AfterRender 时机，否则 DOM 还没打补丁，query 到的是上一帧的节点。
 fn focus_after_render(id : String) -> @cmd.Cmd {

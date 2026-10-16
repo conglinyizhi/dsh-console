@@ -1,0 +1,296 @@
+{
+ "url": "http://127.0.0.1:5533/",
+ "sections": [
+  "stuck",
+  "click",
+  "drag",
+  "persist",
+  "narrow",
+  "keyboard"
+ ],
+ "orderPath": "/tmp/dsh-console-fixture/state/dsh-console/order.json",
+ "orderFileBefore": "[\"port:3080\",\"profile:bare\",\"profile:plain\",\"profile:web-dev\"]",
+ "click": {
+  "target": "profile:plain",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:bare",
+     "profile:plain",
+     "profile:web-dev"
+    ]
+   }
+  ],
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:bare",
+     "profile:plain",
+     "profile:web-dev"
+    ]
+   }
+  ],
+  "drawerOpen": true
+ },
+ "drag": {
+  "group": "stopped",
+  "from": "profile:bare",
+  "to": "profile:web-dev",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:bare",
+     "profile:plain",
+     "profile:web-dev"
+    ]
+   }
+  ],
+  "steps": [],
+  "indicator": {
+   "present": true,
+   "row": "profile:web-dev",
+   "cls": "dsh-case drop-after",
+   "dragging": true,
+   "draggingRow": "profile:bare",
+   "content": "\"\"",
+   "height": "2px",
+   "background": "rgb(79, 140, 255)",
+   "top": "73px",
+   "bottom": "-7px",
+   "left": "0px",
+   "right": "0px"
+  },
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ],
+  "orderFileAfter": "[\"port:3080\",\"profile:plain\",\"profile:web-dev\",\"profile:bare\"]",
+  "notice": {
+   "err": null,
+   "toast": "顺序表已写入 /tmp/dsh-console-fixture/state/dsh-console/order.json（4 条）",
+   "drawer": false
+  }
+ },
+ "stuck": {
+  "from": "profile:plain",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ],
+  "duringDrag": {
+   "present": true,
+   "row": "profile:web-dev",
+   "cls": "dsh-case drop-after",
+   "dragging": true,
+   "draggingRow": "profile:plain",
+   "content": "\"\"",
+   "height": "2px",
+   "background": "rgb(79, 140, 255)",
+   "top": "73px",
+   "bottom": "-7px",
+   "left": "0px",
+   "right": "0px"
+  },
+  "outsideDrag": {
+   "present": false,
+   "dragging": true
+  },
+  "afterRelease": {
+   "present": false,
+   "dragging": false
+  },
+  "afterHover": {
+   "present": false,
+   "dragging": false
+  },
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ],
+  "notice": {
+   "err": null,
+   "toast": "顺序表已写入 /tmp/dsh-console-fixture/state/dsh-console/order.json（4 条）",
+   "drawer": false
+  }
+ },
+ "persist": {
+  "beforeReload": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ],
+  "afterReload": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ]
+ },
+ "narrow": {
+  "viewport": 360,
+  "from": "profile:plain",
+  "to": "profile:bare",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ],
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ],
+  "indicator": {
+   "present": false,
+   "dragging": false
+  },
+  "notice": {
+   "err": null,
+   "toast": null,
+   "drawer": false
+  }
+ },
+ "keyboard": {
+  "row": "profile:plain",
+  "focusedBefore": "profile:plain",
+  "orderBefore": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:plain",
+     "profile:web-dev",
+     "profile:bare"
+    ]
+   }
+  ],
+  "orderAfter": [
+   {
+    "group": "running",
+    "rows": [
+     "port:3080"
+    ]
+   },
+   {
+    "group": "stopped",
+    "rows": [
+     "profile:web-dev",
+     "profile:plain",
+     "profile:bare"
+    ]
+   }
+  ],
+  "orderFileAfter": "[\"port:3080\",\"profile:web-dev\",\"profile:plain\",\"profile:bare\"]",
+  "notice": {
+   "err": null,
+   "toast": "顺序表已写入 /tmp/dsh-console-fixture/state/dsh-console/order.json（4 条）",
+   "drawer": false
+  }
+ },
+ "orderFileEnd": "[\"port:3080\",\"profile:web-dev\",\"profile:plain\",\"profile:bare\"]"
+}

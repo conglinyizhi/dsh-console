@@ -1,8 +1,14 @@
 // GET /api/local/console —— 控制台自己的运行时读数（只读）。
 //
-// 为什么要有这个端点：runtime.json（哪些实例是本控制台起的）与 archive.json（归档记录）
-// 是两份状态文件，前端拿不到文件系统。契约里那五个只读接口的形状一个字段都不许动，
-// 所以这里另开一个只读端点把它们如实读出去；它本身不写任何东西（alive 是读 /proc 判的）。
+// 为什么要有这个端点：runtime.json（哪些实例是本控制台起的）、archive.json（归档记录）
+// 与 order.json（手动排序的顺序表）是三份状态文件，前端拿不到文件系统。契约里那五个
+// 只读接口的形状一个字段都不许动，所以这里另开一个只读端点把它们如实读出去；
+// 它本身不写任何东西（alive 是读 /proc 判的）。
+//
+// 第十轮这里多了两项读数：
+//   order        手动排序的显式顺序表（行 id 的数组）。空数组 = 没拖过 = 走自动排序。
+//   lastStarted  每只实例 / profile 最后一次被启动的时刻，卡片第二行的第三顺位用它
+//                （有备注写备注，没备注才写它，两个都没有就空着）。
 
 ///|
 /// 生效的删除方式与它的来源（文件 / 默认）。
@@ -31,6 +37,8 @@ async fn console_payload() -> @json.JsonVal noraise {
   let paths = @store.state_paths()
   let registry = @store.load_registry()
   let archive = @store.load_archive()
+  let order = @store.load_order()
+  let (last_started, last_started_notes) = @store.load_last_started()
   let runtime : Array[@json.JsonVal] = []
   for r in registry.entries {
     runtime.push(@json.JObj([
@@ -72,12 +80,20 @@ async fn console_payload() -> @json.JsonVal noraise {
     Some(n) => notes.push(n)
     None => ()
   }
+  match order.note {
+    Some(n) => notes.push(n)
+    None => ()
+  }
+  for n in last_started_notes {
+    notes.push(n)
+  }
   let fields : Array[(String, @json.JsonVal)] = [
     ("stateDir", @json.JStr(paths.dir)),
     ("settingsPath", @json.JStr(paths.settings)),
     ("runtimePath", @json.JStr(paths.runtime)),
     ("archivePath", @json.JStr(paths.archive)),
     ("auditPath", @json.JStr(paths.audit)),
+    ("orderPath", @json.JStr(paths.order)),
     ("trashDir", @json.JStr(paths.trash)),
   ]
   // 生效的删除方式摆在 trashDir 旁边：一处说「进回收站落到哪」，一处说「现在是不是进回收站」
@@ -87,6 +103,10 @@ async fn console_payload() -> @json.JsonVal noraise {
   fields.push(("runtime", @json.JArr(runtime)))
   fields.push(("archive", @json.JArr(archived)))
   fields.push(("trash", @json.JArr(trash)))
+  // 顺序表原样给出去（空数组就是「没拖过」）。前端拿到它之后怎么落到两组行上，
+  // 是前端的事：这一端只负责「文件里是什么」，不在这里替页面排一遍。
+  fields.push(("order", @store.order_json(order.ids)))
+  fields.push(("lastStarted", @store.last_started_json(last_started)))
   fields.push(("notes", @json.jstr_array(notes)))
   @json.JObj(fields)
 }

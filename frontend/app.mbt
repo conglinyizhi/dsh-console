@@ -126,7 +126,7 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   }
   let stopped = match model.profiles {
     Some(facts) =>
-      profile_rows(facts.profiles, model.runtime, dsh_home_of(model), live_instances)
+      profile_rows(facts.profiles, model.runtime, dsh_home_of(model), live_instances, model.console)
     None => demo_stopped()
   }
   let rows : Array[Row] = []
@@ -1624,6 +1624,22 @@ fn clear_flash(model : Model) -> Model {
 }
 
 ///|
+/// 把「这一次拖动」的过程状态全部清干净（表与回滚点不动）。
+/// 起手、作废、收尾三处都走它 —— 三处各清一遍的话，漏掉一个字段就会留下
+/// 一条画着落位线、或者永远抑制点击的僵尸状态。
+fn reset_drag(model : Model) -> Model {
+  {
+    ..model,
+    drag_id: "",
+    drag_start_x: 0.0,
+    drag_start_y: 0.0,
+    drag_active: false,
+    drag_over: "",
+    drag_over_after: false,
+  }
+}
+
+///|
 fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
     RuntimeText(res) => {
@@ -1711,6 +1727,10 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 console_error: "",
                 tag_archived: None,
                 read_console: true,
+                // 顺序表跟着读数一起换。**拖动换位之后不再重读这一份**：
+                // 就地更新过的 order 才是使用者刚才摆的那一份，重读会把它盖回去
+                //（后端写成功之后两者一致，写失败时 OrderDone 会回滚）。
+                order: facts.order,
               }
             Err(reason) =>
               {
@@ -2026,16 +2046,141 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     )
     // 点整张卡：开抽屉，焦点进抽屉里的关闭键。
     // 卡是 role=button + tabindex=0，键盘也能开（Enter / 空格，见 view_overview 的 card_attrs）。
-    DrawerOpen(id) => (
-      { ..model, drawer_id: id },
-      focus_after_render(drawer_close_id()),
-    )
+    DrawerOpen(id) =>
+      // 拖动与点击共用同一套按下-松开，靠位移阈值分开（见 DragDown / DragMove）。
+      // 拖过的那一次松手之后浏览器仍会补一个 click，那一下不许再开抽屉。
+      if model.drag_suppress_click {
+        ({ ..model, drag_suppress_click: false }, @cmd.none)
+      } else {
+        ({ ..model, drawer_id: id }, focus_after_render(drawer_close_id()))
+      }
     // 关抽屉：点外部 / Esc / 关闭键三条路都走这里，焦点一律回触发它的那张卡 ——
     // 焦点落在被卸载的节点上会掉到 body，键盘用户于是从页首重新 Tab。
     DrawerClose => (
       { ..model, drawer_id: "" },
       focus_after_render(card_id(model.drawer_id)),
     )
+
+    // ── 拖动排序（第十轮）──────────────────────────────────
+    //
+    // 一次拖动分四拍：按下记起点 → 位移过阈值才算拖动 → 松开落位并写回 → 回执。
+    // 「单击开抽屉」与「拖动换位」共用同一套按下-松开，靠**位移阈值**分开：
+    // 没过阈值的那一次顺序一个字节都不动，只是把抽屉打开（随后那个 click 走 DrawerOpen）。
+    DragDown(id, x, y) =>
+      // 窄屏（单列那一档）不启动拖动：那一档里纵向拖动与页面滚动落在同一个手势上，
+      // 拖一次条目页面跟着滚。断点与样式里那条 media query 是同一个数。
+      if js_viewport_width() < drag_min_viewport_width {
+        (model, @cmd.none)
+      } else {
+        (
+          {
+            ..model,
+            drag_id: id,
+            drag_start_x: x,
+            drag_start_y: y,
+            drag_active: false,
+            drag_over: "",
+            drag_over_after: false,
+            // 上一次拖动留下的抑制标记在这里清掉：留着会吃掉这一次真正的点击
+            drag_suppress_click: false,
+          },
+          @cmd.none,
+        )
+      }
+    DragMove(x, y, buttons) =>
+      if model.drag_id == "" {
+        // 没按下过：划过卡片也会冒泡到这里，什么都不做
+        (model, @cmd.none)
+      } else if buttons == 0 {
+        // 没有任何键按着：这一次的抬起没收到（松手在列表之外），
+        // 当作作废。**顺序不动** —— 没提交过的东西没有什么要回滚的。
+        (reset_drag(model), @cmd.none)
+      } else if !model.drag_active &&
+        !drag_past_threshold(model.drag_start_x, model.drag_start_y, x, y) {
+        // 还没过阈值，还算不上拖动。**状态一个都不改** ——
+        // 在这里就把 active 置上的话，一次轻轻的点击会变成一次换位。
+        (model, @cmd.none)
+      } else {
+        let (over, group, after) = drop_target_of(x, y)
+        // 只有落在**同一组**的条目上才画提示：两组是语义，跨组拖动不合并两组，
+        // 画一条落位线在那儿等于答应了做不到的事。
+        let same_group = over != "" && over != model.drag_id &&
+          group == group_of_row_id(model, model.drag_id)
+        (
+          {
+            ..model,
+            drag_active: true,
+            drag_over: if same_group { over } else { "" },
+            drag_over_after: if same_group { after } else { false },
+          },
+          @cmd.none,
+        )
+      }
+    DragUp =>
+      if model.drag_id == "" {
+        (model, @cmd.none)
+      } else if !model.drag_active {
+        // 按下了但没拖动：起点清掉就完事，抽屉由随后的 click 打开
+        (reset_drag(model), @cmd.none)
+      } else {
+        let moved = moved_group_ids(model, model.drag_id, model.drag_over, model.drag_over_after)
+        let dragged = model.drag_id
+        let cleared = {
+          ..reset_drag(model),
+          // 拖动之后的这一次 click 不许再开抽屉（下一次按下会把它清掉）
+          drag_suppress_click: true,
+        }
+        match moved {
+          // 落在空白处 / 落在自己身上 / 落在另一组：这一次拖动作废，顺序不动，也不发请求
+          None => (cleared, @cmd.none)
+          Some(ids) => commit_order(cleared, dragged, ids, emit)
+        }
+      }
+    // 指针被取消（触控被打断等）：这一次拖动作废。**不回滚也不提交** ——
+    // 顺序还没动过，没有什么要回滚的。
+    DragCancel => (reset_drag(model), @cmd.none)
+    // 键盘换位：Ctrl+↑ / Ctrl+↓。与拖动走同一条提交路径，顺序表与写回完全一样。
+    ReorderKey(id, dir) => {
+      let ids = current_group_ids(model, group_of_row_id(model, id))
+      let mut at = -1
+      for i = 0; i < ids.length(); i = i + 1 {
+        if ids[i] == id {
+          at = i
+        }
+      }
+      let to = at + dir
+      if at < 0 || to < 0 || to >= ids.length() {
+        // 已经在头 / 尾：没有可换的位置
+        (model, @cmd.none)
+      } else {
+        let swapped = ids.copy()
+        let held = swapped[at]
+        swapped[at] = swapped[to]
+        swapped[to] = held
+        commit_order(model, id, swapped, emit)
+      }
+    }
+    OrderDone(res) => {
+      let (ok, text) = interpret_http(res)
+      if ok {
+        // 成功：顺序在松手那一刻就已经就地生效了，这里只是报一句
+        ({ ..model, act_notice: text, act_notice_ok: true, order_before: [] }, @cmd.none)
+      } else {
+        // 失败：**回滚到提交前那一份**。停在「看着是新的、其实没存下」比不做还糟 ——
+        // 下一次刷新列表会跳回原样，而使用者不知道自己刚才拖的那一下去哪了。
+        (
+          {
+            ..model,
+            order: model.order_before,
+            order_before: [],
+            act_notice: "顺序没保存：" + text,
+            act_notice_ok: false,
+          },
+          @cmd.none,
+        )
+      }
+    }
+
     // 启动的展示下限到了：等回执一起收尾（收尾里不伪造成「运行中」——
     // 真的起来了的那张卡由重读 instances 给出）
     StartTick(id) =>

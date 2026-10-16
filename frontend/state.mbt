@@ -170,6 +170,16 @@ struct Row {
   user_note : String
   /// 备注的来源 / 读不到的原因，挂在卡上那一行的悬停里（后端原样给）
   user_note_source : String
+  /// 卡片第二行第三顺位的「上次启动」时刻（UTC ISO）。空串 = 取不到 ——
+  /// 那一行就空着，**绝不写一个编出来的时间**。
+  ///
+  /// 取值优先级见 row_last_started：正在跑的那一只用它真实的启动时刻
+  /// （instances 的 startedAt，后端从进程起始时间推出来）；其余按 port / profile
+  /// 去控制台的 lastStarted 表里查（runtime.json 的 startedAt 与 audit.jsonl 的
+  /// start-instance 合成的那一份）。两处都没有就是空串。
+  last_started : String
+  /// 上面那个时刻的来源（人话，进悬停）。空串 = 没有时刻，也就没有来源。
+  last_started_source : String
   /// 卡片字段区第六格「最近改动」的值：这只 profile **目录**的 mtime（毫秒时间戳）。
   /// None = 读不到（或没有可读的对象），由 mtime_missing 决定那一格写什么。
   ///
@@ -210,6 +220,21 @@ pub let start_delay_ms : Int = 2500
 
 ///|
 pub let restart_lock_ms : Int = 900
+
+///|
+/// 拖动排序的位移阈值（CSS 像素）。按下之后位移超过它才算拖动，没超过就还是点击。
+///
+/// 6 是手感数：小于它，手一抖就把点击吃成拖动（点卡开抽屉会时灵时不灵）；
+/// 大于它，拖起来要先把指针甩出去一段才「咬住」。
+pub let drag_threshold_px : Double = 6.0
+
+///|
+/// 窄到这一档就不响应拖动（CSS 像素）。
+///
+/// 726 就是样式里那个两列断点（.dsh-rows.dsh-card-grid 的 @media (min-width: 726px)）：
+/// 低于它页面是单列，条目占满整幅宽，纵向拖动与页面滚动落在同一个手势上 ——
+/// 拖一次条目，页面跟着往下滚。两处必须一起改。
+pub let drag_min_viewport_width : Int = 726
 
 ///|
 /// 成功提示（toast）的寿命：出现之后这么多毫秒开始淡出。
@@ -273,6 +298,31 @@ struct Model {
   /// 抽屉是**覆盖式**的（position: fixed 贴右侧，不占文档流），卡片因此不必为它让位。
   /// 关抽屉时焦点回到触发它的那张卡 —— 卡有稳定的 DOM id（见 card_id），不必再存一个返回值。
   drawer_id : String
+  // ── 拖动排序（第十轮） ──
+  //
+  // 状态分三块：**表**（order）、**这一次拖动的过程**（drag_*）、**写回失败的回滚点**
+  // （order_before）。三块分开存，是因为它们的寿命不一样：表是读数级别的（刷新会重读），
+  // 过程是一次手势级别的（松手就清），回滚点只活到回执回来那一刻。
+  /// 手动排序的顺序表。空 = 没拖过 = 两组各走各的自动排序（见 apply_order）
+  order : Array[String]
+  /// 正在按下的那一行（"" = 没按）。窄屏按下时这一格不置 —— 那一档不启动拖动
+  drag_id : String
+  /// 按下那一刻的视口坐标：判「位移过没过阈值」用
+  drag_start_x : Double
+  drag_start_y : Double
+  /// 位移过阈值了。**只有它成立才叫拖动**；没过的按下-松开仍然是点击（开抽屉）
+  drag_active : Bool
+  /// 落位提示挂在哪一行上（"" = 现在没有提示）
+  drag_over : String
+  /// 提示画在目标行的下方（false = 上方）
+  drag_over_after : Bool
+  /// 这一次按下-松开不该再开抽屉（拖动过了）。**下一次按下会把它清掉** ——
+  /// 不这么做的话，「拖完在卡片外松手、click 没来」会把这个标记一直留着，
+  /// 吃掉使用者下一次真正的点击。
+  drag_suppress_click : Bool
+  /// 提交前的那一份顺序。写回失败要按它回滚：失败之后页面必须回到原样，
+  /// 停在「看着是新的、其实没存下」的状态比不做还糟。
+  order_before : Array[String]
   restarting : String
   rename_id : String
   rename_draft : String
@@ -405,6 +455,24 @@ priv enum Msg {
   FlashHover(Bool)
   /// 点整张卡：开详情抽屉（第七轮 —— 卡片上不再有按钮与 ⋯ 菜单，点卡是唯一入口）
   DrawerOpen(String)
+  // 拖动排序（第十轮）：全程走指针事件。按下 / 移动 / 松开 / 取消四拍分开，
+  // 「这一拍算点击还是算拖动」由 update 里的阈值判，视图只负责把事件送进来。
+  /// 指针在某一行上按下（行 id / 视口坐标）
+  DragDown(String, Double, Double)
+  /// 指针移动（视口坐标 + 按键位掩码）。
+  ///
+  /// 位掩码不是装饰：松手若发生在**列表之外**，指针抬起那一下收不到，
+  /// 拖动状态就会一直挂着（那一拍再划过列表，落位线还会跟着走）。
+  /// 位掩码为 0 = 没有任何键按着 —— 那就是「其实早就松手了」，当场作废。
+  DragMove(Double, Double, Int)
+  /// 指针松开：落位提示指哪儿就落到哪儿，立刻写回
+  DragUp
+  /// 指针被取消（触控被打断等）：这一次拖动作废，顺序一个字节都不动
+  DragCancel
+  /// 键盘换位：行 id + 方向（-1 往上 / +1 往下）。键盘用户没有鼠标，这条是他们的入口
+  ReorderKey(String, Int)
+  /// set-row-order 的回执：成功了保持新顺序，失败了回滚并如实报错
+  OrderDone(Result[String, Error])
   /// 关抽屉：点外部 / Esc / 关闭按钮都走这一条。焦点回触发它的那张卡。
   DrawerClose
   StartTick(String)
@@ -470,6 +538,15 @@ fn initial_model() -> Model {
     built: false,
     rows: [],
     drawer_id: "",
+    order: [],
+    drag_id: "",
+    drag_start_x: 0.0,
+    drag_start_y: 0.0,
+    drag_active: false,
+    drag_over: "",
+    drag_over_after: false,
+    drag_suppress_click: false,
+    order_before: [],
     restarting: "",
     rename_id: "",
     rename_draft: "",
@@ -1069,6 +1146,280 @@ fn health_text_of(has_patch : Bool, missing_count : Int, names : String) -> Stri
 }
 
 ///|
+/// 这一行属于哪一组。判据与总览页分两组那一处是同一把尺子（status 是 Running 的进
+/// 「运行中」，其余含启动等待中进「已停止」）—— 两处各写一遍迟早会分叉，
+/// 分组一旦分叉，拖动就会把一条行挪进它不在的那一组里。
+fn group_of(row : Row) -> String {
+  match row.status {
+    Running => "running"
+    _ => "stopped"
+  }
+}
+
+///|
+/// 一个行 id 在顺序表里排第几。-1 = 表里没有这一条。
+fn order_rank(order : Array[String], id : String) -> Int {
+  for i = 0; i < order.length(); i = i + 1 {
+    if order[i] == id {
+      return i
+    }
+  }
+  -1
+}
+
+///|
+/// 按顺序表把**一组**行排一遍。
+///
+/// 规则三条（两组各自排，绝不合并成一张表 —— 组是语义，不是排版）：
+///   ① 表里没有的行（新出现的实例 / 新加的 profile）保持它们自己的自动顺序，
+///      整体排在已排好的之后。这是一份**稳定的部分序**：没动过的那些不会因为
+///      表里多了一条就乱跳。
+///   ② 表里有的行按表里的次序排。
+///   ③ 表为空 = 没拖过 = 原样返回（自动排序那条路一个字节都不动）。
+fn apply_order(rows : Array[Row], order : Array[String]) -> Array[Row] {
+  if order.length() == 0 || rows.length() < 2 {
+    return rows
+  }
+  let ranked : Array[Row] = []
+  let rest : Array[Row] = []
+  for row in rows {
+    if order_rank(order, row.id) >= 0 {
+      ranked.push(row)
+    } else {
+      rest.push(row)
+    }
+  }
+  // 表里的 id 互不重复（后端拒重复），所以每一行的名次都是唯一的：这是一份全序，
+  // 排序算法稳不稳定都不影响结果。
+  ranked.sort_by(fn(a, b) { order_rank(order, a.id) - order_rank(order, b.id) })
+  let out : Array[Row] = []
+  for row in ranked {
+    out.push(row)
+  }
+  for row in rest {
+    out.push(row)
+  }
+  out
+}
+
+///|
+/// 按 id 去控制台的「上次启动」表里查一条。查不到给 ("", "")。
+fn last_started_lookup(console : ConsoleFacts?, id : String) -> (String, String) {
+  match console {
+    None => ("", "")
+    Some(facts) => {
+      for item in facts.last_started {
+        if item.id == id {
+          return (item.at, item.source)
+        }
+      }
+      ("", "")
+    }
+  }
+}
+
+///|
+/// 卡片第二行第三顺位要用的那个时刻：先看这一行自己能不能给出**真实**的启动时刻，
+/// 再看控制台的记录。都给不出就是 ("", "")，那一行空着。
+///
+/// 顺序不能反：正在跑的实例，进程起始时间是最准的那一个；控制台记录里那条
+/// 可能是很久以前起的那一次（这一只后来被别人重启过）。反过来会把新时刻说成旧的。
+fn row_last_started(
+  instance_started : String?,
+  port_id : String,
+  profile_id : String,
+  console : ConsoleFacts?,
+) -> (String, String) {
+  match instance_started {
+    Some(at) =>
+      if at != "" {
+        return (at, "这只实例的启动时刻：后端从进程起始时间读出来的")
+      }
+    None => ()
+  }
+  let (at, source) = last_started_lookup(console, port_id)
+  if at != "" {
+    return (at, source)
+  }
+  if profile_id != "" {
+    let (at2, source2) = last_started_lookup(console, profile_id)
+    if at2 != "" {
+      return (at2, source2)
+    }
+  }
+  ("", "")
+}
+
+
+///|
+/// 总览页两组行的**当前显示顺序**（已按顺序表排过）。
+///
+/// 视图与拖动都从这里取：页面上看到的顺序只有这一个来源。
+/// 排在 rebuild 里做不行 —— 顺序表在拖动之后会变，而 rebuild 一趟只跑一次，
+/// 页面会停在旧顺序上（拖完看着没动）。这一处是纯读，随取随算。
+fn display_groups(model : Model) -> (Array[Row], Array[Row]) {
+  let running = model.rows.filter(fn(row) {
+    row.archived_at is None && group_of(row) == "running"
+  })
+  let stopped = model.rows.filter(fn(row) {
+    row.archived_at is None && group_of(row) == "stopped"
+  })
+  (apply_order(running, model.order), apply_order(stopped, model.order))
+}
+
+///|
+/// 某一组**当前显示着**的行 id（顺序就是屏幕上的顺序）。
+fn current_group_ids(model : Model, group : String) -> Array[String] {
+  let (running, stopped) = display_groups(model)
+  let rows = if group == "running" { running } else { stopped }
+  let out : Array[String] = []
+  for row in rows {
+    out.push(row.id)
+  }
+  out
+}
+
+///|
+/// 拖动的落点：从 js_drop_target 那段 JSON 里取出 (行 id, 组名, 是否插到它后面)。
+/// 取不到（指针底下没有条目 / JSON 不合形状）给三个空值，调用方据此不画提示也不落位。
+fn drop_target_of(x : Double, y : Double) -> (String, String, Bool) {
+  let text = js_drop_target(x, y)
+  if text == "" {
+    return ("", "", false)
+  }
+  let json = try @json.parse(text) catch {
+    // 解析不出来就当没有落点：宁可这一次拖动不落位，也不拿一个猜的位置去插
+    _ =>
+      return ("", "", false)
+  }
+  match json {
+    Json::Object(fields) =>
+      (str_field(fields, "row"), str_field(fields, "group"), bool_field(fields, "after"))
+    _ => ("", "", false)
+  }
+}
+
+///|
+/// 位移过没过阈值。**用平方比，不开方**：这一步每次指针移动都要算一遍，
+/// 而开方在这里没有任何意义（阈值只是个手感数）。
+fn drag_past_threshold(x0 : Double, y0 : Double, x1 : Double, y1 : Double) -> Bool {
+  let dx = x1 - x0
+  let dy = y1 - y0
+  dx * dx + dy * dy > drag_threshold_px * drag_threshold_px
+}
+
+///|
+/// 把被拖的那一条挪到目标位置上，返回这一组的新顺序。
+///
+/// 任何一条不成立都给 None（= 这一次拖动作废，顺序一个字节都不动）：
+///   · 指针底下不是条目（拖到空白处松手）
+///   · 目标就是它自己（等于没动）
+///   · 目标在**另一组**里 —— 两组是语义不是排版，跨组拖动不合并两组
+fn moved_group_ids(
+  model : Model,
+  dragged : String,
+  over : String,
+  after : Bool,
+) -> Array[String]? {
+  let group = group_of_row_id(model, dragged)
+  if group == "" || over == "" || over == dragged {
+    return None
+  }
+  if group_of_row_id(model, over) != group {
+    return None
+  }
+  let ids = current_group_ids(model, group)
+  let rest : Array[String] = []
+  for id in ids {
+    if id != dragged {
+      rest.push(id)
+    }
+  }
+  // 目标在 rest 里的位置；找不到（理论上不会）就落到末尾
+  let mut at = rest.length()
+  for i = 0; i < rest.length(); i = i + 1 {
+    if rest[i] == over {
+      at = if after { i + 1 } else { i }
+    }
+  }
+  let out : Array[String] = []
+  for i = 0; i < rest.length(); i = i + 1 {
+    if i == at {
+      out.push(dragged)
+    }
+    out.push(rest[i])
+  }
+  if at >= rest.length() {
+    out.push(dragged)
+  }
+  Some(out)
+}
+
+///|
+/// 这一条属于哪一组；行不在列表里给空串。
+fn group_of_row_id(model : Model, id : String) -> String {
+  match find_row(model.rows, id) {
+    Some(row) =>
+      if row.archived_at is None {
+        group_of(row)
+      } else {
+        // 归档行不在两组里，拖动不该碰它
+        ""
+      }
+    None => ""
+  }
+}
+
+///|
+/// 把「某一组的新顺序」拼成**整份**顺序表提交。
+///
+/// 为什么整份提交：后端的 set-row-order 收的就是整份 —— 增量式接口要后端先读一份
+/// 当前顺序再算，两次并发拖动会互相覆盖。组内顺序换了的那一组用新的，
+/// 另一组保持它现在显示的顺序（不因为动了一组就把另一组也重写一遍）。
+fn compose_order(model : Model, group : String, moved : Array[String]) -> Array[String] {
+  let out : Array[String] = []
+  if group == "running" {
+    for id in moved {
+      out.push(id)
+    }
+    for id in current_group_ids(model, "stopped") {
+      out.push(id)
+    }
+  } else {
+    for id in current_group_ids(model, "running") {
+      out.push(id)
+    }
+    for id in moved {
+      out.push(id)
+    }
+  }
+  out
+}
+
+///|
+/// 提交一份新顺序：**先就地生效，再写回**；写回失败由 OrderDone 回滚。
+///
+/// 为什么要乐观更新：拖完松手那一刻列表必须已经在新位置上 —— 等一趟 HTTP
+/// 再动，手上会有一段「拖了没反应」的空档。代价是失败时要自己擦干净，
+/// 那一步在 OrderDone 里，且必须擦（见那里的注释）。
+fn commit_order(
+  model : Model,
+  dragged : String,
+  moved : Array[String],
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let group = group_of_row_id(model, dragged)
+  let full = compose_order(model, group, moved)
+  let next = { ..model, order_before: model.order, order: full }
+  // 焦点跟着**被挪的那一条**走：列表是按位置打补丁的，不补这一下，
+  // 键盘用户按完 Ctrl+↓ 焦点还停在原来那一格上，而那一格现在是别的条目了。
+  (
+    next,
+    @cmd.batch([order_action_cmd(full, emit), focus_after_render(card_id(dragged))]),
+  )
+}
+
+///|
 /// 正在运行的实例 = 监听端口 + HTTP 签名探测到的真实实例（不是 /proc 进程，也不是磁盘上的 profile）。
 /// 实例的 Profile / DSH_HOME / DSH 版本 / 运行时长来自「端口 → socket inode → PID」这条 join；
 /// 任一项拿不到就写「未知」，并把后端给的原因挂在悬停说明上 —— 不编值，也不留一个干巴巴的未知。
@@ -1101,6 +1452,16 @@ fn running_rows(
     // 状态灯与「为什么是这个颜色」：实例卡只看后端的 state（后端没给就是 unknown，不猜）
     let (light, light_reason, light_basis) = instance_light(fact, profile_fact)
     let health_text = instance_health(fact, profile_fact)
+    // 第二行第三顺位：这一只真实的启动时刻优先（进程起始时间），取不到才去查控制台的记录
+    let (last_started, last_started_source) = row_last_started(
+      fact.started_at,
+      "port:" + fact.port.to_string(),
+      match fact.profile {
+        Some(name) => "profile:" + name
+        None => ""
+      },
+      console,
+    )
     {
       id: "port:" + fact.port.to_string(),
       name,
@@ -1214,6 +1575,8 @@ fn running_rows(
       light_reason,
       light_basis,
       health_text,
+      last_started,
+      last_started_source,
     }
   })
 }
@@ -1317,6 +1680,7 @@ fn profile_rows(
   runtime : RuntimeFacts?,
   dsh_home : String,
   running : Array[InstanceFact],
+  console : ConsoleFacts?,
 ) -> Array[Row] {
   let rows : Array[Row] = []
   for fact in profiles {
@@ -1326,6 +1690,15 @@ fn profile_rows(
     let missing = fact.bundles.missing
     // 停止卡的状态灯：没有在跑 + 缺包/缺 patch 这两条判据都在 profiles 读数里（不是猜的）
     let (light, light_reason, light_basis) = profile_light(fact)
+    // 第二行第三顺位：这一只现在没有实例可问，只能按 profile 名去控制台的记录里查
+    // 「上次启动」。查不到就是空串 —— 那一行空着，不拿最近改动之类的时刻顶上
+    //（最近改动是另一回事，它在抽屉第六格，口径不同）。
+    let (last_started, last_started_source) = row_last_started(
+      None,
+      "",
+      "profile:" + fact.name,
+      console,
+    )
     rows.push({
       id: "profile:" + fact.name,
       name: fact.name,
@@ -1386,6 +1759,8 @@ fn profile_rows(
       light,
       light_reason,
       light_basis,
+      last_started,
+      last_started_source,
       health_text: health_text_of(
         fact.patch_exists,
         missing.length(),
@@ -1492,6 +1867,9 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     // 磁盘上没有这只 profile，也就没有备注文件可读：不编
     user_note: "",
     user_note_source: "",
+    // 磁盘上连目录都没有，控制台的启动记录里也不会有这只 profile：那一行空着
+    last_started: "",
+    last_started_source: "",
     // 同理：目录都不在了，没有最近改动可读
     mtime_ms: None,
     mtime_missing: "读不到",
@@ -1526,6 +1904,8 @@ fn demo_running() -> Array[Row] {
       deletable: false, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
+      last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
@@ -1544,6 +1924,8 @@ fn demo_running() -> Array[Row] {
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
+      last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
@@ -1568,6 +1950,8 @@ fn demo_stopped() -> Array[Row] {
       deletable: true, archived_at: None,
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
+      last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,

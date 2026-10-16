@@ -1,0 +1,403 @@
+{
+ "url": "http://127.0.0.1:5533/",
+ "viewport": {
+  "w": 1280,
+  "h": 900
+ },
+ "cards": [
+  {
+   "rowId": "port:3080",
+   "group": "running",
+   "status": "running",
+   "light": "running",
+   "nameText": "web",
+   "portText": "3080",
+   "portRect": {
+    "x": 423.5,
+    "y": 114.7,
+    "w": 24,
+    "h": 16,
+    "right": 447.5,
+    "bottom": 130.7
+   },
+   "secondKind": "note",
+   "secondText": "手写的备注：这条走 web 的 UI",
+   "secondBorderLeft": "2px",
+   "secondColor": "rgb(232, 230, 225)",
+   "secondFontSize": "11.5px",
+   "card": {
+    "x": 212,
+    "y": 96.7,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 166.7
+   },
+   "tileSlot": {
+    "x": 229,
+    "y": 111.7,
+    "w": 40,
+    "h": 40,
+    "right": 269,
+    "bottom": 151.7
+   },
+   "tile": {
+    "x": 229,
+    "y": 111.7,
+    "w": "40px",
+    "h": "40px",
+    "right": 269,
+    "bottom": 151.7
+   },
+   "body": {
+    "x": 279,
+    "y": 111.7,
+    "w": 168.5,
+    "h": 40,
+    "right": 447.5,
+    "bottom": 151.7
+   },
+   "head": {
+    "x": 279,
+    "y": 111.7,
+    "w": 168.5,
+    "h": 22,
+    "right": 447.5,
+    "bottom": 133.7
+   },
+   "name": {
+    "x": 279,
+    "y": 111.7,
+    "w": 134.5,
+    "h": 22,
+    "right": 413.5,
+    "bottom": 133.7
+   },
+   "second": {
+    "x": 279,
+    "y": 135.7,
+    "w": 168.5,
+    "h": 16,
+    "right": 447.5,
+    "bottom": 151.7
+   },
+   "articleChildren": 2,
+   "bodyChildren": 2,
+   "spansTwoRows": true,
+   "secondBelowHead": true,
+   "rowGap": 2,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"38hhruar\" data-in tance=\"web :3080\" data-row=\"port:3080\" data- tatu =\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（运行中）\" cla =\"d h-ca e\" id=\"d h-card-port-3080\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile accent\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3."
+  },
+  {
+   "rowId": "port:5199",
+   "group": "running",
+   "status": "running",
+   "light": "fault",
+   "nameText": "dsh",
+   "portText": "5199",
+   "portRect": {
+    "x": 688,
+    "y": 114.7,
+    "w": 24,
+    "h": 16,
+    "right": 712,
+    "bottom": 130.7
+   },
+   "secondKind": "stamp",
+   "secondText": "上次启动 10-16 14:39",
+   "secondBorderLeft": "0px",
+   "secondColor": "rgb(232, 230, 225)",
+   "secondFontSize": "11.5px",
+   "card": {
+    "x": 476.5,
+    "y": 96.7,
+    "w": 252.5,
+    "h": 70,
+    "right": 729,
+    "bottom": 166.7
+   },
+   "tileSlot": {
+    "x": 493.5,
+    "y": 111.7,
+    "w": 40,
+    "h": 40,
+    "right": 533.5,
+    "bottom": 151.7
+   },
+   "tile": {
+    "x": 493.5,
+    "y": 111.7,
+    "w": "40px",
+    "h": "40px",
+    "right": 533.5,
+    "bottom": 151.7
+   },
+   "body": {
+    "x": 543.5,
+    "y": 111.7,
+    "w": 168.5,
+    "h": 40,
+    "right": 712,
+    "bottom": 151.7
+   },
+   "head": {
+    "x": 543.5,
+    "y": 111.7,
+    "w": 168.5,
+    "h": 22,
+    "right": 712,
+    "bottom": 133.7
+   },
+   "name": {
+    "x": 543.5,
+    "y": 111.7,
+    "w": 134.5,
+    "h": 22,
+    "right": 678,
+    "bottom": 133.7
+   },
+   "second": {
+    "x": 543.5,
+    "y": 135.7,
+    "w": 168.5,
+    "h": 16,
+    "right": 712,
+    "bottom": 151.7
+   },
+   "articleChildren": 2,
+   "bodyChildren": 2,
+   "spansTwoRows": true,
+   "secondBelowHead": true,
+   "rowGap": 2,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"d71t8ync\" data-in tance=\"d h :5199\" data-row=\"port:5199\" data- tatu =\"running\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"d h :5199 —— 点开看读数与控制（故障）\" cla =\"d h-ca e\" id=\"d h-card-port-5199\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile accent\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3.org"
+  },
+  {
+   "rowId": "profile:plain",
+   "group": "stopped",
+   "status": "stopped",
+   "light": "fault",
+   "nameText": "plain",
+   "portText": null,
+   "portRect": null,
+   "secondKind": "stamp",
+   "secondText": "上次启动 10-15 18:20",
+   "secondBorderLeft": "0px",
+   "secondColor": "rgb(232, 230, 225)",
+   "secondFontSize": "11.5px",
+   "card": {
+    "x": 212,
+    "y": 214.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 284.8
+   },
+   "tileSlot": {
+    "x": 229,
+    "y": 229.8,
+    "w": 40,
+    "h": 40,
+    "right": 269,
+    "bottom": 269.8
+   },
+   "tile": {
+    "x": 229,
+    "y": 229.8,
+    "w": "40px",
+    "h": "40px",
+    "right": 269,
+    "bottom": 269.8
+   },
+   "body": {
+    "x": 279,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 40,
+    "right": 447.5,
+    "bottom": 269.8
+   },
+   "head": {
+    "x": 279,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 447.5,
+    "bottom": 251.8
+   },
+   "name": {
+    "x": 279,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 447.5,
+    "bottom": 251.8
+   },
+   "second": {
+    "x": 279,
+    "y": 253.8,
+    "w": 168.5,
+    "h": 16,
+    "right": 447.5,
+    "bottom": 269.8
+   },
+   "articleChildren": 2,
+   "bodyChildren": 2,
+   "spansTwoRows": true,
+   "secondBelowHead": true,
+   "rowGap": 2,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"r3hprrrk\" data-in tance=\"plain\" data-row=\"profile:plain\" data- tatu =\" topped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"plain —— 点开看读数与控制（故障）\" cla =\"d h-ca e\" id=\"d h-card-profile-plain\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile violet\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3.org"
+  },
+  {
+   "rowId": "profile:bare",
+   "group": "stopped",
+   "status": "stopped",
+   "light": "fault",
+   "nameText": "bare",
+   "portText": null,
+   "portRect": null,
+   "secondKind": "none",
+   "secondText": null,
+   "secondBorderLeft": null,
+   "secondColor": null,
+   "secondFontSize": null,
+   "card": {
+    "x": 476.5,
+    "y": 214.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 729,
+    "bottom": 284.8
+   },
+   "tileSlot": {
+    "x": 493.5,
+    "y": 229.8,
+    "w": 40,
+    "h": 40,
+    "right": 533.5,
+    "bottom": 269.8
+   },
+   "tile": {
+    "x": 493.5,
+    "y": 229.8,
+    "w": "40px",
+    "h": "40px",
+    "right": 533.5,
+    "bottom": 269.8
+   },
+   "body": {
+    "x": 543.5,
+    "y": 238.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 712,
+    "bottom": 260.8
+   },
+   "head": {
+    "x": 543.5,
+    "y": 238.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 712,
+    "bottom": 260.8
+   },
+   "name": {
+    "x": 543.5,
+    "y": 238.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 712,
+    "bottom": 260.8
+   },
+   "second": null,
+   "articleChildren": 2,
+   "bodyChildren": 1,
+   "spansTwoRows": false,
+   "secondBelowHead": false,
+   "rowGap": null,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"1k9pm9 n\" data-in tance=\"bare\" data-row=\"profile:bare\" data- tatu =\" topped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"bare —— 点开看读数与控制（故障）\" cla =\"d h-ca e\" id=\"d h-card-profile-bare\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile violet\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3.org/200"
+  },
+  {
+   "rowId": "profile:web-dev",
+   "group": "stopped",
+   "status": "stopped",
+   "light": "fault",
+   "nameText": "web-dev",
+   "portText": null,
+   "portRect": null,
+   "secondKind": "stamp",
+   "secondText": "上次启动 10-14 16:00",
+   "secondBorderLeft": "0px",
+   "secondColor": "rgb(232, 230, 225)",
+   "secondFontSize": "11.5px",
+   "card": {
+    "x": 741,
+    "y": 214.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 993.5,
+    "bottom": 284.8
+   },
+   "tileSlot": {
+    "x": 758,
+    "y": 229.8,
+    "w": 40,
+    "h": 40,
+    "right": 798,
+    "bottom": 269.8
+   },
+   "tile": {
+    "x": 758,
+    "y": 229.8,
+    "w": "40px",
+    "h": "40px",
+    "right": 798,
+    "bottom": 269.8
+   },
+   "body": {
+    "x": 808,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 40,
+    "right": 976.5,
+    "bottom": 269.8
+   },
+   "head": {
+    "x": 808,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 976.5,
+    "bottom": 251.8
+   },
+   "name": {
+    "x": 808,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 976.5,
+    "bottom": 251.8
+   },
+   "second": {
+    "x": 808,
+    "y": 253.8,
+    "w": 168.5,
+    "h": 16,
+    "right": 976.5,
+    "bottom": 269.8
+   },
+   "articleChildren": 2,
+   "bodyChildren": 2,
+   "spansTwoRows": true,
+   "secondBelowHead": true,
+   "rowGap": 2,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"oik6nbmu\" data-in tance=\"web-dev\" data-row=\"profile:web-dev\" data- tatu =\" topped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"web-dev —— 点开看读数与控制（故障）\" cla =\"d h-ca e\" id=\"d h-card-profile-web-dev\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile violet\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://ww"
+  }
+ ],
+ "textScan": {
+  "上次启动": 3,
+  "备注": 1,
+  "真实数据": 0
+ },
+ "bodyText": "DSH 控制台\n实例总览\n日志\n设置\n回收站\n关于\n\n本机运行，仅限回环访问\n\n实例总览\n点卡片看读数与控制；卡片上的圆是状态灯\n＋\n新建实例\n当前运行的实例 (2)\nweb\n3080\n手写的备注：这条走 web 的 UI\ndsh\n5199\n上次启动 10-16 14:39\n已停止的实例 (3)\nplain\n上次启动 10-15 18:20\nbare\nweb-dev\n上次启动 10-14 16:00",
+ "shot": "~/Public/deepseek-harness-project/dsh-console/frontend/evidence-card-layout/faultb-5533.png.png"
+}

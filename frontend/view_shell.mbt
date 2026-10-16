@@ -175,13 +175,34 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Trash => trash_view(model, emit)
     About => about_view(model)
   }
-  @html.div(class="dsh-shell", [
-    side_nav(model, emit),
-    @html.div(class="dsh-workbench", [
-      route_notice_bar(model),
-      @html.main_(class="dsh-main", [body]),
-    ]),
-    // toast 挂在 shell 这一层、不在任何一页里面：位置因此与页面无关（五个页面同一个角落）
-    flash_toast(model, emit),
-  ])
+  // 拖动的「移动 / 松开 / 取消」三件事挂在外壳这一层，不挂在条目或分组上。
+  // 理由两条：
+  //   ① 拖到列表之外再松手时，挂在分组上就收不到那一次抬起，拖动状态会一直挂着
+  //      （那一拍再划过列表，落位线还会跟着走）。外壳包着整页，哪儿松开都冒泡上来。
+  //   ② 指针移到条目之间的空隙、或者移出列表时，落点判定拿到「底下没有条目」，
+  //      落位线随之收掉 —— 在空白处松手就是作废，与画面上看到的一致。
+  // 只在**正在按下 / 拖动**时才挂（drag_id 非空）：一直挂着的话，每一次鼠标划过
+  // 页面都会送一条消息进来重渲染一遍 —— 而那一拍什么都没发生。
+  let mut shell_attrs = @html.Attrs::build()
+  if model.drag_id != "" {
+    shell_attrs = shell_attrs
+      .on_pointermove(fn(event) {
+        emit(DragMove(event.get_client_x(), event.get_client_y(), event.get_buttons()))
+      })
+      .on_pointerup(fn(_event) { emit(DragUp) })
+      .on_pointercancel(fn(_event) { emit(DragCancel) })
+  }
+  @html.div(
+    class="dsh-shell",
+    attrs=shell_attrs,
+    [
+      side_nav(model, emit),
+      @html.div(class="dsh-workbench", [
+        route_notice_bar(model),
+        @html.main_(class="dsh-main", [body]),
+      ]),
+      // toast 挂在 shell 这一层、不在任何一页里面：位置因此与页面无关（五个页面同一个角落）
+      flash_toast(model, emit),
+    ],
+  )
 }
