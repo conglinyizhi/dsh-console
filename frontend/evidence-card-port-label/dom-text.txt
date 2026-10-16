@@ -1,0 +1,82 @@
+================ 视口 1280（1280×900）================
+
+【有端口那一行】port:3080
+  那一格的 DOM 文本 : "端口：3080"（原文，未 trim）
+  标签文本           : "端口："
+  标签颜色 / 字号    : rgba(232, 230, 225, 0.72) / 12.5px，行盒 1 个，宽 39
+  数字颜色 / 字号    : rgba(232, 230, 225, 0.82) / 12.5px，行盒 1 个，宽 63，高 16
+  头那一行：
+    <div class="dsh-case-head">
+    <span data-name="card-name" data-uid="3mvsupwm" title="web :3080（运行中）" class="dsh-name">web</span>
+    <span data-name="card-port" data-uid="96xfaeh2" class="dsh-card-port">
+    <span class="dsh-card-port-label">端口：</span>3080</span>
+    </div>
+    <div data-name="card-started" data-uid="xylkdyox" title="上次启动：10-16 08:25 （这只实例的启动时刻：后端从进程起始时间读出来的）" class="dsh-card-stamp">
+    <span class="dsh-card-stamp-text">上次启动 10-16 08:25</span>
+    </div>
+    </div>
+
+【没有端口那一行】profile:web-dev@~/.dsh
+  节点表             : {"port":false,"portLabel":false,"head":true,"name":true}（port=false 就是那一格一个节点都没产出）
+  那一格的 DOM 文本  : null
+  卡片整段文本       : "web-dev从 web 派生 · 10-16 15:02 CST"
+  文本里有「端口：」吗: false
+  头那一行：
+    <div class="dsh-case-head">
+    <span data-name="card-name" data-uid="u9f1t0y7" title="web-dev（故障）" class="dsh-name">web-dev</span>
+    </div>
+    <div data-name="card-note" data-uid="eryrpqw0" title="从 web 派生 · 10-16 15:02 CST （文件）" class="dsh-card-note">
+    <span class="dsh-card-note-text">从 web 派生 · 10-16 15:02 CST</span>
+    </div>
+    </div>
+
+  全页扫「端口：」    : [{"cls":"dsh-card-port-label","text":"端口：","insidePort":true}]
+
+【注入一个 46 字的名字之后】a-very-long-profile-name-to-check-the-ellipsis
+  名字那一格         : 宽 95.5，行盒 1 个，省略号生效 true（scrollWidth 368 > clientWidth 96）
+  那一格             : "端口：3080"，宽 63
+  右缘 − 内容盒右缘  : 0
+  标签               : 显示 true，行盒 1 个，横向越出那一格 false，行内盒 {"x":384.5,"y":112.7,"w":39,"h":19,"right":423.5,"bottom":131.7}
+  溢出               : 第一行 false，条目 false，整页 false
+
+================ 视口 360（360×720）================
+
+【有端口那一行】port:3080
+  那一格的 DOM 文本 : "端口：3080"（原文，未 trim）
+  标签文本           : "端口："
+  标签颜色 / 字号    : rgba(232, 230, 225, 0.72) / 12.5px，行盒 0 个，宽 0
+  数字颜色 / 字号    : rgba(232, 230, 225, 0.82) / 12.5px，行盒 1 个，宽 24，高 16
+  头那一行：
+    <div class="dsh-case-head">
+    <span data-name="card-name" data-uid="3mvsupwm" title="web :3080（运行中）" class="dsh-name">web</span>
+    <span data-name="card-port" data-uid="96xfaeh2" class="dsh-card-port">
+    <span class="dsh-card-port-label">端口：</span>3080</span>
+    </div>
+    <div data-name="card-started" data-uid="xylkdyox" title="上次启动：10-16 08:25 （这只实例的启动时刻：后端从进程起始时间读出来的）" class="dsh-card-stamp">
+    <span class="dsh-card-stamp-text">上次启动 10-16 08:25</span>
+    </div>
+    </div>
+
+【没有端口那一行】profile:web-dev@~/.dsh
+  节点表             : {"port":false,"portLabel":false,"head":true,"name":true}（port=false 就是那一格一个节点都没产出）
+  那一格的 DOM 文本  : null
+  卡片整段文本       : "web-dev从 web 派生 · 10-16 15:02 CST"
+  文本里有「端口：」吗: false
+  头那一行：
+    <div class="dsh-case-head">
+    <span data-name="card-name" data-uid="u9f1t0y7" title="web-dev（故障）" class="dsh-name">web-dev</span>
+    </div>
+    <div data-name="card-note" data-uid="eryrpqw0" title="从 web 派生 · 10-16 15:02 CST （文件）" class="dsh-card-note">
+    <span class="dsh-card-note-text">从 web 派生 · 10-16 15:02 CST</span>
+    </div>
+    </div>
+
+  全页扫「端口：」    : [{"cls":"dsh-card-port-label","text":"端口：","insidePort":true}]
+
+【注入一个 46 字的名字之后】a-very-long-profile-name-to-check-the-ellipsis
+  名字那一格         : 宽 24，行盒 1 个，省略号生效 true（scrollWidth 368 > clientWidth 24）
+  那一格             : "端口：3080"，宽 24
+  右缘 − 内容盒右缘  : 0
+  标签               : 显示 false，行盒 0 个，横向越出那一格 false，行内盒 {"x":0,"y":0,"w":0,"h":0,"right":0,"bottom":0}
+  溢出               : 第一行 false，条目 false，整页 false
+

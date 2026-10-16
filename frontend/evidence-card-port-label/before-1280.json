@@ -1,0 +1,339 @@
+{
+ "url": "http://127.0.0.1:5390/",
+ "viewport": {
+  "w": 1280,
+  "h": 900
+ },
+ "overflowX": false,
+ "scrollW": 1280,
+ "clientW": 1280,
+ "counts": {
+  "portNodes": 1,
+  "labelNodes": 0
+ },
+ "portHits": [],
+ "bodyText": "DSH 控制台\n实例总览\n日志\n设置\n回收站\n关于\n\n本机运行，仅限回环访问\n\n实例总览\n点卡片看读数与控制；卡片上的圆是状态灯\n＋\n新建实例\n当前运行的实例 (1)\nweb\n3080\n上次启动 10-16 08:25\n已停止的实例 (3)\nweb-dev\n从 web 派生 · 10-16 15:02 CST\nheadless\n测试测试\nreview-dev\n上次启动 10-15 22:28",
+ "cards": [
+  {
+   "rowId": "port:3080",
+   "status": "running",
+   "instance": "web :3080",
+   "nameText": "web",
+   "nodes": {
+    "port": true,
+    "portLabel": false,
+    "head": true,
+    "name": true
+   },
+   "portText": "3080",
+   "portTextTrimmed": "3080",
+   "labelText": null,
+   "cardText": "web3080上次启动 10-16 08:25",
+   "card": {
+    "x": 212,
+    "y": 96.7,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 166.7
+   },
+   "content": {
+    "left": 229,
+    "right": 447.5,
+    "paddingLeft": 16,
+    "paddingRight": 16,
+    "borderLeft": 1,
+    "borderRight": 1
+   },
+   "head": {
+    "x": 279,
+    "y": 111.7,
+    "w": 168.5,
+    "h": 22,
+    "right": 447.5,
+    "bottom": 133.7
+   },
+   "name": {
+    "x": 279,
+    "y": 111.7,
+    "w": 134.5,
+    "h": 22,
+    "right": 413.5,
+    "bottom": 133.7,
+    "lineBoxes": 1,
+    "ellipsisActive": false,
+    "scrollW": 135,
+    "clientW": 135
+   },
+   "port": {
+    "x": 423.5,
+    "y": 114.7,
+    "w": 24,
+    "h": 16,
+    "right": 447.5,
+    "bottom": 130.7,
+    "lineBoxes": 1,
+    "color": "rgba(232, 230, 225, 0.82)",
+    "fontSize": "12.5px",
+    "whiteSpace": "nowrap"
+   },
+   "label": null,
+   "deltas": {
+    "nameLeft": 50,
+    "portRight": 0,
+    "portLeft": 194.5,
+    "portW": 24,
+    "labelW": null,
+    "headH": 22,
+    "headTop": 15,
+    "bodyRight": 0
+   },
+   "headOverflow": false,
+   "headScrollW": 169,
+   "headClientW": 169,
+   "cardOverflow": false,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"38hhruar\" data-in tance=\"web :3080\" data-row=\"port:3080\" data- tatu =\"running\" data-light=\"running\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"web :3080 —— 点开看读数与控制（运行中）\" cla =\"d h-ca e\" id=\"d h-card-port-3080\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile accent\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3.org/2000/ vg\" cla =\"d h-icon\"><path d=\"M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z\"></path></ vg></ pan>< pan data-name=\" tatu -light\" data-uid=\"clt18y9i\" data- tate=\"running\" role=\"img\" aria-label=\"运行中\" title=\"它正在 :3080 上应答\n判据：探测这个端口时命中了 d h 的握手应答（HTTP 401 且响应体含 &quot;d h web authentication required&quot;）。profile 那一侧还有一条：这只 profile 缺 3 个包 —— 绿灯由应答给，缺包不改颜色。\" cla =\"d h-dot light-run\"><!--[--><!--]--></ pan></ pan><div cla =\"d h-ca e-body\"><div cla =\"d h-ca e-head\">< pan data-name=\"card-name\" data-uid=\"3mv upwm\" title=\"web :3080（运行中）\" cla =\"d h-name\">web</ pan>< pan data-name=\"card-port\" data-uid=\"96xfaeh2\" cla =\"d h-card-port\">3080</ pan></div><div data-name=\"card- tarted\" data-uid=\"xylkdyox\" title=\"上次启动：10-16 08:25\n（这只实例的启动时刻：后端从进程起始时间读出来的）\" cla =\"d h-card- tamp\">< pan cla =\"d h-card- tamp-text\">上次启动 10-16 08:25</ pan></div></div></article>"
+  },
+  {
+   "rowId": "profile:web-dev@~/.dsh",
+   "status": "stopped",
+   "instance": "web-dev",
+   "nameText": "web-dev",
+   "nodes": {
+    "port": false,
+    "portLabel": false,
+    "head": true,
+    "name": true
+   },
+   "portText": null,
+   "portTextTrimmed": null,
+   "labelText": null,
+   "cardText": "web-dev从 web 派生 · 10-16 15:02 CST",
+   "card": {
+    "x": 212,
+    "y": 214.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 284.8
+   },
+   "content": {
+    "left": 229,
+    "right": 447.5,
+    "paddingLeft": 16,
+    "paddingRight": 16,
+    "borderLeft": 1,
+    "borderRight": 1
+   },
+   "head": {
+    "x": 279,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 447.5,
+    "bottom": 251.8
+   },
+   "name": {
+    "x": 279,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 447.5,
+    "bottom": 251.8,
+    "lineBoxes": 1,
+    "ellipsisActive": false,
+    "scrollW": 169,
+    "clientW": 169
+   },
+   "port": null,
+   "label": null,
+   "deltas": {
+    "nameLeft": 50,
+    "portRight": null,
+    "portLeft": null,
+    "portW": null,
+    "labelW": null,
+    "headH": 22,
+    "headTop": 15,
+    "bodyRight": 0
+   },
+   "headOverflow": false,
+   "headScrollW": 169,
+   "headClientW": 169,
+   "cardOverflow": false,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"fj87lly0\" data-in tance=\"web-dev\" data-row=\"profile:web-dev@~/.d h\" data- tatu =\" topped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"web-dev —— 点开看读数与控制（故障）\" cla =\"d h-ca e\" id=\"d h-card-profile-web-dev@~/.d h\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile violet\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3.org/2000/ vg\" cla =\"d h-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></ vg></ pan>< pan data-name=\" tatu -light\" data-uid=\"p0kpqzxd\" data- tate=\"fault\" role=\"img\" aria-label=\"故障\" title=\"没有在跑；这只 profile 缺 11 个包\n判据：这只 profile 声明的包里有这些没装上：@deep eek-ai/d h-experimental-agent-team-profile、@deep eek-ai/d h-experimental-auto-review、@deep eek-ai/d h-experimental- chedule-bundle、@local/d h-retry-control、@local/d h-linxi、d h- e ion-manager、@local/d h-copy-path、@local/d h-provider-finder、@local/d h-copy- e ion、@local/d h-clyzhi-review、@local/d h-proxy-pin。\" cla =\"d h-dot light-fault\"><!--[--><!--]--></ pan></ pan><div cla =\"d h-ca e-body\"><div cla =\"d h-ca e-head\">< pan data-name=\"card-name\" data-uid=\"u9f1t0y7\" title=\"web-dev（故障）\" cla =\"d h-name\">web-dev</ pan></div><div data-name=\"card-note\" data-uid=\"eryrpqw0\" title=\"从 web 派生 · 10-16 15:02 CST\n（文件）\" cla =\"d h-card-note\">< pan cla =\"d h-card-note-text\">从 web 派生 · 10-16 15:02 CST</ pan></div></div></article>"
+  },
+  {
+   "rowId": "profile:headless@~/.dsh",
+   "status": "stopped",
+   "instance": "headless",
+   "nameText": "headless",
+   "nodes": {
+    "port": false,
+    "portLabel": false,
+    "head": true,
+    "name": true
+   },
+   "portText": null,
+   "portTextTrimmed": null,
+   "labelText": null,
+   "cardText": "headle 测试测试",
+   "card": {
+    "x": 476.5,
+    "y": 214.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 729,
+    "bottom": 284.8
+   },
+   "content": {
+    "left": 493.5,
+    "right": 712,
+    "paddingLeft": 16,
+    "paddingRight": 16,
+    "borderLeft": 1,
+    "borderRight": 1
+   },
+   "head": {
+    "x": 543.5,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 712,
+    "bottom": 251.8
+   },
+   "name": {
+    "x": 543.5,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 712,
+    "bottom": 251.8,
+    "lineBoxes": 1,
+    "ellipsisActive": false,
+    "scrollW": 169,
+    "clientW": 169
+   },
+   "port": null,
+   "label": null,
+   "deltas": {
+    "nameLeft": 50,
+    "portRight": null,
+    "portLeft": null,
+    "portW": null,
+    "labelW": null,
+    "headH": 22,
+    "headTop": 15,
+    "bodyRight": 0
+   },
+   "headOverflow": false,
+   "headScrollW": 169,
+   "headClientW": 169,
+   "cardOverflow": false,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"tl895ryu\" data-in tance=\"headle \" data-row=\"profile:headle @~/.d h\" data- tatu =\" topped\" data-light=\" topped\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"headle  —— 点开看读数与控制（已停止）\" cla =\"d h-ca e\" id=\"d h-card-profile-headle @~/.d h\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile violet\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3.org/2000/ vg\" cla =\"d h-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></ vg></ pan>< pan data-name=\" tatu -light\" data-uid=\"ngtqt3lf\" data- tate=\" topped\" role=\"img\" aria-label=\"已停止\" title=\"没有在跑\n这只 profile 的包都装上了、cordi .patch.yml 也在；只是现在没有实例在用它。\" cla =\"d h-dot light- top\"><!--[--><!--]--></ pan></ pan><div cla =\"d h-ca e-body\"><div cla =\"d h-ca e-head\">< pan data-name=\"card-name\" data-uid=\"9i9x1alx\" title=\"headle （已停止）\" cla =\"d h-name\">headle </ pan></div><div data-name=\"card-note\" data-uid=\"jigtmpo2\" title=\"测试测试\n（文件）\" cla =\"d h-card-note\">< pan cla =\"d h-card-note-text\">测试测试</ pan></div></div></article>"
+  },
+  {
+   "rowId": "profile:review-dev@~/.dsh",
+   "status": "stopped",
+   "instance": "review-dev",
+   "nameText": "review-dev",
+   "nodes": {
+    "port": false,
+    "portLabel": false,
+    "head": true,
+    "name": true
+   },
+   "portText": null,
+   "portTextTrimmed": null,
+   "labelText": null,
+   "cardText": "review-dev上次启动 10-15 22:28",
+   "card": {
+    "x": 741,
+    "y": 214.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 993.5,
+    "bottom": 284.8
+   },
+   "content": {
+    "left": 758,
+    "right": 976.5,
+    "paddingLeft": 16,
+    "paddingRight": 16,
+    "borderLeft": 1,
+    "borderRight": 1
+   },
+   "head": {
+    "x": 808,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 976.5,
+    "bottom": 251.8
+   },
+   "name": {
+    "x": 808,
+    "y": 229.8,
+    "w": 168.5,
+    "h": 22,
+    "right": 976.5,
+    "bottom": 251.8,
+    "lineBoxes": 1,
+    "ellipsisActive": false,
+    "scrollW": 169,
+    "clientW": 169
+   },
+   "port": null,
+   "label": null,
+   "deltas": {
+    "nameLeft": 50,
+    "portRight": null,
+    "portLeft": null,
+    "portW": null,
+    "labelW": null,
+    "headH": 22,
+    "headTop": 15,
+    "bodyRight": 0
+   },
+   "headOverflow": false,
+   "headScrollW": 169,
+   "headClientW": 169,
+   "cardOverflow": false,
+   "html": "<article data-name=\"in tance-card\" data-uid=\"xte6 bkd\" data-in tance=\"review-dev\" data-row=\"profile:review-dev@~/.d h\" data- tatu =\" topped\" data-light=\"fault\" role=\"button\" tabindex=\"0\" aria-ha popup=\"dialog\" aria-label=\"review-dev —— 点开看读数与控制（故障）\" cla =\"d h-ca e\" id=\"d h-card-profile-review-dev@~/.d h\">< pan cla =\"d h-tile- lot\">< pan cla =\"d h-tile violet\">< vg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" xmln =\"http://www.w3.org/2000/ vg\" cla =\"d h-icon\"><path d=\"M22,13.5C22,15.26 20.7,16.72 19,16.96V20A2,2 0 0,1 17,22H13.2V21.7A2.7,2.7 0 0,0 10.5,19C9,19 7.8,20.21 7.8,21.7V22H4A2,2 0 0,1 2,20V16.2H2.3C3.79,16.2 5,15 5,13.5C5,12 3.79,10.8 2.3,10.8H2V7A2,2 0 0,1 4,5H7.04C7.28,3.3 8.74,2 10.5,2C12.26,2 13.72,3.3 13.96,5H17A2,2 0 0,1 19,7V10.04C20.7,10.28 22,11.74 22,13.5M17,15H18.5A1.5,1.5 0 0,0 20,13.5A1.5,1.5 0 0,0 18.5,12H17V7H12V5.5A1.5,1.5 0 0,0 10.5,4A1.5,1.5 0 0,0 9,5.5V7H4V9.12C5.76,9.8 7,11.5 7,13.5C7,15.5 5.75,17.2 4,17.88V20H6.12C6.8,18.25 8.5,17 10.5,17C12.5,17 14.2,18.25 14.88,20H17V15Z\"></path></ vg></ pan>< pan data-name=\" tatu -light\" data-uid=\"n8pi3lak\" data- tate=\"fault\" role=\"img\" aria-label=\"故障\" title=\"没有在跑；这只 profile 缺 3 个包\n判据：这只 profile 声明的包里有这些没装上：@deep eek-ai/d h-experimental-agent-team-profile、@deep eek-ai/d h-experimental-auto-review、@deep eek-ai/d h-experimental- chedule-bundle。\" cla =\"d h-dot light-fault\"><!--[--><!--]--></ pan></ pan><div cla =\"d h-ca e-body\"><div cla =\"d h-ca e-head\">< pan data-name=\"card-name\" data-uid=\"49ivwr3k\" title=\"review-dev（故障）\" cla =\"d h-name\">review-dev</ pan></div><div data-name=\"card- tarted\" data-uid=\"cgmdyjyn\" title=\"上次启动：10-15 22:28\n（audit.j onl 里  tart-in tance 那一笔的时间）\" cla =\"d h-card- tamp\">< pan cla =\"d h-card- tamp-text\">上次启动 10-15 22:28</ pan></div></div></article>"
+  }
+ ],
+ "shots": [
+  {
+   "tag": "running",
+   "card": {
+    "x": 212,
+    "y": 96.7,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 166.7
+   },
+   "rowId": "port:3080",
+   "portText": "3080",
+   "path": "before-1280-running.png"
+  },
+  {
+   "tag": "noport",
+   "card": {
+    "x": 212,
+    "y": 214.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 284.8
+   },
+   "rowId": "profile:web-dev@~/.dsh",
+   "portText": null,
+   "path": "before-1280-noport.png"
+  },
+  {
+   "tag": "full",
+   "path": "before-1280-full.png"
+  }
+ ]
+}

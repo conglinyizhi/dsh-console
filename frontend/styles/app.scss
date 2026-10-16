@@ -609,6 +609,26 @@ select { appearance: none; -webkit-appearance: none; }
   font-size: 12.5px; line-height: 16px; color: $text-mid;
   white-space: nowrap;
 }
+/* 那一格前面的「端口：」标签。**同一个字号，只让颜色退一档**（$text-mid → $text-dim）：
+   它是 label、右边那串数字才是内容，与条目里其它 label（.dsh-archive-stamp-label、
+   .dsh-card-stamp 那一档）同一套调子。
+   不设 font-size 是刻意的：同一行里混两个字号会让基线错开，而这一格的高度（16）
+   正是「带端口的条目与不带的等高」那一条的支点。
+   nowrap 从 .dsh-card-port 继承下来 —— 标签与数字之间不许出现折行。 */
+.dsh-card-port-label { color: $text-dim; }
+/* 最窄那一档标签让位，只留数字。
+   **这是量出来的，不是拍的**：卡宽 = 视口 − 234，第一行那一格 = 卡宽 − 内边距 26
+   − 图标 34 − 间隙 8；360 视口下卡宽 126、那一格只有 56px，而现在的「名字 + 间隙 8
+   + 数字 24」正好把 56 用满（实测 head.scrollWidth == clientWidth）。
+   「端口：」在这个字号下约 35px，放进去只有两种收场：名字被压到 0 宽（连省略号都
+   没有，等于把名字挤没），或者那一串顶出内容盒右缘（右缘对不齐、窄屏溢出）。
+   两条都是硬要求里明令不许的，所以这一档由标签让位 —— 名字照旧省略号、
+   条目几何与加标签之前逐像素一致、任何宽度都不溢出也不折行。
+   断点取 420 与页面内边距那一条同档：≥421 起卡宽 ≥ 187、那一格 ≥ 119，
+   标签回来之后名字那一截仍有 40px 以上。 */
+@media (max-width: 420px) {
+  .dsh-card-port-label { display: none; }
+}
 
 // ── 状态灯：图标右上角那颗实心圆（第七轮） ──（@keyframes: dot-pulse）
 //

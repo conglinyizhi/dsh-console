@@ -167,7 +167,7 @@ fn card_name_text(row : Row) -> String {
 }
 
 ///|
-/// 条目**第一行右侧**那一格：这只实例正在监听的端口号。
+/// 条目**第一行右侧**那一格：这只实例正在监听的端口号，前面带一个「端口：」标签。
 ///
 /// 与状态灯不是一处位置：灯在图标右上角（.dsh-dot，挂在 .dsh-tile-slot 里），
 /// 这一格在第一行的右端（中间的名字把它顶过去）。
@@ -175,12 +175,20 @@ fn card_name_text(row : Row) -> String {
 /// **判据是「这一行知不知道端口」，不是「灯是不是绿的」**：故障那一档里
 /// 「端口在听、签名不通」正是最该一眼看到「它占着哪个端口」的时候，
 /// 拿颜色当开关会恰好把它藏起来。没有端口就不产出这个节点 ——
-/// 与第二行同一口径：没有就是没有，不摆一个空位。
+/// 与第二行同一口径：没有就是没有，不摆一个空位。标签挂在这个节点**里面**：
+/// 没有端口时连标签一起不产出，不会剩一个「端口：」孤零零挂在右端。
+///
+/// 标签是 label（.dsh-card-port-label，比数字淡一档，颜色见 app.scss），
+/// 数字才是内容。两者同在一个等宽字行里，中间不加空白 —— 这一格的 DOM 文本
+/// 读出来就是「端口：3080」，探针取到的也是这一串。
 fn card_port(row : Row, port : Int) -> @html.Html {
   @html.span(
     class="dsh-card-port",
     attrs=mark("card-port", ["overview", "card", row.id, "port"]),
-    port.to_string(),
+    [
+      @html.span(class="dsh-card-port-label", "端口："),
+      @html.text(port.to_string()),
+    ],
   )
 }
 
