@@ -437,26 +437,32 @@ pub async fn run_action(
     }
     "archive-profile" => {
       let profile = require_string(params, "profile")
+      // 说的是哪一份：params.home 给了就用它，没给按控制台自己的 home。
+      // 这一步必须在「正在跑」守卫之前 —— 守卫比的也是 (home, 名字)。
+      let home = archive_target_home(params)
       // **正在跑的不许归档**：归档是「从台面上撤下来」，一只还在跑的实例撤下去，
       // 界面读起来就像它停了 —— 那是把「还在跑」说成了别的。
       // 界面里这一项已经藏了（见 view_overview 的 running_menu），这里再挡一道：
       // 少一层，就有人从别处（脚本、另一个标签页）打进来。
-      let report = @instances.instances_report_with_settings()
-      for item in report.instances {
-        match item.profile {
-          Some(name) =>
-            if name == profile {
-              fail(
-                "conflict",
-                profile + " 正在跑（端口 " + item.port.to_string() + "）；先停掉它再归档",
-              )
-            }
-          None => ()
+      //
+      // 判据是 **(home, 名字)**，与起实例那一侧同一口径：别的 home 里同名的那只是另一只，
+      // 不该把这一份挡下来（只比名字时，W1 的 iso 会被 W2 在跑的 iso 挡回 —— 实测过）。
+      match running_for_profile_in(profile, Some(home)) {
+        Some(hit) => {
+          let port_text = match hit.port {
+            Some(p) => "端口 " + p.to_string()
+            None => "端口未识别"
+          }
+          fail(
+            "conflict",
+            profile + " 正在跑（PID " + hit.pid.to_string() + "，" + port_text + "，home " +
+            home + "）；先停掉它再归档",
+          )
         }
+        None => ()
       }
       // 判重按 (home, 名字)：同名不同 home 是两份档案，各归各的 ——
       // 从前只看名字，第二份会被当成「已经在归档区里了」挡回去。
-      let home = archive_target_home(params)
       let loaded = @store.load_archive()
       for r in loaded.entries {
         if @store.archive_target_matches(r, home, profile) {

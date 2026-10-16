@@ -416,7 +416,9 @@ cmdline 看起来是 dsh**（与 `/api/local/processes` 同一把尺子：可执
 
 **fault 条目对写侧的影响**（有意为之，写在这里免得被当成回归）：
 
-- `archive-profile` 的「正在跑的不许归档」把 fault 条目也算在跑（它确实占着那个端口）
+- `archive-profile` 的「正在跑的不许归档」把 fault 条目也算在跑（它确实占着那个端口）；
+  判据与起实例同一条：**(home, 名字)** —— 别的 home 里同名的那只是另一只，不挡这一份
+  （改前只比名字：W1 归档被 W2 在 $W2_PORT 上跑的同名实例挡回，实测过）
 - `stop-instance` / `restart-instance` 按 `port` 找目标时，fault 条目也能找到 pid（改前是 `not-found`）
 - `probe.hits` **仍是签名命中数**：fault 条目不计入，条目总数看 `instances` 长度
 
@@ -495,7 +497,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `rename-profile` | 改磁盘上的目录名 | 空名 / 非法字符 / 重名 / 正在运行 都拒 |
 | `set-profile-note` | 写备注：非空 `text` 原子写进 `<profile 目录>/.dsh-note.txt`（覆盖旧的）；**空串 = 删掉那个文件** | 名字先过白名单、再确认解析到 `profilesRoot` 之内（**目录穿越拒 `bad-params`**）；目录不存在 `not-found`；超过 2000 字符 `bad-params`；写不动 `io-error`。`text` 不 trim（前后空格是用户写的），**缺 `text` 键 ≠ 空串**：缺键 `bad-params` |
 | `open-path` | `xdg-open <目标>` 打开一个**枚举目标**：`kind:"dir"`（缺省）= profile 目录，`kind:"config"` = 它的 `cordis.patch.yml`。**直接 exec**（不经 shell、不做任何字符串插值），spawn 完不等它干活 | **params 只认 `profile` 与 `kind`**，多一个键（比如 `path`）就 `bad-params`——客户端给不了路径。名字过白名单 + 解析结果必须落在 profilesRoot 之内（两道，与 `set-profile-note` 同款）；目标不存在 `not-found`；PATH 里没有 `xdg-open` / 没有图形环境（`DISPLAY` 与 `WAYLAND_DISPLAY` 都没设）/ `xdg-open` 起来就非零退出 → `io-error`，message 写清是哪一种 |
-| `archive-profile` | 往 `archive.json` 追加一条 `{ profile, home, archivedAt }`。`home` 可选（不给 = 控制台自己的 `DSH_HOME`） | **不动磁盘上的 profile**；一份档案的身份是 **(home, 名字)**：同一个 home 的同名 profile 已在归档区 → `conflict`，同名另一 home 各归各的 |
+| `archive-profile` | 往 `archive.json` 追加一条 `{ profile, home, archivedAt }`。`home` 可选（不给 = 控制台自己的 `DSH_HOME`） | **不动磁盘上的 profile**；一份档案的身份是 **(home, 名字)**：同一个 home 的同名 profile 已在归档区 → `conflict`，同名另一 home 各归各的。**同一个 home 里同名的那只正在跑 → `conflict`**（message 里给 pid、端口与 home），别的 home 里同名实例在跑不挡这一份 |
 | `unarchive-profile` | 撤掉那一份（`profile` + 可选 `home`）的记录 | 没有这一份 → `not-found`；同名另一 home 的那条留着不动 |
 | `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
 | `set-row-order` | 把**整份**手动顺序原子写进 `<状态目录>/order.json`：一个行 id 的字符串数组，元素只认 `port:<端口号>` 与 `profile:<名字>@<home>`（老形状 `profile:<名字>` 仍然认，见下面「状态文件」那一节） | 不是字符串 / id 形状不对 / 有重复 / 超 5000 条 → `bad-params`；写不动 `io-error`。空数组合法（= 清空顺序表，回到自动排序）。**不做增量合并**：调用方给的就是要落盘的那一份 —— 增量式接口要后端先读一份当前顺序再算，两次并发拖动会互相覆盖 |

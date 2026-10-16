@@ -765,14 +765,6 @@ async fn home_of_process(item : @processes.ProcSummary) -> String? noraise {
 }
 
 ///|
-/// 某个 home 里的这个 profile 是不是已经在跑。动的就是**控制台自己的 home**
-/// （profile 目录动作改 / 删的都是那儿那一份），所以 home 不用调用方给。
-pub async fn running_for_profile(name : String) -> Target? noraise {
-  let (home, _) = @runtime.resolve_dsh_home()
-  running_for_profile_in(name, Some(home))
-}
-
-///|
 /// 同一个 (home, 名字) 是不是已经在跑。先看进程表（--profile + home），
 /// 端口未知时查登记表与实例读数。
 ///

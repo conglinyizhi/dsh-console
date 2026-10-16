@@ -182,6 +182,9 @@ pub async fn rename_profile(profile : String, new_name : String) -> RenameOutcom
     fail("bad-params", "新旧名字一样：" + from_name)
   }
   let root = profiles_root()
+  // 守卫比的是 (home, 名字)：home 就是 profiles 根的父目录，与下面要动的那个目录同源算一次。
+  // 不让守卫自己再解析一遍 —— 分叉出来正好是「判的是这一处、动的是另一处」。
+  let home = @json.dirname(root)
   let from = @json.join_path(root, from_name)
   let to = @json.join_path(root, to_name)
   if !@json.is_dir(from) {
@@ -190,7 +193,7 @@ pub async fn rename_profile(profile : String, new_name : String) -> RenameOutcom
   if @json.exists(to) {
     fail("conflict", "目标名字已经有人用了：" + to)
   }
-  match running_for_profile(from_name) {
+  match running_for_profile_in(from_name, Some(home)) {
     Some(hit) =>
       fail(
         "conflict",
@@ -243,7 +246,8 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
   if !@json.is_dir(dir) {
     fail("not-found", "profile 目录不存在：" + dir)
   }
-  match running_for_profile(name) {
+  // 守卫比 (home, 名字)：home 用的是上面算出来的那一个，与目录同源。
+  match running_for_profile_in(name, Some(home)) {
     Some(hit) =>
       fail(
         "conflict",
