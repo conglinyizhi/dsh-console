@@ -266,3 +266,34 @@ restore-from-trash               → restoredTo=/tmp/p3-probe/home-console/profi
 
 读 `backend/processes/procjoin.mbt` 里 `dsh_home_prefix` 的注释与实现（各约 10 行），
 并 `grep -rn sessions backend --include=*.mbt`（全后端只有 1 处命中，是那句注释）——两处都可复现。
+---
+
+## 复核补充（2026-10-16，林汐读代码后补）
+
+### 已复核证实的两条
+
+- **第 6 节（前端）**：`frontend/state.mbt:1949` 的提示原话就是「控制台当前使用的 DSH_HOME」——
+  已停止卡的 home 与「复制开发指令」同源；`app.mbt:514-519` 的目录算式是 `<DSH_HOME>/profiles/<名>`。
+  多 home 之后，停止卡拼出来的就是控制台自己的 home，等于把开发会话引回主线。必做集 d 要改的就是这里。
+- **第 4 节（归档/回收站）** 与第 3 节 `running_for_profile` 只比名字：见各节实测，此处不重复。
+
+### 新发现一处缺口：不在必做集里的第二条张冠李戴
+
+`backend/logs/logs.mbt:59` 与 `:64` 两条**固定来源**：
+```
+host  → join_all([home, ".dsh", "logs", "retry-control", "host.log"])
+audit → join_all([home, ".dsh", "linxi-guard-audit.jsonl"])
+```
+这里的 `home` 是**操作系统的 home**，不是控制台解析出来的 DSH_HOME ——
+也就是说这两条来源**连控制台自己的 DSH_HOME 都不看**，永远指向 `$HOME/.dsh/...`。
+（实例来源那一侧是对的：`logs.mbt:671-675` 优先用 `instance.dsh_home`，并如实写来源。）
+
+**为什么没进必做集**：这两份是使用者机器上的**全局文件**（retry-control 的日志、linxi-guard 的审计），
+指向 `$HOME/.dsh` 在多数情况下是**对的**，所以它不是 a~d 那种「读数张冠李戴」。
+**但在两种情况下会出错**：
+1. 控制台自己是被带着别的 `DSH_HOME` 启动的（那时它的 home 不是 `$HOME/.dsh`）；
+2. B 层隔离之后，如果使用者期望「日志来源也跟着选中的 profile 走」，那这两条就永远指错了地方。
+
+**建议**：不在本轮改，但**记在案**，并在日志页把这两条的「目录依据」也显出来（现在只有实例来源显示，
+`view_logs.mbt:128-135`），让人一眼看出它指的是 `$HOME/.dsh` 而不是当前实例的 home。
+这两件的口径要不要改，属于**范围问题**，留给使用者定。
