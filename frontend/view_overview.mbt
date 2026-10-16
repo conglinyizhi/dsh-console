@@ -910,7 +910,8 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let stopped = model.rows.filter(fn(row) {
     row.archived_at is None && !(row.status is Running)
   })
-  // 读数还没落地：这一格摆加载态，空态只在真读到空的时候出现（见 loading_block）
+  // 读数还没落地：这一格摆加载态（与真条目同形的占位块，见 card_loading），
+  // 空态只在真读到空的时候出现
   let pending = readings_pending(model)
   let running_list : Array[@html.Html] = running.map(fn(row) {
     instance_card(row, model, emit)
@@ -918,7 +919,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if running.length() == 0 {
     if pending {
       running_list.push(
-        loading_block(
+        card_loading(
           "running-loading",
           "正在读取实例读数…",
           "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
@@ -939,7 +940,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if stopped.length() == 0 {
     if pending {
       stopped_list.push(
-        loading_block(
+        card_loading(
           "stopped-loading",
           "正在读取 profile 读数…",
           "profile 的读数还在路上，这里先摆加载态。",

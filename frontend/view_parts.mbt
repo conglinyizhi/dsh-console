@@ -92,7 +92,9 @@ fn stopped_empty() -> @html.Html {
 }
 
 ///|
-/// 读数还没回来时占位的那一块。
+/// 读数还没回来时占位的那一块：**整幅一块**，给不在卡片栅格里的那两处用
+/// （日志页、回收站页）—— 那两处的内容本来就不是卡片，条目形状的占位块在那里没有对应物。
+/// 实例总览的两个分组走 card_loading（与真条目同形），见下。
 ///
 /// **它与空态是两副样子，这是重点**：空态（running_empty / stopped_empty）说的是
 /// 「扫完了，确实没有」；这一块说的是「还没读到」。两者长得一样的话，
@@ -101,8 +103,9 @@ fn stopped_empty() -> @html.Html {
 /// 形状刻意跟空态拉开：空态是虚线框 + 居中图标，这里是实线框 + 面板底色。
 /// 也没有动效 —— 页面上的动效是启动态状态点专用的（见 styles/app.scss）。
 ///
-/// name 既是 data-name 也是语义路径的最后一段：三处加载态（运行中 / 已停止 / 日志）
-/// 的 name 本来就各不相同，不必再让调用方多传一遍路径。
+/// name 既是 data-name 也是语义路径的最后一段：各处加载态的 name 本来就各不相同
+/// （log-loading / trash-loading / running-loading / stopped-loading），
+/// 不必再让调用方多传一遍路径。
 fn loading_block(name : String, title : String, detail : String) -> @html.Html {
   @html.section(
     class="dsh-loading",
@@ -112,6 +115,61 @@ fn loading_block(name : String, title : String, detail : String) -> @html.Html {
       @html.p(class="dsh-loading-line", title),
       @html.p(class="dsh-loading-sub", detail),
     ],
+  )
+}
+
+///|
+/// 卡片栅格里的加载态：**与真条目同形**的占位块 + 一行说明。
+///
+/// 为什么要另起一副形状：卡片瘦成条目之后（图标位 + 名字 / 备注），原来那块
+/// 「整幅居中 + 一行字」已经不是卡片的样子了 —— 读数回来、卡片一进来，
+/// 主区宽度、列数、第一张卡的起点全都要跳一次。这里改成在**同一个栅格**里摆占位块：
+/// 外层 .dsh-loading 在栅格下是 display: contents（不生成盒子），里面的块直接成为
+/// 栅格项，与真卡片共用同一套列轨、间距与断点，所以「正在读」到「读到了」布局不跳。
+///
+/// 与空态的界线照旧（空态是虚线框 + 居中图标）：这里说的是「还没读到」，
+/// 不是「扫完了确实没有」。
+///
+/// 占位块是**静态**灰块：没有 shimmer、没有脉冲 —— 全页的动效只有启动态那颗状态点，
+/// 多一个就会被 design/probe-animation.mjs 的「点击前无可见动效」抓到。
+/// 它们也不是交互元素：没有 tabindex、没有 role、没有点击处理器，点了没反应；
+/// 整块对读屏隐藏（aria-hidden），带语义的只有末尾那一行说明（role=status + aria-live）。
+///
+/// 说明摆在占位块**下面**（不是上面）：这样第一块与将来的第一张卡落在同一个位置，
+/// 上下也不跳。说明只此一处，占位块里一个字都不写。
+fn card_loading(name : String, title : String, detail : String) -> @html.Html {
+  // 摆 6 块：栅格上限就是 6 列，宽屏那一档正好铺满一排；窄屏就是 6 行。
+  // 这个数不是读数 —— 真有几张卡要等读数回来才知道，这里不假装知道。
+  let count = 6
+  let children : Array[@html.Html] = []
+  for i = 0; i < count; i = i + 1 {
+    children.push(
+      @html.div(
+        class="dsh-skeleton",
+        attrs=@html.Attrs::build().aria_hidden("true"),
+        [
+          @html.div(class="dsh-skeleton-head", [
+            @html.span(class="dsh-skeleton-tile", @html.nothing),
+            @html.span(class="dsh-skeleton-name", @html.nothing),
+          ]),
+        ],
+      ),
+    )
+  }
+  children.push(
+    @html.div(
+      class="dsh-loading-note",
+      attrs=@html.Attrs::build().role("status").aria_live("polite"),
+      [
+        @html.p(class="dsh-loading-line", title),
+        @html.p(class="dsh-loading-sub", detail),
+      ],
+    ),
+  )
+  @html.section(
+    class="dsh-loading",
+    attrs=mark(name, ["loading", name]).data_set("state", "loading"),
+    children,
   )
 }
 

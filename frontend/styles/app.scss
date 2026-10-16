@@ -276,9 +276,12 @@ select { appearance: none; -webkit-appearance: none; }
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
-/* 空态 / 加载态是整幅的一块，不许被切进某一列 */
-.dsh-rows.dsh-card-grid > .dsh-empty,
-.dsh-rows.dsh-card-grid > .dsh-loading { grid-column: 1 / -1; }
+/* 空态是整幅的一块，不许被切进某一列（它说的是「扫完了确实没有」，形状与卡片无关）。 */
+.dsh-rows.dsh-card-grid > .dsh-empty { grid-column: 1 / -1; }
+/* 加载态不是一块，是一组与真条目同形的占位块（第八轮）：外层不生成盒子，
+   里面的块直接成为栅格项，于是与真卡片共用同一套列轨 —— 读数回来时布局不跳。
+   （多一层盒子就多一层内边距，占位块会与卡片错开几像素，那正是要修的事。） */
+.dsh-rows.dsh-card-grid > .dsh-loading { display: contents; }
 @media (min-width: 726px) {
   .dsh-rows.dsh-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -330,6 +333,12 @@ select { appearance: none; -webkit-appearance: none; }
 // 会被当成「本机一个实例都没有」——那正是要修的那件事。
 // 这里没有动效：全页的动效留给启动态的状态点（dot-pulse），多一个会打破
 // design/probe-animation.mjs 的「点击前无可见动效」。
+//
+// 形状按所在的地方分两副（同一个 .dsh-loading 区域，里面装什么不一样）：
+//   * 卡片栅格（实例总览的两个分组）→ 与真条目同形的占位块 + 一行说明，
+//     见下面「卡片栅格里的加载骨架」一节；外层在栅格下是 display: contents。
+//   * 整幅一处（日志页、回收站页）→ 就是下面这一块：内容本来就不是卡片，
+//     条目形状在那里没有对应物。
 .dsh-loading {
   display: flex;
   flex-direction: column;
@@ -357,6 +366,47 @@ select { appearance: none; -webkit-appearance: none; }
   font-size: 11px;
   color: $text-dim;
   max-width: 60ch;
+}
+
+// ── 卡片栅格里的加载骨架（第八轮） ──
+// 一块占位 = 一个条目形状：图标位 + 一行名字位。**几何与 .dsh-case 逐项对齐**
+// （内边距 14/16、边框 1、圆角 10、图标位 40×40、图标与名字之间 10），
+// 窄视口那一档也跟着 .dsh-case 一起收（见下面 620px 的断点）——
+// 对不齐就会在读数回来那一刻跳一下，所以这两个数改一个就得改另一个。
+// 取值域里没有半像素的巧合：占位块高度 = 14 + 1 + 40 + 1 + 14 = 70 = 没有备注的真卡片。
+.dsh-skeleton {
+  /* min-width: 0 与 .dsh-case 同因：它是栅格项，默认的 min-width: auto 会顶穿所在的那条轨 */
+  min-width: 0;
+  display: flex; flex-direction: column;
+  padding: 14px 16px;
+  background: $panel;
+  border: 1px solid $line;
+  border-radius: $radius;
+}
+.dsh-skeleton-head {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+}
+/* 图标位：真卡片那一块 40×40 的底板，这里只是一块灰 */
+.dsh-skeleton-tile {
+  width: 40px; height: 40px; flex: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+/* 名字位：占满余下的宽度、最宽 120px，窄到放不下就自己缩 ——
+   与 .dsh-name 的 flex: 1 1 auto + min-width: 0 同一套（那边靠省略号，这边靠变窄），
+   所以任何宽度都不横向溢出（360 下卡只有 126px 宽，名字那一段剩不下多少） */
+.dsh-skeleton-name {
+  flex: 1 1 auto; min-width: 0; max-width: 120px;
+  height: 12px; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+}
+/* 说明那一行：占满整行（它是栅格项，不跟占位块挤一列）。
+   text-align 显式写 left：.dsh-loading 的居中会沿继承传下来，而这一行是
+   段落文字不是居中图标，跟页面其它说明一样左对齐。 */
+.dsh-loading-note {
+  grid-column: 1 / -1;
+  min-width: 0;
+  text-align: left;
 }
 
 // ── 归档行（ArchivedRow.vue） ──
@@ -587,10 +637,12 @@ select { appearance: none; -webkit-appearance: none; }
 // 这里改的是**常量本身**：内边距。单列区间里 卡宽 = 视口 − 234
 //（侧栏 190 + 页面左右内边距 44），所以断点能倒推回卡宽。
 @media (max-width: 620px) {
-  /* 卡宽 < 386：内边距与图标各收一档（40 → 34），名字那一段多留出 12px */
-  .dsh-case { padding: 12px 13px; }
-  .dsh-case-head { gap: 8px; }
-  .dsh-tile { width: 34px; height: 34px; border-radius: 8px; }
+  /* 卡宽 < 386：内边距与图标各收一档（40 → 34），名字那一段多留出 12px。
+     占位块跟着一起收（同一组选择器，改一条两条都动）——
+     只收一边的话，读数回来那一刻高度会差 12px。 */
+  .dsh-case, .dsh-skeleton { padding: 12px 13px; }
+  .dsh-case-head, .dsh-skeleton-head { gap: 8px; }
+  .dsh-tile, .dsh-skeleton-tile { width: 34px; height: 34px; border-radius: 8px; }
 }
 @media (max-width: 420px) {
   /* 卡宽 < 186：到这一档，页面那 44px 的左右内边距已经占掉了卡片宽度的四分之一，
