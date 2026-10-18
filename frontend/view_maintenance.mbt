@@ -441,113 +441,225 @@ fn job_profile_choice(model : Model) -> String {
 }
 
 ///|
-/// 试跑用 profile 那一组：下拉 + 紧贴它的一行小字（§9.3）。
+/// 一只可用 profile 的「配置 home」小字。读数里没给 home 那一项时写「读不到」，
+/// 不按控制台自己的 DSH_HOME 猜一个归属出来（与抽屉那一格同一口径）。
+fn job_profile_home_text(profile : ProfileFact) -> String {
+  if profile.home_kind == "" {
+    "配置 home：读不到"
+  } else {
+    "配置 home：" + home_kind_text(profile.home_kind)
+  }
+}
+
+///|
+/// 第一张可点的 profile 卡是哪一只（打开侧栏时焦点落在它身上，§10.3）。
+/// 顺序照读数里的顺序（不按默认推导重排）：「第一张」在界面上是看得见的那一条。
+fn job_profile_first_usable(model : Model) -> String {
+  for profile in job_profile_facts(model) {
+    let (ok, _why) = job_profile_usable(profile)
+    if ok {
+      return profile.name
+    }
+  }
+  ""
+}
+
+///|
+/// 表单里「试跑用配置」那一格（§10.3）：一行「当前配置」+ 一颗「选择配置」按钮。
 ///
-/// 下拉里每一只都带着自己的状态：
-///   · 可用：只写名字（缺几个包由悬停与下面那行小字说）
-///   · 不可用：置灰不可选，选项文字里就写着为什么；悬停里是同一句
-/// 下面那行小字说的是**这一刻选中的那一只**：缺几个包，或者一只可用的都没有。
-/// 正在跑的那一只也可以选 —— 试跑用一次性 home，不占用它（§9.4）。
-fn job_profile_field(
+/// 候选不再是常驻下拉：点按钮开右侧侧栏，里面按总览的卡片样式摆本机全部 profile。
+/// 这一格只负责说「现在用的是谁」——没选过（也没有可用的）就写「未选择」。
+fn job_profile_current(
   model : Model,
   disabled : Bool,
   emit : @cmd.Emit[Msg],
-) -> Array[@html.Html] {
-  let facts = job_profile_facts(model)
+) -> @html.Html {
   let choice = job_profile_choice(model)
-  let options : Array[@html.Html] = []
-  if facts.length() == 0 {
-    options.push(
-      @html.option(
-        value="",
-        selected=true,
-        disabled=true,
-        [@html.text("没读到 profile")],
-      ),
-    )
-  } else if choice == "" {
-    options.push(
-      @html.option(
-        value="",
-        selected=true,
-        disabled=true,
-        [@html.text("没有可用的 profile")],
-      ),
-    )
-  }
-  for profile in facts {
-    let (ok, why) = job_profile_usable(profile)
-    let missing = job_profile_missing(profile)
-    // 不可用的那一只把原因写进选项文字（它被置灰，悬停也不一定有人去停）；
-    // 可用的只写名字 —— 缺几个包由下面那行小字与悬停说，不在这条选项里重复一遍
-    let label = if !ok {
-      profile.name + "：" + why
-    } else {
-      profile.name
-    }
-    let hint = if !ok {
-      "不可用：" + why
-    } else if missing > 0 {
-      "缺 " + missing.to_string() + " 个包，可能起不来"
-    } else {
-      ""
-    }
-    let attrs = if hint == "" {
-      mark("job-profile-option", ["maintenance", "start", "profile-option", profile.name])
-    } else {
-      mark("job-profile-option", ["maintenance", "start", "profile-option", profile.name])
-        .title(hint)
-    }
-    options.push(
-      @html.option(
-        value=profile.name,
-        selected=profile.name == choice,
-        disabled=!ok,
-        attrs~,
-        [@html.text(label)],
-      ),
-    )
-  }
-  let out : Array[@html.Html] = [
-    @html.select(
-      id="dsh-job-profile",
-      class="dsh-select dsh-job-profile",
+  let value = if choice == "" { "未选择" } else { choice }
+  @html.div(class="dsh-job-current", [
+    @html.span(
+      class="dsh-job-current-label",
+      attrs=mark("job-profile-current-label", ["maintenance", "start", "profile-current-label"]),
+      "当前配置",
+    ),
+    @html.span(
+      class="dsh-job-current-value",
+      attrs=mark("job-profile-current", ["maintenance", "start", "profile-current"])
+        .data_set("state", if choice == "" { "empty" } else { "picked" }),
+      value,
+    ),
+    @html.button(
+      id=profile_choose_id(),
+      class="dsh-btn dsh-job-choose",
+      type_="button",
       disabled~,
-      attrs=mark("job-profile", ["maintenance", "start", "profile"])
-        .aria_label("试跑用 profile")
-        .title(
-          "试跑按这一只 profile 复制一份配置到一次性 home（取本机已有的 profile 读数；在跑的优先，不占用它）",
-        ),
-      on_change=emit.map(fn(value) { JobProfilePicked(value) }),
-      options,
+      attrs=mark("job-profile-choose", ["maintenance", "start", "profile-choose"])
+        .aria_label("选择试跑用配置"),
+      on_click=emit(ProfileSidebarOpen),
+      [@html.span("选择配置")],
+    ),
+  ])
+}
+
+///|
+/// 侧栏里的一颗 profile 卡：**复用总览卡片那一套样式**（.dsh-case，含图标位与两行）。
+///
+///   · 可用：整张卡可点（鼠标 / Enter / 空格），第二行写缺包数与配置 home 归属；
+///   · 不可用：置灰、不可点、从 Tab 序列里摘掉，第二行就写为什么不可用。
+/// 缺包不算不可用（§9.3）：旁边注明「缺 N 个包，可能起不来」，卡照旧能点。
+fn job_profile_card(
+  model : Model,
+  profile : ProfileFact,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let (ok, why) = job_profile_usable(profile)
+  let missing = job_profile_missing(profile)
+  let choice = job_profile_choice(model)
+  let selected = profile.name == choice
+  let second : Array[String] = []
+  if !ok {
+    second.push(why)
+  } else {
+    if missing > 0 {
+      second.push("缺 " + missing.to_string() + " 个包，可能起不来")
+    }
+    second.push(job_profile_home_text(profile))
+  }
+  let head : Array[@html.Html] = [
+    @html.span(
+      class="dsh-name",
+      attrs=mark("job-profile-card-name", ["maintenance", "profile-sidebar", profile.name, "name"]),
+      profile.name,
     ),
   ]
-  // 一行小字：选中那一只的状态。没有话要说（可用且不缺包）就不摆一行空的。
-  let mut note = ""
-  if facts.length() > 0 && choice == "" {
-    note = "没有可用的 profile：都读不到配置或没有网页入口"
-  }
-  for profile in facts {
-    if profile.name == choice {
-      let (ok, why) = job_profile_usable(profile)
-      let missing = job_profile_missing(profile)
-      if !ok {
-        note = why
-      } else if missing > 0 {
-        note = "缺 " + missing.to_string() + " 个包，可能起不来"
-      }
-    }
-  }
-  if note != "" {
-    out.push(
+  if selected {
+    head.push(
       @html.span(
-        class="dsh-job-profile-note",
-        attrs=mark("job-profile-note", ["maintenance", "start", "profile-note"]),
-        note,
+        class="dsh-profile-card-mark",
+        attrs=mark("job-profile-card-mark", ["maintenance", "profile-sidebar", profile.name, "mark"]),
+        "当前配置",
       ),
     )
   }
-  out
+  let lines : Array[@html.Html] = [
+    @html.div(class="dsh-case-head", head),
+    @html.span(
+      class=if ok { "dsh-profile-card-sub" } else { "dsh-profile-card-sub unusable" },
+      attrs=mark("job-profile-card-sub", ["maintenance", "profile-sidebar", profile.name, "sub"])
+        .title(second.join(" · ")),
+      second.join(" · "),
+    ),
+  ]
+  let click = if ok {
+    emit(JobProfilePicked(profile.name))
+  } else {
+    @cmd.none
+  }
+  @html.article(
+    id=job_profile_card_id(profile.name),
+    class=if ok { "dsh-case dsh-profile-card" } else { "dsh-case dsh-profile-card disabled" },
+    attrs=mark("job-profile-card", ["maintenance", "profile-sidebar", profile.name])
+      .data_set("usable", if ok { "true" } else { "false" })
+      .role("button")
+      .tabindex(if ok { 0 } else { -1 })
+      .aria_disabled(if ok { "false" } else { "true" })
+      .aria_label(
+        if ok {
+          "试跑用 " + profile.name
+        } else {
+          profile.name + " 不可用：" + why
+        },
+      )
+      .on_click(fn(_event) { click })
+      .on_keydown(fn(event) {
+        if ok && (event.key() == "Enter" || event.key() == " ") {
+          emit(JobProfilePicked(profile.name))
+        } else {
+          @cmd.none
+        }
+      }),
+    [
+      @html.span(class="dsh-tile-slot", [
+        @html.span(class="dsh-tile violet", [icon("cube-outline", size=20)]),
+      ]),
+      @html.div(class="dsh-case-body", lines),
+    ],
+  )
+}
+
+///|
+/// 试跑用配置的右侧侧栏（§10.3）：与实例详情抽屉同一套外壳（遮罩 + 右侧面板 + Esc）。
+///
+/// 里面是**总览的卡片样式**摆本机全部 profile：可用可点、不可用置灰并写明原因。
+/// 正在跑的那一只也可以选 —— 试跑用一次性 home，不占用它（§9.4）。
+fn job_profile_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let facts = job_profile_facts(model)
+  let body : Array[@html.Html] = []
+  if facts.length() == 0 {
+    body.push(
+      @html.p(
+        class="dsh-empty-sub",
+        attrs=mark("job-profile-sidebar-empty", ["maintenance", "profile-sidebar", "empty"]),
+        "还没读到 profile 读数，等读数回来再挑。",
+      ),
+    )
+  } else {
+    let cards : Array[@html.Html] = []
+    for profile in facts {
+      cards.push(job_profile_card(model, profile, emit))
+    }
+    body.push(
+      @html.div(
+        class="dsh-profile-sidebar-list",
+        attrs=mark("job-profile-list", ["maintenance", "profile-sidebar", "list"]),
+        cards,
+      ),
+    )
+  }
+  @html.fragment([
+    @html.div(
+      class="dsh-drawer-scrim",
+      attrs=mark("job-profile-sidebar-scrim", ["maintenance", "profile-sidebar", "scrim"])
+        .data_set("state", "open"),
+      on_click=emit(ProfileSidebarClose),
+      @html.nothing,
+    ),
+    @html.aside(
+      id="dsh-job-profile-sidebar",
+      class="dsh-drawer",
+      attrs=mark("job-profile-sidebar", ["maintenance", "profile-sidebar"])
+        .role("dialog")
+        .aria_modal("true")
+        .aria_label("选择配置")
+        .data_set("state", "open")
+        .on_keydown(fn(event) {
+          if event.key() == "Escape" {
+            emit(ProfileSidebarClose)
+          } else {
+            @cmd.none
+          }
+        }),
+      [
+        @html.div(class="dsh-drawer-head", [
+          @html.span(
+            class="dsh-drawer-name",
+            attrs=mark("job-profile-sidebar-title", ["maintenance", "profile-sidebar", "title"]),
+            "选择配置",
+          ),
+          @html.button(
+            id=profile_sidebar_close_id(),
+            class="dsh-btn icon-only",
+            type_="button",
+            attrs=mark("job-profile-sidebar-close", ["maintenance", "profile-sidebar", "close"])
+              .aria_label("关闭选择配置"),
+            on_click=emit(ProfileSidebarClose),
+            [icon("close", size=16)],
+          ),
+        ]),
+        @html.div(class="dsh-drawer-body", body),
+      ],
+    ),
+  ])
 }
 
 ///|
@@ -636,68 +748,101 @@ fn release_option_hint(item : ReleaseVersion) -> String {
 let job_version_list_cap : Int = 20
 
 ///|
-/// 目标版本这一段控件：**一个输入框 + 一张过滤出来的候选列表**（§9.2）。
-///
-/// 输入框是唯一的值来源：点候选等于把那一版填进框里，继续自己写就是自定义版本
-/// （写什么就拿什么开工，控制台不猜远端有没有这一版）。
-///
-/// 三种状态分得清（design/dsh-release-sources.md §2）：
-///   · 还在问（最多 6 秒）          → 「正在问 GitHub、npm、国内镜像」
-///   · 有候选                       → 候选列表 + 来源小字
-///   · 一个源都没答上来 / 没读到    → 一句话说清，输入框照旧可用
-/// 加载中说「正在问」，**不**说没问到：那两件事不能写成一句。
-fn job_version_controls(
+/// 表单里「目标版本」那一格（§10.2）：一行「当前版本」+ 一颗「选择版本」按钮。
+/// 没选时写「未选择」；候选不再常驻，点按钮开居中弹层。
+fn job_version_current(
   model : Model,
-  busy : Bool,
+  disabled : Bool,
   emit : @cmd.Emit[Msg],
-) -> Array[@html.Html] {
-  let out : Array[@html.Html] = []
+) -> @html.Html {
+  let picked = model.job_version.trim().to_owned()
+  let value = if picked == "" { "未选择" } else { picked }
+  @html.div(class="dsh-job-current", [
+    @html.span(
+      class="dsh-job-current-label",
+      attrs=mark("job-version-current-label", ["maintenance", "start", "version-current-label"]),
+      "当前版本",
+    ),
+    @html.span(
+      class="dsh-job-current-value",
+      attrs=mark("job-version-current", ["maintenance", "start", "version-current"])
+        .data_set("state", if picked == "" { "empty" } else { "picked" }),
+      value,
+    ),
+    @html.button(
+      id=version_choose_id(),
+      class="dsh-btn dsh-job-choose",
+      type_="button",
+      disabled~,
+      attrs=mark("job-version-choose", ["maintenance", "start", "version-choose"])
+        .aria_label("选择目标版本"),
+      on_click=emit(VersionDialogOpen),
+      [@html.span("选择版本")],
+    ),
+  ])
+}
+
+///|
+/// 拉取时刻那一格：ISO 转浏览器本地的 MM-DD HH:MM，解析不出来就照原样显示（不吞）。
+fn release_stamp_text(iso : String) -> String {
+  if iso == "" {
+    ""
+  } else {
+    let short = js_short_time(iso)
+    if short == "" { iso } else { short }
+  }
+}
+
+///|
+/// 版本弹层（§10.2）：居中对话框，复用 view_parts 的 dialog 外壳。
+///
+/// 从上到下：搜索框（打开即聚焦）→ 过滤出来的候选（最多 20 条）→ 自定义版本那一行 →
+/// 底部小字（来源、拉取时间、「正在重新拉取」或失败原因）与关闭键。
+///
+/// 状态说三档，与后端缓存那三格对齐：
+///   loading  → 还没有候选时写「正在拉版本列表」；有旧候选就照旧列出来（底部说正在重新拉取）
+///   ready    → 候选 + 来源 + 拉取时间
+///   failed   → 写明上次没拉到的原因，搜索框照旧能写（写了就是自定义版本）
+fn job_version_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let facts = model.releases
   let versions = match facts {
     Some(got) => got.versions
     None => []
   }
-  let has_choices = versions.length() > 0
-  let query = model.job_version.trim().to_owned()
-  // 一、输入框：永远在，也永远可写（这一格就是目标版本本身）
-  out.push(
-    @html.input(
-      input_type=Text,
-      id="dsh-job-version",
-      class="dsh-dialog-input dsh-job-version",
-      value=model.job_version,
-      placeholder="选择或输入版本号",
-      attrs=mark("job-version-input", ["maintenance", "start", "version"])
-        .aria_label("目标版本")
-        .role("combobox")
-        .aria_expanded(if has_choices { "true" } else { "false" })
-        .disabled(busy)
-        .spellcheck(false),
-      on_input=emit.map(fn(text) { JobVersionInput(text) }),
-    ),
-  )
-  // 二、候选列表：有候选时按输入过滤。列表里没有的那一行在下面说清「直接开工也行」。
-  if has_choices {
-    let matched : Array[ReleaseVersion] = []
-    for item in versions {
-      if query == "" || job_version_matches(item.version, query) {
-        matched.push(item)
-      }
+  let state = match facts {
+    Some(got) => got.state
+    None => if model.releases_loading { "loading" } else { "" }
+  }
+  let loading = state == "loading" || model.releases_loading
+  let query = model.version_query.trim().to_owned()
+  // 过滤：输入即匹配（包含判，大小写不敏感），最多列 20 条，余下的条数如实写在最后一行
+  let matched : Array[ReleaseVersion] = []
+  for item in versions {
+    if query == "" || job_version_matches(item.version, query) {
+      matched.push(item)
     }
-    let shown = if matched.length() > job_version_list_cap {
-      matched[:job_version_list_cap].to_owned()
-    } else {
-      matched
+  }
+  let shown = if matched.length() > job_version_list_cap {
+    matched[:job_version_list_cap].to_owned()
+  } else {
+    matched
+  }
+  let mut exact = false
+  for item in versions {
+    if item.version == query {
+      exact = true
     }
+  }
+  let body : Array[@html.Html] = []
+  if shown.length() > 0 {
     let items : Array[@html.Html] = []
     for item in shown {
-      let selected = item.version == query
+      let selected = item.version == model.job_version
       let cls = if selected { "dsh-job-version-item selected" } else { "dsh-job-version-item" }
       items.push(
         @html.button(
           class=cls,
           type_="button",
-          disabled=busy,
           attrs=mark("job-version-option", ["maintenance", "start", "version-option", item.version])
             .role("option")
             .aria_selected(if selected { "true" } else { "false" })
@@ -707,19 +852,17 @@ fn job_version_controls(
         ),
       )
     }
-    if items.length() > 0 {
-      out.push(
-        @html.div(
-          class="dsh-job-version-list",
-          attrs=mark("job-version-list", ["maintenance", "start", "version-list"])
-            .role("listbox")
-            .aria_label("可选版本"),
-          items,
-        ),
-      )
-    }
+    body.push(
+      @html.div(
+        class="dsh-job-version-list dsh-version-dialog-list",
+        attrs=mark("job-version-list", ["maintenance", "start", "version-list"])
+          .role("listbox")
+          .aria_label("可选版本"),
+        items,
+      ),
+    )
     if matched.length() > shown.length() {
-      out.push(
+      body.push(
         @html.span(
           class="dsh-job-version-more",
           attrs=mark("job-version-more", ["maintenance", "start", "version-more"]),
@@ -727,47 +870,26 @@ fn job_version_controls(
         ),
       )
     }
-    if query != "" && matched.length() == 0 {
-      // 自定义版本：列表里没有，就按输入框里这串开工（不做存在性校验，§9.2）
-      out.push(
+  } else if query == "" {
+    // 没有候选、也没输入：要么还在拉，要么拉到了却没有答案 —— 两件事分开说
+    if loading {
+      body.push(
         @html.span(
-          class="dsh-job-version-custom",
-          attrs=mark("job-version-custom", ["maintenance", "start", "version-custom"]),
-          "列表里没有 " + query + "，点「开始」就用这个版本",
+          class="dsh-version-dialog-note",
+          attrs=mark("job-version-loading", ["maintenance", "start", "version-loading"]),
+          "正在拉版本列表",
         ),
       )
-    }
-    // 一行小字：来源是哪。悬停里是三个源各自的结果与耗时。
-    let chosen = match facts {
-      Some(got) => got.chosen
-      None => ""
-    }
-    out.push(
-      @html.span(
-        class="dsh-job-version-source",
-        attrs=mark("job-version-source", ["maintenance", "start", "version-source"]).title(
-          match facts {
-            Some(got) => release_sources_hint(got.sources)
-            None => "读数里没有三个源的结果"
-          },
-        ),
-        "来源：" + release_source_name(chosen),
-      ),
-    )
-  } else {
-    // 三档分开说：还在问 / 问完了没问到 / 这条接口根本没读到
-    let (text, hint) = if model.releases_loading {
-      ("正在问 GitHub、npm、国内镜像，最多 6 秒", "三个源并发问，各 6 秒硬超时")
     } else {
-      match facts {
+      let (text, hint) = match facts {
         Some(got) =>
           (
-            "一个源都没答上来，直接写上要装的那一版",
+            "一个源都没答上来，直接写版本号再点「用这个版本」",
             release_sources_hint(got.sources),
           )
         None =>
           (
-            "没读到版本来源，直接写上要装的那一版",
+            "没读到版本来源，直接写版本号再点「用这个版本」",
             if model.releases_error == "" {
               "这一版读数里没有版本来源"
             } else {
@@ -775,16 +897,135 @@ fn job_version_controls(
             },
           )
       }
+      body.push(
+        @html.span(
+          class="dsh-job-version-none",
+          attrs=mark("job-version-none", ["maintenance", "start", "version-none"]).title(hint),
+          text,
+        ),
+      )
     }
-    out.push(
+  }
+  // 自定义版本：输入串不在列表里（没有一模一样的版本号）就给这一行，点了按它开工。
+  // 不做存在性校验（控制台不猜远端有什么），装不上由安装那一步如实报失败。
+  if query != "" && !exact {
+    body.push(
+      @html.div(class="dsh-version-custom-row", [
+        @html.span(
+          class="dsh-job-version-custom",
+          attrs=mark("job-version-custom", ["maintenance", "start", "version-custom"]),
+          "列表里没有 " + query + "，",
+        ),
+        @html.button(
+          id="dsh-job-version-use-custom",
+          class="dsh-dialog-btn",
+          type_="button",
+          attrs=mark("job-version-use-custom", ["maintenance", "start", "version-use-custom"]),
+          on_click=emit(JobVersionPicked(query)),
+          [@html.span("用这个版本")],
+        ),
+      ]),
+    )
+  }
+  // 底部小字：来源 + 拉取时间 + 「正在重新拉取」/失败原因。悬停里是三个源各自的结果与耗时。
+  let chosen = match facts {
+    Some(got) => got.chosen
+    None => ""
+  }
+  let fetched_at = match facts {
+    Some(got) => got.fetched_at
+    None => ""
+  }
+  let fetch_error = match facts {
+    Some(got) => got.fetch_error
+    None => ""
+  }
+  let source_name = if chosen == "" { "没有答上来的来源" } else { release_source_name(chosen) }
+  let mut meta = "来源：" + source_name
+  let stamp = release_stamp_text(fetched_at)
+  if stamp != "" {
+    meta = meta + " · 拉取于 " + stamp
+  }
+  let status_text = if loading {
+    if stamp == "" { "正在拉版本列表" } else { "正在重新拉取" }
+  } else if fetch_error != "" {
+    "上次没拉到：" + fetch_error
+  } else {
+    ""
+  }
+  let foot : Array[@html.Html] = [
+    @html.span(
+      class="dsh-version-dialog-meta",
+      attrs=mark("job-version-meta", ["maintenance", "start", "version-meta"]).title(
+        match facts {
+          Some(got) => release_sources_hint(got.sources)
+          None => "读数里没有三个源的结果"
+        },
+      ),
+      meta,
+    ),
+  ]
+  if status_text != "" {
+    foot.push(
       @html.span(
-        class="dsh-job-version-none",
-        attrs=mark("job-version-none", ["maintenance", "start", "version-none"]).title(hint),
-        text,
+        class="dsh-version-dialog-status",
+        attrs=mark("job-version-status", ["maintenance", "start", "version-status"]),
+        status_text,
       ),
     )
   }
-  out
+  let card = @html.div(class="dsh-dialog-card dsh-version-dialog", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("dialog-title", ["dialog", "version-dialog", "title"]),
+      "选择版本",
+    ),
+    @html.input(
+      input_type=Text,
+      id=version_search_id(),
+      class="dsh-dialog-input dsh-version-search",
+      value=model.version_query,
+      placeholder="输入版本号过滤，或直接写自定义版本",
+      autofocus=true,
+      attrs=mark("job-version-search", ["maintenance", "start", "version-search"])
+        .aria_label("搜索版本")
+        .spellcheck(false),
+      on_input=emit.map(fn(text) { VersionQueryInput(text) }),
+    ),
+    @html.div(
+      class="dsh-version-dialog-body",
+      attrs=mark("job-version-dialog-body", ["maintenance", "start", "version-dialog-body"]),
+      body,
+    ),
+    @html.div(
+      class="dsh-version-dialog-foot",
+      attrs=mark("job-version-foot", ["maintenance", "start", "version-foot"]),
+      foot,
+    ),
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id="dsh-job-version-close",
+        class="dsh-dialog-btn",
+        type_="button",
+        attrs=mark("job-version-close", ["maintenance", "start", "version-close"]),
+        on_click=emit(VersionDialogClose),
+        [@html.text("取消")],
+      ),
+    ]),
+  ])
+  dialog(
+    "version-dialog",
+    "选择版本",
+    emit(VersionDialogClose),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        VersionDialogClose
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
 }
 
 ///|
@@ -798,9 +1039,9 @@ fn job_version_matches(version : String, query : String) -> Bool {
 /// 「开始一条新作业」那一块。目标版本必须是使用者选/填的：留空就拦住，不猜一个版本。
 fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) -> @html.Html {
   let busy = model.job_busy != ""
-  // 目标版本留空就禁用「开始」：输入框里的字就是使用者自己给的，不替他挑一个版本装上
+  // 目标版本留空就禁用「开始」：弹出的版本弹层里选的那一版，不替他挑一个装上
   let version_empty = model.job_version.trim() == ""
-  // 一只可用的 profile 都没有时也拦住：前端知道这一条（下拉里都标着为什么），
+  // 一只可用的 profile 都没有时也拦住：前端知道这一条（侧栏里都标着为什么），
   // 让按钮先灰着比发出去再被后端拒一次好懂
   let profile_empty = job_profile_choice(model) == ""
   let disabled = busy || has_unfinished || version_empty || profile_empty
@@ -824,30 +1065,18 @@ fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) 
       @html.h2(class="dsh-panel-title", "升级 dsh"),
       @html.p(class="dsh-para", "先留下旧版本，新版本你自己试过再切"),
       @html.div(class="dsh-job-start-row", [
-        @html.label(
-          class="dsh-label",
-          for_="dsh-job-version",
-          attrs=mark("job-version-label", ["maintenance", "start", "version-label"]),
-          "目标版本",
-        ),
         @html.div(
-          class="dsh-job-version-field",
+          class="dsh-job-current-field",
           attrs=mark("job-version-field", ["maintenance", "start", "version-field"]),
-          job_version_controls(model, busy || has_unfinished, emit),
-        ),
-        @html.label(
-          class="dsh-label",
-          for_="dsh-job-profile",
-          attrs=mark("job-profile-label", ["maintenance", "start", "profile-label"]),
-          "试跑用 profile",
+          job_version_current(model, busy || has_unfinished, emit),
         ),
         @html.div(
-          class="dsh-job-profile-field",
+          class="dsh-job-current-field",
           attrs=mark("job-profile-field", ["maintenance", "start", "profile-field"]),
-          job_profile_field(model, busy || has_unfinished, emit),
+          job_profile_current(model, busy || has_unfinished, emit),
         ),
         @html.button(
-          class="dsh-btn primary",
+          class="dsh-btn primary dsh-job-start-btn",
           type_="button",
           disabled~,
           attrs=mark("job-start", ["maintenance", "start", "start"]).title(hint),
@@ -1331,6 +1560,13 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ]),
     job_start_panel(model, has_unfinished, emit),
   ]
+  // 版本弹层与配置侧栏盖在整页上（固定定位），位置摆在表单后面只是为了渲染顺序稳定
+  if model.version_dialog {
+    children.push(job_version_dialog(model, emit))
+  }
+  if model.profile_sidebar {
+    children.push(job_profile_sidebar(model, emit))
+  }
   for node in notice {
     children.push(node)
   }

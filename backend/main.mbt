@@ -93,11 +93,20 @@ async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
 }
 
 ///|
-/// dsh 版本来源读取函数（并发问 GitHub / npm / 国内镜像，各自 6 秒硬超时）。
+/// dsh 版本来源读取函数：**只读进程内缓存，秒回**（design/ops-maintenance-jobs.md §10.1）。
+/// 真正问三个源（GitHub / npm / 国内镜像，各自 6 秒硬超时）的是启动时那一趟后台拉取，
+/// 以及缓存空 / 过期时由这条接口顺手叫起的后台刷新 —— 都不在这条请求里等。
 /// 三个源全没答上来也算读到了（读数里 sources 全是 ok=false）——
 /// 读不到是一个事实，不是接口错误；这里按路由表的签名套一层。
 async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
-  @releases.read_releases()
+  // cached_releases 只读缓存，不 await：这一条请求因此不会被三个源的网络拖住。
+  let value = @releases.cached_releases()
+  // 这条接口从不失败：读不到也是读数里的一个事实。ReadError 是路由表要求的形状，
+  // 这一格是「形状万一被破坏」时唯一能如实报出来的出口（正常路径走不到）。
+  if value is @json.JNull {
+    raise @localapi.ReadError(code="read-failed", message="版本来源读数不完整")
+  }
+  value
 }
 
 ///|
@@ -158,6 +167,9 @@ async fn main {
   // serve 之后的语句一句都跑不到（实测退出码 143）。
   @async.with_task_group(group => {
     @actions.set_console_group(group)
+    // 版本列表在这里就发起第一次后台拉取（§10.1）：spawn 完立刻往下走，
+    // serve 不被它拖住 —— 三个源最坏各 6 秒，那是后台的事。
+    @releases.start_prewarm(group)
     app.serve(server)
   })
 }

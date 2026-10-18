@@ -279,6 +279,17 @@ pub(all) struct ReleasesFacts {
   /// 三个源各自的结果与耗时，顺序固定 github → npm → mirror
   sources : Array[ReleaseSource]
   read_at : String
+  // ── 缓存三格（design/ops-maintenance-jobs.md §10.1）──
+  //
+  // 后端起来就在后台拉一次版本列表，这条接口只读缓存、秒回。这三格说的都是**那一趟拉取**：
+  /// loading（有一趟在路上）/ ready（有答案、现在没在拉）/ failed（拉到了却没有答案）
+  state : String
+  /// 最近一次拉到的时刻（ISO；空串 = 还没拉到过）
+  fetched_at : String
+  /// 这份缓存是否超过 10 分钟
+  stale : Bool
+  /// 这一趟没拿到答案的原因（三个源都没答上来时是各源的原话；空串 = 有答案）
+  fetch_error : String
 } derive(Eq)
 
 pub extend ReleasesFacts with Eq::{ not_equal, equal }
@@ -326,6 +337,10 @@ pub fn parse_releases(text : String) -> Result[ReleasesFacts, String] {
     installed,
     sources,
     read_at: str_field(data, "readAt"),
+    state: str_field(data, "state"),
+    fetched_at: str_field(data, "fetchedAt"),
+    stale: bool_field(data, "stale"),
+    fetch_error: str_field(data, "error"),
   })
 }
 

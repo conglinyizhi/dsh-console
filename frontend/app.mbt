@@ -88,16 +88,18 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
       // 作业也在 console 读数里（jobs[]）。进这一页就重读一次：作业可能是在另一个
       // 标签页里推进的，页面上那份是上一次读到的。
       let console = load_console(emit)
-      // 版本来源只在第一次进这一页时问（load_releases 那一趟最坏 6 秒）。
-      // 已经问过就不再打扰三个源：进来一次等 6 秒，会让「这页就是慢」变成一个解不开的印象。
-      if model.releases_asked {
-        (base, console)
-      } else {
-        (
-          { ..base, releases_asked: true, releases_loading: true },
-          @cmd.batch([console, load_releases(emit)]),
-        )
-      }
+      // 版本来源：那条 GET 现在只读后端进程内的缓存、秒回（§10.1），
+      // 进这一页重读一次不再有等待代价。补问计数每次进来清零 ——
+      // 「还在拉」最多补问 releases_poll_cap 次，不是每进一次页就多攒一份定时器。
+      (
+        {
+          ..base,
+          releases_ticks: 0,
+          releases_poll_pending: false,
+          releases_loading: base.releases == None,
+        },
+        @cmd.batch([console, load_releases(emit)]),
+      )
     }
     _ => (base, @cmd.none)
   }
@@ -3102,13 +3104,50 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       focus_after_render(model.trash_purge_return),
     )
     // ── 维护页（作业台） ──
-    JobVersionInput(text) => ({ ..model, job_version: text }, @cmd.none)
-    JobProfilePicked(name) => ({ ..model, job_profile: name }, @cmd.none)
+    // 打开版本弹层：清空搜索框、焦点进搜索框，并再读一次缓存。
+    // 那一条接口现在只读后端进程内的缓存（秒回），所以「每次打开都读」不再是一笔等待。
+    VersionDialogOpen => (
+      {
+        ..model,
+        version_dialog: true,
+        version_query: "",
+        releases_ticks: 0,
+        releases_poll_pending: false,
+      },
+      @cmd.batch([load_releases(emit), focus_after_render(version_search_id())]),
+    )
+    VersionDialogClose =>
+      if !model.version_dialog {
+        (model, @cmd.none)
+      } else {
+        ({ ..model, version_dialog: false, version_query: "" }, focus_after_render(version_choose_id()))
+      }
+    VersionQueryInput(text) => ({ ..model, version_query: text }, @cmd.none)
+    // 选中：回填表单并关闭弹层，焦点回「选择版本」那颗按钮
     JobVersionPicked(version) => (
-      // 点候选：把这一版写进输入框（§9.2）。输入框里的字与「开始时装哪一版」永远是同一个值，
-      // 所以点了候选之后还能接着改，改过的就是自定义版本。
-      { ..model, job_version: version },
-      @cmd.none,
+      { ..model, job_version: version, version_dialog: false, version_query: "" },
+      focus_after_render(version_choose_id()),
+    )
+    // 打开配置侧栏：焦点落在第一张可点的卡上（一张都没有时落在关闭键上）
+    ProfileSidebarOpen => {
+      let first = job_profile_first_usable(model)
+      let focus = if first == "" {
+        profile_sidebar_close_id()
+      } else {
+        job_profile_card_id(first)
+      }
+      ({ ..model, profile_sidebar: true }, focus_after_render(focus))
+    }
+    ProfileSidebarClose =>
+      if !model.profile_sidebar {
+        (model, @cmd.none)
+      } else {
+        ({ ..model, profile_sidebar: false }, focus_after_render(profile_choose_id()))
+      }
+    // 点一张可用的卡：回填并关闭侧栏，焦点回「选择配置」那颗按钮
+    JobProfilePicked(name) => (
+      { ..model, job_profile: name, profile_sidebar: false },
+      focus_after_render(profile_choose_id()),
     )
     ReleasesText(res) => {
       // 三个源全没答上来**不是失败**：那是读数里的一个事实，照实摆在页面上（spec §1.3）。
@@ -3129,8 +3168,32 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             releases_loading: false,
           }
       }
-      (next, @cmd.none)
+      // 后端那条 GET 只回缓存：读到「还在拉」就隔一拍再问一次，结果才能落到页面上。
+      // **同一时刻只排一个定时器**（releases_poll_pending）：进页面与打开弹层会各发一次
+      // GET，两个回执各排一个的话补问会翻倍，几拍就把上限吃完。
+      // 上限 releases_poll_cap 拍（≈8 秒，长过三个源最坏 6 秒），不会变成永动机。
+      if releases_still_loading(next) && !next.releases_poll_pending &&
+        next.releases_ticks < releases_poll_cap && next.page is Maintenance {
+        (
+          {
+            ..next,
+            releases_ticks: next.releases_ticks + 1,
+            releases_poll_pending: true,
+          },
+          @cmd.delay(emit(ReleasesTick), releases_poll_ms),
+        )
+      } else {
+        (next, @cmd.none)
+      }
     }
+    // 补问一次：还在拉就再读一遍缓存（这一条请求不花网络时间）。
+    // 定时器在这时候才放开，回执回来再决定排不排下一拍 —— 一拍一个，不叠加。
+    ReleasesTick =>
+      if releases_still_loading(model) && model.page is Maintenance {
+        ({ ..model, releases_poll_pending: false }, load_releases(emit))
+      } else {
+        ({ ..model, releases_poll_pending: false }, @cmd.none)
+      }
     JobStart => job_start_command(model, emit)
     JobAction(id, step) => job_step_command(model, id, step, emit)
     JobToggle(id) => {

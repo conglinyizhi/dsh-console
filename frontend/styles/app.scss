@@ -1878,37 +1878,49 @@ $drawer-ms: 220ms;
 }
 .dsh-job-start-row {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
 }
-.dsh-job-start-row .dsh-label {
-  width: auto;
-  flex: none;
-  // 标签与「开始」跟输入框那一行对齐：下面可能还挂着候选列表，
-  // 居中排版会把这两样推到半空中去
-  padding-top: 6px;
-}
-// 版本号是等宽的一段（0.2.2-rc.1 这类），窄屏也不许把整行撑穿
-.dsh-job-version {
-  flex: 1 1 auto;
+// 第十版（§10.2 / §10.3）：表单里两格都变成「一行当前值 + 一颗按钮」。
+// 标签、值、按钮同一行；窄屏整行折下去（见下面 620px 那一档）。
+.dsh-job-current-field {
+  flex: 0 1 auto;
   min-width: 0;
-  max-width: 320px;
 }
-// 目标版本那一段是竖排：输入框在上，候选列表与几行小字贴着它（§9.2）。
-// 列表不绝对定位：它把下面的内容推开，不会盖住试跑那一组控件。
-.dsh-job-version-field {
+.dsh-job-current {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
-  max-width: 320px;
 }
-// 列里的控件吃满这一列的宽：输入框与下面的列表同一个宽度，整行不会跳
-.dsh-job-version-field > .dsh-job-version {
+.dsh-job-current-label {
   flex: none;
-  width: 100%;
-  max-width: none;
+  font-size: 12px;
+  color: $text-dim;
+}
+// 值这一段：版本号是等宽字；没选时写「未选择」，走淡一档、不用等宽（见 [data-state="empty"]）。
+// 太长就省略 —— 「当前是哪一版」不许把整行撑穿。
+.dsh-job-current-value {
+  min-width: 0;
+  max-width: 260px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: $text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsh-job-current-value[data-state="empty"] {
+  font-family: inherit;
+  font-size: 12.5px;
+  color: $text-dim;
+}
+.dsh-job-choose {
+  flex: none;
+}
+.dsh-job-start-btn {
+  margin-left: auto;
 }
 // 候选列表：一行一版，最多滚到 list_cap 那几条的高度（条数由 view 那边封顶）
 .dsh-job-version-list {
@@ -1958,40 +1970,114 @@ $drawer-ms: 220ms;
 .dsh-job-version-custom {
   color: $text-mid;
 }
-// 「来源：GitHub」这一行。它说的就是「上面这个列表是谁给的」，所以紧贴着列表。
-.dsh-job-version-source {
-  font-size: 11px;
-  color: $text-dim;
-  cursor: default;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-// 没得选时的那句话（或「正在问」）。颜色走警示档，但它不是错误 ——
-// 输入框照旧可用，所以不加边框、不摆成一块通知。
+// 没得选时的那句话（或「正在拉版本列表」）。颜色走警示档，但它不是错误 ——
+// 搜索框照旧可用，所以不加边框、不摆成一块通知。
 .dsh-job-version-none {
   font-size: 11.5px;
   line-height: 1.4;
   color: $warn;
   cursor: default;
 }
-// 试跑用 profile 那一组：下拉 + 一行状态小字（§9.3）
-.dsh-job-profile-field {
+
+// ── 版本弹层（§10.2） ──
+//
+// 居中对话框复用 .dsh-dialog-card；这一版比确认框宽：搜索框 + 一列候选 + 底部小字。
+// 高度封顶，候选多了在中间那段自己滚（底部小字与按钮始终看得见）。
+.dsh-version-dialog {
+  width: min(560px, calc(100vw - 48px));
+  max-height: min(620px, calc(100vh - 64px));
+  gap: 10px;
+}
+.dsh-version-search {
+  width: 100%;
+  flex: none;
+}
+.dsh-version-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+// 弹层里比表单里那一份高一些（表单那一份是常驻的，这里是一次性的浮层）
+.dsh-version-dialog-list {
+  max-height: 320px;
+}
+.dsh-version-dialog-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: $text-mid;
+}
+// 自定义版本那一行：一句「列表里没有 X，」+ 一颗「用这个版本」
+.dsh-version-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+// 底部小字：来源、拉取时间、正在重新拉取 / 上次没拉到的原因。三样都是读数，不省略成一串。
+.dsh-version-dialog-foot {
   flex: none;
-  max-width: 320px;
-}
-.dsh-job-profile-field > .dsh-job-profile {
-  width: 100%;
-  max-width: none;
-}
-.dsh-job-profile-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid $line;
   font-size: 11px;
-  line-height: 1.4;
+  line-height: 1.5;
+  color: $text-dim;
+}
+.dsh-version-dialog-meta {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsh-version-dialog-status {
   color: $warn;
+  overflow-wrap: anywhere;
+}
+
+// ── 试跑用配置的右侧侧栏（§10.3） ──
+//
+// 外壳与实例详情抽屉同一套（.dsh-drawer）；里面是总览的卡片（.dsh-case）。
+// 不可用的整张卡置灰、不可点、从 Tab 序列里摘掉（tabindex=-1 由 view 那边给）。
+.dsh-profile-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dsh-profile-card {
+  // 卡片在侧栏里按列摆，不参与总览那一套栅格
+  flex: none;
+}
+.dsh-profile-card.disabled,
+.dsh-profile-card.disabled:hover {
+  opacity: 0.55;
+  background: $panel;
+  border-color: $line;
   cursor: default;
+}
+.dsh-profile-card-sub {
+  display: block;
+  font-size: 11.5px;
+  line-height: 18px;
+  color: $text-mid;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsh-profile-card-sub.unusable {
+  color: $warn;
+}
+.dsh-profile-card-mark {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid $line-strong;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 16px;
+  color: $text-dim;
 }
 .dsh-job-cards {
   display: flex;
@@ -2205,16 +2291,12 @@ $drawer-ms: 220ms;
   .dsh-job-step-note {
     flex: 1 1 100%;
   }
-  .dsh-job-start-row {
-    flex-wrap: wrap;
-  }
-  .dsh-job-version {
+  // 窄屏：两格各占一整行，「开始」自己一行（margin-left: auto 在这一档不推开）
+  .dsh-job-current-field {
     flex: 1 1 100%;
-    max-width: none;
   }
-  .dsh-job-version-field {
-    flex: 1 1 100%;
-    max-width: none;
+  .dsh-job-start-btn {
+    margin-left: 0;
   }
 }
 

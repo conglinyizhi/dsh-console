@@ -540,6 +540,17 @@ pub async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
       ]),
     )
   }
+  // 三个源一个都没答上来：把每个源自己那句话拼成一行，交给缓存层的 failed 档当原因。
+  // **这不是「没有新版」**，只是「这一趟谁都没答上来」—— 每一条都带着源自己的原话。
+  let mut fetch_error = ""
+  if chosen == "" {
+    let parts : Array[String] = []
+    for answer in answers {
+      let why = if answer.error == "" { "没答上来，原因没给" } else { answer.error }
+      parts.push(answer.id + "：" + why)
+    }
+    fetch_error = if parts.length() == 0 { "三个来源都没答上来" } else { parts.join("；") }
+  }
   @json.JObj([
     ("readAt", @json.JStr(@json.iso_from_epoch_ms(@async.now()))),
     ("chosen", @json.JStr(chosen)),
@@ -548,5 +559,228 @@ pub async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
     ("next", @json.JStr(next)),
     ("installed", @json.jstr_array(installed)),
     ("sources", @json.JArr(source_rows)),
+    ("error", @json.JStr(fetch_error)),
   ])
 }
+
+// ── 进程内缓存（§10.1） ─────────────────────────────────────
+//
+// 这一条接口要「秒回」：三个源各自最多 6 秒，同步问下来页面就得等它。
+// 所以拉取与读取分开：
+//   * 控制台起来时在后台拉一次（start_prewarm），结果存进下面这份缓存；
+//   * GET 只读缓存，一个 await 都不做 —— 缓存空也一样，空就回 loading 并确保后台在拉；
+//   * 缓存超过 10 分钟算旧（stale），GET 不等它，只在后台再发起一次。
+//
+// **「没读到」与「没有新版」还是两件事**：缓存里没有数据只是说「这一趟还没回来」。
+// 三个源一个都没答上来时 state=failed，原因那是各源自己的原话拼成的一行 ——
+// 这句读数说的是「谁都没答上来」，**不是**「没有新版」。
+
+///|
+/// 缓存多旧算旧。10 分钟：比三个源的 6 秒超时大得多，又短到「切回来看到的是近况」。
+let cache_ttl_ms : Int64 = 600000L
+
+///|
+/// 一份缓存。payload 是 read_releases 组装好的那整份 data（JNull = 还没有过成功的一趟）。
+priv struct Cache {
+  mut payload : @json.JsonVal
+  mut fetched_at_ms : Int64
+  /// 最近一趟没拿到答案的原因（空串 = 这一趟有答案）。来源是 read_releases 的 error 那格：
+  /// 三个源一个都没答上来时，那里是各源自己的原话拼成的一行。
+  /// **失败不清空 payload**：上一次读到的版本列表照样能给人选，只是要如实说这趟没拉到。
+  mut error : String
+  /// 有没有一趟拉取在路上。GET 靠它决定要不要再发起：在路上就不再叠加第二趟。
+  mut in_flight : Bool
+}
+
+///|
+let cache : Ref[Cache] = {
+  val: {
+    payload: @json.JNull,
+    fetched_at_ms: 0L,
+    error: "",
+    in_flight: false,
+  },
+}
+
+///|
+/// 挂后台拉取用的任务组（main 起服务前登记一次，与 actions 的 console_group 同一套做法）。
+/// 没有任务组（被当库调用）时 GET 照旧只读缓存，不会假装在拉。
+let bg_group : Ref[@async.TaskGroup[Unit]?] = { val: None }
+
+///|
+/// 缓存空的时候回给前端的那一份空壳：形状与真读数逐字段一致，一个字段都不少。
+/// 这样前端不必为「还没有数据」另写一套解析。
+fn empty_payload() -> @json.JsonVal {
+  @json.JObj([
+    ("readAt", @json.JStr("")),
+    ("chosen", @json.JStr("")),
+    ("versions", @json.JArr([])),
+    ("latest", @json.JStr("")),
+    ("next", @json.JStr("")),
+    ("installed", @json.JArr([])),
+    ("sources", @json.JArr([])),
+    ("error", @json.JStr("")),
+  ])
+}
+
+///|
+/// 从一份读数里取那格 error（拉取层加的「三个源都没答上来」的原因）。
+fn payload_error(payload : @json.JsonVal) -> String {
+  match payload {
+    @json.JObj(fields) =>
+      for field in fields {
+        if field.0 == "error" {
+          match field.1 {
+            @json.JStr(text) => return text
+            _ => ()
+          }
+        }
+      }
+    _ => ()
+  }
+  ""
+}
+
+///|
+/// 从一份读数里取那格 chosen（采用的那个源；空串 = 一个源都没答上来）。
+fn payload_chosen(payload : @json.JsonVal) -> String {
+  match payload {
+    @json.JObj(fields) =>
+      for field in fields {
+        if field.0 == "chosen" {
+          match field.1 {
+            @json.JStr(text) => return text
+            _ => ()
+          }
+        }
+      }
+    _ => ()
+  }
+  ""
+}
+
+///|
+/// 后台那一趟：拉一次，结果写进缓存。**绝不向外抛** —— 抛出去会连带取消整个任务组，
+/// 一条版本列表读不到不该把控制台带走。
+async fn run_fetch() -> Unit noraise {
+  // read_releases 把三个源的失败都落成读数里的 error（正常路径不会抛）；
+  // 这里仍旧包一层：真抛出来（整批被取消那一档）也只记进 error，绝不带崩任务组。
+  let outcome : Result[@json.JsonVal, String] = try {
+    Ok(read_releases())
+  } catch {
+    err => Err(describe_error(err))
+  }
+  let c = cache.val
+  match outcome {
+    Ok(payload) => {
+      c.payload = payload
+      c.fetched_at_ms = @async.now()
+      // 一个源都没答上来时，read_releases 会把各源的原话拼在 error 里 —— 存下来给 failed 档用
+      c.error = payload_error(payload)
+    }
+    Err(reason) => c.error = reason
+  }
+  c.in_flight = false
+}
+
+///|
+/// 确保后台有一趟在拉：已经在路上就不叠加第二趟。
+fn ensure_fetch() -> Unit {
+  let c = cache.val
+  if c.in_flight {
+    return
+  }
+  match bg_group.val {
+    None => ()
+    Some(group) => {
+      // 先落 in_flight 再 spawn：spawn 出来的那一趟第一件事就是 await，
+      // 但顺序写反的话「同一拍里两个 GET」会各起一趟
+      c.in_flight = true
+      group.spawn_bg(no_wait=true, () => run_fetch())
+    }
+  }
+}
+
+///|
+/// 起服务前登记任务组，并立刻在后台拉一次（§10.1「控制台一起来就拉」）。
+/// **不 await**：启动路径上一个 await 都不加，serve 不被这次拉取拖住。
+pub fn start_prewarm(group : @async.TaskGroup[Unit]) -> Unit {
+  bg_group.val = Some(group)
+  ensure_fetch()
+}
+
+///|
+/// GET /api/local/dsh-releases 的真正入口：只读缓存，秒回。
+///
+/// 形状在 read_releases 那七格之外加四格：
+///   state      loading（有一趟在路上）/ ready（有答案、现在没在拉）/ failed（拉到了却没有答案，没在拉）
+///   fetchedAt  最近一次拉到的时刻（ISO；还一次都没拉到就是空串）
+///   stale      这份缓存是否超过 10 分钟（还一次都没拉到也算旧）
+///   error      这一趟没拿到答案的原因（空串 = 有答案）
+///
+/// 注意 state 说的是**这一趟拉取**的状态，不是「有没有版本」：state=loading 而
+/// versions 非空是正常的一档 —— 上一次的数据先给人看着，这一趟在后面刷新。
+pub fn cached_releases() -> @json.JsonVal {
+  let c0 = cache.val
+  let has_data = match c0.payload {
+    @json.JNull => false
+    _ => true
+  }
+  let now = @async.now()
+  let old = c0.fetched_at_ms == 0L || now - c0.fetched_at_ms > cache_ttl_ms
+  // 空或旧才再拉一趟（§10.1 就这两条）。「拉到了却没有答案」**不**在这里重试：
+  // 那是一份已经落地的读数（state=failed，原因在 error 里），每次 GET 都重启一轮
+  // 6 秒询问的话，前端会以为永远拉不完 —— 而这台机器确实连着哪个源都不通。
+  let nothing = has_data && payload_chosen(c0.payload) == ""
+  if !has_data || old {
+    ensure_fetch()
+  }
+  let c = cache.val
+  let state = if c.in_flight {
+    // 有一趟在路上（可能是第一次，也可能是刷新）：列表有旧数据就照旧给出去
+    "loading"
+  } else if !has_data {
+    if c.error == "" { "loading" } else { "failed" }
+  } else if nothing {
+    // 拉到了，但一个源都没答上来。这不是「没有新版」，原因在 error 与各源的 error 里
+    "failed"
+  } else {
+    "ready"
+  }
+  let fetched_at = if c.fetched_at_ms == 0L {
+    ""
+  } else {
+    @json.iso_from_epoch_ms(c.fetched_at_ms)
+  }
+  let base = if has_data { c.payload } else { empty_payload() }
+  let extras : Array[(String, @json.JsonVal)] = [
+    ("state", @json.JStr(state)),
+    ("fetchedAt", @json.JStr(fetched_at)),
+    ("stale", @json.JBool(old)),
+    ("error", @json.JStr(c.error)),
+  ]
+  match base {
+    @json.JObj(fields) => {
+      let merged : Array[(String, @json.JsonVal)] = []
+      for field in fields {
+        // 读数里已经有 error 那一格（拉取层写的）：不重复摆第二遍，
+        // 缓存层这份一定是更新的那一份（失败不清空旧列表，原因跟着这一趟走）
+        let mut shadowed = false
+        for extra in extras {
+          if extra.0 == field.0 {
+            shadowed = true
+          }
+        }
+        if !shadowed {
+          merged.push(field)
+        }
+      }
+      for extra in extras {
+        merged.push(extra)
+      }
+      @json.JObj(merged)
+    }
+    _ => @json.JObj(extras)
+  }
+}
+
