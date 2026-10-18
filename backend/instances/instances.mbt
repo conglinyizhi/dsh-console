@@ -567,7 +567,7 @@ fn judge_state(
     let health_note = match profile_fault {
       Some(text) =>
         "；profile 检查不过（成因 c）：" + text + "（" + health_source +
-        "）—— 这只实例在跑、签名也过，绿由签名给，缺包这一条记在 profileHealth 里"
+        "）。这只实例在跑、签名也过，绿由签名给，缺包这一条记在 profileHealth 里"
       None =>
         match health {
           Some(_) =>

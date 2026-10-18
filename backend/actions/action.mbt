@@ -723,7 +723,7 @@ pub async fn run_action(
         "「" + outcome.profile + "」已经回到 profile 列表里（" + outcome.to + "）"
       } else {
         "「" + outcome.profile + "」已经回到它自己那个 home（" + outcome.to +
-        "）—— 那不是本控制台的 home，列表里不会出现它"
+        "）。那不是本控制台的 home，列表里不会出现它"
       }
       let fallback = if outcome.home_recorded {
         ""

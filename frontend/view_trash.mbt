@@ -148,7 +148,7 @@ fn trash_purge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let detail = match item {
     Some(entry) =>
       "这一份是 " + trash_count_text(entry.file_count) + " | " + trash_size_text(entry.bytes) +
-      "，删掉之后磁盘上就没有了，恢复的路径也同时消失 —— 无法恢复。"
+      "，删掉之后磁盘上就没有了，恢复的路径也同时消失，无法恢复。"
     None => "这一份已经不在回收站读数里了，删掉之后无法恢复。"
   }
   let card = @html.div(class="dsh-dialog-card", [
@@ -209,7 +209,7 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           loading_block(
             "trash-loading",
             "正在读取回收站…",
-            "控制台自身状态的读数还在路上。这里先摆加载态 —— 「回收站是空的」要等读数回来才敢说。",
+            "控制台自身状态的读数还在路上。这里先摆加载态。「回收站是空的」要等读数回来才敢说。",
           ),
         )
       } else {
@@ -237,7 +237,7 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
               @html.p(class="dsh-empty-line", "读不到回收站里有什么。"),
               @html.p(
                 class="dsh-empty-sub",
-                "这一版控制台还没有回收站读数 —— 这与「回收站是空的」不是一回事。" +
+                "这一版控制台还没有回收站读数。这与「回收站是空的」不是一回事。" +
                 "重启控制台之后再看一次。",
               ),
             ],

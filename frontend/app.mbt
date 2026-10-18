@@ -403,7 +403,7 @@ fn open_outcome_text(outcome : String) -> (Bool, String) {
   if outcome == "ok" {
     (true, "已在新标签页打开带令牌的地址（能直接过握手，不是 401）")
   } else if outcome == "blocked" {
-    (false, "没能打开：浏览器把新标签页拦掉了（弹窗拦截）—— 地址是带令牌的那一条，可以自己去开")
+    (false, "没能打开：浏览器把新标签页拦掉了（弹窗拦截）。地址是带令牌的那一条，可以自己去开")
   } else {
     (false, "没能打开（" + outcome + "）")
   }
@@ -448,7 +448,7 @@ fn open_web_ui(
       (
         {
           ..model,
-          act_notice: row.name + " 的 Web UI 没有打开：读不到握手令牌，一个标签页都没开 —— " +
+          act_notice: row.name + " 的 Web UI 没有打开：读不到握手令牌，一个标签页都没开。" +
             reason + "。裸地址 " + row.url +
             " 直接打开会被挡在门外；可以从启动它的那个终端里，把启动横幅里带令牌的完整地址抄过来。",
           act_notice_ok: false,
@@ -614,7 +614,7 @@ fn copy_dev_action(model : Model, row_id : String, emit : @cmd.Emit[Msg]) -> (Mo
       "这一行的读数里没有 profile 目录名"
     } else {
       "这一行的读数里给不出它自己的 DSH_HOME（home 那一格：「" + row.home +
-      "」）—— 指令里的 DSH_HOME 与 profile 目录都得按它自己的 home 拼，" +
+      "」）。指令里的 DSH_HOME 与 profile 目录都得按它自己的 home 拼，" +
       "拿控制台自己的 home 顶上就会把开发会话引回主线，所以这一枪不发"
     }
     return (
@@ -2730,8 +2730,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         if !model.drag_active {
           ignore(js_drop_freeze(model.drag_id))
         }
-        // 第一格（指针底下那条的 id）只用来查组：落点本身由 rank 定
-        let (_, group, rank) = drop_target_of(x, y)
+        // 指针底下那一格：卡片 id 只用来查组，落点就是那个格子序号
+        let (_, group, cell) = drop_target_of(x, y)
         let size = lift_sizes_of(model.drag_id)
         // 只有落在**同一组**里才算落点：两组是语义，跨组拖动不合并两组，
         // 画一个占位块在那儿等于答应了做不到的事。
@@ -2741,9 +2741,9 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         let same_group = group != "" && group == group_of_row_id(model, model.drag_id)
         let ids = if same_group { current_group_ids(model, group) } else { [] }
         let n = ids.length()
-        // 格子序号：**预览与落位用的是这一个数**（见 state.mbt 的 insert_at_index）。
-        let k = if same_group && rank >= 0 && n > 1 {
-          insert_at_index(n, rank)
+        // 格子序号：**预览与落位用的是这一个数**（见 state.mbt 的 drop_cell）。
+        let k = if same_group && cell >= 0 && n > 1 {
+          drop_cell(n, cell)
         } else {
           -1
         }
@@ -2791,7 +2791,13 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         match moved {
           // 横向出栅格 / 跨组 / 组里只有这一条：这一次拖动作废，顺序不动，也不发请求
           None => (cleared, @cmd.batch([reorder_after_render(), clear_cells_after_render()]))
-          Some(ids) => commit_order(cleared, dragged, ids, emit)
+          // 落点就是原位（指针在被拖的那张自己身上）：顺序逐格没变，同样不发请求
+          Some(ids) =>
+            if same_order(current_group_ids(model, group_of_row_id(model, dragged)), ids) {
+              (cleared, @cmd.batch([reorder_after_render(), clear_cells_after_render()]))
+            } else {
+              commit_order(cleared, dragged, ids, emit)
+            }
         }
       }
     // 指针被取消（触控被打断等）：这一次拖动作废。**不回滚也不提交** ——
@@ -2818,9 +2824,9 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           clear_cells_after_render(),
         )
       } else {
-        // 其余 n-1 条里，被换的那一条落在第 to 格 —— 空档序号就是 to。
-        // 与指针那条路同一个 insert_at_index：它算出来的也是「其余 n-1 条的哪个空档」。
-        let k = insert_at_index(ids.length(), to)
+        // 目标格就是 to：卡槽语义下「换到第 to 格」= 被拖的那一条落在第 to 格。
+        // 与指针那条路同一个 drop_cell，预览与落位因此不会分叉。
+        let k = drop_cell(ids.length(), to)
         (
           {
             ..model,
@@ -2997,7 +3003,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             (
               {
                 ..model,
-                note_error: "这一行的读数里没有 profile 目录名，保存不了 —— 没有目标就什么都没做",
+                note_error: "这一行的读数里没有 profile 目录名，保存不了。没有目标就什么都没做",
               },
               @cmd.none,
             )

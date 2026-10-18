@@ -504,8 +504,8 @@ async fn lookup_web_url(instance : InstanceSummary) -> WebUrlLookup noraise {
   }
   let lead = match record {
     None =>
-      "外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址 —— "
-    Some(_) => "这只实例的日志里没有带令牌的地址 —— "
+      "外部实例：令牌在启动它的终端里（runtime.json 里没有这只实例的登记）。控制台可读的文件都没给出带令牌的地址："
+    Some(_) => "这只实例的日志里没有带令牌的地址："
   }
   { url: None, source: lead + attempts.join("；") }
 }

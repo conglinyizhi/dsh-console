@@ -781,6 +781,19 @@ select { appearance: none; -webkit-appearance: none; }
 /* 图标位与第二行都不参与：占位块只有「一条条目那么高」这一件事要说 */
 .dsh-drop-slot .dsh-tile { background: transparent; }
 
+/* 栅格末尾那块**不可见落点区**（design/drag-reorder-cards.md 第 2 节）：
+   绝对定位、不参与布局（卡片位置一个像素都不动），只在拖动期间存在。
+   位置与高度由 dom.mbt 的 js_grid_cells 现量：从可见的最后一行下沿盖到栅格底
+   （拖动期间栅格底会比最后一行低出一截），让「指针在最后一行下方 = 最后一格」
+   有一块自己的命中区域。pointer-events 关掉：它是判定用的地标，不是可交互的东西。 */
+.dsh-card-grid { position: relative; }
+.dsh-drop-tail {
+  position: absolute;
+  left: 0; right: 0;
+  top: 100%;
+  pointer-events: none;
+}
+
 /* 读屏播报那一句：视觉上不占地方，但**不能 display: none** ——
    读屏会连同节点一起忽略。裁成一个点挪到看不见的地方，语义还在。 */
 .dsh-drag-live {

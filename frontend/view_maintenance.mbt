@@ -1247,7 +1247,7 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           loading_block(
             "jobs-loading",
             "正在读取作业…",
-            "控制台自身状态的读数还在路上。这里先摆加载态 —— 「还没有作业」要等读数回来才敢说。",
+            "控制台自身状态的读数还在路上。这里先摆加载态。「还没有作业」要等读数回来才敢说。",
           ),
         )
       }
@@ -1262,7 +1262,7 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
               @html.p(class="dsh-empty-line", "读不到作业记录。"),
               @html.p(
                 class="dsh-empty-sub",
-                "这一版控制台还没有作业读数 —— 这与「还没有作业」不是一回事。" +
+                "这一版控制台还没有作业读数。这与「还没有作业」不是一回事。" +
                 "重启控制台之后再看一次。",
               ),
             ],

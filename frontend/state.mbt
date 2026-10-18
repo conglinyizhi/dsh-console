@@ -379,11 +379,11 @@ struct Model {
   drag_group : String
   /// 被拖的那一条原来在第几格（0 起）：换位播报要说「从第几到第几」时用得上。
   drag_from : Int
-  /// 占位块插在这一行的**前面**（"" = 现在没有占位块）。
+  /// 落点那一格现在是哪一条（"" = 现在没有落点）。
   ///
-  /// 这一格只用来画：视图把占位块插进栅格的孩子序列里，摆在这一条之前。
-  /// **落点由 drag_at_index 定**，不由它定 —— 两者必须是同一个决定的两个说法
-  /// （见 insert_at_index），不然画在最左边而落在最右边。
+  /// 只是给人读的读数（拖动过程里「要落到谁那儿」），不参与摆放：
+  /// 占位块与落位都按 drag_at_index 那一个格子序号走（见 drop_cell），
+  /// 两者必须是同一个决定的两个说法，不然画在最左边而落在最右边。
   drag_at : String
   /// 上面那个占位块所在的**格子序号**（0 起），也就是松手后被拖的那一条将落到的位次。
   ///
@@ -1221,7 +1221,7 @@ fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, S
         (if trouble == "" {
           ""
         } else {
-          "profile 那一侧还有一条：" + trouble + " —— 绿灯由应答给，缺包不改颜色。"
+          "profile 那一侧还有一条：" + trouble + "。绿灯由应答给，缺包不改颜色。"
         }),
       )
     Some("fault") => {
@@ -1633,10 +1633,9 @@ fn current_group_ids(model : Model, group : String) -> Array[String] {
 }
 
 ///|
-/// 拖动的落点：从 js_drop_target 那段 JSON 里取出 (指针底下那一行的 id, 组名, 那一行的插入位次)。
+/// 拖动的落点：从 js_drop_target 那段 JSON 里取出 (指针底下那一格的卡片 id, 组名, 格子序号)。
 ///
-/// `rank` 是**这一组里除被拖的那一条之外、按屏幕顺序数**的位次：插到某一行之前 = 它的位次，
-/// 插到某一行之后 = 它的位次 + 1。位次就是格子的算法，见 insert_at_index。
+/// `index` 是**这一组按屏幕顺序数**的格子序号（0 起）：指针压在哪张卡上就占哪一格。
 /// 取不到（指针横向出了这一组的栅格 / 进到另一组 / JSON 不合形状）给 ("", "", -1)，
 /// 调用方据此既不画占位块也不落位。
 fn drop_target_of(x : Double, y : Double) -> (String, String, Int) {
@@ -1654,8 +1653,8 @@ fn drop_target_of(x : Double, y : Double) -> (String, String, Int) {
       (
         str_field(fields, "row"),
         str_field(fields, "group"),
-        // 没有 rank（横向出栅格 / 跨组）就当没有落点
-        match int_field(fields, "rank") {
+        // 没有 index（横向出栅格 / 跨组）就当没有落点
+        match int_field(fields, "index") {
           Some(v) => v
           None => -1
         },
@@ -1665,33 +1664,32 @@ fn drop_target_of(x : Double, y : Double) -> (String, String, Int) {
 }
 
 ///|
-/// **落点的唯一算法**：把被拖的那一条插到「其余 n-1 条」的第 rank 个空档上，
-/// 得到它在整组里的最终位次（0 起，也就是它将占的**格子序号**）。
+/// **落点的唯一算法**：js_drop_target 给的格子序号就是结果里的位次，这里只做边界收口。
 ///
-/// 预览与落位都取这一个数，所以「占位块画在第几格」与「松手落在第几格」不可能分叉 ——
-/// 分叉正是这一轮要修的那件事（旧版把判定藏在「指针越过谁的中间线」里，画的是线、落的是别处）。
+/// 卡槽语义下「指针压在第 i 张卡上」= 被拖的那一条占第 i 格：它从原处抽走之后
+/// 插进第 i 格，其余各条按原次序填满剩下的格子。预览与落位都取这一个数，
+/// 所以「占位块画在第几格」与「松手落在第几格」不可能分叉。
 ///
-/// 边界：rank ≤ 0 落到最前（0）；rank ≥ n-1 落到最后（n-1）。合起来就是：
-/// 排在前面的那 rank 条各占一格，所以插进去之后它在第 rank 格。
-fn insert_at_index(n : Int, rank : Int) -> Int {
+/// 边界：小于 0 落到最前（0）；大于 n-1 落到最后（n-1）。
+fn drop_cell(n : Int, index : Int) -> Int {
   if n <= 1 {
     return 0
   }
-  if rank < 0 {
+  if index < 0 {
     return 0
   }
-  if rank > n - 1 {
+  if index > n - 1 {
     return n - 1
   }
-  rank
+  index
 }
 
 
 ///|
 /// 把被拖的那一条插进 ids 的第 k 格，返回整组的新顺序。
 ///
-/// k 由 insert_at_index 算出来，所以这里的 k 就是**格子序号**：结果数组的第 k 个元素
-/// 就是被拖的那一条。视图按同一个 k 把占位块插进孩子序列 —— 预览与结果因此逐格一致。
+/// k 由 drop_cell 收口，所以这里的 k 就是**格子序号**：结果数组的第 k 个元素
+/// 就是被拖的那一条。占位块也摆在同一个 k 上 —— 预览与结果因此逐格一致。
 fn insert_row_at(ids : Array[String], dragged : String, k : Int) -> Array[String] {
   let rest : Array[String] = []
   for id in ids {
@@ -1714,6 +1712,21 @@ fn insert_row_at(ids : Array[String], dragged : String, k : Int) -> Array[String
     out.push(dragged)
   }
   out
+}
+
+///|
+/// 两份顺序表是不是逐格相同。拖动落在原位（指针在被拖的那张自己身上）时靠它
+/// 认出「这一次没有挪动」，从而不发请求。
+fn same_order(a : Array[String], b : Array[String]) -> Bool {
+  if a.length() != b.length() {
+    return false
+  }
+  for i = 0; i < a.length(); i = i + 1 {
+    if a[i] != b[i] {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -2245,11 +2258,11 @@ fn profile_rows(
       home: if profiles_home == "" { "未知" } else { profiles_home },
       home_hint: if profiles_home == "" {
         "这一版 profiles 读数里没有 dshHome：不知道这批 profile 是从哪个 home 的 profiles/ 下读出来的，" +
-        "所以这一格写「未知」。不拿控制台自己的 home 顶上 —— 那只是把别处的 home 说成它的"
+        "所以这一格写「未知」。不拿控制台自己的 home 顶上，那只是把别处的 home 说成它的"
       } else {
         "这只 profile 自己的 home：profiles 读数就是在 " + profiles_home +
         "/profiles 下把这只列出来的（读数里的 dshHome / dshHomeSource）。" +
-        "它与控制台自己的 home 可以相同、也可以不同 —— 这一格说的是这一只属于哪儿，不是控制台在用什么"
+        "它与控制台自己的 home 可以相同、也可以不同。这一格说的是这一只属于哪儿，不是控制台在用什么"
       },
       url: "已停用，无法访问",
       // 这只 profile 现在没有在跑的实例：没有地址可握手，也就没有令牌可读
@@ -2384,7 +2397,7 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     // 那会把一个它不属于的 home 说成它的，开发指令也会照着那个错的 home 拼。
     home: if record.home == "" { "—" } else { record.home },
     home_hint: if record.home == "" {
-      "archive.json 里这条记录没写它属于哪个 home，磁盘上也没有这只 profile 的目录 —— " +
+      "archive.json 里这条记录没写它属于哪个 home，磁盘上也没有这只 profile 的目录。" +
       "这一格没有可写的值（拿控制台自己的 home 来填，就是给它安一个它不属于的 home）"
     } else {
       "这只 profile 属于哪个 home：读自 archive.json 的这条归档记录（磁盘上已经没有它的目录，没有别处可读）。" +

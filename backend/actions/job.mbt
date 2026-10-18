@@ -621,7 +621,7 @@ pub async fn job_start(
   let note = "回退锚：dsh " + selection.pkg.version + "。试跑用 profile " + profile +
     "。" + pin_state_text + "。这一步只记在作业里，没有动 dsh-pin.json。" +
     (if target_version == "" {
-      "没有给目标版本 —— 安装那一步会拦住，不会替你挑版本。"
+      "没有给目标版本：安装那一步会拦住，不会替你挑版本。"
     } else if target_version == selection.pkg.version {
       "目标版本与现在的版本相同：装完会覆盖同一份安装。"
     } else {
@@ -1188,7 +1188,7 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
         ("stop", @json.JStr(stop_note)),
         ("pinUnchanged", @json.JBool(pin_before_content == pin_file_text())),
       ],
-      note: "记下了：好用。" + stop_note + "。dsh-pin.json 还没有动 —— " +
+      note: "记下了：好用。" + stop_note + "。dsh-pin.json 还没有动；" +
         "切到新版本是下一步那一下。",
     }
   }
@@ -1478,7 +1478,7 @@ pub async fn job_cleanup_preview(id : String) -> JobOutcome raise ActionError {
       ("safe", @json.JBool(safe)),
     ],
     note: "清理会删掉旧版本的包目录 " + dir + "（" + size_text + "，" + reason + "）。" +
-      "清理删的是旧版本的包目录，删掉不能再装回来 —— 确认之后再点执行。",
+      "清理删的是旧版本的包目录，删掉不能再装回来。确认之后再点执行。",
   }
 }
 

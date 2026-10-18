@@ -277,7 +277,8 @@ extern "js" fn js_drop_freeze(dragged : String) -> String =
   #|   if (!grid) return '';
   #|   const cards = [...grid.querySelectorAll('[data-row]')].map((el) => {
   #|     const r = el.getBoundingClientRect();
-  #|     return { id: el.getAttribute('data-row') || '', top: r.top, bottom: r.bottom };
+  #|     return { id: el.getAttribute('data-row') || '', top: r.top, bottom: r.bottom,
+  #|       left: r.left, right: r.right };
   #|   }).filter((c) => c.id);
   #|   const g = grid.getBoundingClientRect();
   #|   // 别组的盒子一起冻下来：落点判定要知道指针有没有**进到另一组**里（跨组不落）。
@@ -315,69 +316,60 @@ extern "js" fn js_drop_clear() -> Unit =
   #| }
 
 ///|
-/// 指针底下是哪一条：返回一段 JSON `{"row":"<行 id>","group":"running|stopped","rank":N}`，
-/// 只有两种情形给空串（这一次没有落点）：指针**横向离开这一组的栅格**、或**进到另一组**里
+/// 指针底下是哪一格：返回一段 JSON `{"row":"<那一格的卡片 id>","group":"running|stopped","index":N}`。
+/// `index` 就是**格子序号**（0 起），也就是松手后被拖的那一条将占的那一格。
+///
+/// 口径是卡槽语义（design/drag-reorder-cards.md）：
+///   · 指针正压在某张卡上 = 占它那一格（不再按「最近卡片 + 上半/下半中心线」分叉）；
+///   · 指针在栅格上方 = 第一格；在栅格下方（含末尾那块不可见落点区）= 最后一格；
+///   · 指针落在两张卡之间的空隙里（行距 / 列距都是 12px）= 取中心距离更近的那一张；
+///   · 指针在被拖的那张自己身上 = 它原来那一格，松手等于没动（上层据此不发请求）。
+///
+/// 只有两种情形算「这一次没有落点」：指针**横向离开这一组的栅格**、或**进到另一组**里
 /// （另加页面滚过那一路，见 js_drop_scrolled）。
-///
-/// `rank` 是**插入位次**，也就是结果里那个格子序号：插到某一条之前 = 它在「其余 n-1 条」里的位次，
-/// 之后 = 位次 + 1。前端的落点算法（state.mbt 的 insert_at_index）只认这一个数 ——
-/// 「指针越过谁的中间线」这个判定因此从代码里搬到了画面上：占位块就摆在那一格。
-///
-/// **纵向不设界（第十三轮改，口径变更）**：落点由「指针与各块中心的关系」算，任何 y 都算得出
-/// 一个位次 —— 越过最后一块的下沿 = **最后一格**（rank 走到 n，由 insert_at_index 收口成 n-1）、
-/// 越过第一块的上沿 = **第一格**（rank 0）。旧版在列表上下各留 32px 宽容带、出带即作废，
-/// 于是最后 / 最前那一格**永远够不着**：指针要越过那一块才能到那一格，而越过就已经出带 ——
-/// 使用者报的「拖不到最后面」就是这一条。
-///
-/// 两头是**先收口、再算中间**两步：中间那一段按「离得最近的那一条 + 指针在它上半还是下半」定，
-/// 栅格的行间距有 12px，只认「正压在某一条上」会让这 12px 里什么提示都没有；
-/// 而两头不能交给「最近一条」（同一行各块底边相同、距离并列，取并列里的第一个会落到
-/// 最后一行的第一格）。两步合起来：任何纵向位置都给出一个位次。
 ///
 /// 判定按冻结下来的那份格子走，不按活的 DOM：条目正在让位，活的位置会让落点自己跳。
 extern "js" fn js_drop_target(x : Double, y : Double) -> String =
   #| (x, y) => {
   #|   const ref = globalThis.__dshDropRef;
   #|   if (!ref || ref.cards.length < 2) return '';
-  #|   // 只有两种情形算「这一次没有落点」：
-  #|   //   ① 指针**横向**离开这一组的栅格 —— 它已经不在这一片的排序里了。
-  #|   //      留 24px 宽容带：纵向拖的时候手往旁边偏一点，不该把落点整个判没。
-  #|   //      （栅格的左右缘跨着全部列，所以「往右边那一列拖」仍在缘内 ✓）
-  #|   //   ② 指针**进到另一组**里 —— 两组是语义，跨组拖动不合并两组，
-  #|   //      在那儿画一个占位块等于答应了做不到的事。
-  #|   // 纵向**不设界**：落点由「指针与各块中心的关系」算，任何 y 都算得出一个位次 ——
-  #|   // 越过最后一块 = 最后一格、越过第一块 = 第一格（见上面的说明）。
+  #|   // 只判两种「没有落点」：横向出了这一组的栅格（留 24px 宽容带，手偏一点也不该整个判没）、
+  #|   // 指针进到另一组里（两组是语义，跨组不落）。
   #|   const padX = 24;
   #|   if (x < ref.left - padX || x > ref.right + padX) return '';
   #|   for (const g of ref.others || []) {
   #|     if (x >= g.left && x <= g.right && y >= g.top && y <= g.bottom) return '';
   #|   }
-  #|   // 两头的**收口**先判，不能靠「离得最近那一条」—— 指针在最后一行下方时，
-  #|   // 那一行各块的底边相同、距离并列，取并列里的第一个会落到「最后一行的第一格」，
-  #|   // 而不是最后那一格（实测：3 条排一行时落在第 1 格而不是第 2 格）。
-  #|   // 越过第一块的上沿 = 第一格（rank 0）、越过最后一块的下沿 = 最后一格（rank n，
-  #|   // 由 insert_at_index 收口成 n-1）—— 中间那一段才交给下面那套「最近一条 + 上半/下半」。
-  #|   let topMost = ref.cards[0].top;
-  #|   let bottomMost = ref.cards[0].bottom;
-  #|   for (const c of ref.cards) {
+  #|   const cards = ref.cards;
+  #|   const n = cards.length;
+  #|   const at = (i) => JSON.stringify({ row: cards[i].id, group: ref.group, index: i });
+  #|   // ① 指针正压在某张卡上：占这一格。用冻下来的格子坐标，
+  #|   //    所以条目让位挪走之后，指针指的还是「开始拖时那一格」。
+  #|   for (let i = 0; i < n; i++) {
+  #|     const c = cards[i];
+  #|     if (x >= c.left && x <= c.right && y >= c.top && y <= c.bottom) return at(i);
+  #|   }
+  #|   // ② 两头先收口：栅格上方 = 第一格；栅格下方 = 最后一格。
+  #|   //    栅格末尾那块不可见落点区（.dsh-drop-tail）就落在这条判定里。
+  #|   let topMost = cards[0].top;
+  #|   let bottomMost = cards[0].bottom;
+  #|   for (const c of cards) {
   #|     if (c.top < topMost) topMost = c.top;
   #|     if (c.bottom > bottomMost) bottomMost = c.bottom;
   #|   }
-  #|   if (y <= topMost) return JSON.stringify({ row: ref.cards[0].id, group: ref.group, rank: 0 });
-  #|   if (y >= bottomMost) return JSON.stringify({ row: ref.cards[ref.cards.length - 1].id, group: ref.group, rank: ref.cards.length });
-  #|   let best = ref.cards[0];
+  #|   if (y <= topMost) return at(0);
+  #|   if (y >= bottomMost) return at(n - 1);
+  #|   // ③ 落在卡片之间的空隙里：取中心距离更近的那一张（空隙只有 12px，不引入新的分界规则）。
+  #|   let best = 0;
   #|   let bestD = null;
-  #|   for (const c of ref.cards) {
-  #|     const d = y < c.top ? c.top - y : (y > c.bottom ? y - c.bottom : 0);
-  #|     if (bestD === null || d < bestD) { bestD = d; best = c; }
-  #|     if (d === 0) break;
+  #|   for (let i = 0; i < n; i++) {
+  #|     const c = cards[i];
+  #|     const dx = x - (c.left + c.right) / 2;
+  #|     const dy = y - (c.top + c.bottom) / 2;
+  #|     const d = dx * dx + dy * dy;
+  #|     if (bestD === null || d < bestD) { bestD = d; best = i; }
   #|   }
-  #|   const mid = (best.top + best.bottom) / 2;
-  #|   const after = y > mid;
-  #|   const i = ref.cards.indexOf(best);
-  #|   // 中间这一段 rank 落在 0..n-1 里（两头已经先返回），不必再收口
-  #|   const rank = after ? i + 1 : i;
-  #|   return JSON.stringify({ row: best.id, group: ref.group, rank: rank });
+  #|   return at(best);
   #| }
 
 ///|
@@ -453,6 +445,24 @@ extern "js" fn js_grid_cells(group : String, dragged : String, k : Int) -> Int =
   #|     cell = cell + 1;
   #|   }
   #|   place(slot, k);
+  #|   // 末尾那块不可见落点区：盖住「最后一行的下沿 → 栅格底」这一段。
+  #|   // 拖动期间被拖的那一条会被自动排进下一行（它看不见，但占着格子），
+  #|   // 栅格底因此比可见的最后一行低出一截，这块区域正好是那段空白。
+  #|   // 它绝对定位、不参与布局：这里只改 top / height，一个格子都不动。
+  #|   const tail = grid.querySelector('.dsh-drop-tail');
+  #|   if (tail) {
+  #|     const gr = grid.getBoundingClientRect();
+  #|     let lastBottom = null;
+  #|     for (const el of grid.querySelectorAll('[data-row]')) {
+  #|       if (el.classList.contains('drag-image')) continue;
+  #|       const r = el.getBoundingClientRect();
+  #|       if (lastBottom === null || r.bottom > lastBottom) lastBottom = r.bottom;
+  #|     }
+  #|     if (lastBottom !== null) {
+  #|       tail.style.top = (lastBottom - gr.top) + 'px';
+  #|       tail.style.height = Math.max(0, gr.bottom - lastBottom) + 'px';
+  #|     }
+  #|   }
   #|   return seen > 1 ? k : -1;
   #| }
 

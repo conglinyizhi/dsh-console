@@ -163,7 +163,7 @@ fn source_select(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       value="__divider__",
       selected=false,
       attrs=mark("log-source-divider", ["logs", "source-option", "divider"]),
-      [@html.text("————")],
+      [@html.text("·")],
     ),
   )
   for fixed in fixed_sources {

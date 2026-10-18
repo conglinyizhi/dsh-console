@@ -120,7 +120,7 @@ fn flash_toast(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         class="dsh-btn",
         type_="button",
         attrs=mark("notice-open-web-ui", ["shell", "flash-toast", "open-web-ui"])
-          .title("再点一下就在新标签页打开带令牌的地址 —— 手动点击是新手势，弹窗拦截器拦不住"),
+          .title("再点一下就在新标签页打开带令牌的地址。手动点击是新手势，弹窗拦截器拦不住"),
         on_click=emit(NoticeOpenUi),
         [icon("open-in-new"), @html.span("打开 Web UI")],
       ),

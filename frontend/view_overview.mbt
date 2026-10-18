@@ -113,7 +113,7 @@ fn card_attrs(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Attrs {
     // 焦点落在一个看不见的节点上，键盘用户就找不着自己在哪儿了。
     .tabindex(if model.drag_active && model.drag_id == row.id { -1 } else { 0 })
     .aria_haspopup("dialog")
-    .aria_label(row.name + " —— 点开看读数与控制（" + light_label(row.light) + "）")
+    .aria_label(row.name + "，点开看读数与控制（" + light_label(row.light) + "）")
     .on_click(fn(_event) { emit(DrawerOpen(row.id)) })
     // 指针按下只是**记住起点**：位移过阈值才算拖动（判在 update_inner 的 DragDown）。
     // 这里**不 preventDefault**：掐掉默认行为会把随后的 click 一起掐掉，
@@ -305,6 +305,22 @@ fn drop_slot(row : Row, slot_index : Int) -> @html.Html {
 }
 
 ///|
+/// 栅格末尾那块**不可见落点区**：只在拖动期间存在，绝对定位、不参与布局
+/// （卡片位置一个像素都不动），让最后一格有一块自己的命中区域。
+///
+/// 位置与高度不在样式里写死：渲染之后由 dom.mbt 的 js_grid_cells 从可见的最后一行
+/// 下沿量到栅格底（拖动期间栅格底会比最后一行低出一截）。判定上对应
+/// 「指针在栅格下方 = 最后一格」那一条（见 js_drop_target）。
+/// 它没有内容、没有底色，也不吃指针事件：是地标，不是可交互的东西。
+fn drop_tail(group : String) -> @html.Html {
+  @html.div(
+    class="dsh-drop-tail",
+    attrs=mark("drop-tail", ["overview", "drop-tail", group]).aria_hidden("true"),
+    [@html.nothing],
+  )
+}
+
+///|
 /// 跟着指针走的虚影：手上那一条的**半透明副本**。
 ///
 /// 位置由 dom.mbt 的 js_drag_ghost_move 每动一下就改一次（只改这一个节点的 transform，
@@ -417,6 +433,8 @@ fn row_group(
     // 挂末尾 = 只是多了一个孩子，前面一个节点都不动；摆到第几格由它自己的
     // data-slot-index 说（样式里按这个属性给 order，见 app.scss 那一段）。
     kids.push(drop_slot(dragged_row, model.drag_at_index))
+    // 末尾那块不可见落点区也只在拖动期间挂：绝对定位，不参与布局。
+    kids.push(drop_tail(group))
   }
   if model.drag_active {
     @html.div(class="dsh-rows dsh-card-grid dsh-drag-active", attrs=attrs, kids)
@@ -1443,7 +1461,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         node: card_loading(
           "running-loading",
           "正在读取实例读数…",
-          "实例与 profile 的读数还在路上。这里先摆加载态 —— 「确实一个都没有」要等读数回来才敢说。",
+          "实例与 profile 的读数还在路上。这里先摆加载态。「确实一个都没有」要等读数回来才敢说。",
         ),
       })
     } else {
