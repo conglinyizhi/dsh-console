@@ -533,11 +533,79 @@ pub fn bind_failure_message(
 }
 
 ///|
+/// 用一份**指定的**包目录拼启动入口（维护作业的试跑用）。
+///
+/// 为什么不让试跑去改 dsh-pin.json 再起：那会把「现在生效的是哪一版」偷换成「临时跑一下」，
+/// 用户下次起实例就莫名其妙用了试跑的那一版。包目录单独传，pin 一个字节都不动 ——
+/// 切版本仍然只发生在 job-commit 那一下。
+///
+/// 目录不存在 / 里面没有 lib/bin.js 给 None。版本读不出来记空串（调用方自己核对过版本）。
+pub async fn command_of_package_dir(dir_in : String) -> DshCommand? noraise {
+  let dir = @json.trim_both(dir_in)
+  if dir == "" {
+    return None
+  }
+  let script = @json.join_all([dir, "lib", "bin.js"])
+  if !@json.exists(script) {
+    return None
+  }
+  let node = match find_in_path("node") {
+    Some(p) => p
+    None => "node"
+  }
+  let version = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+    Ok(text) =>
+      match @json.json_parse(text) {
+        Some(json) =>
+          match @json.json_field(json, "version") {
+            Some(v) =>
+              match @json.json_string(v) {
+                Some(s) => s
+                None => ""
+              }
+            None => ""
+          }
+        None => ""
+      }
+    Err(_) => ""
+  }
+  Some({
+    node,
+    script,
+    package_dir: dir,
+    version,
+    // 这一次用的不是「生效版本」的任何一档：包目录是调用方点名给的
+    pin_state: "",
+    pin_note: "",
+  })
+}
+
+///|
 /// 起一个实例。任何一步失败都把已经起的子进程收掉，不留僵尸。
 pub async fn start_instance(
   profile : String,
   home : String?,
   port : Int?
+) -> SpawnOutcome raise ActionError {
+  start_instance_with(profile, home, port, None, false)
+}
+
+///|
+/// 起实例（带两个只在维护作业试跑里用的口子）：
+///
+///   · package_dir —— 用这一份包目录起。给了就不走 resolve_dsh_command 那条链，
+///     也不再碰 dsh-pin.json（试跑要跑的是作业里那份新版，不是现在生效的那一份）；
+///   · allow_duplicate —— 同一个 (home, profile) 允许已经有别的实例在跑。
+///     试跑必须能和用户平时那只并存（不同端口），否则「装了新版想试试」永远被自己挡住。
+///
+/// 除这两处，其余全与 start_instance 同一条路：同样的端口挑选、同样的 bind 归因、
+/// 同样的失败收尾与运行登记。
+pub async fn start_instance_with(
+  profile : String,
+  home : String?,
+  port : Int?,
+  package_dir : String?,
+  allow_duplicate : Bool,
 ) -> SpawnOutcome raise ActionError {
   let name = @json.trim_both(profile)
   validate_profile_name(name)
@@ -557,7 +625,12 @@ pub async fn start_instance(
     fail("not-found", "profile 目录不存在：" + profile_dir)
   }
   // 冲突只看这个 (home, 名字)：别的 home 里同名的那只是另一只，不该挡住这一只
-  match running_for_profile_in(name, Some(target_home)) {
+  let duplicate : Target? = if allow_duplicate {
+    None
+  } else {
+    running_for_profile_in(name, Some(target_home))
+  }
+  match duplicate {
     Some(hit) => {
       let port_text = match hit.port {
         Some(p) => "端口 " + p.to_string()
@@ -598,15 +671,29 @@ pub async fn start_instance(
         }
       }
   }
-  let command = match resolve_dsh_command() {
-    Some(c) => c
-    None => {
-      fail(
-        "spawn-failed",
-        "找不到 dsh 入口：PATH 上的 dsh 命令解不出包目录，pnpm 全局根下也没有 @deepseek-ai/dsh/lib/bin.js",
-      )
-      abort("unreachable: fail 一定抛错")
-    }
+  let command = match package_dir {
+    Some(dir) =>
+      match command_of_package_dir(dir) {
+        Some(c) => c
+        None => {
+          fail(
+            "spawn-failed",
+            "指定的包目录里没有 lib/bin.js，起不了实例：" + dir,
+          )
+          abort("unreachable: fail 一定抛错")
+        }
+      }
+    None =>
+      match resolve_dsh_command() {
+        Some(c) => c
+        None => {
+          fail(
+            "spawn-failed",
+            "找不到 dsh 入口：PATH 上的 dsh 命令解不出包目录，pnpm 全局根下也没有 @deepseek-ai/dsh/lib/bin.js",
+          )
+          abort("unreachable: fail 一定抛错")
+        }
+      }
   }
   let log_dir = @json.join_path(target_home, "logs")
   match @fsx.ensure_dir(log_dir) {

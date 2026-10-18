@@ -8,6 +8,8 @@
 ///|
 pub(all) enum Page {
   Overview
+  /// 维护（作业台）：按顺序做、每步有检查、失败能退回的作业都在这里
+  Maintenance
   Logs
   Settings
   /// 回收站（第六轮）：删除进回收站的那些 profile 在这里看得见、能恢复、能彻底删掉
@@ -419,6 +421,32 @@ struct Model {
   // 回收站「彻底删除」的确认框：目标目录名（空串 = 框关着）与触发元素 id
   trash_purge_dir : String
   trash_purge_return : String
+  // ── 维护页（作业台） ──
+  // 与 act_notice 分开：总览页那条提示条读的是 act_notice，借它的话，
+  // 在维护页做完动作再切回总览会看到一条与那一页无关的话。
+  /// 新作业表单里填的目标版本（空串 = 没填）。**不在本地补一个「最新版」**：
+  /// §4 说得很清楚，版本由使用者选，后端不猜。
+  job_version : String
+  /// 新作业表单里选的试跑 profile（空串 = 还没亲手选过，按「在跑的 → web → 第一份」推）。
+  /// 存「用户亲手选的那一个」，不存推出来的那一个：推的那份随读数变，
+  /// 存下来就成了「明明不是它却显示是它」。
+  job_profile : String
+  /// 正在发的那条作业动作："new" 或作业 id（空串 = 没有在发）
+  job_busy : String
+  /// 上一次作业动作的结果（正文；失败也走这里 —— 这一页没有别的地方能说）
+  job_notice : String
+  job_notice_ok : Bool
+  /// 正文之外的细节（确切命令 / 包目录 / 体积 / 输出尾部）—— 只进悬停
+  job_notice_hint : String
+  /// 上面那段悬停属于哪一句正文。与当前 job_notice 不一致时不出现
+  job_notice_hint_for : String
+  /// 被使用者亲手收起的作业 id。**默认全部展开** —— 收起是一个显式动作，
+  /// 记下收起的那几条就够了；不必再维护一份「展开着哪些」（新作业进来时它会漏掉）。
+  job_collapsed : Array[String]
+  /// 已经预演过的那条作业 + 预演的是哪一步（install / cleanup）。
+  /// 「预演之后才让点确认执行」靠它：没预演过，确认键是灰的。
+  job_previewed : String
+  job_previewed_step : String
   archived_open : Bool
   /// 用户手动折过归档区没有：折过之后就不再被 ui.archiveOpenByDefault 覆盖
   archived_user_toggled : Bool
@@ -586,6 +614,17 @@ priv enum Msg {
   TrashPurgeOpen(String, String)
   TrashPurgeConfirm
   TrashPurgeCancel
+  // 维护页（作业台）：开始表单 / 展开步骤表 / 某条作业的一步 / 回执
+  JobVersionInput(String)
+  JobProfilePicked(String)
+  JobStart
+  /// 作业 id + 这一步的动作（install-preview / install-confirm / test /
+  /// commit / cleanup-preview / cleanup / abort）。后端动作名在 app.mbt 里映射。
+  JobAction(String, String)
+  /// 展开 / 收起一条作业的步骤表
+  JobToggle(String)
+  /// 作业动作的回执：动作名 + 原始响应（成败与文案在 update 里判）
+  JobDone(String, Result[String, Error])
   ToggleArchived
   LogSourcePicked(String)
   LogRefresh
@@ -666,6 +705,16 @@ fn initial_model() -> Model {
     confirm_return: "",
     trash_purge_dir: "",
     trash_purge_return: "",
+    job_version: "",
+    job_profile: "",
+    job_busy: "",
+    job_notice: "",
+    job_notice_ok: false,
+    job_notice_hint: "",
+    job_notice_hint_for: "",
+    job_collapsed: [],
+    job_previewed: "",
+    job_previewed_step: "",
     // 归档区默认折叠：这一组目前固定是演示数据，短时间用不上；
     // 折叠起来不占视线，功能本身留着（展开即可用），比删掉合适。
     archived_open: false,

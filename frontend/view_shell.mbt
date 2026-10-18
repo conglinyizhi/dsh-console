@@ -1,4 +1,4 @@
-// 应用外壳：左侧导航五项（实例总览 / 日志 / 设置 / 回收站 / 关于）+ 内容区。
+// 应用外壳：左侧导航六项（实例总览 / 维护 / 日志 / 设置 / 回收站 / 关于）+ 内容区。
 //
 // 导航既是状态切页也写地址（见 route.mbt）：刷新与前进/后退按地址复原页面。
 // 页脚「本机运行，仅限回环访问」在导航栏底部。
@@ -33,6 +33,7 @@ fn nav_item(page : Page, current : Page, label : String, icon_name : String, emi
 fn nav_key(page : Page) -> String {
   match page {
     Overview => "overview"
+    Maintenance => "maintenance"
     Logs => "logs"
     Settings => "settings"
     Trash => "trash"
@@ -49,6 +50,8 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ]),
     @html.nav(class="dsh-nav", [
       nav_item(Overview, model.page, "实例总览", "view-grid-outline", emit),
+      // 维护紧跟在实例总览下面（规格 §2 定的位置）：它是第二条「对整台机器做事」的入口
+      nav_item(Maintenance, model.page, "维护", "tune", emit),
       nav_item(Logs, model.page, "日志", "text-box-outline", emit),
       nav_item(Settings, model.page, "设置", "cog-outline", emit),
       // 回收站挨着「关于」放：它是一条能真删东西的入口，摆在一排设置项后面不抢视线，
@@ -170,6 +173,7 @@ fn flash_text(model : Model) -> (String, String) {
 fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let body = match model.page {
     Overview => overview_view(model, emit)
+    Maintenance => maintenance_view(model, emit)
     Logs => logs_view(model, emit)
     Settings => settings_view(model, emit)
     Trash => trash_view(model, emit)

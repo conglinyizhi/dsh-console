@@ -27,6 +27,8 @@ pub let codes : Array[String] = [
   "io-error",
   // 指定的那个目录不是这台机器上装着的一份 dsh（见 dsh_version.mbt 的 pin_dsh）
   "dsh-not-installed",
+  // 同一 kind 已经有一条没做完的作业（见 job.mbt 的 job_start）
+  "job-exists",
 ]
 
 ///|
@@ -54,6 +56,8 @@ pub fn status_for_code(code : String) -> Int {
     "dsh-not-installed" => 400
     "not-found" => 404
     "conflict" => 409
+    // 撞上一条没做完的作业：请求本身没问题，是状态不允许再来一条
+    "job-exists" => 409
     _ => 500
   }
 }

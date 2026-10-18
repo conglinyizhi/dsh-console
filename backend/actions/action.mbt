@@ -90,6 +90,24 @@ fn optional_string(params : Json, key : String) -> String? {
 }
 
 ///|
+/// 取一个可选布尔参数。
+///
+/// 与 optional_string 同一套严格：字段不在按缺省（false）算，给了但不是布尔就拒 ——
+/// 一个 "true" 字符串被当成 false 吞下去，用户按了「确认执行」而系统只做了预演，
+/// 那比报一个参数错误难查得多。
+fn optional_bool(params : Json, key : String) -> Bool raise ActionError {
+  match @json.json_field(params, key) {
+    None => false
+    Some(True) => true
+    Some(False) => false
+    Some(_) => {
+      fail("bad-params", key + " 要是布尔值（true / false）")
+      abort("unreachable: fail 一定抛错")
+    }
+  }
+}
+
+///|
 /// 取一个可选整数参数：JSON 数字或十进制数字串都认（前端两种都可能发）。
 fn optional_int(params : Json, key : String) -> Int? {
   match @json.json_field(params, key) {
@@ -700,6 +718,60 @@ pub async fn run_action(
         ])),
         ("note", @json.JStr(note)),
       ])
+    }
+    // ── 维护作业（design/ops-maintenance-jobs.md §4）────────────
+    // 一条作业的五个步骤各有一个动作；install / cleanup 先预演、再带确认执行。
+    // 这些动作的 outcome 形状由 job.mbt 的 job_outcome_json 统一套（里面带整份作业，
+    // 前端拿到回执就能对上号，不必等下一次读数）。
+    "job-start" => {
+      let kind = require_string(params, "kind")
+      // profile 必填：试跑起的是用户真实 home 里那一份配置，开工时就选定
+      let outcome = job_start(
+        kind,
+        optional_string(params, "version"),
+        optional_string(params, "profile"),
+      )
+      job_outcome_json(action, outcome)
+    }
+    "job-install" => {
+      let id = require_string(params, "id")
+      let outcome = job_install(id, optional_bool(params, "confirm"))
+      job_outcome_json(action, outcome)
+    }
+    "job-trial" => {
+      let id = require_string(params, "id")
+      let outcome = job_trial(id)
+      job_outcome_json(action, outcome)
+    }
+    "job-verdict" => {
+      let id = require_string(params, "id")
+      let outcome = job_verdict(id, require_string(params, "verdict"))
+      job_outcome_json(action, outcome)
+    }
+    "job-trial-stop" => {
+      let id = require_string(params, "id")
+      let outcome = job_trial_stop(id)
+      job_outcome_json(action, outcome)
+    }
+    "job-commit" => {
+      let id = require_string(params, "id")
+      let outcome = job_commit(id)
+      job_outcome_json(action, outcome)
+    }
+    "job-cleanup-preview" => {
+      let id = require_string(params, "id")
+      let outcome = job_cleanup_preview(id)
+      job_outcome_json(action, outcome)
+    }
+    "job-cleanup" => {
+      let id = require_string(params, "id")
+      let outcome = job_cleanup(id, optional_string(params, "confirm"))
+      job_outcome_json(action, outcome)
+    }
+    "job-abort" => {
+      let id = require_string(params, "id")
+      let outcome = job_abort(id)
+      job_outcome_json(action, outcome)
     }
     _ => {
       fail("unknown-action", "没有这个动作：" + action)

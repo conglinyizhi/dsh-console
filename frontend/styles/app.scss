@@ -1849,3 +1849,246 @@ $drawer-ms: 220ms;
   opacity: 0.5;
   cursor: default;
 }
+// ── 维护页（作业台） ────────────────────────────────────────
+// 一条作业一张卡：标题 / 状态 / 第几步 / 开始于 / 一句话结果 / 步骤表 / 按钮。
+// 步骤行是「三色灯 + 名字 + 状态词 + 结论」四段：颜色只作辅助（§6），状态词永远在。
+// 命令、包目录、体积、输出尾部都不在这一层 —— 它们在悬停（title）与证据里。
+.dsh-maintenance {
+  max-width: 920px;
+}
+.dsh-job-start-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dsh-job-start-row .dsh-label {
+  width: auto;
+  flex: none;
+}
+// 版本号是等宽的一段（0.2.2-rc.1 这类），窄屏也不许把整行撑穿
+.dsh-job-version {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 260px;
+}
+.dsh-job-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dsh-job-card {
+  padding: 13px 15px 14px;
+  border: 1px solid $line;
+  border-radius: $radius;
+  background: $panel;
+}
+.dsh-job-card.dsh-job-bad {
+  border-color: rgba($danger-rgb, 0.42);
+}
+.dsh-job-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.dsh-job-head-text {
+  min-width: 0;
+}
+.dsh-job-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text;
+}
+.dsh-job-subtitle {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: $text-dim;
+}
+.dsh-job-status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: $text-mid;
+  white-space: nowrap;
+}
+// 三色灯：绿 = 通过、红 = 不通过、琥珀 = 进行中、灰 = 未开始 / 跳过。
+// 它们从来不带文字之外的含义 —— 状态词就在右边。
+.dsh-job-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(232, 230, 225, 0.35);
+}
+.dsh-job-dot.ok {
+  background: $ok;
+}
+.dsh-job-dot.danger {
+  background: $danger;
+}
+.dsh-job-dot.warn {
+  background: $warn;
+}
+.dsh-job-meta {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: $text-dim;
+}
+.dsh-job-result {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: $text-mid;
+  word-break: break-word;
+}
+.dsh-job-toggle {
+  margin-top: 10px;
+  font-size: 12px;
+  color: $text-dim;
+}
+.dsh-job-steps {
+  margin-top: 8px;
+  border: 1px solid $line;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+}
+.dsh-job-step {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 10px;
+  border-bottom: 1px solid $line;
+  font-size: 12px;
+}
+.dsh-job-step:last-child {
+  border-bottom: 0;
+}
+.dsh-job-step-name {
+  flex: none;
+  width: 96px;
+  color: $text;
+}
+.dsh-job-step-state {
+  flex: none;
+  width: 48px;
+  color: $text-mid;
+}
+.dsh-job-step-note {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: $text-dim;
+  word-break: break-word;
+}
+// 试跑那一块：地址是能点开的入口（新标签页），下面一行说清「试的是你平时那套」。
+// 它在 trial / verdict 两步都会出现，所以单独一块，不并进回执条。
+.dsh-job-trial {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid rgba($ok-rgb, 0.34);
+  border-radius: $radius-sm;
+  background: rgba($ok-rgb, 0.06);
+}
+.dsh-job-trial-line {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: $text;
+  word-break: break-word;
+}
+.dsh-job-trial-link {
+  color: $accent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+.dsh-job-trial-link:hover {
+  color: $text;
+}
+.dsh-job-trial-sub {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: $text-dim;
+}
+// 「试跑实例还在跑（端口 X）」：灯 + 字。灯只是辅助，端口与状态词在正文里。
+.dsh-job-trial-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: $text-dim;
+}
+.dsh-job-trial-state::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(232, 230, 225, 0.35);
+}
+.dsh-job-trial-state.alive::before {
+  background: $warn;
+}
+.dsh-job-trial-wrap:empty {
+  display: none;
+}
+// 切过去 / 回滚之后那句话：按作业记录渲染，刷新之后还在。
+.dsh-job-receipt {
+  margin: 9px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid $ok;
+  border-radius: 0 $radius-sm $radius-sm 0;
+  background: $panel-soft;
+  font-size: 12px;
+  line-height: 1.65;
+  color: $text-mid;
+  word-break: break-word;
+}
+.dsh-job-receipt.rollback {
+  border-left-color: $warn;
+}
+.dsh-job-profile {
+  flex: none;
+  min-width: 120px;
+}
+.dsh-job-boundary {
+  margin: 9px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: $warn;
+}
+.dsh-job-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.dsh-job-actions:empty {
+  display: none;
+}
+@media (max-width: 620px) {
+  // 窄屏：步骤行折成两行 —— 名字与状态词在上，结论整行在下
+  .dsh-job-step {
+    flex-wrap: wrap;
+  }
+  .dsh-job-step-name {
+    width: auto;
+  }
+  .dsh-job-step-note {
+    flex: 1 1 100%;
+  }
+  .dsh-job-start-row {
+    flex-wrap: wrap;
+  }
+  .dsh-job-version {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}
+

@@ -84,6 +84,10 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
       // 回收站是会变的（另一个标签页里删了东西、别处恢复了）：进来就重读一次控制台读数。
       // 只重发这一份，别的读数不动 —— 它读不到时的样子由这一页自己分档说清。
       (base, load_console(emit))
+    Maintenance =>
+      // 作业也在 console 读数里（jobs[]）。进这一页就重读一次：作业可能是在另一个
+      // 标签页里推进的，页面上那份是上一次读到的。
+      (base, load_console(emit))
     _ => (base, @cmd.none)
   }
 }
@@ -884,6 +888,334 @@ fn dsh_pin_settled(
     { ..model, dsh_pin_busy: "", dsh_pin_notice: text, dsh_pin_notice_ok: ok },
     if ok { load_runtime(emit) } else { @cmd.none },
   )
+}
+
+
+// ── 维护页（作业台） ─────────────────────────────────────────
+//
+// 这一页的动作全部走 POST /api/local/action，回执带着整份作业（outcome.job）。
+// 页面只在**回执之后**改文案，不本地猜「成功了」：作业到底到哪一步，由后端写下的
+// 那份记录说了算（下一次 console 读数回来也是同一份事实）。
+
+///|
+/// 动作名 → 给使用者看的名字（失败提示的句首用它，不把内部动作名摆到正文里）。
+fn job_action_label(action : String) -> String {
+  match action {
+    "job-start" => "开始作业"
+    "job-install" => "安装新版本"
+    "job-trial" => "把新版本跑起来"
+    "job-verdict" => "记下结论"
+    "job-trial-stop" => "停掉试跑实例"
+    "job-commit" => "切到新版本"
+    "job-cleanup-preview" => "清理预演"
+    "job-cleanup" => "清理旧版本"
+    "job-abort" => "中止作业"
+    _ => "这一步"
+  }
+}
+
+///|
+/// 回执里的 outcome 对象（成功才是 Some）。
+fn job_outcome_of(res : Result[String, Error]) -> Map[String, Json]? {
+  match res {
+    Err(_) => None
+    Ok(text) => {
+      let got = parse_http_result(text)
+      if got.status < 200 || got.status >= 300 {
+        return None
+      }
+      match open_envelope(got.body) {
+        Ok(data) =>
+          match data.get("outcome") {
+            Some(Json::Object(outcome)) => Some(outcome)
+            _ => None
+          }
+        Err(_) => None
+      }
+    }
+  }
+}
+
+///|
+/// 回执里那条作业的 id（没有给空串）。
+fn job_id_of(outcome : Map[String, Json]?) -> String {
+  match outcome {
+    Some(o) =>
+      match o.get("job") {
+        Some(Json::Object(job)) => str_field(job, "id")
+        _ => ""
+      }
+    None => ""
+  }
+}
+
+///|
+/// 成功的正文。**只写结论**（命令、路径、输出尾部都收进悬停）：
+/// 这一页的正文要能一眼看懂「现在到哪一步了」，不是给人读日志的。
+fn job_success_text(action : String, outcome : Map[String, Json]?) -> String {
+  let o = match outcome {
+    Some(o) => o
+    None => Map([])
+  }
+  match action {
+    "job-start" => "作业已创建，第 1 步（锁定当前版本）已经做完。"
+    "job-install" =>
+      if !bool_field(o, "executed") {
+        "预演完成：还没有装任何东西。"
+      } else {
+        match int_field(o, "exitCode") {
+          Some(0) => "安装命令跑完了（退出码 0）。下一步把新版本跑起来。"
+          Some(code) => "安装命令退出码 " + code.to_string() + "，这一步记为不通过。"
+          None => "安装命令没跑完，这一步记为不通过。"
+        }
+      }
+    "job-trial" =>
+      if bool_field(o, "started") {
+        let url = str_field(o, "url")
+        "新版本起来了：" + (if url == "" { "见下面的地址" } else { url }) +
+        " —— 你去用一用，插件、配置、会话都是你平时那一套"
+      } else {
+        "新版本没跑起来，这一步记为不通过。原因在悬停里。"
+      }
+    "job-verdict" =>
+      match str_field(o, "verdict") {
+        "good" => "记下了：好用。下一步是切到新版本。"
+        "bad" =>
+          "回滚了：起实例还是用 " + str_field(o, "anchorVersion") +
+          "；新装的那份留着没删，要删单独清理"
+        "later" => "记下了：先放着。试跑实例与版本指定都没动。"
+        _ => "结论记下了。"
+      }
+    "job-trial-stop" => "试跑实例已经收掉了；作业还停在这一步。"
+    "job-commit" =>
+      "已经切到 " + str_field(o, "version") +
+      "；起实例会用这一版。旧版本留着当回滚锚，确认稳定后再清理"
+    "job-cleanup-preview" => "预演完成：这一步会删掉旧版本的包目录，还没有删。"
+    "job-cleanup" =>
+      if bool_field(o, "deleted") {
+        "旧版本的包目录已删掉。"
+      } else {
+        "旧版本的包目录本来就不在了，这一步没有可删的。"
+      }
+    "job-abort" => "作业已中止；已经做完的步骤都留着。"
+    _ => "这一步完成了。"
+  }
+}
+
+///|
+/// POST 一条作业动作，回执走 JobDone）。
+fn job_cmd(action : String, params : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(JobDone(action, res)) },
+    async fn() {
+      let text : String = js_http_call(
+        "POST",
+        "/api/local/action",
+        action_body(action, params),
+        write_headers(),
+      ).wait().cast()
+      text
+    },
+  )
+}
+
+///|
+/// 开始一条作业。目标版本必须是使用者填的 —— 留空就在这里拦住，
+/// 不拿「本机装着的最新一份」顶上（§4：版本由前端选，别在后端猜；这里连前端也不猜）。
+fn job_start_command(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let version = model.job_version.trim().to_owned()
+  if version == "" {
+    return (
+      {
+        ..model,
+        job_notice: "先填上要装的目标版本，再点开始。",
+        job_notice_ok: false,
+        job_notice_hint: "",
+        job_notice_hint_for: "",
+      },
+      @cmd.none,
+    )
+  }
+  // profile 必填（后端也拦）：试跑起的是使用者真实 home 里那一份配置。
+  // 名称取自「在跑的 → web → 第一份」，与页面下拉里显示的是同一个函数算出来的。
+  let profile = job_profile_choice(model)
+  if profile == "" {
+    return (
+      {
+        ..model,
+        job_notice: "先选一只试跑用的 profile：这一页没读到任何 profile 读数。",
+        job_notice_ok: false,
+        job_notice_hint: "",
+        job_notice_hint_for: "",
+      },
+      @cmd.none,
+    )
+  }
+  let params = params_of([
+    ("kind", json_text_literal("upgrade-dsh")),
+    ("version", json_text_literal(version)),
+    ("profile", json_text_literal(profile)),
+  ])
+  ({ ..model, job_busy: "new", job_notice: "" }, job_cmd("job-start", params, emit))
+}
+
+///|
+/// 某条作业的一步。安装与清理的「确认执行」必须在**这一次会话里先预演过**：
+/// 没预演就点执行，这里当场拦住，不把请求发出去 —— 会后端一次 conflict 也能挡住，
+/// 但那要等一个来回，而且用户会以为「点了没反应」。
+fn job_step_command(
+  model : Model,
+  id : String,
+  step : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  if id == "" {
+    return (model, @cmd.none)
+  }
+  let refuse = fn(text : String) {
+    ({
+      ..model,
+      job_notice: text,
+      job_notice_ok: false,
+      job_notice_hint: "",
+      job_notice_hint_for: "",
+    }, @cmd.none)
+  }
+  let params_with = fn(confirm_key : String, confirm_value : String) {
+    params_of([("id", json_text_literal(id)), (confirm_key, confirm_value)])
+  }
+  match step {
+    "install-preview" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd("job-install", params_with("confirm", "false"), emit),
+    )
+    "install-confirm" =>
+      if model.job_previewed != id || model.job_previewed_step != "install" {
+        refuse("先点「预演这一步」，看过确切命令再确认执行。")
+      } else {
+        ({ ..model, job_busy: id, job_notice: "" }, job_cmd("job-install", params_with("confirm", "true"), emit))
+      }
+    "trial" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd("job-trial", params_of([("id", json_text_literal(id))]), emit),
+    )
+    "verdict-good" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd(
+        "job-verdict",
+        params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("good"))]),
+        emit,
+      ),
+    )
+    "verdict-bad" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd(
+        "job-verdict",
+        params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("bad"))]),
+        emit,
+      ),
+    )
+    "verdict-later" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd(
+        "job-verdict",
+        params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("later"))]),
+        emit,
+      ),
+    )
+    "trial-stop" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd("job-trial-stop", params_of([("id", json_text_literal(id))]), emit),
+    )
+    "commit" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd("job-commit", params_of([("id", json_text_literal(id))]), emit),
+    )
+    "cleanup-preview" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd("job-cleanup-preview", params_of([("id", json_text_literal(id))]), emit),
+    )
+    "cleanup" =>
+      if model.job_previewed != id || model.job_previewed_step != "cleanup" {
+        refuse("先点「清理旧版本」，看过会删掉什么再确认执行。")
+      } else {
+        ({ ..model, job_busy: id, job_notice: "" }, job_cmd("job-cleanup", params_with("confirm", "DELETE"), emit))
+      }
+    "abort" => (
+      { ..model, job_busy: id, job_notice: "" },
+      job_cmd("job-abort", params_of([("id", json_text_literal(id))]), emit),
+    )
+    _ => refuse("认不出这一步，没有发出请求。")
+  }
+}
+
+///|
+/// 作业动作的回执：成功写正文与悬停（命令 / 路径 / 输出尾部只进悬停），失败连原因留下。
+/// 成功之后重读 console —— 作业的真实状态在那份读数里，不在本地猜。
+fn job_settled(
+  model : Model,
+  action : String,
+  res : Result[String, Error],
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let (ok, note) = interpret_http(res)
+  let outcome = job_outcome_of(res)
+  if !ok {
+    return (
+      {
+        ..model,
+        job_busy: "",
+        job_notice: job_action_label(action) + "没成功：" + note,
+        job_notice_ok: false,
+        job_notice_hint: "",
+        job_notice_hint_for: "",
+      },
+      // 失败也可能改过作业记录（例如清理没删掉时那一步被记成 failed）：
+      // 重读一次 console，让步骤表与后端那份记录对上，而不是停在动作前的样子。
+      load_console(emit),
+    )
+  }
+  let body = job_success_text(action, outcome)
+  let job_id = job_id_of(outcome)
+  let preview_install = action == "job-install" && !bool_field(match outcome {
+    Some(o) => o
+    None => Map([])
+  }, "executed")
+  let preview_cleanup = action == "job-cleanup-preview"
+  let mut next = {
+    ..model,
+    job_busy: "",
+    job_notice: body,
+    job_notice_ok: true,
+    job_notice_hint: note,
+    job_notice_hint_for: body,
+  }
+  if action == "job-start" {
+    next = { ..next, job_version: "" }
+    next = {
+      ..next,
+      job_collapsed: next.job_collapsed.filter(fn(collapsed) { collapsed != job_id }),
+    }
+  }
+  if preview_install {
+    next = { ..next, job_previewed: job_id, job_previewed_step: "install" }
+  } else if preview_cleanup {
+    next = { ..next, job_previewed: job_id, job_previewed_step: "cleanup" }
+  } else if model.job_previewed == job_id && job_id != "" {
+    // 预演过的那一步已经执行（或作业被别的动作推进了）：这一份预演作废。
+    // 留着它会让下一次「确认执行」拿一份旧的预演去放行。
+    next = { ..next, job_previewed: "", job_previewed_step: "" }
+  }
+  // 试跑起了一只实例、收掉它、切了版本 —— 这三类动作会把「本机有哪些实例 / 哪一版生效」
+  // 一起改掉，所以连 profiles 与 instances 读数一起重读（否则总览页还停在动作前）。
+  if action == "job-trial" || action == "job-trial-stop" || action == "job-verdict" {
+    refresh_readings(next, emit)
+  } else if action == "job-commit" {
+    let (after, cmd) = refresh_readings(next, emit)
+    (after, @cmd.batch([cmd, load_runtime(emit)]))
+  } else {
+    (next, load_console(emit))
+  }
 }
 
 ///|
@@ -2645,6 +2977,20 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       { ..model, trash_purge_dir: "" },
       focus_after_render(model.trash_purge_return),
     )
+    // ── 维护页（作业台） ──
+    JobVersionInput(text) => ({ ..model, job_version: text }, @cmd.none)
+    JobProfilePicked(name) => ({ ..model, job_profile: name }, @cmd.none)
+    JobStart => job_start_command(model, emit)
+    JobAction(id, step) => job_step_command(model, id, step, emit)
+    JobToggle(id) => {
+      let kept = model.job_collapsed.filter(fn(collapsed) { collapsed != id })
+      if kept.length() == model.job_collapsed.length() {
+        // 现在展开着 → 收起
+        kept.push(id)
+      }
+      ({ ..model, job_collapsed: kept }, @cmd.none)
+    }
+    JobDone(action, res) => job_settled(model, action, res, emit)
     // 手动折过就记一笔：ui.archiveOpenByDefault 之后不再覆盖用户的选择
     ToggleArchived => (
       { ..model, archived_open: !model.archived_open, archived_user_toggled: true },

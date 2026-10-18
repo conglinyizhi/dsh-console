@@ -39,6 +39,9 @@ async fn console_payload() -> @json.JsonVal noraise {
   let archive = @store.load_archive()
   let order = @store.load_order()
   let (last_started, last_started_notes) = @store.load_last_started()
+  // 维护作业（design/ops-maintenance-jobs.md §2 / §3）：读不出来的那条也一起交出去，
+  // 不吞 —— 那条记录必须在列表里显示「记录读不出来」+ 原因。
+  let (jobs, bad_jobs, job_notes) = @store.load_jobs()
   let runtime : Array[@json.JsonVal] = []
   for r in registry.entries {
     runtime.push(@json.JObj([
@@ -91,6 +94,25 @@ async fn console_payload() -> @json.JsonVal noraise {
   for n in last_started_notes {
     notes.push(n)
   }
+  for n in job_notes {
+    notes.push(n)
+  }
+  let job_items : Array[@json.JsonVal] = []
+  for job in jobs {
+    // 试跑实例还活不活着是**读数那一刻的进程事实**，不是作业文件里的事实：
+    // stoppedAt 只说明我们收过它，反推不出「现在还在不在」。
+    // 界面据此说「试跑实例还在跑（端口 X）」，判据必须来自这里。
+    let trial_alive = match job.trial {
+      Some(t) => process_alive(t.pid)
+      None => false
+    }
+    job_items.push(
+      @store.job_list_json_extra(job, [("trialAlive", @json.JBool(trial_alive))]),
+    )
+  }
+  for bad in bad_jobs {
+    job_items.push(@store.bad_job_json(bad))
+  }
   let fields : Array[(String, @json.JsonVal)] = [
     ("stateDir", @json.JStr(paths.dir)),
     ("settingsPath", @json.JStr(paths.settings)),
@@ -99,6 +121,7 @@ async fn console_payload() -> @json.JsonVal noraise {
     ("auditPath", @json.JStr(paths.audit)),
     ("orderPath", @json.JStr(paths.order)),
     ("trashDir", @json.JStr(paths.trash)),
+    ("jobsDir", @json.JStr(paths.jobs)),
   ]
   // 生效的删除方式摆在 trashDir 旁边：一处说「进回收站落到哪」，一处说「现在是不是进回收站」
   for pair in delete_mode_fields() {
@@ -109,6 +132,7 @@ async fn console_payload() -> @json.JsonVal noraise {
   fields.push(("trash", @json.JArr(trash)))
   // 顺序表原样给出去（空数组就是「没拖过」）。前端拿到它之后怎么落到两组行上，
   // 是前端的事：这一端只负责「文件里是什么」，不在这里替页面排一遍。
+  fields.push(("jobs", @json.JArr(job_items)))
   fields.push(("order", @store.order_json(order.ids)))
   fields.push(("lastStarted", @store.last_started_json(last_started)))
   fields.push(("notes", @json.jstr_array(notes)))

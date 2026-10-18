@@ -7,6 +7,7 @@
 //
 // 路由表（唯一一份，解析与拼接都在这里）：
 //   /                     实例总览
+//   /maintenance          维护（作业台）
 //   /logs[?source=…]      日志（来源是页面状态的一部分，跟着进 URL）
 //   /settings             设置（第一个分组）
 //   /settings/<分组 id>   设置（某个分组）
@@ -191,6 +192,12 @@ fn parse_route(url : String) -> Route {
     return { page: Overview, group: "", source: None, notice: "" }
   }
   match segs[0] {
+    "maintenance" =>
+      if segs.length() == 1 {
+        { page: Maintenance, group: "", source: None, notice: "" }
+      } else {
+        unknown_route(segs)
+      }
     "logs" =>
       if segs.length() == 1 {
         logs_route(query)
@@ -235,7 +242,7 @@ fn unknown_route(segs : Array[String]) -> Route {
     group: "",
     source: None,
     notice: "地址里的 /" + join_with(segs, "/") +
-      " 不是本控制台的路由，已回到实例总览。现有路由：/ | /logs | /settings/<分组> | /trash | /about",
+      " 不是本控制台的路由，已回到实例总览。现有路由：/ | /maintenance | /logs | /settings/<分组> | /trash | /about",
   }
 }
 
@@ -244,6 +251,7 @@ fn unknown_route(segs : Array[String]) -> Route {
 fn route_url(page : Page, group : String, source : String) -> String {
   match page {
     Overview => "/"
+    Maintenance => "/maintenance"
     Logs =>
       if source == "" {
         "/logs"

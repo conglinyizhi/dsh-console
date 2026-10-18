@@ -757,6 +757,94 @@ pub(all) struct LastStartedFact {
 pub extend LastStartedFact with Eq::{ not_equal, equal }
 
 ///|
+/// 一步的 evidence 对象压成一行「键=值 | 键=值」：只进悬停，不在正文里摊开。
+fn evidence_text(step : Map[String, Json]) -> String {
+  let parts : Array[String] = []
+  for entry in step.iter() {
+    let (key, value) = entry
+    let text = match value {
+      Json::String(s) => s
+      _ => ""
+    }
+    parts.push(key + "=" + text)
+  }
+  join_with(parts, " | ")
+}
+
+///|
+/// 一条作业的一句话结果：某一步的结论（维护页作业卡第二行用它）。
+fn job_result_line(steps : Array[JobStepFact]) -> String {
+  // 从后往前找第一条有结论的步骤：最后落定的那一步才是「现在到哪了」
+  let mut text = ""
+  for step in steps {
+    if step.note != "" && step.state != "not-run" {
+      text = step.note
+    }
+  }
+  text
+}
+
+///|
+/// 维护作业的一步（后端 jobs[].steps[] 的一项）。
+///
+/// evidence 已经在解析时拼成一行「键=值 | 键=值」：界面只把它放进悬停，
+/// 不在正文里摊开（§6：目录路径 / 命令原文不进正文）。
+pub(all) struct JobStepFact {
+  key : String
+  /// running / passed / failed / skipped / not-run。不认识的取值原样留着，
+  /// 界面按「没验到」显示 —— 不认识的不能读成通过。
+  state : String
+  at : String
+  note : String
+  evidence : String
+} derive(Eq)
+
+pub extend JobStepFact with Eq::{ not_equal, equal }
+
+///|
+/// 一条维护作业（GET /api/local/console 的 jobs[]）。
+///
+/// unreadable = true 的那条是「记录读不出来」：只有 id 与 reason，没有步骤表。
+/// 这种记录也必须出现在列表里（§3 第 2 条），不能因为它读不出来就当作不存在。
+pub(all) struct JobFact {
+  id : String
+  kind : String
+  title : String
+  created_at : String
+  updated_at : String
+  step : String
+  steps : Array[JobStepFact]
+  anchor_version : String
+  anchor_dir : String
+  target_version : String
+  target_dir : String
+  /// 试跑用哪一只 profile（job-start 时选定）
+  profile : String
+  /// 开工前 dsh-pin.json 里指定过哪一版（空串 = 开工前没指定，或者那份文件读不出来）
+  pin_before_version : String
+  /// 开工前到底有没有那份文件。**与「有文件但里面是空」分开**：
+  /// 回滚那句「恢复成开工前」到底意味着「写回一条」还是「删掉」，全看这一格
+  pin_before_existed : Bool
+  /// 试跑实例（pid ≤ 0 = 还没有试跑过）
+  trial_pid : Int
+  trial_port : Int
+  trial_url : String
+  trial_profile : String
+  trial_started_at : String
+  /// 我们收过它的时刻（空串 = 没收到过）。**它不说「现在还在不在」**
+  trial_stopped_at : String
+  /// 读数那一刻这只试跑实例还活着吗（后端现查进程表，见 console_api 的 trialAlive）。
+  /// 这一格是「试跑实例还在跑」唯一可信的判据 —— stoppedAt 反推不出来
+  trial_alive : Bool
+  /// 用户给的结论：good / bad / later（空串 = 还没给）
+  verdict_value : String
+  unreadable : Bool
+  reason : String
+} derive(Eq)
+
+pub extend JobFact with Eq::{ not_equal, equal }
+
+///|
 /// 控制台自己的状态读数。这一份不在契约里那五个只读接口之列：
 /// runtime.json / archive.json 是两份状态文件，浏览器读不到文件系统，
 /// 后端为此单开了一个只读端点（GET /api/local/console）。
@@ -785,6 +873,13 @@ pub(all) struct ConsoleFacts {
   order_path : String
   /// 每只实例 / 每只 profile 最后一次被启动的时刻（后端已按 at 降序并去重）
   last_started : Array[LastStartedFact]
+  /// 维护作业（后端按 createdAt 倒序给；读不出来的记录也在这张表里，unreadable=true）
+  jobs : Array[JobFact]
+  /// 响应里**有没有** jobs 这个字段。与「字段在、但为空」分开：字段不在 = 这一版后端
+  /// 还没有作业读数（不能说成「还没有作业」）
+  jobs_present : Bool
+  /// 作业文件的落盘目录（只在「记录读不出来」那一类提示里出现）
+  jobs_dir : String
   /// 响应里**有没有** trash 这个字段。
   ///
   /// 与「字段在、但为空」分开：字段不在 = 这一版后端还没有这个读数（页面上要说清是读不到，
@@ -851,6 +946,59 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
       last_started.push({ id, at, source: str_field(entry, "source") })
     }
   }
+  let jobs : Array[JobFact] = []
+  for item in arr_field(data, "jobs") {
+    match item {
+      Json::Object(entry) => {
+        let steps : Array[JobStepFact] = []
+        for step_json in arr_field(entry, "steps") {
+          match step_json {
+            Json::Object(step) =>
+              steps.push({
+                key: str_field(step, "key"),
+                state: str_field(step, "state"),
+                at: str_field(step, "at"),
+                note: str_field(step, "note"),
+                evidence: evidence_text(step),
+              })
+            _ => ()
+          }
+        }
+        let anchor = obj_field(entry, "rollbackAnchor")
+        let target = obj_field(entry, "target")
+        let pin_before = obj_field(entry, "pinBefore")
+        let trial = obj_field(entry, "trial")
+        let verdict = obj_field(entry, "verdict")
+        jobs.push({
+          id: str_field(entry, "id"),
+          kind: str_field(entry, "kind"),
+          title: str_field(entry, "title"),
+          created_at: str_field(entry, "createdAt"),
+          updated_at: str_field(entry, "updatedAt"),
+          step: str_field(entry, "step"),
+          steps,
+          anchor_version: str_field(anchor, "version"),
+          anchor_dir: str_field(anchor, "dir"),
+          target_version: str_field(target, "version"),
+          target_dir: str_field(target, "dir"),
+          profile: str_field(entry, "profile"),
+          pin_before_version: str_field(pin_before, "version"),
+          pin_before_existed: bool_field(pin_before, "existed"),
+          trial_pid: int_or(trial, "pid", 0),
+          trial_port: int_or(trial, "port", 0),
+          trial_url: str_field(trial, "url"),
+          trial_profile: str_field(trial, "profile"),
+          trial_started_at: str_field(trial, "startedAt"),
+          trial_stopped_at: str_field(trial, "stoppedAt"),
+          trial_alive: bool_field(entry, "trialAlive"),
+          verdict_value: str_field(verdict, "value"),
+          unreadable: bool_field(entry, "unreadable"),
+          reason: str_field(entry, "reason"),
+        })
+      }
+      _ => ()
+    }
+  }
   let notes : Array[String] = []
   for note in arr_field(data, "notes") {
     match note {
@@ -871,6 +1019,9 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     order,
     order_path: str_field(data, "orderPath"),
     last_started,
+    jobs,
+    jobs_present: has_key(data, "jobs"),
+    jobs_dir: str_field(data, "jobsDir"),
     trash_present: has_key(data, "trash"),
     notes,
   })

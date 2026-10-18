@@ -7,6 +7,7 @@
 //   archive.json   归档记录（原子写）
 //   order.json     手动排序的显式顺序表：一个行 id 的字符串数组（原子写）
 //   dsh-pin.json   用哪一版 dsh 起实例的指定记录（原子写，见 dshpin.mbt）
+//   jobs/          维护作业（一条作业一份 <id>.json，原子写，见 jobs.mbt）
 //   audit.jsonl    动作审计（平时只追加，超 8 MiB 滚动；归档在同目录 .archive/）
 //   trash/         删除进回收站的落点（deleteToTrash=true 时的目标）
 //   trash-origins.json  trash/ 里每一条是**从哪个 home 删的**：{ "<目录名>": "<home>" }（原子写）
@@ -28,6 +29,8 @@ pub struct StatePaths {
   order : String
   /// 「用哪一版 dsh 起实例」的指定记录（dsh-pin.json）
   dsh_pin : String
+  /// 维护作业的落盘目录（一条作业一份 <jobId>.json）
+  jobs : String
   trash : String
   trash_origins : String
 }
@@ -48,6 +51,7 @@ pub async fn state_paths() -> StatePaths noraise {
     audit: @json.join_path(dir, "audit.jsonl"),
     order: @json.join_path(dir, "order.json"),
     dsh_pin: @json.join_path(dir, "dsh-pin.json"),
+    jobs: @json.join_path(dir, "jobs"),
     trash: @json.join_path(dir, "trash"),
     trash_origins: @json.join_path(dir, "trash-origins.json"),
   }
