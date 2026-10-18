@@ -2,8 +2,10 @@
 
 dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版后端。接口分两层：
 
-- **只读（GET，纯只读）**：`runtime` / `profiles` / `logs` / `processes` / `instances`
+- **只读（GET，纯只读）**：`runtime` / `profiles` / `logs` / `processes` / `instances` / `dsh-releases`
   —— 形状与已退役的 Node 版中间件（`../server/`，见 git 0448ba4 可取回）**逐字段一致**，这一层一个字段都不动
+  （`dsh-releases` 是这一轮新加的：并发问 GitHub / npm / 国内镜像三个源，规格见
+  `../design/dsh-release-sources.md`；三个源全没答上来也回 200，每个源各自的原因写在读数的 `sources` 里）
 - **写（第三批新增）**：`POST /api/local/action`（十个动作）、`GET/PUT /api/local/settings`、
   `GET /api/local/console`（运行时登记与归档的只读出口）
   —— 契约见 `../design/write-api-contract.md`

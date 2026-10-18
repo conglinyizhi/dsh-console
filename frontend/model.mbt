@@ -3,7 +3,7 @@
 // 纪律（与后端、与 Vue 版一致）：读不到就写「未知」并把原因留在界面上，不编数字。
 // 这里只做「外壳 → 字段」的取值，不做业务推导。
 //
-// 五个接口都在这个文件里：runtime / profiles / logs / processes / instances。
+// 六个接口都在这个文件里：runtime / profiles / logs / processes / instances / dsh-releases。
 // JSON 走 moonbitlang/core/json 的 parse；字段取值显式写出来，不用 derive(FromJson)——
 // 这几个接口 null 很密（uptimeSeconds / title / contentType / profile / fileSize 都可能
 // 是 null），而界面要区分「读到了一个空值」与「字段根本不在」，derive 出来的结构没法表达
@@ -171,6 +171,11 @@ pub(all) struct RuntimeFacts {
   dsh_pin_state : String
   /// 指定失效时后端给的那句人话；其余空串
   dsh_pin_note : String
+  /// 这份 dsh 是怎么装上去的：pnpm / npm / yarn / unknown。
+  /// 空串 = 这一版读数里没有这一项（不是「未知」——界面那一行要分开说）
+  dsh_install_kind : String
+  /// 凭什么这么判（后端原样给，进悬停）
+  dsh_install_kind_source : String
   console_version : String?
   console_package_name : String
   console_version_source : String
@@ -209,6 +214,8 @@ pub fn parse_runtime(text : String) -> Result[RuntimeFacts, String] {
     dsh_candidates: candidates,
     dsh_pin_state: str_field(data, "dshPinState"),
     dsh_pin_note: str_field(data, "dshPinNote"),
+    dsh_install_kind: str_field(data, "dshInstallKind"),
+    dsh_install_kind_source: str_field(data, "dshInstallKindSource"),
     console_version: opt_str_field(data, "consoleVersion"),
     console_package_name: str_field(data, "consolePackageName"),
     console_version_source: str_field(data, "consoleVersionSource"),
@@ -218,6 +225,107 @@ pub fn parse_runtime(text : String) -> Result[RuntimeFacts, String] {
     dsh_home_source: str_field(data, "dshHomeSource"),
     dsh_profile: opt_str_field(data, "dshProfile"),
     platform: str_field(data, "platform"),
+  })
+}
+
+// ── GET /api/local/dsh-releases ─────────────────────────────
+
+///|
+/// 一个候选版本（读数里的 versions 一项）。
+///
+/// 五个字段都是后端的判定，前端不自己再推：
+///   prerelease  GitHub 的 release 标记 / registry 上版本号带 "-"（后端按各自的形状判）
+///   latest      registry 的 dist-tags.latest 是不是它
+///   next        registry 的 dist-tags.next 是不是它
+///   installed   这台机器上装着这一版（与 dshCandidates 同一条链）
+pub(all) struct ReleaseVersion {
+  version : String
+  prerelease : Bool
+  latest : Bool
+  next : Bool
+  installed : Bool
+} derive(Eq)
+
+pub extend ReleaseVersion with Eq::{ not_equal, equal }
+
+///|
+/// 一个来源问下来的结果。ok=false 时 error 是后端给的那句人话（超时 / 连不上 / 格式不对）。
+pub(all) struct ReleaseSource {
+  id : String
+  ok : Bool
+  /// 这个源这一趟花了多少毫秒（后端量的，含 curl 起进程与解析）
+  ms : Int
+  error : String
+  /// 这个源给出几条版本
+  count : Int
+} derive(Eq)
+
+pub extend ReleaseSource with Eq::{ not_equal, equal }
+
+///|
+/// 版本来源读数（GET /api/local/dsh-releases）。
+///
+/// chosen 空串 = 三个源全没答上来（那时 versions 是空的 —— 界面据此换一句话，
+/// 不许把「没问到」写成「没有新版」）。
+pub(all) struct ReleasesFacts {
+  chosen : String
+  /// 采用那个源给的版本，按版本号从新到旧
+  versions : Array[ReleaseVersion]
+  /// registry 的 dist-tags：latest / next（GitHub 没有这两条，空串 = 没有）
+  latest : String
+  next : String
+  /// 这台机器上装着哪几版 dsh（与 runtime 的 dshCandidates 同一条链）
+  installed : Array[String]
+  /// 三个源各自的结果与耗时，顺序固定 github → npm → mirror
+  sources : Array[ReleaseSource]
+  read_at : String
+} derive(Eq)
+
+pub extend ReleasesFacts with Eq::{ not_equal, equal }
+
+///|
+pub fn parse_releases(text : String) -> Result[ReleasesFacts, String] {
+  let data = match open_envelope(text) {
+    Ok(data) => data
+    Err(reason) => return Err(reason)
+  }
+  let versions : Array[ReleaseVersion] = []
+  for item in arr_field(data, "versions") {
+    guard item is Json::Object(v) else { continue }
+    versions.push({
+      version: str_field(v, "version"),
+      prerelease: bool_field(v, "prerelease"),
+      latest: bool_field(v, "latest"),
+      next: bool_field(v, "next"),
+      installed: bool_field(v, "installed"),
+    })
+  }
+  let sources : Array[ReleaseSource] = []
+  for item in arr_field(data, "sources") {
+    guard item is Json::Object(s) else { continue }
+    sources.push({
+      id: str_field(s, "id"),
+      ok: bool_field(s, "ok"),
+      ms: int_or(s, "ms", 0),
+      error: str_field(s, "error"),
+      count: int_or(s, "count", 0),
+    })
+  }
+  let installed : Array[String] = []
+  for item in arr_field(data, "installed") {
+    match item {
+      Json::String(s) => installed.push(s)
+      _ => ()
+    }
+  }
+  Ok({
+    chosen: str_field(data, "chosen"),
+    versions,
+    latest: str_field(data, "latest"),
+    next: str_field(data, "next"),
+    installed,
+    sources,
+    read_at: str_field(data, "readAt"),
   })
 }
 

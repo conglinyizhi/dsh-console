@@ -84,10 +84,21 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
       // 回收站是会变的（另一个标签页里删了东西、别处恢复了）：进来就重读一次控制台读数。
       // 只重发这一份，别的读数不动 —— 它读不到时的样子由这一页自己分档说清。
       (base, load_console(emit))
-    Maintenance =>
+    Maintenance => {
       // 作业也在 console 读数里（jobs[]）。进这一页就重读一次：作业可能是在另一个
       // 标签页里推进的，页面上那份是上一次读到的。
-      (base, load_console(emit))
+      let console = load_console(emit)
+      // 版本来源只在第一次进这一页时问（load_releases 那一趟最坏 6 秒）。
+      // 已经问过就不再打扰三个源：进来一次等 6 秒，会让「这页就是慢」变成一个解不开的印象。
+      if model.releases_asked {
+        (base, console)
+      } else {
+        (
+          { ..base, releases_asked: true, releases_loading: true },
+          @cmd.batch([console, load_releases(emit)]),
+        )
+      }
+    }
     _ => (base, @cmd.none)
   }
 }
@@ -2980,6 +2991,43 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     // ── 维护页（作业台） ──
     JobVersionInput(text) => ({ ..model, job_version: text }, @cmd.none)
     JobProfilePicked(name) => ({ ..model, job_profile: name }, @cmd.none)
+    JobVersionPicked(version) => (
+      // 下拉里选了一版：手填框不用出现（规格 §2）。两个入口写的是同一格 job_version，
+      // 所以「选了哪一版」与「开始时装哪一版」永远是同一个值。
+      { ..model, job_version: version, job_version_manual: false },
+      @cmd.none,
+    )
+    JobVersionManual(on) => (
+      {
+        ..model,
+        job_version_manual: on,
+        // 回到下拉时把目标版本清空：下拉里一项没选、要装的却是刚才手填的那一版，
+        // 那是「看着一个值、发出去另一个值」。反之打开手填时留着原值，不改使用者写下的字。
+        job_version: if on { model.job_version } else { "" },
+      },
+      @cmd.none,
+    )
+    ReleasesText(res) => {
+      // 三个源全没答上来**不是失败**：那是读数里的一个事实，照实摆在页面上（spec §1.3）。
+      // 真正的失败只有一种：这一条接口没读到（网络、后端没这个路由）。
+      let next = match res {
+        Ok(text) =>
+          match parse_releases(text) {
+            Ok(facts) =>
+              { ..model, releases: Some(facts), releases_error: "", releases_loading: false }
+            Err(reason) =>
+              { ..model, releases: None, releases_error: reason, releases_loading: false }
+          }
+        Err(err) =>
+          {
+            ..model,
+            releases: None,
+            releases_error: "读不到版本来源（" + describe(err) + "）",
+            releases_loading: false,
+          }
+      }
+      (next, @cmd.none)
+    }
     JobStart => job_start_command(model, emit)
     JobAction(id, step) => job_step_command(model, id, step, emit)
     JobToggle(id) => {

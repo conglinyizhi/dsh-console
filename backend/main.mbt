@@ -2,7 +2,7 @@
 //
 // 默认只监听 127.0.0.1:5390（可用 DSH_CONSOLE_BACKEND_HOST / _PORT 覆盖，自测隔离用）。
 // 接口分两层：
-//   只读（GET，纯只读）：runtime / profiles / logs / processes / instances
+//   只读（GET，纯只读）：runtime / profiles / logs / processes / instances / dsh-releases
 //   写（POST /api/local/action + GET/PUT /api/local/settings + GET /api/local/console）
 // 写侧的守卫、动作与落盘全在 actions 包里；这里只负责把两条路分开。
 //
@@ -93,13 +93,24 @@ async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
 }
 
 ///|
-/// 已实现的路由表（无查询参数的四个）。
+/// dsh 版本来源读取函数（并发问 GitHub / npm / 国内镜像，各自 6 秒硬超时）。
+/// 三个源全没答上来也算读到了（读数里 sources 全是 ok=false）——
+/// 读不到是一个事实，不是接口错误；这里按路由表的签名套一层。
+async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
+  @releases.read_releases()
+}
+
+///|
+/// 已实现的路由表（无查询参数的这几条）。
 fn routes() -> Array[@localapi.Api] {
   [
     @localapi.api("/api/local/runtime", read_runtime),
     @localapi.api("/api/local/profiles", read_profiles),
     @localapi.api("/api/local/processes", read_processes),
     @localapi.api("/api/local/instances", read_instances),
+    // 版本来源这条不会失败：三个源全没答上来也是 200（读不到是读数里的一个事实，
+    // 不是接口错误 —— 见 releases.mbt 的头注释）
+    @localapi.api("/api/local/dsh-releases", read_releases),
   ]
 }
 
@@ -137,7 +148,7 @@ async fn main {
   let server = @moonback.listen(host~, port~)
   @stdio.stdout.write(
     "dsh-console 后端已起（API + 前端静态同端口），http://\{server.addr}\n" +
-    "GET  /api/local/runtime, /profiles, /logs, /processes, /instances, /settings, /console\n" +
+    "GET  /api/local/runtime, /profiles, /logs, /processes, /instances, /dsh-releases, /settings, /console\n" +
     "POST /api/local/action（写动作唯一入口，需 X-DSH-Console: 1）\n" +
     @dist_static.startup_note(dist_root, dist_source),
   )

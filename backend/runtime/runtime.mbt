@@ -27,6 +27,10 @@
 //
 // 文件 IO 只有 @json 里那几个只读入口：read_file / readdir / kind / exists / open+read_at。
 // 另外这一批用 @processes 的在跑实例读数挑「与在跑实例一致」的那一份（只读 /proc）。
+//
+// 第五批（这一轮）：关于页要一行**安装方式**。读数因此多两格 dshInstallKind /
+// dshInstallKindSource —— 判据只有生效那份的包目录路径（install_kind_of），认不出写 unknown，
+// 依据原样进悬停。前端不自己再推一遍，免得同一件事有两个答案。
 
 ///|
 /// 前端包名（Node 版从这里读 package.json；这里只作为常量回显）。
@@ -202,6 +206,47 @@ fn parse_num_segment(seg : String) -> Int {
 /// 包目录在路径里的那一段。找它比找整条路径稳：
 /// 前面是 <根>/<槽> 还是 <根>/<槽>/<哈希> 都不影响结论。
 let package_marker : String = "/node_modules/@deepseek-ai/dsh"
+
+///|
+/// 路径里第一个命中的特征段（按传入顺序），没命中给 None。
+fn first_path_mark(dir : String, marks : Array[String]) -> String? {
+  for mark in marks {
+    match @json.index_of(dir, mark) {
+      Some(_) => return Some(mark)
+      None => ()
+    }
+  }
+  None
+}
+
+///|
+/// 这份 dsh 是怎么装上去的：**只看包目录的路径特征**，不读 lock、不看 shell 配置、
+/// 不猜「多半是 pnpm」。判据按顺序命中第一条（design/dsh-release-sources.md §3）：
+///   pnpm  /node_modules/.pnpm/ 或 /pnpm/global/
+///   yarn  /yarn/ 或 /.config/yarn/global/
+///   npm   /npm-global/ 或 /lib/node_modules/ 或 /.npm/
+///   其它  未知（依据里带上整条路径，让人自己看得见为什么认不出）
+///
+/// 顺序要紧：pnpm 的布局里也带 node_modules，npm 那条里又有 /lib/node_modules/；
+/// 先判 npm 会把 pnpm 装的判成 npm。认不出来就写 unknown —— 关于页那一行宁可写「未知」，
+/// 也不能把一件没验过的事写成事实。
+pub fn install_kind_of(dir : String) -> (String, String) {
+  match first_path_mark(dir, ["/node_modules/.pnpm/", "/pnpm/global/"]) {
+    Some(mark) => ("pnpm", "按路径认出：包目录里带 " + mark)
+    None =>
+      match first_path_mark(dir, ["/yarn/", "/.config/yarn/global/"]) {
+        Some(mark) => ("yarn", "按路径认出：包目录里带 " + mark)
+        None =>
+          match first_path_mark(dir, ["/npm-global/", "/lib/node_modules/", "/.npm/"]) {
+            Some(mark) => ("npm", "按路径认出：包目录里带 " + mark)
+            None => (
+              "unknown",
+              "按路径认不出是哪个包管理器装的（" + dir + "）",
+            )
+          }
+      }
+  }
+}
 
 ///|
 /// 从一个路径片段里切出 @deepseek-ai/dsh 的包目录：
@@ -755,6 +800,9 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
       candidate_json(pkg, key == active_dir, live_dirs.contains(key)),
     )
   }
+  // 安装方式：关于页那一行。判据只有包目录路径（见 install_kind_of），
+  // 依据那句话进悬停 —— 说「pnpm 全局安装」时得能让人看见凭什么这么说。
+  let (install_kind, install_kind_source) = install_kind_of(dsh.dir)
   let dsh_profile = @json.env_raw("DSH_PROFILE")
   // 控制台版本：优先仓库根的 VERSION 文件，没有才退回前端 package.json。
   // 这样前端换栈（删掉 package.json）之后这条读数不会失效。
@@ -767,6 +815,10 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
     ("dshPackageName", @json.JStr(dsh.name)),
     ("dshPackageDir", @json.JStr(dsh.dir)),
     ("dshSourceLabel", @json.JStr(dsh_source_label + "（" + dsh.source + "）")),
+    // pnpm / npm / yarn / unknown（见 install_kind_of）。关于页那一行读这两格，
+    // 前端不自己从 dshPackageDir 再推一次 —— 推两遍迟早推成两个答案。
+    ("dshInstallKind", @json.JStr(install_kind)),
+    ("dshInstallKindSource", @json.JStr(install_kind_source)),
     ("dshCandidates", @json.JArr(listed)),
     ("dshPinState", @json.JStr(selection.pin_state)),
     // 指定失效时那句话（其余情况是空串）：读数里不说清，界面上就只剩一个状态词

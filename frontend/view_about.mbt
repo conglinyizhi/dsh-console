@@ -1,11 +1,43 @@
 // 关于页。
 //
 // 版本表每项都是真实读数；读不到就写「读取失败」与原因，不写空。
+// 这一批多一行「安装方式」：值是 pnpm / npm / yarn 全局安装或「未知」，
+// 判据是后端按包目录路径认出来的（读数里的 dshInstallKind / dshInstallKindSource）。
 // 没有「node 版本」这一行 —— 后端换掉之后那个字段已经不存在了。
 //
 // 这一页还管一件事：**用哪一版 dsh 起实例**（版本切换 / 回退）。
 // 那是「这台机器装了什么、控制台打算用哪一份」的事实，属于这一页；
 // 总览页那一组卡说的是实例，不是安装。
+
+///|
+/// 安装方式那一行的值：pnpm / npm / yarn 全局安装；认不出写「未知」。
+///
+/// **不写死 pnpm**：判据全在后端（runtime 的 install_kind_of，只看包目录路径），
+/// 前端这里只负责把那个枚举翻成人话。空串 = 这一版读数里没有这一项，
+/// 与「认出来是未知」分开说（见 install_kind_hint）。
+fn install_kind_text(kind : String) -> String {
+  match kind {
+    "pnpm" => "pnpm 全局安装"
+    "npm" => "npm 全局安装"
+    "yarn" => "yarn 全局安装"
+    _ => "未知"
+  }
+}
+
+///|
+/// 安装方式那一行的悬停依据。三档分开说：
+///   后端给了依据   原样写（认不出时那句话里就带着整条包目录路径，能自己看）
+///   字段整个不在   这一版读数里没有「安装方式」这一项（**不是**「未知」）
+///   有值没依据     读数里没给判断依据
+fn install_kind_hint(facts : RuntimeFacts) -> String {
+  if facts.dsh_install_kind_source != "" {
+    facts.dsh_install_kind_source
+  } else if facts.dsh_install_kind == "" {
+    "这一版读数里没有「安装方式」这一项"
+  } else {
+    "读数里没有判断依据"
+  }
+}
 
 ///|
 fn version_rows(model : Model) -> Array[@html.Html] {
@@ -20,6 +52,13 @@ fn version_rows(model : Model) -> Array[@html.Html] {
     Some(facts) =>
       [
         kv_row("dsh 版本", facts.dsh_version, facts.dsh_package_name),
+        // 这一版的 dsh 是怎么装上去的：值只有四种（pnpm / npm / yarn 全局安装、未知），
+        // 凭什么这么判挂在悬停里。它说的是「装法」，不是「版本」，放在版本号下面一行。
+        kv_row(
+          "安装方式",
+          install_kind_text(facts.dsh_install_kind),
+          install_kind_hint(facts),
+        ),
         kv_row(
           "控制台版本",
           match facts.console_version {

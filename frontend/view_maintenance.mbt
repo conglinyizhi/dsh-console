@@ -421,16 +421,274 @@ fn job_profile_select(model : Model, disabled : Bool, emit : @cmd.Emit[Msg]) -> 
 }
 
 ///|
-/// 「开始一条新作业」那一块。目标版本必须是使用者填的：留空就拦住，不猜一个版本。
+/// 来源 id → 正文里那个名字。认不出的 id 原样写（不编一个名字）。
+fn release_source_name(id : String) -> String {
+  match id {
+    "github" => "GitHub"
+    "npm" => "npm"
+    "mirror" => "国内镜像"
+    _ => id
+  }
+}
+
+///|
+/// 来源小字那一行的悬停：三个源各自的结果与耗时，一个都不省。
+///
+/// 为什么把「过了多久」也写出来：三个源里哪个慢（甚至慢到超时）是使用者判断
+/// 「要不要还等它」的唯一依据；只写「成功了」等于把这一条藏起来。
+fn release_sources_hint(sources : Array[ReleaseSource]) -> String {
+  let parts : Array[String] = []
+  for source in sources {
+    let name = release_source_name(source.id)
+    if source.ok {
+      parts.push(
+        name + "：" + source.count.to_string() + " 个版本，" +
+        source.ms.to_string() + "ms",
+      )
+    } else {
+      let why = if source.error == "" { "没答上来，原因没给" } else { source.error }
+      parts.push(name + "：" + why + "（" + source.ms.to_string() + "ms）")
+    }
+  }
+  parts.join("；")
+}
+
+///|
+/// 下拉里一条版本的文字：版本号 + 标记（已装 / 最新 / 预发布）。
+fn release_option_text(item : ReleaseVersion) -> String {
+  let marks : Array[String] = []
+  if item.installed {
+    marks.push("已装")
+  }
+  if item.latest {
+    marks.push("最新")
+  }
+  if item.prerelease {
+    marks.push("预发布")
+  }
+  if marks.length() == 0 {
+    item.version
+  } else {
+    item.version + " · " + marks.join(" · ")
+  }
+}
+
+///|
+/// 下拉里一条版本的悬停：每个标记凭什么打上。
+///
+/// 为什么要它：正文那条只放 已装 / 最新 / 预发布 三个词（规格 §2 就这三条），
+/// 而「registry 的 next 指向哪一版」这一条读数不摆进正文 —— 它进悬停，
+/// 不然后端算出来的 next 在界面上一个落点都没有。
+fn release_option_hint(item : ReleaseVersion) -> String {
+  let parts : Array[String] = []
+  if item.installed {
+    parts.push("这台机器上装着这一版")
+  }
+  if item.latest {
+    parts.push("registry 的 latest 指向这一版")
+  }
+  if item.next {
+    parts.push("registry 的 next 指向这一版")
+  }
+  if item.prerelease {
+    parts.push("这一版带预发布标记")
+  }
+  if parts.length() == 0 {
+    "这一版没有任何标记（没装、不是 latest / next、也不是预发布）"
+  } else {
+    parts.join("；")
+  }
+}
+
+///|
+/// 目标版本这一段控件（选择器的外壳：标签在外面，这里只出控件本身）。
+///
+/// 三种状态分得清（design/dsh-release-sources.md §2）：
+///   · 有版本可选、开关关着 → 下拉（每条带 已装 / 最新 / 预发布）+ 一行来源小字
+///   · 「手动填写版本」打开  → 原来的输入框
+///   · 一个源都没答上来     → 一句「没问到可选的版本，下面可以手动填」+ 输入框
+/// 还在问的时候（最多 6 秒）说「正在问」，**不**说没问到：那两件事不能写成一句。
+fn job_version_controls(
+  model : Model,
+  busy : Bool,
+  emit : @cmd.Emit[Msg],
+) -> Array[@html.Html] {
+  let out : Array[@html.Html] = []
+  let facts = model.releases
+  let versions = match facts {
+    Some(got) => got.versions
+    None => []
+  }
+  let has_choices = versions.length() > 0
+  // 没得选的时候手填是唯一入口：开关锁在打开，且不许关掉（关掉就一个入口都不剩）
+  let manual = model.job_version_manual || !has_choices
+  if has_choices && !manual {
+    let options : Array[@html.Html] = []
+    options.push(
+      @html.option(
+        value="",
+        selected=model.job_version == "",
+        disabled=true,
+        attrs=mark("job-version-placeholder", ["maintenance", "start", "version-placeholder"]),
+        [@html.text("选择要装的版本")],
+      ),
+    )
+    for item in versions {
+      options.push(
+        @html.option(
+          value=item.version,
+          selected=item.version == model.job_version,
+          attrs=mark("job-version-option", ["maintenance", "start", "version-option", item.version])
+            .title(release_option_hint(item)),
+          [@html.text(release_option_text(item))],
+        ),
+      )
+    }
+    out.push(
+      @html.select(
+        id="dsh-job-version-select",
+        class="dsh-select dsh-job-version",
+        disabled=busy,
+        attrs=mark("job-version-select", ["maintenance", "start", "version-select"])
+          .aria_label("目标版本")
+          .title("版本列表来自三个源里第一个答上来的那个；每条都标着 已装 / 最新 / 预发布"),
+        on_change=emit.map(fn(value) { JobVersionPicked(value) }),
+        options,
+      ),
+    )
+    // 一行小字：来源是哪。悬停里是三个源各自的结果与耗时。
+    let chosen = match facts {
+      Some(got) => got.chosen
+      None => ""
+    }
+    out.push(
+      @html.span(
+        class="dsh-job-version-source",
+        attrs=mark("job-version-source", ["maintenance", "start", "version-source"]).title(
+          match facts {
+            Some(got) => release_sources_hint(got.sources)
+            None => "读数里没有三个源的结果"
+          },
+        ),
+        "来源：" + release_source_name(chosen),
+      ),
+    )
+  }
+  if manual {
+    if !has_choices {
+      // 三档分开说：还在问 / 问完了没问到 / 这条接口根本没读到
+      let (text, hint) = if model.releases_loading {
+        ("正在问 GitHub、npm、国内镜像，最多 6 秒", "三个源并发问，各 6 秒硬超时")
+      } else {
+        match facts {
+          Some(got) =>
+            (
+              "没问到可选的版本，下面可以手动填",
+              release_sources_hint(got.sources),
+            )
+          None =>
+            (
+              "没读到版本来源，下面可以手动填",
+              if model.releases_error == "" {
+                "这一版读数里没有版本来源"
+              } else {
+                model.releases_error
+              },
+            )
+        }
+      }
+      out.push(
+        @html.span(
+          class="dsh-job-version-none",
+          attrs=mark("job-version-none", ["maintenance", "start", "version-none"]).title(hint),
+          text,
+        ),
+      )
+    }
+    out.push(
+      @html.input(
+        input_type=Text,
+        id="dsh-job-version",
+        class="dsh-dialog-input dsh-job-version",
+        value=model.job_version,
+        attrs=mark("job-version-input", ["maintenance", "start", "version"])
+          .aria_label("目标版本")
+          .spellcheck(false),
+        on_input=emit.map(fn(text) { JobVersionInput(text) }),
+      ),
+    )
+  }
+  out
+}
+
+///|
+/// 「手动填写版本」开关。它就是原来那个输入框的大门：关着走下拉，打开回到手填。
+///
+/// 没得选时禁用（而不是藏起来）：那颗开关摆在那儿，说明「这本该有得选」，
+/// 而旁边那句话说明为什么现在只能自己填。
+fn job_version_manual_switch(
+  model : Model,
+  busy : Bool,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let versions = match model.releases {
+    Some(got) => got.versions
+    None => []
+  }
+  let has_choices = versions.length() > 0
+  let on = model.job_version_manual || !has_choices
+  @html.button(
+    class=if on { "dsh-switch on" } else { "dsh-switch" },
+    type_="button",
+    disabled=busy || !has_choices,
+    attrs=mark("job-version-manual", ["maintenance", "start", "version-manual"])
+      .role("switch")
+      .aria_checked(if on { "true" } else { "false" })
+      .aria_label("手动填写版本")
+      .title(
+        if !has_choices {
+          "没有可选的版本，只能手动填"
+        } else if on {
+          "回到下拉选择（下拉里那份来自三个源里第一个答上来的）"
+        } else {
+          "自己填一个版本号，不用下拉里的那几个"
+        },
+      ),
+    on_click=emit(JobVersionManual(!model.job_version_manual)),
+    [
+      @html.span(class="dsh-switch-knob", @html.nothing),
+      @html.span(class="dsh-switch-text", "手动填写版本"),
+    ],
+  )
+}
+
+///|
+/// 「开始一条新作业」那一块。目标版本必须是使用者选/填的：留空就拦住，不猜一个版本。
 fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) -> @html.Html {
   let busy = model.job_busy != ""
-  // 目标版本留空就禁用「开始」：这一版没有「最新版」的来源，不替你挑一个版本装上
+  // 目标版本留空就禁用「开始」：下拉与手填都是使用者自己给的，不替他挑一个版本装上
   let version_empty = model.job_version.trim() == ""
   let disabled = busy || has_unfinished || version_empty
+  let has_choices = match model.releases {
+    Some(got) => got.versions.length() > 0
+    None => false
+  }
+  // 标签的 for 要指向**这一趟真画出来的那个控件**：下拉与手填是两个 id，
+  // 写死其中一个，另一种状态下标签就指着一个不存在的 id。
+  let manual = model.job_version_manual || !has_choices
+  let version_id = if has_choices && !manual {
+    "dsh-job-version-select"
+  } else {
+    "dsh-job-version"
+  }
   let hint = if has_unfinished {
     "已经有一条没做完的作业，先做完或中止它"
   } else if version_empty {
-    "先填要装的新版本号（例如 0.2.2-rc.1）；这一步只记回退点，不装东西"
+    if has_choices {
+      "先选一个目标版本；这一步只记回退点，不装东西"
+    } else {
+      "先填要装的新版本号（例如 0.2.2-rc.1）；这一步只记回退点，不装东西"
+    }
   } else {
     "记下回退点与开工前的版本指定，然后停在「安装新版本」"
   }
@@ -443,20 +701,16 @@ fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) 
       @html.div(class="dsh-job-start-row", [
         @html.label(
           class="dsh-label",
-          for_="dsh-job-version",
+          for_=version_id,
           attrs=mark("job-version-label", ["maintenance", "start", "version-label"]),
           "目标版本",
         ),
-        @html.input(
-          input_type=Text,
-          id="dsh-job-version",
-          class="dsh-dialog-input dsh-job-version",
-          value=model.job_version,
-          attrs=mark("job-version-input", ["maintenance", "start", "version"])
-            .aria_label("目标版本")
-            .spellcheck(false),
-          on_input=emit.map(fn(text) { JobVersionInput(text) }),
+        @html.div(
+          class="dsh-job-version-field",
+          attrs=mark("job-version-field", ["maintenance", "start", "version-field"]),
+          job_version_controls(model, busy || has_unfinished, emit),
         ),
+        job_version_manual_switch(model, busy || has_unfinished, emit),
         @html.label(
           class="dsh-label",
           for_="dsh-job-profile",

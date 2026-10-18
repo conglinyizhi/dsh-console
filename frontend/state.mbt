@@ -424,9 +424,20 @@ struct Model {
   // ── 维护页（作业台） ──
   // 与 act_notice 分开：总览页那条提示条读的是 act_notice，借它的话，
   // 在维护页做完动作再切回总览会看到一条与那一页无关的话。
-  /// 新作业表单里填的目标版本（空串 = 没填）。**不在本地补一个「最新版」**：
+  /// 新作业表单里选的目标版本（空串 = 没选）。**不在本地补一个「最新版」**：
   /// §4 说得很清楚，版本由使用者选，后端不猜。
+  /// 下拉与手填共用这一格 —— 换的只是输入方式，不是两个值。
   job_version : String
+  /// 「手动填写版本」的开关开着没有。默认关（走下拉）；选了下拉里的版本就不用它。
+  job_version_manual : Bool
+  /// 版本来源读数（GET /api/local/dsh-releases）：三个源并发问，各自 6 秒硬超时。
+  /// None + 还在问 = 读取中；None + 问完了 = 没读到（releases_error 里有原因）
+  releases : ReleasesFacts?
+  releases_error : String
+  releases_loading : Bool
+  /// 这一趟会话里已经问过了。**只问一次**：那一趟最坏要等 6 秒，
+  /// 每次切进维护页都重问会让「页面就是慢」变成一个解不开的印象。
+  releases_asked : Bool
   /// 新作业表单里选的试跑 profile（空串 = 还没亲手选过，按「在跑的 → web → 第一份」推）。
   /// 存「用户亲手选的那一个」，不存推出来的那一个：推的那份随读数变，
   /// 存下来就成了「明明不是它却显示是它」。
@@ -615,7 +626,14 @@ priv enum Msg {
   TrashPurgeConfirm
   TrashPurgeCancel
   // 维护页（作业台）：开始表单 / 展开步骤表 / 某条作业的一步 / 回执
+  /// 手填目标版本输入框里的文本
   JobVersionInput(String)
+  /// 从下拉里选了某一版（与手填同一个 job_version，换的只是输入方式）
+  JobVersionPicked(String)
+  /// 「手动填写版本」开关（true = 打开手填框，回到原来的输入方式）
+  JobVersionManual(Bool)
+  /// 版本来源读数的回执（三个源的结果在里面，包括全都没答上来的那种）
+  ReleasesText(Result[String, Error])
   JobProfilePicked(String)
   JobStart
   /// 作业 id + 这一步的动作（install-preview / install-confirm / test /
@@ -706,6 +724,11 @@ fn initial_model() -> Model {
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
+    job_version_manual: false,
+    releases: None,
+    releases_error: "",
+    releases_loading: false,
+    releases_asked: false,
     job_profile: "",
     job_busy: "",
     job_notice: "",
@@ -816,6 +839,16 @@ fn load(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 /// 重拼会让总览页白白闪一次，而实例一只都没变。
 fn load_runtime(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   @http.get("/api/local/runtime").expect_text(emit.map(fn(res) { RuntimeText(res) }))
+}
+
+///|
+/// GET /api/local/dsh-releases：能装哪一版 dsh（三个源并发问，各自 6 秒硬超时）。
+///
+/// 只在真进维护页时发（见 app.mbt 的 route_into）：这一趟最坏 6 秒，不该在启动时
+/// 顺手拖住首屏。三个源全没答上来也算读到了（回执里 sources 全是 ok=false）——
+/// 那时下拉换成一句「没问到可选的版本」，手填入口照旧可用。
+fn load_releases(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @http.get("/api/local/dsh-releases").expect_text(emit.map(fn(res) { ReleasesText(res) }))
 }
 
 ///|
