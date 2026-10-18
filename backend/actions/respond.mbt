@@ -3,7 +3,12 @@
 // 形状照 design/write-api-contract.md：
 //   成功 { ok:true, readOnly:false, readAt, data }
 //   失败 { ok:false, readOnly:false, error:{ code, message } }
-// 错误码只有契约里那七个，别的一个都不造。
+// 错误码只认下面这张表，别的一个都不造。
+//
+// 表里有一条不在原契约的七码之内：dsh-not-installed（版本切换那一轮加的）。
+// 为什么单独一条而不是并进 io-error：那是**调用方点错了目录**，不是读写失败 ——
+// 一句话能纠正的事（候选目录是哪几份，message 里都列着），报成 io-error 会把人引去查磁盘。
+// 新增这条要同步的只有两处：这张表与 status_for_code（400）。
 
 ///|
 /// 写响应上带的 X-Local-Api 值：与只读接口的 read-only 区分开，一眼能看出这是写动作的应答。
@@ -20,6 +25,8 @@ pub let codes : Array[String] = [
   "spawn-failed",
   "stop-failed",
   "io-error",
+  // 指定的那个目录不是这台机器上装着的一份 dsh（见 dsh_version.mbt 的 pin_dsh）
+  "dsh-not-installed",
 ]
 
 ///|
@@ -43,6 +50,8 @@ pub fn status_for_code(code : String) -> Int {
     "not-authorized" => 403
     "unknown-action" => 400
     "bad-params" => 400
+    // 点了一个不是安装的目录 = 请求本身不对，不是服务端读写失败
+    "dsh-not-installed" => 400
     "not-found" => 404
     "conflict" => 409
     _ => 500

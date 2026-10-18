@@ -16,6 +16,15 @@
 // 「<根>/<槽>/node_modules/@deepseek-ai/dsh」这条固定路径会整条落空：runtime 读 500、
 // 起实例报「找不到 dsh 入口」。链条与判据写在 find_installed_dsh 上面。
 //
+// 第四批：**候选变成复数，并且能指定用哪一份**。
+// 原来的三级链答的是「找到一份」，现在拆成两层：
+//   · installed_dsh_candidates —— 这台机器上装了哪几份（shim 解开的那份 + 全局根下扫到的全部，
+//     按真实路径去重）。pnpm 同一份 dsh 有两条写法（软链 / .pnpm 下的真身），字符串比会重复计数；
+//   · resolve_dsh_selection —— 生效的是哪一份：有指定（$XDG_STATE_HOME/dsh-console/dsh-pin.json）
+//     且那一份还在就用它，否则自动挑（choose_installed 的原来那三条）。
+// 指定失效（目录没了 / 版本对不上）时**回落自动挑并如实标 pin-missing**，不报错也不偷偷改记录。
+// 起实例那条路（installed_dsh_dir）与读数走同一个结论，不会出现「读数说 A、起实例用 B」。
+//
 // 文件 IO 只有 @json 里那几个只读入口：read_file / readdir / kind / exists / open+read_at。
 // 另外这一批用 @processes 的在跑实例读数挑「与在跑实例一致」的那一份（只读 /proc）。
 
@@ -35,6 +44,23 @@ let via_shim : String = "顺 PATH 上的 dsh 命令解开包目录"
 ///|
 /// 兜底那条：在全局根下按深度找。
 let via_scan : String = "在 pnpm 全局根下按深度 3 层找到包目录"
+
+
+///|
+/// 用户指定过版本时的来源串。
+let via_pin : String = "按你指定的版本"
+
+///|
+/// 指定记录在读、但它说的那一份已经不在这台机器上了：回落到自动挑。
+pub let pin_state_missing : String = "pin-missing"
+
+///|
+/// 指定记录在读、且指的那一份还在。
+pub let pin_state_pinned : String = "pinned"
+
+///|
+/// 没有指定记录（或记录坏了，按没指定办）。
+pub let pin_state_auto : String = "auto"
 
 ///|
 /// 多份候选时的取舍标签。
@@ -88,9 +114,16 @@ async fn global_roots() -> Array[String] noraise {
 }
 
 ///|
-struct DshPackage {
+/// 本机装着的一份 @deepseek-ai/dsh。
+///
+/// 这一层是从「找到一份」里拆出来的（版本切换那一轮）：**候选是复数**。
+/// 有复数才有「用哪一版起实例」可以选，读数也才说得清「这台机器上到底装了哪几份」。
+pub(all) struct DshPackage {
   name : String
   version : String
+  /// 包目录（…/node_modules/@deepseek-ai/dsh）。这里既可能是 pnpm 摆出来的软链路径，
+  /// 也可能是 .pnpm 下的真目录 —— 「是不是同一份」按真实路径判（见 same_package_dir），
+  /// 不按字符串比：同一个真目录在两种布局下有两个不同的写法。
   dir : String
   /// 这份是怎么找到的（进读数的来源串）
   source : String
@@ -363,8 +396,18 @@ async fn scan_root_for_dsh(root : String) -> Array[DshPackage] noraise {
 
 ///|
 /// 递归本体：每个目录先看自己下面的 node_modules/@deepseek-ai/dsh，再往下走一层。
-/// node_modules 本身不再进去（里面的 .pnpm 是真目录树，进去只会拖慢，
-/// 而入口那一份是软链，已经在上一层读到了）。
+/// node_modules 本身不再进去（里面的 .pnpm 是真目录树，整棵走一遍只会拖慢）。
+///
+/// 老布局（<槽>/node_modules/.pnpm/<条目>/node_modules/@deepseek-ai/dsh）不靠走 .pnpm 覆盖：
+/// pnpm 会在 <槽>/node_modules/@deepseek-ai/dsh 摆一条软链过去，而读 package.json 是**顺着软链**
+/// 读到的 —— 所以上面这一处固定路径就把老布局一起收进来了（本机实测：global/5 那一份的
+/// dshPackageDir 就是 global/5/node_modules/@deepseek-ai/dsh，真实路径在 .pnpm 里）。
+///
+/// 为什么**不**去 .pnpm 里按条目名扫「dsh」：那里不只有装好的 dsh，还有别的全局包顺便装进来的
+/// 依赖副本（本机就有一份 0.2.1-rc.2 只存在于某个槽的 .pnpm 里，pnpm 从没把它摆在
+/// node_modules/@deepseek-ai 下）。那种副本算不算「这台机器上装了一份 dsh」是可疑的，
+/// 而且一旦它的版本比正装的那份高，自动挑就会挑中它 —— 用户没装过的版本被拿去起实例。
+/// 这里只认「pnpm 在全局槽里摆出来、能被 dsh 命令用到」的那些。
 async fn scan_into(dir : String, depth : Int, found : Array[DshPackage]) -> Unit noraise {
   let pkg_dir = @json.join_all([dir, "node_modules", "@deepseek-ai", "dsh"])
   match read_package(@json.join_path(pkg_dir, "package.json")) {
@@ -407,11 +450,51 @@ async fn live_instance_packages() -> Array[DshPackage] noraise {
 }
 
 ///|
+/// 一个包目录的**真实路径**；读不出来就给原串（不编一条路径出来）。
+///
+/// 为什么要真实路径：同一个真目录在 pnpm 的布局里有两种写法 ——
+/// <槽>/<哈希>/node_modules/@deepseek-ai/dsh 是软链，真身是
+/// <槽>/<哈希>/node_modules/.pnpm/@deepseek-ai+dsh@<版本>_<哈希>/node_modules/@deepseek-ai/dsh。
+/// 两条都扫得到，字符串比不等，按字符串去重就会把同一份 dsh 列成两份。
+async fn real_dir(path : String) -> String noraise {
+  match @json.real_path(path) {
+    Some(p) => p
+    None => path
+  }
+}
+
+///|
+/// 两个包目录指的是不是同一份 dsh：真实路径相等即可（读不出来时退回字符串比）。
+async fn same_package_dir(a : String, b : String) -> Bool noraise {
+  if a == b {
+    return true
+  }
+  real_dir(a) == real_dir(b)
+}
+
+///|
+/// 把一个候选收进列表，按真实路径去重（同一份 dsh 只留先出现的那条写法）。
+async fn push_candidate(
+  found : Array[DshPackage],
+  seen : Array[String],
+  pkg : DshPackage,
+) -> Unit noraise {
+  let key = real_dir(pkg.dir)
+  if seen.contains(key) {
+    return
+  }
+  seen.push(key)
+  found.push(pkg)
+}
+
+///|
 /// 多份候选时的取舍（策略 3）：
 ///   ① 与在跑实例同一个包目录的那一份 —— 实例跑的就是它，最省事也最一致；
 ///   ② 没有①时，版本与在跑实例一致的那批里取版本最高；
 ///   ③ 连版本都无从参照时，直接取版本最高。
 /// 平手时保持候选顺序（shim 找到的那份在前），不靠哈希顺序碰运气。
+/// ①里「同一个包目录」按真实路径比（见 same_package_dir）：在跑实例的 argv 里
+/// 记的可能是哈希那个写法，而候选里留的是软链那个写法。
 async fn choose_installed(candidates : Array[DshPackage]) -> DshPackage? noraise {
   if candidates.length() == 0 {
     return None
@@ -421,8 +504,10 @@ async fn choose_installed(candidates : Array[DshPackage]) -> DshPackage? noraise
   }
   let live = live_instance_packages()
   for c in candidates {
-    if live.any(fn(l) { l.dir == c.dir }) {
-      return Some({ ..c, source: c.source + "；" + pick_same_dir })
+    for l in live {
+      if same_package_dir(l.dir, c.dir) {
+        return Some({ ..c, source: c.source + "；" + pick_same_dir })
+      }
     }
   }
   let matched : Array[DshPackage] = []
@@ -443,12 +528,16 @@ async fn choose_installed(candidates : Array[DshPackage]) -> DshPackage? noraise
 }
 
 ///|
-/// 找本机的 @deepseek-ai/dsh，按可靠性三级：
+/// 本机装着的那几份 @deepseek-ai/dsh。
+///
+/// 两条来源各自独立，**都收**（不像从前那样「第一条命中就停」）：
 ///   1. 顺 PATH 上的 dsh 命令（shim）解开 → 真包目录（最可靠：那是 `dsh` 真会跑的那一份）
 ///   2. 在已知全局根下按深度 ≤3 找 node_modules/@deepseek-ai/dsh（覆盖 root/、root/槽/、
-///      root/槽/哈希/ 三种布局；不写死 v11 那一层）
-///   3. 多份候选时挑与在跑实例一致的那份，挑不出取版本最高的
-/// 用了哪条策略写进返回值的 source，/api/local/runtime 的来源串直接用它。
+///      root/槽/哈希/ 三种布局；不写死 v11 那一层。老布局那份在 .pnpm 里，但 pnpm 会在
+///      <槽>/node_modules/@deepseek-ai/dsh 摆软链过来，读 package.json 时顺着软链读到了）
+/// 同一份 dsh 会被多条路径找到（同一个槽有两三个名字：哈希目录与指向它的软链条目、
+/// 几个全局根同时挂着），按真实路径去重，
+/// 留下先出现的那条写法。顺序是「shim 在前、扫描在后」—— 取舍见 choose_installed。
 ///
 /// 同一文件里的同类风险（都靠固定布局，逐个判过）：
 ///   · global_roots 的固定三个根 —— 已加 PNPM_HOME / XDG_DATA_HOME，根挪走了也还有得扫；
@@ -456,28 +545,109 @@ async fn choose_installed(candidates : Array[DshPackage]) -> DshPackage? noraise
 ///   · resolve_dsh_home 的默认 ~/.dsh —— 那是 dsh 自己的默认值，跟随它才对，不加兜底；
 ///   · consoleVersion 的 VERSION / package.json 定位 —— 找的是本工程自己的目录，不是别人的布局；
 ///   · dist_static 的 dist 根 —— 同上，且解析失败已如实报 503 与原因。
-pub async fn find_installed_dsh() -> DshPackage? noraise {
-  let candidates : Array[DshPackage] = []
+pub async fn installed_dsh_candidates() -> Array[DshPackage] noraise {
+  let found : Array[DshPackage] = []
+  let seen : Array[String] = []
   match shim_candidate() {
-    Some(pkg) => candidates.push(pkg)
+    Some(pkg) => push_candidate(found, seen, pkg)
     None => ()
   }
   for root in global_roots() {
     if !@json.is_dir(root) {
       continue
     }
-    for found in scan_root_for_dsh(root) {
-      if !candidates.any(fn(c) { c.dir == found.dir }) {
-        candidates.push(found)
-      }
+    for pkg in scan_root_for_dsh(root) {
+      push_candidate(found, seen, pkg)
     }
   }
-  choose_installed(candidates)
+  found
+}
+
+///|
+/// 生效的那一份 + 它为什么是这一份。
+pub(all) struct DshSelection {
+  pkg : DshPackage
+  /// auto / pinned / pin-missing（见 pin_state_*）
+  pin_state : String
+  /// 要说给人听的一句：pin-missing 时是「你指定过哪一版、现在按哪一版」；其余空串。
+  note : String
+}
+
+///|
+/// 指定记录说的那一份还在不在候选里。
+///
+/// 两条都要成立：目录是同一份（真实路径比，见 same_package_dir），且它的 package.json
+/// 版本与记录一致 —— 目录没变、里面被换成另一个版本，那已经不是用户当初指定的那一版了，
+/// 按「找不到」算，不拿新版冒充旧版。
+async fn pinned_candidate(
+  candidates : Array[DshPackage],
+  pin : @store.DshPin,
+) -> DshPackage? noraise {
+  for c in candidates {
+    if c.version == pin.version && same_package_dir(c.dir, pin.dir) {
+      return Some({ ..c, source: via_pin })
+    }
+  }
+  None
+}
+
+///|
+/// 指定失效时那句人话。
+fn pin_missing_note(pin : @store.DshPin, pkg : DshPackage) -> String {
+  "你指定过 " + pin.version + "（" + pin.dir + "），现在这台机器上找不到它了；" +
+  "这一版按自动挑出来的 " + pkg.version + " 算"
+}
+
+///|
+/// 生效版本：先看有没有指定（且那一份还在），没有或失效就走自动挑。
+///
+/// 返回的 pin_state 是**读数的一部分**，不是内部状态：
+///   auto        没有指定记录（或记录坏了，按没指定办）
+///   pinned      按你指定的那一版
+///   pin-missing 指定过，但那份已经不在这台机器上（或版本对不上）—— 已回落到自动挑
+/// pin-missing 时 note 里写明「你指定过哪一版、现在按哪一版」：
+/// 悄悄换成另一版去起实例，比直接报错更难查。
+pub async fn resolve_dsh_selection() -> DshSelection? noraise {
+  let candidates = installed_dsh_candidates()
+  if candidates.length() == 0 {
+    return None
+  }
+  match @store.load_dsh_pin() {
+    Some(pin) =>
+      match pinned_candidate(candidates, pin) {
+        Some(pkg) => Some({ pkg, pin_state: pin_state_pinned, note: "" })
+        None =>
+          match choose_installed(candidates) {
+            Some(pkg) =>
+              Some({
+                pkg,
+                pin_state: pin_state_missing,
+                note: pin_missing_note(pin, pkg),
+              })
+            None => None
+          }
+      }
+    None =>
+      match choose_installed(candidates) {
+        Some(pkg) => Some({ pkg, pin_state: pin_state_auto, note: "" })
+        None => None
+      }
+  }
+}
+
+///|
+/// 找本机的 @deepseek-ai/dsh，只要一份。口径是「生效版本」：有指定且那一份还在就用它，
+/// 否则自动挑（见 resolve_dsh_selection）。读数与起实例都走这一条，不会指向两份不同的 dsh。
+pub async fn find_installed_dsh() -> DshPackage? noraise {
+  match resolve_dsh_selection() {
+    Some(sel) => Some(sel.pkg)
+    None => None
+  }
 }
 
 ///|
 /// 已安装 dsh 的包目录，给「起实例」用：与 /api/local/runtime 的 dshPackageDir 同一条链
-/// （同一个 find_installed_dsh），起实例时不会和读数指向两份不同的 dsh。
+/// （同一个 resolve_dsh_selection），起实例时不会和读数指向两份不同的 dsh。
 pub async fn installed_dsh_dir() -> String? noraise {
   match find_installed_dsh() {
     Some(d) => Some(d.dir)
@@ -529,14 +699,38 @@ pub async fn kernel_release() -> String noraise {
 }
 
 ///|
+/// 一份候选在读数里的样子。
+///
+/// active / running 两条标记都是**事实**，不是推断：
+///   active  = 这就是当前生效的那一份（起实例会用它）
+///   running = 有在跑的实例，它的入口包就是这一份
+/// 「在跑」这一条只看在跑实例的 argv（/proc/<pid>/cmdline），不看版本号 ——
+/// 版本相同但目录不同的两份 dsh 不是同一份（一份是软链、一份是别的全局根里的安装）。
+fn candidate_json(
+  pkg : DshPackage,
+  active : Bool,
+  running : Bool,
+) -> @json.JsonVal {
+  @json.JObj([
+    ("version", @json.JStr(pkg.version)),
+    ("name", @json.JStr(pkg.name)),
+    ("dir", @json.JStr(pkg.dir)),
+    ("source", @json.JStr(pkg.source)),
+    ("active", @json.JBool(active)),
+    ("running", @json.JBool(running)),
+  ])
+}
+
+///|
 /// 组装 /api/local/runtime 的 data 对象。
 pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
   let (dsh_home, dsh_home_source) = resolve_dsh_home()
   if !@json.is_dir(dsh_home) {
     @localapi.fail_read("dsh-home-missing", "DSH_HOME 不是可读目录：\{dsh_home}")
   }
-  let dsh = match find_installed_dsh() {
-    Some(d) => d
+  let candidates = installed_dsh_candidates()
+  let selection = match resolve_dsh_selection() {
+    Some(sel) => sel
     None => {
       @localapi.fail_read(
         "dsh-package-missing",
@@ -545,6 +739,21 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
       )
       abort("unreachable: fail_read always raises")
     }
+  }
+  let dsh = selection.pkg
+  // 「在跑」按真实路径对：在跑实例的 argv 与候选可能各自写着软链 / 真身两种写法。
+  let live = live_instance_packages()
+  let live_dirs : Array[String] = []
+  for item in live {
+    live_dirs.push(real_dir(item.dir))
+  }
+  let active_dir = real_dir(dsh.dir)
+  let listed : Array[@json.JsonVal] = []
+  for pkg in candidates {
+    let key = real_dir(pkg.dir)
+    listed.push(
+      candidate_json(pkg, key == active_dir, live_dirs.contains(key)),
+    )
   }
   let dsh_profile = @json.env_raw("DSH_PROFILE")
   // 控制台版本：优先仓库根的 VERSION 文件，没有才退回前端 package.json。
@@ -558,6 +767,10 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
     ("dshPackageName", @json.JStr(dsh.name)),
     ("dshPackageDir", @json.JStr(dsh.dir)),
     ("dshSourceLabel", @json.JStr(dsh_source_label + "（" + dsh.source + "）")),
+    ("dshCandidates", @json.JArr(listed)),
+    ("dshPinState", @json.JStr(selection.pin_state)),
+    // 指定失效时那句话（其余情况是空串）：读数里不说清，界面上就只剩一个状态词
+    ("dshPinNote", @json.JStr(selection.note)),
     ("backendRuntime", @json.JStr(@json.backend_runtime)),
     ("backendVersion", @json.JStr(@json.backend_version)),
     ("backendPackageName", @json.JStr(@json.backend_package_name)),

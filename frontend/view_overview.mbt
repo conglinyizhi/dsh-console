@@ -801,14 +801,35 @@ fn detail_drawer(
   // 开 / 收两种状态。样式里 .dsh-drawer 与 .dsh-drawer-scrim 各挂一套 keyframes，
   // 收的那一只对指针关掉（半透明的面板不该再吃点击）
   let state = if closing { "closing" } else { "open" }
-  let fields = @html.ul(class="dsh-fields", [
+  let field_items : Array[@html.Html] = [
     field("label-outline", "dsh-version", row.id, "DSH 版本 / 来源", row.version, row.version_hint),
     field("layers-outline", "profile", row.id, "Profile", row.profile, row.profile_hint),
     field("link-variant", "url", row.id, "访问地址", row.url, url_hint(row)),
+  ]
+  // 「还听着 9230」：同一个进程的其余监听端口，紧跟在主端口（访问地址）那一行后面。
+  // 只在真有第二个端口时出现；卡片上一律不显示、也不因此变色。
+  if row.also_ports.length() > 0 {
+    field_items.push(
+      field(
+        "hub-outline",
+        "also-ports",
+        row.id,
+        "还听着",
+        join_with(row.also_ports, "、"),
+        row.also_ports_hint,
+      ),
+    )
+  }
+  field_items.push(
     field("home-outline", "home", row.id, "DSH_HOME", row.home, row.home_hint),
+  )
+  field_items.push(
     field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
+  )
+  field_items.push(
     field("clock-outline", "mtime", row.id, "最近改动", mtime_value(row), row.mtime_hint),
-  ])
+  )
+  let fields = @html.ul(class="dsh-fields", field_items)
   let body : Array[@html.Html] = [
     drawer_state_block(row),
     @html.div(class="dsh-drawer-section", [

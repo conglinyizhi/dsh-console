@@ -224,6 +224,11 @@ struct Row {
   /// 正文是不是**自由文本**（未知那一类）。true → 最多两行、超出省略号；
   /// false → 一行摘要 + 省略号。已知那一类再长也不换形状。
   health_free : Bool
+  /// 同一个进程的其余监听端口（如 "9230"）。空数组 = 只听着一个端口 ——
+  /// 抽屉里那行「还听着 9230」只在非空时出现；卡片上一律不显示、也不因此变色。
+  also_ports : Array[String]
+  /// 上面那一行的悬停：每个端口各自是什么（后端给的那句话）
+  also_ports_hint : String
 } derive(Eq)
 
 pub extend Row with Eq::{ not_equal, equal }
@@ -417,6 +422,15 @@ struct Model {
   archived_open : Bool
   /// 用户手动折过归档区没有：折过之后就不再被 ui.archiveOpenByDefault 覆盖
   archived_user_toggled : Bool
+  // 关于页「这台的 dsh 版本」（指定用哪一版起实例）
+  //
+  // 这三格与 act_notice 分开：总览页那条提示条读的是 act_notice，
+  // 在这里借它的话，改完版本切回总览会看到一条与那一页无关的话。
+  /// 正在指定的那一份包目录（空串 = 没有在指定，按钮因此可点）
+  dsh_pin_busy : String
+  /// 上一次指定 / 撤指定之后那句话（失败也走这里 —— 那一页没有别的地方能说）
+  dsh_pin_notice : String
+  dsh_pin_notice_ok : Bool
   // 设置页
   settings_loaded : Bool
   settings_loading : Bool
@@ -589,6 +603,10 @@ priv enum Msg {
   HttpDone(String, String, String, String, Result[String, Error])
   // 复制到剪贴板的回执：复制的是谁的那一条地址 / 传输层拿回来的那段 JSON
   CopyDone(String, Result[String, Error])
+  // 关于页「这台的 dsh 版本」：把某一份指定成起实例用的那一版 / 撤掉指定回到自动。
+  // 带的是包目录与版本号 —— 回执要说清「以后起实例用的是哪一版」，不能只说「成功了」。
+  DshVersionPin(String, String)
+  DshVersionUnpin
   Noop
 }
 
@@ -652,6 +670,9 @@ fn initial_model() -> Model {
     // 折叠起来不占视线，功能本身留着（展开即可用），比删掉合适。
     archived_open: false,
     archived_user_toggled: false,
+    dsh_pin_busy: "",
+    dsh_pin_notice: "",
+    dsh_pin_notice_ok: false,
     settings_loaded: false,
     settings_loading: false,
     settings: None,
@@ -732,10 +753,20 @@ fn readings_pending(model : Model) -> Bool {
 ///|
 fn load(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   @cmd.batch([
-    @http.get("/api/local/runtime").expect_text(emit.map(fn(res) { RuntimeText(res) })),
+    load_runtime(emit),
     load_console(emit),
     load_readings(emit),
   ])
+}
+
+///|
+/// 只重读 /api/local/runtime。
+///
+/// 单独一条是为了「改完生效版本」那一处（见 app.mbt 的 dsh_pin_settled）：
+/// 版本变了只需要重读这一份读数，不该顺带把列表用的那三份读数重拼一遍 ——
+/// 重拼会让总览页白白闪一次，而实例一只都没变。
+fn load_runtime(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @http.get("/api/local/runtime").expect_text(emit.map(fn(res) { RuntimeText(res) }))
 }
 
 ///|
@@ -1913,6 +1944,13 @@ fn running_rows(
       health_text: health.text,
       health_hint: health.hint,
       health_free: health.free,
+      // 同一个进程的其余监听端口：只作附注（抽屉里一行「还听着 9230」），
+      // 卡片上不显示、也不因此变色 —— 那一行说的是这只实例，不是那个端口。
+      also_ports: fact.also_ports.map(fn(p) { p.port.to_string() }),
+      also_ports_hint: join_with(
+        fact.also_ports.map(fn(p) { "端口 " + p.port.to_string() + "：" + p.note }),
+        " | ",
+      ),
       last_started,
       last_started_source,
     }
@@ -2125,6 +2163,9 @@ fn profile_rows(
       health_text: health.text,
       health_hint: health.hint,
       health_free: health.free,
+      // 没有在跑的实例，也就没有「同一个进程的另一个端口」这回事
+      also_ports: [],
+      also_ports_hint: "",
     })
   }
   // 已停止这一组按**最近改动降序**：新的在最上面。
@@ -2253,6 +2294,8 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     health_text: "—",
     health_hint: "",
     health_free: false,
+    also_ports: [],
+    also_ports_hint: "",
   }
 }
 
@@ -2289,6 +2332,8 @@ fn demo_running() -> Array[Row] {
       health_text: "—",
       health_hint: "",
       health_free: false,
+      also_ports: [],
+      also_ports_hint: "",
     },
     {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
@@ -2311,6 +2356,8 @@ fn demo_running() -> Array[Row] {
       health_text: "—",
       health_hint: "",
       health_free: false,
+      also_ports: [],
+      also_ports_hint: "",
     },
   ]
 }
@@ -2339,6 +2386,8 @@ fn demo_stopped() -> Array[Row] {
       health_text: "—",
       health_hint: "",
       health_free: false,
+      also_ports: [],
+      also_ports_hint: "",
     },
   ]
 }

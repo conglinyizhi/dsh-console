@@ -67,10 +67,17 @@ pub struct ArgRejection {
 
 ///|
 /// 起实例用的入口。
+///
+/// version / pin_state / pin_note 是**这一次用的是哪一版、为什么是它**（见 runtime 的
+/// resolve_dsh_selection）：起实例的结果里要写清楚，用户点了「用这一版」之后
+/// 起出来的到底是不是那一版，不能靠事后猜。pin_note 只在指定失效时非空。
 pub struct DshCommand {
   node : String
   script : String
   package_dir : String
+  version : String
+  pin_state : String
+  pin_note : String
 }
 
 ///|
@@ -85,6 +92,13 @@ pub struct SpawnOutcome {
   boot_ms : Int
   command : String
   url : String
+  /// 这一只实例跑的 dsh 版本与包目录（起的那一刻生效的那一份）
+  dsh_version : String
+  dsh_package_dir : String
+  /// auto / pinned / pin-missing（见 runtime 的 pin_state_*）
+  dsh_pin_state : String
+  /// 指定失效时那句人话（其余空串）
+  dsh_pin_note : String
 }
 
 ///|
@@ -121,14 +135,16 @@ pub async fn find_in_path(name : String) -> String? noraise {
 
 ///|
 /// 解析 dsh 入口：包目录 -> lib/bin.js。包目录不存在 / 入口缺失给 None。
-/// 包目录来自 @runtime.installed_dsh_dir 那条兜底链（顺 dsh shim / 全局根下按深度找 /
-/// 多份取与在跑实例一致的），与 /api/local/runtime 的 dshPackageDir 同一份结论 ——
-/// 起实例不会和读数指向两个不同的 dsh。
+/// 包目录来自 @runtime.resolve_dsh_selection 那条链（顺 dsh shim / 全局根下按深度找 /
+/// 有指定且那份还在就用指定、否则多份取与在跑实例一致或版本最高的），
+/// 与 /api/local/runtime 的 dshPackageDir 是同一份结论 ——
+/// 起实例不会和读数指向两个不同的 dsh，改版本也不需要动系统上的 dsh 命令。
 pub async fn resolve_dsh_command() -> DshCommand? noraise {
-  let dir = match @runtime.installed_dsh_dir() {
-    Some(d) => d
+  let selection = match @runtime.resolve_dsh_selection() {
+    Some(sel) => sel
     None => return None
   }
+  let dir = selection.pkg.dir
   let script = @json.join_all([dir, "lib", "bin.js"])
   if !@json.exists(script) {
     return None
@@ -137,7 +153,14 @@ pub async fn resolve_dsh_command() -> DshCommand? noraise {
     Some(p) => p
     None => "node"
   }
-  Some({ node, script, package_dir: dir })
+  Some({
+    node,
+    script,
+    package_dir: dir,
+    version: selection.pkg.version,
+    pin_state: selection.pin_state,
+    pin_note: selection.note,
+  })
 }
 
 ///|
@@ -684,6 +707,10 @@ pub async fn start_instance(
     boot_ms,
     command: command.node + " " + args.join(" "),
     url: "http://127.0.0.1:" + chosen.to_string() + "/",
+    dsh_version: command.version,
+    dsh_package_dir: command.package_dir,
+    dsh_pin_state: command.pin_state,
+    dsh_pin_note: command.pin_note,
   }
 }
 
@@ -972,7 +999,15 @@ pub async fn resolve_target(pid_in : Int?, port_in : Int?) -> Target raise Actio
     Some(p) => {
       let instances = @instances.instances_report_with_settings()
       for item in instances.instances {
-        if item.port == p {
+        // 主端口与 alsoPorts 都算：列表按 pid 归并之后，另一个端口不再有自己那一行，
+        // 但按端口点「停止 / 重启」的老路径还得认得出它属于哪只实例。
+        let mut hit = item.port == p
+        for extra in item.also_ports {
+          if extra.port == p {
+            hit = true
+          }
+        }
+        if hit {
           match item.pid {
             Some(found_pid) =>
               return {

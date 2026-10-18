@@ -1410,6 +1410,41 @@ $drawer-ms: 220ms;
   font-size: 11px;
   color: $text-dim;
 }
+// ── 关于页「这台的 dsh 版本」 ───────────────────────────────
+// 一行一份装着的 dsh：版本号在左，标记与按钮在右。沿用 .dsh-row 的排版
+// （同一张面板里的行），只把竖向对齐改成居中 —— 右边是按钮，baseline 对它没用。
+.dsh-version-item {
+  align-items: center;
+  gap: 10px;
+}
+// 版本号吃掉剩余宽度：长了就自己折行，按钮永远贴右边
+.dsh-version-item .dsh-value {
+  flex: 1 1 auto;
+}
+// 「在用 / 在跑」两枚小标记。在用那一枚稍亮 —— 它答的是「起实例会用这一份」
+.dsh-dsh-marks {
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+}
+.dsh-dsh-mark {
+  font-size: 11px;
+  color: $text-dim;
+  white-space: nowrap;
+}
+.dsh-dsh-mark.is-active {
+  color: $text;
+}
+// 一行里的按钮组：不折、不缩，位置固定在最右
+.dsh-dsh-actions {
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+}
+// 「现在生效的是哪一版」那一句：贴在候选列表下面，与面板里别的说明文字同一档
+.dsh-dsh-pin-line {
+  margin: 10px 0 0;
+}
 // ── 手写的两条（不在 Vue 版样式块里，属于这一次新增的交互） ──
 // 归档区的折叠开关：清单要求「可折叠」，Vue 版没有这个交互，没有可搬的规则。
 // 外观跟着分组头走（字号字重色都从 .dsh-section-title 继承），只去掉按钮的默认皮。

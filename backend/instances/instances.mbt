@@ -15,6 +15,10 @@
 //   dsh-auth-401    HTTP 401 且体含 "dsh web authentication required"
 //   dsh-boot-global 体含 "__DSH_BOOT__"
 // 「含 DSH 字样」绝不作判据——本控制台自己的页面标题就带 DSH，那样会把自己列成实例。
+//
+// 列表的粒度是**进程**，不是端口：探是按端口探的（probeResults 一份不少），
+// 但列出来的条目按 pid 归并成一行，同一只进程的其余端口收进 alsoPorts（见 merge_same_pid）。
+// 从前一个 pid 听着两个端口就出两行，其中必然有一行是「故障」—— 那是把「正常」说成了「坏」。
 
 ///|
 /// 监听套接字的来源文件；0A = LISTEN。
@@ -67,6 +71,22 @@ pub struct ProbeResult {
 }
 
 ///|
+/// 同一只进程的另一个监听端口。
+///
+/// 为什么收进主端口那一行而不是单独成行：一个 pid 同时听着几个端口时，那几个端口说的都是
+/// 「这同一只实例」。各占一行会让一只实例在界面上出现两次，而且其中一行注定是「故障」——
+/// dsh 的网页入口只有一个端口，另一个端口探 GET / 自然是 404，那是**正常的**。
+/// 界面在说假话比少列一个端口更糟，所以收进主端口那一行，只当一条附注。
+pub struct AlsoPort {
+  port : Int
+  http_status : Int?
+  /// 这个端口命中的判据（没命中给空串）
+  signature_id : String
+  /// 一句人话：这个端口是什么、这一次探测拿到了什么
+  note : String
+}
+
+///|
 /// 命中的实例。
 pub struct InstanceSummary {
   id : String
@@ -101,6 +121,8 @@ pub struct InstanceSummary {
   state_reason : String
   /// 解析出的 profile 体检（缺包数 + 有没有 cordis.patch.yml）；解析不出来给 None
   health : @profiles.ProfileHealth?
+  /// 同一个 pid 名下的其余监听端口（主端口之外的）。空数组 = 这只进程只听着这一个端口。
+  also_ports : Array[AlsoPort]
 }
 
 ///|
@@ -653,7 +675,123 @@ async fn summarize(
     state,
     state_reason,
     health,
+    // 归并那一步才填（见 merge_same_pid）：一条探测结论只看得到一个端口
+    also_ports: [],
   }
+}
+
+///|
+/// 两个同 pid 的端口里，哪一个更适合当这一行的主端口：
+///   ① 签名命中 dsh 判据的那个 —— 那才是 dsh 的入口，状态灯与所有读数都该由它来定；
+///   ② 都命中（罕见）/ 都没命中时取端口号小的那个。
+/// 这一条与「都不命中时取最小端口」是同一个判据的两半，写在一处免得两边不一致。
+fn main_better(a : InstanceSummary, b : InstanceSummary) -> Bool {
+  let a_sig = a.signature_id != ""
+  let b_sig = b.signature_id != ""
+  if a_sig != b_sig {
+    return a_sig
+  }
+  a.port < b.port
+}
+
+///|
+/// 另一个端口那一句人话：探到什么就说什么，不一律说成「不是 dsh」。
+///
+/// 命中判据的那一种（同一只进程在两个端口上各答一次 dsh 的应答）也要照实说，
+/// 不然那句话就成了「明明命中了，界面上写着不是入口」。
+fn also_port_note(item : InstanceSummary) -> String {
+  if item.signature_id != "" {
+    return "同一个进程的另一个监听端口，它也答出了 dsh 的应答"
+  }
+  match item.http_status {
+    Some(code) =>
+      "同一个进程的另一个监听端口，不是 dsh 的网页入口：这一次探测回的是 HTTP " +
+      @json.int_to_dec(code)
+    None => "同一个进程的另一个监听端口，不是 dsh 的网页入口：这一次探测没打通"
+  }
+}
+
+///|
+/// 按 pid 归并：一个 pid 一行。
+///
+/// 主端口按 main_better 定（签名命中的优先，都没有取端口最小的），
+/// 该 pid 名下的其余端口收进这一行的 also_ports；state / stateReason 只按主端口算。
+/// **没有 pid 的条目不参与归并**：进程没 join 上时「这两个端口是不是同一只进程」本来就没证据，
+/// 硬凑成一行就是把猜的东西当事实写出来。
+///
+/// 输出顺序仍是端口升序（按主端口），与这一轮之前「顺序按端口升序」的口径一致。
+fn merge_same_pid(items : Array[InstanceSummary]) -> Array[InstanceSummary] {
+  // ① 先按 pid 分组（没有 pid 的每一条各自成一组）
+  let groups : Array[Array[InstanceSummary]] = []
+  let group_pids : Array[Int?] = []
+  for item in items {
+    let mut at = -1
+    match item.pid {
+      Some(pid) => {
+        let mut i = 0
+        while i < group_pids.length() {
+          match group_pids[i] {
+            Some(p) => if p == pid { at = i }
+            None => ()
+          }
+          i = i + 1
+        }
+      }
+      None => ()
+    }
+    if at < 0 {
+      groups.push([item])
+      group_pids.push(item.pid)
+    } else {
+      groups[at].push(item)
+    }
+  }
+  // ② 每组挑一个主端口，其余挂成 also_ports
+  let out : Array[InstanceSummary] = []
+  for g in groups {
+    let mut main_at = 0
+    let mut k = 1
+    while k < g.length() {
+      if main_better(g[k], g[main_at]) {
+        main_at = k
+      }
+      k = k + 1
+    }
+    let also : Array[AlsoPort] = []
+    let mut j = 0
+    while j < g.length() {
+      if j != main_at {
+        also.push({
+          port: g[j].port,
+          http_status: g[j].http_status,
+          signature_id: g[j].signature_id,
+          note: also_port_note(g[j]),
+        })
+      }
+      j = j + 1
+    }
+    let main_item = g[main_at]
+    out.push({ ..main_item, also_ports: also })
+  }
+  // ③ 按主端口升序（组数很少，选择排序足够，也免得给结构体写一个比较器）
+  let mut i = 0
+  while i < out.length() {
+    let mut min = i
+    let mut j = i + 1
+    while j < out.length() {
+      if out[j].port < out[min].port {
+        min = j
+      }
+      j = j + 1
+    }
+    if min != i {
+      let tmp = out[i]
+      out[i] = out[min]
+      out[min] = tmp
+    }
+    i = i + 1
+  }
+  out
 }
 
 ///|
@@ -720,7 +858,8 @@ pub async fn instances_report(
   let (supplement, with_port) = supplement_processes(holders, wanted_inodes.length())
   // 状态判据要用「这条是不是本控制台起的」：runtime.json 只记控制台起过的实例。
   let registry = @store.load_registry().entries
-  let instances : Array[InstanceSummary] = []
+  // 逐端口收，收完按 pid 归并（一个 pid 一行，见 merge_same_pid）
+  let per_port : Array[InstanceSummary] = []
   let probe_results : Array[ProbeResult] = []
   let mut reached = 0
   let mut hits = 0
@@ -788,8 +927,9 @@ pub async fn instances_report(
         continue
       }
     }
-    instances.push(summarize(probe, facts, inode, signature, registry))
+    per_port.push(summarize(probe, facts, inode, signature, registry))
   }
+  let instances = merge_same_pid(per_port)
 
   {
     per_file,
@@ -858,6 +998,16 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
     // 带令牌的访问地址（契约第四轮）：每次现算，不缓存 —— token 每次启动都可能变。
     // 读不到就是 null，原因写在 webUrlSource 里（见 weburl.mbt）。
     let web = lookup_web_url(item)
+    // 同一个进程的其余监听端口：只当附注，不单独成行（见 merge_same_pid）
+    let also : Array[@json.JsonVal] = []
+    for extra in item.also_ports {
+      also.push(@json.JObj([
+        ("port", @json.jint(extra.port)),
+        ("httpStatus", @json.int_or_null(extra.http_status)),
+        ("signatureId", @json.JStr(extra.signature_id)),
+        ("note", @json.JStr(extra.note)),
+      ]))
+    }
     instances.push(@json.JObj([
       ("id", @json.JStr(item.id)),
       ("port", @json.jint(item.port)),
@@ -892,6 +1042,8 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
       ("state", @json.JStr(item.state)),
       ("stateReason", @json.JStr(item.state_reason)),
       ("profileHealth", profile_health_json(item.health)),
+      // 同一只进程的其余监听端口（主端口之外的）：空数组 = 只听着这一个
+      ("alsoPorts", @json.JArr(also)),
     ]))
   }
   @json.JObj([

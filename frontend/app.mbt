@@ -824,6 +824,69 @@ fn trash_receipt(
 }
 
 ///|
+/// 关于页「用这一版」：把这一份 dsh 指定成起实例用的那一版（POST pin-dsh）。
+///
+/// 这条动作不挂在任何一行实例上：row_id 给空串，回执按动作名分派（见 update 里的 HttpDone），
+/// 不走总览页那条提示条 —— 那一页说的是实例，这里说的是安装。
+fn pin_dsh_version(
+  model : Model,
+  dir : String,
+  version : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  if dir == "" {
+    return (
+      {
+        ..model,
+        dsh_pin_notice: "这一份 dsh 的目录没读到，没法指定（读数里那一格是空的）",
+        dsh_pin_notice_ok: false,
+      },
+      @cmd.none,
+    )
+  }
+  let params = params_of([("dir", json_text_literal(dir))])
+  (
+    { ..model, dsh_pin_busy: dir, dsh_pin_notice: "" },
+    action_cmd("", "pin-dsh", version, "用这一版", action_body("pin-dsh", params), emit),
+  )
+}
+
+///|
+/// 关于页「回到自动」：撤掉指定（POST unpin-dsh，没有参数）。
+fn unpin_dsh_version(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  (
+    { ..model, dsh_pin_busy: "auto", dsh_pin_notice: "" },
+    action_cmd("", "unpin-dsh", "", "回到自动", action_body("unpin-dsh", "{}"), emit),
+  )
+}
+
+///|
+/// 「用这一版 / 回到自动」的回执：把结果写进关于页那一格，并重读 runtime 读数。
+///
+/// **重读就是这条动作的正文**：能不能指定、指定之后生效的是哪一版，都由
+/// /api/local/runtime 说了算（dshVersion / dshPinState / dshCandidates）。
+/// 本地不猜结果 —— 猜一个「已切换」出去，重读完界面又变回去，比不换更糟。
+fn dsh_pin_settled(
+  model : Model,
+  action : String,
+  ok : Bool,
+  note : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let text = if ok {
+    note
+  } else if action == "pin-dsh" {
+    "没能指定这个版本：" + note
+  } else {
+    "没能回到自动：" + note
+  }
+  (
+    { ..model, dsh_pin_busy: "", dsh_pin_notice: text, dsh_pin_notice_ok: ok },
+    if ok { load_runtime(emit) } else { @cmd.none },
+  )
+}
+
+///|
 /// 动作回执：谁 + 做了什么 + 结果。
 ///
 /// **不让调用方拼「动作名 + 名字」那种标签**：它以前被贴在提示条句首
@@ -2627,6 +2690,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       let (ok, note) = interpret_http(res)
       if action == "set-profile-note" {
         note_settled(model, res, name, note, emit)
+      } else if action == "pin-dsh" || action == "unpin-dsh" {
+        dsh_pin_settled(model, action, ok, note, emit)
       } else if action == "start-instance" && model.act_pending == row_id {
         finish_start({ ..model, act_response: true, act_ok: ok, act_note: note }, emit)
       } else {
@@ -2693,6 +2758,9 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         (clear_flash(model), @cmd.none)
       }
     FlashHover(on) => ({ ..model, flash_hover: on }, @cmd.none)
+    // 关于页：把某一份 dsh 指定成起实例用的那一版 / 撤掉指定回到自动
+    DshVersionPin(dir, version) => pin_dsh_version(model, dir, version, emit)
+    DshVersionUnpin => unpin_dsh_version(model, emit)
     Noop => (model, @cmd.none)
   }
 }

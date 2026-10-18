@@ -140,10 +140,37 @@ fn open_envelope(text : String) -> Result[Map[String, Json], String] {
 // ── GET /api/local/runtime ──────────────────────────────────
 
 ///|
+/// 这台机器上装着的一份 dsh（读数里的 dshCandidates 一项）。
+///
+/// active / running 都是后端给的事实，前端不按版本号自己推：
+///   active  起实例（启动 / 重启）会用这一份
+///   running 有在跑的实例，它的入口包就是这一份
+/// 版本号相同、目录不同的两份 dsh 不是同一份（一份是软链、一份在别的全局根里），
+/// 所以「是不是同一份」永远看后端怎么判。
+pub(all) struct DshCandidate {
+  version : String
+  name : String
+  dir : String
+  /// 这份是怎么找到的（后端原样给，进悬停）
+  source : String
+  active : Bool
+  running : Bool
+} derive(Eq)
+
+pub extend DshCandidate with Eq::{ not_equal, equal }
+
+///|
 pub(all) struct RuntimeFacts {
   dsh_version : String
   dsh_package_name : String
   dsh_source_label : String
+  /// 这台机器上装着的 dsh（可能不止一份）。空数组 = 这一版读数里没有候选这一项
+  dsh_candidates : Array[DshCandidate]
+  /// 生效版本的状态：auto（没指定）/ pinned（按你指定的那一版）/ pin-missing（指定过、那份没了）。
+  /// 空串 = 这一版读数里没有这一项（界面按「不知道」处理，不猜成 auto）
+  dsh_pin_state : String
+  /// 指定失效时后端给的那句人话；其余空串
+  dsh_pin_note : String
   console_version : String?
   console_package_name : String
   console_version_source : String
@@ -163,10 +190,25 @@ pub fn parse_runtime(text : String) -> Result[RuntimeFacts, String] {
     Ok(data) => data
     Err(reason) => return Err(reason)
   }
+  let candidates : Array[DshCandidate] = []
+  for item in arr_field(data, "dshCandidates") {
+    guard item is Json::Object(cand) else { continue }
+    candidates.push({
+      version: str_field(cand, "version"),
+      name: str_field(cand, "name"),
+      dir: str_field(cand, "dir"),
+      source: str_field(cand, "source"),
+      active: bool_field(cand, "active"),
+      running: bool_field(cand, "running"),
+    })
+  }
   Ok({
     dsh_version: str_field(data, "dshVersion"),
     dsh_package_name: str_field(data, "dshPackageName"),
     dsh_source_label: str_field(data, "dshSourceLabel"),
+    dsh_candidates: candidates,
+    dsh_pin_state: str_field(data, "dshPinState"),
+    dsh_pin_note: str_field(data, "dshPinNote"),
     console_version: opt_str_field(data, "consoleVersion"),
     console_package_name: str_field(data, "consolePackageName"),
     console_version_source: str_field(data, "consoleVersionSource"),
@@ -296,6 +338,22 @@ pub(all) struct InstanceHealth {
 pub extend InstanceHealth with Eq::{ not_equal, equal }
 
 ///|
+/// 同一只进程的另一个监听端口（读数里的 alsoPorts 一项）。
+///
+/// 后端按 pid 把条目归并成一行：只有主端口那一条成行，其余端口收在这里当附注。
+/// 卡片上不显示、也不因它变色 —— 那一行说的是「这一只实例」，不是「一个端口」。
+pub(all) struct AlsoPortFact {
+  port : Int
+  http_status : Int?
+  /// 这个端口命中的判据（没命中是空串）
+  signature_id : String
+  /// 后端给的一句人话：这个端口是什么、这一次探测拿到了什么
+  note : String
+} derive(Eq)
+
+pub extend AlsoPortFact with Eq::{ not_equal, equal }
+
+///|
 pub(all) struct InstanceFact {
   id : String
   port : Int
@@ -338,6 +396,9 @@ pub(all) struct InstanceFact {
   /// 实例对应的 profile 健康读数；None = 这一版后端没给 profileHealth。
   /// None 与「给了但缺 0 个包」不是一件事，所以用 Option 而不是拿 0 顶上。
   profile_health : InstanceHealth?
+  /// 同一只进程的其余监听端口。空数组 = 这只进程只听着这一个端口，
+  /// 或者这一版后端还没做归并（那一种会各占一行，不会进这里）
+  also_ports : Array[AlsoPortFact]
 } derive(Eq)
 
 pub extend InstanceFact with Eq::{ not_equal, equal }
@@ -403,6 +464,7 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
       state: state_of(fact),
       state_reason: state_reason_of(fact),
       profile_health: health_of(fact),
+      also_ports: also_ports_of(fact),
     })
   }
   Ok({
@@ -476,6 +538,30 @@ fn health_of(fact : Map[String, Json]) -> InstanceHealth? {
       })
     _ => None
   }
+}
+
+///|
+/// alsoPorts：同一只进程的其余监听端口。
+///
+/// 字段不在 / 不是数组 = 这一版后端还没做归并 → 空数组（界面按「只听着一个端口」办）。
+/// 每一项都按后端给的原文解析，缺字段不猜：端口读不出整数的那一项直接跳过，
+/// 不拿 0 顶上（0 不是合法端口，写上去就是一个假端口）。
+fn also_ports_of(fact : Map[String, Json]) -> Array[AlsoPortFact] {
+  let out : Array[AlsoPortFact] = []
+  for item in arr_field(fact, "alsoPorts") {
+    guard item is Json::Object(extra) else { continue }
+    match int_field(extra, "port") {
+      Some(port) =>
+        out.push({
+          port,
+          http_status: int_field(extra, "httpStatus"),
+          signature_id: str_field(extra, "signatureId"),
+          note: str_field(extra, "note"),
+        })
+      None => ()
+    }
+  }
+  out
 }
 
 // ── GET /api/local/processes ────────────────────────────────

@@ -173,7 +173,7 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Logs => logs_view(model, emit)
     Settings => settings_view(model, emit)
     Trash => trash_view(model, emit)
-    About => about_view(model)
+    About => about_view(model, emit)
   }
   // 拖动的「移动 / 松开 / 取消」三件事挂在外壳这一层，不挂在条目或分组上。
   // 理由两条：

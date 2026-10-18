@@ -263,6 +263,8 @@ pub async fn run_action(
       @json.JObj([
         ("action", @json.JStr(action)),
         ("outcome", spawn_outcome_json(outcome)),
+        // 用的是哪一版 dsh：回执里说清，用户点了「用这一版」之后能对上号
+        ("note", @json.JStr(spawn_version_note(outcome))),
       ])
     }
     "stop-instance" => {
@@ -297,6 +299,7 @@ pub async fn run_action(
           ("stopped", stop_outcome_json(stopped, target, settings.process_stop_grace_ms)),
           ("started", spawn_outcome_json(started)),
         ])),
+        ("note", @json.JStr(spawn_version_note(started))),
       ])
     }
     "fork-profile" => {
@@ -651,11 +654,74 @@ pub async fn run_action(
         ),
       ])
     }
+    // ── 版本切换（回退）────────────────────────────────────
+    // 指定 / 撤销「用哪一版 dsh 起实例」。只改控制台自己的记录（dsh-pin.json），
+    // 不碰系统上的 dsh 命令、不碰 pnpm 全局安装：起实例时换的只是 argv 里那个包目录。
+    // 这两个动作的候选来自 runtime 的 installed_dsh_candidates（就是读数里列出来的那几份）。
+    "pin-dsh" => {
+      ensure_action_params(params, "指定用哪一版", ["dir"])
+      let outcome = pin_dsh(require_string(params, "dir"))
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("dir", @json.JStr(outcome.dir)),
+          ("version", @json.JStr(outcome.version)),
+          ("pinPath", @json.JStr(outcome.pin_path)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            "以后起实例（启动 / 重启）用 dsh " + outcome.version +
+            "；这一条不走系统上的 dsh 命令，也不动已经装好的东西",
+          ),
+        ),
+      ])
+    }
+    "unpin-dsh" => {
+      ensure_action_params(params, "撤掉指定", [])
+      let outcome = unpin_dsh()
+      let note = if outcome.removed {
+        "指定已经撤掉" +
+        (if outcome.previous_version == "" {
+          ""
+        } else {
+          "（原来指定的是 " + outcome.previous_version + "）"
+        }) +
+        "，以后起实例按自动挑的那一份"
+      } else {
+        "本来就没有指定过版本，起实例一直是按自动挑的那一份"
+      }
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("removed", @json.JBool(outcome.removed)),
+          ("previousVersion", @json.JStr(outcome.previous_version)),
+          ("pinPath", @json.JStr(outcome.pin_path)),
+        ])),
+        ("note", @json.JStr(note)),
+      ])
+    }
     _ => {
       fail("unknown-action", "没有这个动作：" + action)
       abort("unreachable: fail 一定抛错")
     }
   }
+}
+
+///|
+/// 起实例这件事里「用的是哪一版」那句话（进回执的 note，悬停里能看到）。
+///
+/// 三种口径分开说：按你指定的 / 没指定过（自动挑的那一份）/ 你指定过但那份不在了（回落自动挑）。
+/// 最后一种必须点名说清 —— 用户以为自己指定了旧版，实际起的是新版，这件事不能靠猜。
+pub fn spawn_version_note(o : SpawnOutcome) -> String {
+  let how = if o.dsh_pin_state == @runtime.pin_state_pinned {
+    "（按你指定的版本）"
+  } else if o.dsh_pin_state == @runtime.pin_state_missing {
+    "；" + o.dsh_pin_note
+  } else {
+    "（没指定过版本，按自动挑的那一份）"
+  }
+  "起实例用的 dsh 是 " + o.dsh_version + how
 }
 
 ///|
@@ -671,6 +737,12 @@ pub fn spawn_outcome_json(o : SpawnOutcome) -> @json.JsonVal {
     ("bootMs", @json.jint(o.boot_ms)),
     ("command", @json.JStr(o.command)),
     ("url", @json.JStr(o.url)),
+    // 起的是哪一版、为什么是它：点了「用这一版」之后，结果里要能对上号。
+    // dshPinNote 只在「你指定过的那一版不在了、这次按自动挑」时非空。
+    ("dshVersion", @json.JStr(o.dsh_version)),
+    ("dshPackageDir", @json.JStr(o.dsh_package_dir)),
+    ("dshPinState", @json.JStr(o.dsh_pin_state)),
+    ("dshPinNote", @json.JStr(o.dsh_pin_note)),
   ])
 }
 

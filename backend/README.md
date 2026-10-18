@@ -157,7 +157,10 @@ curl -X PUT http://127.0.0.1:5390/api/local/settings \
 | `dshVersion` | string | pnpm 全局目录里 `@deepseek-ai/dsh` 的 package.json version |
 | `dshPackageName` | string | `@deepseek-ai/dsh` |
 | `dshPackageDir` | string | 命中的安装目录绝对路径 |
-| `dshSourceLabel` | string | `本机已安装` + 找到它的那条策略，形如 `本机已安装（顺 PATH 上的 dsh 命令解开包目录；与在跑实例同一份）` |
+| `dshSourceLabel` | string | `本机已安装` + 找到它的那条策略，形如 `本机已安装（顺 PATH 上的 dsh 命令解开包目录；与在跑实例同一份）`；按你指定的那一份时是 `本机已安装（按你指定的版本）` |
+| `dshCandidates` | array | 这台机器上装着的 dsh（版本切换那一轮新增）：`[{ version, name, dir, source, active, running }]`。`active` = 起实例会用的那一份；`running` = 有在跑实例的入口包就是它 |
+| `dshPinState` | string | `auto`（没指定）/ `pinned`（按你指定的那一版）/ `pin-missing`（指定过，但那份已经不在这台机器上或版本对不上，已回落自动挑） |
+| `dshPinNote` | string | 指定失效时那句人话（「你指定过 X，现在找不到了，这一版按自动挑的 Y 算」）；其余空串 |
 | `backendRuntime` | string | `moonbit/native`：后端自己的运行时（**取代原 `nodeVersion`**） |
 | `backendVersion` | string | 后端自身版本，与 `moon.mod` 的 `version` 一致 |
 | `backendPackageName` | string | `conglinyizhi/dsh-console-backend` |
@@ -179,6 +182,25 @@ curl -X PUT http://127.0.0.1:5390/api/local/settings \
 
 用了哪条策略写进 `dshSourceLabel`，不猜也不吞。同一份结论同时喂给起实例那条路
 （`installed_dsh_dir`），读数与起实例不会指向两个不同的 dsh。
+
+**版本切换（回退）那一轮把这条链拆成两层**：
+
+- `installed_dsh_candidates()` —— 这台机器上装了哪几份：shim 解开的那份 + 各全局根下扫到的全部，
+  **按真实路径去重**。同一个真目录在 pnpm 的布局里有两种写法（`<槽>/<哈希>/node_modules/@deepseek-ai/dsh`
+  是软链，真身在 `<槽>/<哈希>/node_modules/.pnpm/@deepseek-ai+dsh@<版本>_<哈希>/…`），
+  字符串比会把同一份数成两份，所以按 `realpath` 判。
+  老布局（`global/5/node_modules/.pnpm/…`）不靠走 `.pnpm` 覆盖：pnpm 会在
+  `<槽>/node_modules/@deepseek-ai/dsh` 摆软链过去，读 `package.json` 顺着软链就读到了。
+  **不按条目名去 `.pnpm` 里扫 `dsh`**：那里还有别的全局包顺便装进来的依赖副本（本机就有一份
+  0.2.1-rc.2 只存在于某个槽的 `.pnpm` 里，pnpm 从没把它摆在 `node_modules/@deepseek-ai` 下）——
+  那种副本算不算「装了一份」可疑，而且版本更高时会被自动挑挑中，等于拿用户没装过的版本起实例。
+- `resolve_dsh_selection()` —— 生效的是哪一份：有指定（`dsh-pin.json`）且那一份还在就用它，
+  否则走原来的自动挑（与在跑实例同一份 → 同版本里最高 → 最高）。
+  指定的目录没了 / `package.json` 版本与记录对不上 → **回落自动挑并如实标 `pin-missing`**，
+  `dshPinNote` 里写清「你指定过哪一版、现在按哪一版」，不报错、也不偷偷改记录。
+
+指定只影响**以后起的实例**（`start-instance` / `restart-instance` 的 argv 里那个包目录）；
+控制台自己不换 dsh，系统上的 `dsh` 命令与 pnpm 全局安装一个字节都不动。
 
 **两处硬编码的修正（第二批）**：
 
@@ -343,6 +365,24 @@ environ 里也**没有任何 DSH_***，靠命令行认不出它监听哪个端�
 **HTTP 签名探测保留**：它既是「这端口真的是 DSH web」的交叉校验，也是 `/proc` 侧读不到时的回退口径。
 两边都读不到才是真的读不到。
 
+**一个 pid 多个监听端口：归并成一行（版本切换那一轮）**
+
+一只 dsh 进程常同时听着几个端口（本机的 web 实例就同时听着 3080 与 9230）。以前按端口列，
+一个 pid 出两行，而第二行必然是 `fault` —— dsh 的网页入口只在一个端口上，另一个端口探 `GET /`
+当然是 404。**界面在说假话**，比少列一个端口糟得多。
+
+现在列表的粒度是**进程**：
+
+1. 探测仍按端口做，`probeResults` 一个都不少（那是全局事实，不是实例行）；
+2. 成行前按 pid 归并：**主端口 = 该 pid 名下签名命中 dsh 判据的那个**；一个都没命中时取端口号最小的；
+3. 同 pid 的其余端口收进该行的 `alsoPorts`：`[{ port, httpStatus, signatureId, note }]`
+   （`note` 是一句人话，例如「同一个进程的另一个监听端口，不是 dsh 的网页入口：这一次探测回的是 HTTP 404」）；
+4. `state` / `stateReason` **只按主端口算**；
+5. 没有 pid 的条目（进程 join 不上）**不参与归并**：那时「这两个端口是不是同一只进程」没有证据，
+   硬凑成一行就是把猜的当事实。按端口点停止 / 重启的老路径仍然认 `alsoPorts` 里的端口。
+
+界面上：卡片不显示、也不因此变色；详情抽屉里主端口那一行下面多一行「还听着 9230」（原因在悬停里）。
+
 **带令牌的访问地址（第四轮加字段）**
 
 dsh web 的首次握手看 URL 里的 `?token=<key>`，不带就是 401。控制台把实例的 stdout/stderr
@@ -491,12 +531,17 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 
 守卫顺序：方法 → 解析 body → 守卫 → 执行 → 审计 → 应答。**解析在守卫前是有意的**：解析没有副作用，
 先回「body 不对」比先回 403 更好排查。守卫不过回 `403 not-authorized`，其余按码给状态：
-`unknown-action`/`bad-params` 400、`not-found` 404、`conflict` 409、`spawn-failed`/`stop-failed`/`io-error` 500。
+`unknown-action`/`bad-params`/`dsh-not-installed` 400、`not-found` 404、`conflict` 409、
+`spawn-failed`/`stop-failed`/`io-error` 500。
+
+> `dsh-not-installed` 是版本切换那一轮加的第八个码（原契约七码之外）。为什么单开一条：
+> 那是**调用方点了一个不是安装的目录**，不是读写失败 —— message 里把「这台机器上装着哪几份」都列出来了，
+> 归进 `io-error` 会把人引去查磁盘。
 
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
 **对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
 
-### 十一个动作
+### 十三个动作
 
 | action | 真实做的事 | 关键边界 |
 | --- | --- | --- |
@@ -511,6 +556,8 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `unarchive-profile` | 撤掉那一份（`profile` + 可选 `home`）的记录 | 没有这一份 → `not-found`；同名另一 home 的那条留着不动 |
 | `delete-profile` | `safety.deleteToTrash=true` 时整目录移进 `<状态目录>/trash/<名>-<毫秒>`；false 时递归硬删 | 硬删必须带 `"confirm":"DELETE"`，否则 `bad-params`；正在运行 → `conflict` |
 | `set-row-order` | 把**整份**手动顺序原子写进 `<状态目录>/order.json`：一个行 id 的字符串数组，元素只认 `port:<端口号>` 与 `profile:<名字>@<home>`（老形状 `profile:<名字>` 仍然认，见下面「状态文件」那一节） | 不是字符串 / id 形状不对 / 有重复 / 超 5000 条 → `bad-params`；写不动 `io-error`。空数组合法（= 清空顺序表，回到自动排序）。**不做增量合并**：调用方给的就是要落盘的那一份 —— 增量式接口要后端先读一份当前顺序再算，两次并发拖动会互相覆盖 |
+| `pin-dsh` | **指定用哪一版 dsh 起实例**：把 `{ dir, version, pinnedAt }` 原子写进 `<状态目录>/dsh-pin.json`。只改控制台自己的记录，**不碰系统上的 `dsh` 命令、不碰 pnpm 全局安装** | `params` 只认 `dir`，多一个键 `bad-params`；`dir` 必须在本机候选里（按真实路径比，`.pnpm` 里那个写法也认），不在 → `dsh-not-installed`（message 里列出这台机器上装着哪几份）；写不动 `io-error`。`outcome` 是 `{ dir, version, pinPath }` |
+| `unpin-dsh` | 撤掉指定，回到自动挑：删掉 `<状态目录>/dsh-pin.json` | **不收参数**（多一个键 `bad-params`）；文件本来就不在也算成功，`outcome.removed=false` 如实说「不是刚删掉的」。`outcome` 是 `{ removed, previousVersion, pinPath }` |
 
 ### 派生出的新 profile 怎么认得出（第五轮）
 
@@ -806,6 +853,7 @@ GET /api/local/console → { ok, readOnly:true, readAt, data:{
 | 归档记录 | `$XDG_STATE_HOME/dsh-console/archive.json` | `store/archive.mbt` |
 | 审计 | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（追加；超 8 MiB 滚动，归档进同目录 `.archive/`） | `store/audit.mbt` |
 | 手动顺序 | `$XDG_STATE_HOME/dsh-console/order.json`（**顶层就是字符串数组**，元素是 `port:<端口号>` / `profile:<名字>@<home>`；老形状 `profile:<名字>` 仍认；空数组 = 没拖过） | `store/order.mbt` |
+| dsh 版本指定 | `$XDG_STATE_HOME/dsh-console/dsh-pin.json`（`{ dir, version, pinnedAt }`；文件不在 / 读不动 / 字段不全 = 没指定，不报错也不偷偷写） | `store/dshpin.mbt`（动作在 `actions/dsh_version.mbt`） |
 | 回收站 | `$XDG_STATE_HOME/dsh-console/trash/<profile>-<毫秒>/` | `actions/profile_fs.mbt`（`deleteToTrash=true`） |
 | 回收站来源 | `$XDG_STATE_HOME/dsh-console/trash-origins.json` | `store/trash_origins.mbt` |
 | profile 目录 | 被动作**直接作用**的那一个：派生（新建）、重命名（改名）、删除（移走或删掉） | `actions/profile_fs.mbt` |
@@ -913,6 +961,7 @@ backend/
 │   ├── archive.mbt             # archive.json：归档记录（(home, 名字) 为身份）
 │   ├── trash_origins.mbt       # trash-origins.json：回收站条目各自从哪个 home 删的
 │   ├── order.mbt               # order.json：手动顺序（行 id 带 home）
+│   ├── dshpin.mbt              # dsh-pin.json：用哪一版 dsh 起实例的指定记录
 │   ├── laststarted.mbt         # 「上次启动」表（行 id 同一套）
 │   └── audit.mbt               # audit.jsonl：动作审计（超阈值滚动 + 归档 + 读侧回退）
 ├── actions/                    # 可写层（唯一入口 POST /api/local/action）
@@ -920,6 +969,7 @@ backend/
 │   ├── respond.mbt             # 写侧响应外壳与错误码 → 状态码
 │   ├── action.mbt              # 动作分发、参数解析、审计、GET /api/local/console
 │   ├── instance.mbt            # 起 / 停 / 重启、端口分配、签名等就绪、进程判活
+│   ├── dsh_version.mbt         # pin-dsh / unpin-dsh：指定用哪一版 dsh 起实例
 │   ├── profile_fs.mbt          # 派生 / 重命名 / 删除（回收站或硬删）
 │   ├── settings_api.mbt        # GET / PUT /api/local/settings
 │   └── console_api.mbt         # GET /api/local/console

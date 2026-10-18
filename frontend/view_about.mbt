@@ -2,6 +2,10 @@
 //
 // 版本表每项都是真实读数；读不到就写「读取失败」与原因，不写空。
 // 没有「node 版本」这一行 —— 后端换掉之后那个字段已经不存在了。
+//
+// 这一页还管一件事：**用哪一版 dsh 起实例**（版本切换 / 回退）。
+// 那是「这台机器装了什么、控制台打算用哪一份」的事实，属于这一页；
+// 总览页那一组卡说的是实例，不是安装。
 
 ///|
 fn version_rows(model : Model) -> Array[@html.Html] {
@@ -30,7 +34,147 @@ fn version_rows(model : Model) -> Array[@html.Html] {
 }
 
 ///|
-fn about_view(model : Model) -> @html.Html {
+/// 一个候选 dsh 的一行：版本号在左，标记与按钮在右。
+///
+/// 包目录**不进正文**（一屏里放不下几条长路径），挂在整行的悬停里；
+/// 从哪找到的那句话也一样。
+fn dsh_candidate_row(
+  model : Model,
+  facts : RuntimeFacts,
+  cand : DshCandidate,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let pinned = facts.dsh_pin_state == "pinned"
+  let marks : Array[@html.Html] = []
+  if cand.active {
+    marks.push(@html.span(class="dsh-dsh-mark is-active", "在用"))
+  }
+  if cand.running {
+    marks.push(@html.span(class="dsh-dsh-mark", "在跑"))
+  }
+  // 已经是「按指定用的那一份」时，再点「用这一版」没有意义 —— 那一位置灰；
+  // 那一行同时给「回到自动」，否则指定之后就没有退回的路了。
+  let use_button = @html.button(
+    class="dsh-btn",
+    type_="button",
+    disabled=model.dsh_pin_busy != "" || (cand.active && pinned),
+    attrs=mark("dsh-use-version", ["about", "dsh-version", "use", cand.version]),
+    on_click=emit(DshVersionPin(cand.dir, cand.version)),
+    [@html.span("用这一版")],
+  )
+  let buttons : Array[@html.Html] = [use_button]
+  if cand.active && pinned {
+    buttons.push(
+      @html.button(
+        class="dsh-btn",
+        type_="button",
+        disabled=model.dsh_pin_busy != "",
+        attrs=mark("dsh-use-auto", ["about", "dsh-version", "auto"]),
+        on_click=emit(DshVersionUnpin),
+        [@html.span("回到自动")],
+      ),
+    )
+  }
+  let hint = "包目录：" + cand.dir +
+    (if cand.source == "" { "" } else { " | 从哪找到的：" + cand.source })
+  @html.div(
+    class="dsh-row dsh-version-item",
+    attrs=mark("dsh-version-row", ["about", "dsh-version", cand.version]).title(hint),
+    [
+      @html.span(class="dsh-value", cand.version),
+      @html.span(class="dsh-dsh-marks", marks),
+      @html.span(class="dsh-dsh-actions", buttons),
+    ],
+  )
+}
+
+///|
+/// 「现在生效的是哪一版」那一句。
+///
+/// 三种状态都照实说：没指定过 / 按你指定的 / 你指定过但那版不在了（后端给的原话照抄）。
+/// 状态字段整个不在时（这一版后端还没有这一项）也说清是「没有这一项」，不写成「没指定」。
+fn dsh_pin_line(facts : RuntimeFacts) -> @html.Html {
+  let text = if facts.dsh_pin_state == "pinned" {
+    "起实例用的是你指定的 " + facts.dsh_version + "（启动 / 重启都用它）"
+  } else if facts.dsh_pin_state == "pin-missing" {
+    if facts.dsh_pin_note == "" {
+      "你指定过的那一版现在找不到了，起实例已回到自动挑的那一份"
+    } else {
+      facts.dsh_pin_note
+    }
+  } else if facts.dsh_pin_state == "auto" {
+    "没指定过版本，起实例按自动挑的那一份：" + facts.dsh_version
+  } else {
+    "这一版读数里没有「指定了哪一版」这一项，起实例按自动挑的那一份"
+  }
+  @html.p(
+    class="dsh-para dsh-dsh-pin-line",
+    attrs=mark("dsh-pin-line", ["about", "dsh-version", "pin-line"]),
+    text,
+  )
+}
+
+///|
+/// 「这台的 dsh 版本」那一块：列出这台机器上装着的每一份 dsh。
+///
+/// 读取中 / 读取失败与上面那张版本表同一套措辞 —— 两处说的都是同一份读数。
+fn dsh_version_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let body : Array[@html.Html] = []
+  match model.runtime {
+    None =>
+      if model.read_runtime {
+        body.push(kv_row("读取状态", "读取失败", model.runtime_error))
+      } else {
+        body.push(kv_row("读取状态", "正在读取…", "本机读数还没返回"))
+      }
+    Some(facts) => {
+      if facts.dsh_candidates.length() == 0 {
+        body.push(
+          @html.p(
+            class="dsh-para",
+            "这一版读数里没有列出本机装着的 dsh，所以这里没有可选的版本",
+          ),
+        )
+      } else {
+        let rows : Array[@html.Html] = []
+        for cand in facts.dsh_candidates {
+          rows.push(dsh_candidate_row(model, facts, cand, emit))
+        }
+        body.push(@html.div(class="dsh-kv", rows))
+      }
+      body.push(dsh_pin_line(facts))
+    }
+  }
+  // 改完指定之后的反馈：成功失败都留在这儿，直到下一次点 ——
+  // 这一页没有总览页那条提示条，不留一行的话「点了没反应」与「成功了」看着一样。
+  if model.dsh_pin_notice != "" {
+    body.push(
+      @html.div(
+        class=if model.dsh_pin_notice_ok { "dsh-notice" } else { "dsh-notice err" },
+        attrs=mark("dsh-pin-notice", ["about", "dsh-version", "notice"])
+          .data_set("ok", if model.dsh_pin_notice_ok { "true" } else { "false" }),
+        [@html.span(class="dsh-notice-text", model.dsh_pin_notice)],
+      ),
+    )
+  }
+  body.push(
+    @html.p(
+      class="dsh-foot",
+      "改这一版只影响以后起的实例：已经在跑的那些要重启才会换",
+    ),
+  )
+  @html.div(
+    class="dsh-panel",
+    attrs=mark("dsh-version-panel", ["about", "dsh-version-panel"]),
+    [
+      @html.h2(class="dsh-panel-title", "这台的 dsh 版本"),
+      @html.fragment(body),
+    ],
+  )
+}
+
+///|
+fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   @html.section(
     class="dsh-page",
     attrs=mark("about-page", ["about", "page"]),
@@ -62,6 +206,7 @@ fn about_view(model : Model) -> @html.Html {
           ),
         ],
       ),
+      dsh_version_panel(model, emit),
     ],
   )
 }
