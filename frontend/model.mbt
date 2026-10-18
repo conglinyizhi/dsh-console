@@ -379,6 +379,13 @@ pub(all) struct ProfileFact {
   home_created_at : String?
   /// 后端给的一句判断依据（homeKindSource）；空串 = 这一版后端没给
   home_kind_source : String
+  // ── 试跑那一块的判据（design/ops-maintenance-jobs.md §9.3）──
+  //
+  // None = 这一版后端没给这一项（那时不拿它判不可用，宁可让试跑自己去撞失败）。
+  /// package.json 在、且读得动（false = 这只配置读不到）
+  package_json_ok : Bool?
+  /// dsh.profile.bundles 里有没有 @deepseek-ai/dsh-web-app（false = 命令行型，没有网页入口）
+  web_app : Bool?
 } derive(Eq)
 
 pub extend ProfileFact with Eq::{ not_equal, equal }
@@ -437,6 +444,9 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       } else {
         "这一版读数里没有「最近改动」可读"
       },
+      // 这两格字段不在 = None：不拿 false 顶上（false 会被读成「不可用」）
+      package_json_ok: opt_bool_field(fact, "packageJson"),
+      web_app: opt_bool_field(fact, "webApp"),
       // home 整个不在（这一版后端还没有隔离 home）时三格都是空串：
       // 界面那一格写「读不到」，**不按 dshHome 猜一个归属**出来
       home_kind: str_field(home, "kind"),
@@ -962,6 +972,13 @@ pub(all) struct JobFact {
   trial_port : Int
   trial_url : String
   trial_profile : String
+  /// 试跑用的一次性 home（design/deep-home-isolation.md 第 6 节）。空串 = 旧记录
+  /// （第三版之前试跑借的是当时那份真实 home）
+  trial_home : String
+  /// home 的归属：trial = 这次作业的一次性 home；空串 = 旧记录
+  trial_home_kind : String
+  /// 复制到一次性 home 里的那份 profile 目录（<home>/profiles/<名字>）
+  trial_profile_copy : String
   trial_started_at : String
   /// 我们收过它的时刻（空串 = 没收到过）。**它不说「现在还在不在」**
   trial_stopped_at : String
@@ -1120,6 +1137,9 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
           trial_port: int_or(trial, "port", 0),
           trial_url: str_field(trial, "url"),
           trial_profile: str_field(trial, "profile"),
+          trial_home: str_field(trial, "home"),
+          trial_home_kind: str_field(trial, "homeKind"),
+          trial_profile_copy: str_field(trial, "profileCopy"),
           trial_started_at: str_field(trial, "startedAt"),
           trial_stopped_at: str_field(trial, "stoppedAt"),
           trial_alive: bool_field(entry, "trialAlive"),

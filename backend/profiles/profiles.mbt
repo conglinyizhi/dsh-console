@@ -5,7 +5,14 @@
 // 每个 profile：
 //   { name, dir, isCurrent, packageName, bundles: { declared, installed,
 //     installedInProfile, installedHoisted, missing }, patch: { exists, lines },
-//     lock: { exists, mtime }, note, noteSource, dirMtimeMs, dirMtimeSource }
+//     lock: { exists, mtime }, note, noteSource, dirMtimeMs, dirMtimeSource,
+//     packageJson, webApp }
+//
+// packageJson / webApp 是维护页试跑那一块要用的两条事实（design/ops-maintenance-jobs.md §9.3）：
+//   packageJson  package.json 在、且读得动（false = 这只配置读不到）
+//   webApp       dsh.profile.bundles 里有没有 @deepseek-ai/dsh-web-app
+//                （false = 这只起的是命令行型，没有网页入口）
+// 缺包（bundles.missing 非空）不算不可用，前端自己旁边注一句。
 // 读不到的字段给 null / 0 / []，不编造。
 //
 // note / noteSource 是第二轮契约新增的加字段（旧消费者忽略即可）：
@@ -16,6 +23,10 @@
 // dirMtimeMs / dirMtimeSource 是第五轮契约新增的加字段：profile **目录**的 mtime
 // （毫秒），卡片第六格「最近改动」用它，列表排序也用它——口径是"最近改动"而不是
 // "创建时间"（见 README：多数文件系统上可靠的创建时间拿不到）。读不到给 null + 原因。
+
+///|
+/// 起网页实例用的那只 bundle 名（§9.3 第 2 条判据：bundles 里没有它 = 命令行型）。
+pub let web_app_bundle : String = "@deepseek-ai/dsh-web-app"
 
 ///|
 /// 扫描时跳过的目录（与 Node 版 SKIP_DIRS 一致，不做递归）。
@@ -205,6 +216,20 @@ async fn declared_bundles(dir : String) -> Array[String] noraise {
 }
 
 ///|
+/// package.json 在不在、读不读得动（"这只 profile 的配置读得到吗"的判据）。
+/// 只 stat + 解析，不改内容。
+async fn package_json_ok(dir : String) -> Bool noraise {
+  match @json.read_text_file(@json.join_path(dir, "package.json")) {
+    Err(_) => false
+    Ok(text) =>
+      match @json.json_parse(text) {
+        Some(_) => true
+        None => false
+      }
+  }
+}
+
+///|
 /// package.json 里的 name 字段；读不到给 None（Node 侧给 null）。
 async fn package_name(dir : String) -> String? noraise {
   let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
@@ -273,6 +298,7 @@ async fn describe_profile(
     }
   }
 
+  let pkg_ok = package_json_ok(dir)
   let (note, note_source) = read_profile_note(dir)
   let (dir_mtime, dir_mtime_source) = read_profile_dir_mtime(dir)
 
@@ -311,6 +337,10 @@ async fn describe_profile(
       }),
     ),
     ("packageName", @json.str_or_null(package_name(dir))),
+    // 试跑那一块的判据（§9.3）：配置读不读得到、能不能起网页实例。
+    // 两条都只报事实；「缺包」仍然可用，不该混进这两条里。
+    ("packageJson", @json.JBool(pkg_ok)),
+    ("webApp", @json.JBool(declared.contains(web_app_bundle))),
     ("bundles", @json.JObj([
       ("declared", @json.jint(bundles.length())),
       ("installed", @json.jint(bundles.length() - missing.length())),

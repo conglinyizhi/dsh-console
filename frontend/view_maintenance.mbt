@@ -236,15 +236,25 @@ fn job_trial_url(job : JobFact) -> String {
 }
 
 ///|
-/// 试跑那一块：「新版本起来了：<地址> —— 你去用一用，插件、配置、会话都是你平时那一套」，
-/// 后面紧跟那句「这只实例用的是你真实的 DSH_HOME 和 profile，所以试得出的就是平时那套」。
+/// 试跑那一块：「新版本起来了：<地址>。你去用一用」，下面跟那句
+/// 「试跑跑在一次性的 home 里，你平时那份配置与状态都不动，作业收尾时它会被删掉。」（§9.4）
 ///
 /// 地址本身就是能打开的入口（新标签页），不另加一颗按钮 —— 加一颗「打开」会多出一句
 /// §5 里没有的文案，而这一块的重点是「你去用」，不是「点这里」。
+/// 那一份临时 home 的路径进悬停：正文只讲「你平时那份不动」，具体落在哪儿给要查的人看。
 fn job_trial_block(job : JobFact) -> @html.Html {
   let url = job_trial_url(job)
   if url == "" {
     return @html.nothing
+  }
+  let home = job.trial_home
+  let sub_attrs = if home == "" {
+    mark("job-trial-sub", ["maintenance", "job", job.id, "trial", "sub"])
+  } else {
+    mark("job-trial-sub", ["maintenance", "job", job.id, "trial", "sub"]).title(
+      "一次性 home：" + home +
+      (if job.trial_profile_copy == "" { "" } else { "；配置拷贝：" + job.trial_profile_copy }),
+    )
   }
   @html.div(
     class="dsh-job-trial",
@@ -264,13 +274,13 @@ fn job_trial_block(job : JobFact) -> @html.Html {
               .title("在新标签页打开这只试跑实例"),
             [@html.text(url)],
           ),
-          @html.text(" —— 你去用一用，插件、配置、会话都是你平时那一套"),
+          @html.text("。你去用一用"),
         ],
       ),
       @html.p(
         class="dsh-job-trial-sub",
-        attrs=mark("job-trial-sub", ["maintenance", "job", job.id, "trial", "sub"]),
-        "这只实例用的是你真实的 DSH_HOME 和 profile，所以试得出的就是平时那套",
+        attrs=sub_attrs,
+        "试跑跑在一次性的 home 里，你平时那份配置与状态都不动，作业收尾时它会被删掉。",
       ),
     ],
   )
@@ -329,35 +339,80 @@ fn job_receipt(job : JobFact) -> @html.Html {
 // ── 新作业表单 ──────────────────────────────────────────────
 
 ///|
-/// 可选的 profile 名（取本机 profiles 读数；读不到就是空表）。
-fn job_profile_names(model : Model) -> Array[String] {
-  let names : Array[String] = []
+/// 本机全部 profile 的读数（读不到就是空表）。
+fn job_profile_facts(model : Model) -> Array[ProfileFact] {
+  let facts : Array[ProfileFact] = []
   match model.profiles {
-    Some(facts) =>
-      for profile in facts.profiles {
+    Some(got) =>
+      for profile in got.profiles {
         if profile.name != "" {
-          names.push(profile.name)
+          facts.push(profile)
         }
       }
     None => ()
+  }
+  facts
+}
+
+///|
+/// 可选的 profile 名（判断「这一页有没有 profile 读数」用）。
+fn job_profile_names(model : Model) -> Array[String] {
+  let names : Array[String] = []
+  for profile in job_profile_facts(model) {
+    names.push(profile.name)
   }
   names
 }
 
 ///|
-/// 没亲手选过时的默认 profile：在跑的那一只 → web → 第一份（§4 的口径）。
+/// 一只 profile 能不能拿来试跑：(可用, 原因)（§9.3）。
+///
+/// 只看两条事实，两条都由后端给（前端不自己翻 package.json）：
+///   1. 配置读不到（package.json 不在 / 读不动）→ 不可用
+///   2. dsh.profile.bundles 里没有 @deepseek-ai/dsh-web-app → 不可用（命令行型，没有网页入口）
+/// 缺包**不算不可用**：那一条单独注明「缺 N 个包，可能起不来」，别混进这里。
+///
+/// 字段不在（这一版后端没给）时按可用处理：宁可让试跑自己去撞失败，
+/// 也不拿一个说不清的读数把一份其实能用的配置灰掉。
+fn job_profile_usable(profile : ProfileFact) -> (Bool, String) {
+  match profile.package_json_ok {
+    Some(false) => (false, "读不到这只配置")
+    _ =>
+      match profile.web_app {
+        Some(false) => (false, "这只配置起的是命令行型，没有网页入口")
+        _ => (true, "")
+      }
+  }
+}
+
+///|
+/// 缺几个包（bundles.missing 的条数）。缺包仍然可用，只在旁边注明。
+fn job_profile_missing(profile : ProfileFact) -> Int {
+  profile.bundles.missing.length()
+}
+
+///|
+/// 没亲手选过时的默认 profile：在跑的那一只 → web → 第一份（§9.3 的口径）。
 /// 为什么先挑「在跑的」：使用者试新版，试的通常就是他平时开着的那个 profile。
+/// 不可用的跳过 —— 挑一只起不了网页实例的，等于把「开始」变成一次注定失败的出击。
 fn job_profile_default(model : Model) -> String {
-  let names = job_profile_names(model)
-  if names.length() == 0 {
+  let facts = job_profile_facts(model)
+  let usable : Array[String] = []
+  for profile in facts {
+    let (ok, _why) = job_profile_usable(profile)
+    if ok {
+      usable.push(profile.name)
+    }
+  }
+  if usable.length() == 0 {
     return ""
   }
   match model.instances {
-    Some(facts) =>
-      for item in facts.instances {
+    Some(got) =>
+      for item in got.instances {
         match item.profile {
           Some(name) =>
-            if names.contains(name) {
+            if usable.contains(name) {
               return name
             }
           None => ()
@@ -365,30 +420,43 @@ fn job_profile_default(model : Model) -> String {
       }
     None => ()
   }
-  if names.contains("web") {
+  if usable.contains("web") {
     return "web"
   }
-  names[0]
+  usable[0]
 }
 
 ///|
-/// 这一次「开始」到底会用哪一只 profile：亲手选过且那一份还在就用它，否则按默认推。
+/// 这一次「开始」到底会用哪一只 profile：亲手选过、那一份还在且可用就用它，否则按默认推。
 fn job_profile_choice(model : Model) -> String {
-  let names = job_profile_names(model)
-  if model.job_profile != "" && names.contains(model.job_profile) {
-    model.job_profile
-  } else {
-    job_profile_default(model)
+  for profile in job_profile_facts(model) {
+    if profile.name == model.job_profile {
+      let (ok, _why) = job_profile_usable(profile)
+      if ok {
+        return profile.name
+      }
+    }
   }
+  job_profile_default(model)
 }
 
 ///|
-/// profile 下拉：选项就是本机 profiles 读数里的那几份。
-fn job_profile_select(model : Model, disabled : Bool, emit : @cmd.Emit[Msg]) -> @html.Html {
+/// 试跑用 profile 那一组：下拉 + 紧贴它的一行小字（§9.3）。
+///
+/// 下拉里每一只都带着自己的状态：
+///   · 可用：只写名字（缺几个包由悬停与下面那行小字说）
+///   · 不可用：置灰不可选，选项文字里就写着为什么；悬停里是同一句
+/// 下面那行小字说的是**这一刻选中的那一只**：缺几个包，或者一只可用的都没有。
+/// 正在跑的那一只也可以选 —— 试跑用一次性 home，不占用它（§9.4）。
+fn job_profile_field(
+  model : Model,
+  disabled : Bool,
+  emit : @cmd.Emit[Msg],
+) -> Array[@html.Html] {
+  let facts = job_profile_facts(model)
   let choice = job_profile_choice(model)
-  let names = job_profile_names(model)
   let options : Array[@html.Html] = []
-  if names.length() == 0 {
+  if facts.length() == 0 {
     options.push(
       @html.option(
         value="",
@@ -397,27 +465,89 @@ fn job_profile_select(model : Model, disabled : Bool, emit : @cmd.Emit[Msg]) -> 
         [@html.text("没读到 profile")],
       ),
     )
-  }
-  for name in names {
+  } else if choice == "" {
     options.push(
       @html.option(
-        value=name,
-        selected=name == choice,
-        attrs=mark("job-profile-option", ["maintenance", "start", "profile-option", name]),
-        [@html.text(name)],
+        value="",
+        selected=true,
+        disabled=true,
+        [@html.text("没有可用的 profile")],
       ),
     )
   }
-  @html.select(
-    id="dsh-job-profile",
-    class="dsh-select dsh-job-profile",
-    disabled~,
-    attrs=mark("job-profile", ["maintenance", "start", "profile"])
-      .aria_label("试跑用 profile")
-      .title("试跑实例按这一只 profile 起（取本机已有的 profile 读数；在跑的优先）"),
-    on_change=emit.map(fn(value) { JobProfilePicked(value) }),
-    options,
-  )
+  for profile in facts {
+    let (ok, why) = job_profile_usable(profile)
+    let missing = job_profile_missing(profile)
+    // 不可用的那一只把原因写进选项文字（它被置灰，悬停也不一定有人去停）；
+    // 可用的只写名字 —— 缺几个包由下面那行小字与悬停说，不在这条选项里重复一遍
+    let label = if !ok {
+      profile.name + "：" + why
+    } else {
+      profile.name
+    }
+    let hint = if !ok {
+      "不可用：" + why
+    } else if missing > 0 {
+      "缺 " + missing.to_string() + " 个包，可能起不来"
+    } else {
+      ""
+    }
+    let attrs = if hint == "" {
+      mark("job-profile-option", ["maintenance", "start", "profile-option", profile.name])
+    } else {
+      mark("job-profile-option", ["maintenance", "start", "profile-option", profile.name])
+        .title(hint)
+    }
+    options.push(
+      @html.option(
+        value=profile.name,
+        selected=profile.name == choice,
+        disabled=!ok,
+        attrs~,
+        [@html.text(label)],
+      ),
+    )
+  }
+  let out : Array[@html.Html] = [
+    @html.select(
+      id="dsh-job-profile",
+      class="dsh-select dsh-job-profile",
+      disabled~,
+      attrs=mark("job-profile", ["maintenance", "start", "profile"])
+        .aria_label("试跑用 profile")
+        .title(
+          "试跑按这一只 profile 复制一份配置到一次性 home（取本机已有的 profile 读数；在跑的优先，不占用它）",
+        ),
+      on_change=emit.map(fn(value) { JobProfilePicked(value) }),
+      options,
+    ),
+  ]
+  // 一行小字：选中那一只的状态。没有话要说（可用且不缺包）就不摆一行空的。
+  let mut note = ""
+  if facts.length() > 0 && choice == "" {
+    note = "没有可用的 profile：都读不到配置或没有网页入口"
+  }
+  for profile in facts {
+    if profile.name == choice {
+      let (ok, why) = job_profile_usable(profile)
+      let missing = job_profile_missing(profile)
+      if !ok {
+        note = why
+      } else if missing > 0 {
+        note = "缺 " + missing.to_string() + " 个包，可能起不来"
+      }
+    }
+  }
+  if note != "" {
+    out.push(
+      @html.span(
+        class="dsh-job-profile-note",
+        attrs=mark("job-profile-note", ["maintenance", "start", "profile-note"]),
+        note,
+      ),
+    )
+  }
+  out
 }
 
 ///|
@@ -501,13 +631,21 @@ fn release_option_hint(item : ReleaseVersion) -> String {
 }
 
 ///|
-/// 目标版本这一段控件（选择器的外壳：标签在外面，这里只出控件本身）。
+/// 一次过滤给出几条候选。理由：npm 那个 registry 的 versions 键可能有几百条，
+/// 全摊开的话这一块比整张作业卡都高；剩下的条数如实写在最后一行，使用者接着写就能收窄。
+let job_version_list_cap : Int = 20
+
+///|
+/// 目标版本这一段控件：**一个输入框 + 一张过滤出来的候选列表**（§9.2）。
+///
+/// 输入框是唯一的值来源：点候选等于把那一版填进框里，继续自己写就是自定义版本
+/// （写什么就拿什么开工，控制台不猜远端有没有这一版）。
 ///
 /// 三种状态分得清（design/dsh-release-sources.md §2）：
-///   · 有版本可选、开关关着 → 下拉（每条带 已装 / 最新 / 预发布）+ 一行来源小字
-///   · 「手动填写版本」打开  → 原来的输入框
-///   · 一个源都没答上来     → 一句「没问到可选的版本，下面可以手动填」+ 输入框
-/// 还在问的时候（最多 6 秒）说「正在问」，**不**说没问到：那两件事不能写成一句。
+///   · 还在问（最多 6 秒）          → 「正在问 GitHub、npm、国内镜像」
+///   · 有候选                       → 候选列表 + 来源小字
+///   · 一个源都没答上来 / 没读到    → 一句话说清，输入框照旧可用
+/// 加载中说「正在问」，**不**说没问到：那两件事不能写成一句。
 fn job_version_controls(
   model : Model,
   busy : Bool,
@@ -520,42 +658,85 @@ fn job_version_controls(
     None => []
   }
   let has_choices = versions.length() > 0
-  // 没得选的时候手填是唯一入口：开关锁在打开，且不许关掉（关掉就一个入口都不剩）
-  let manual = model.job_version_manual || !has_choices
-  if has_choices && !manual {
-    let options : Array[@html.Html] = []
-    options.push(
-      @html.option(
-        value="",
-        selected=model.job_version == "",
-        disabled=true,
-        attrs=mark("job-version-placeholder", ["maintenance", "start", "version-placeholder"]),
-        [@html.text("选择要装的版本")],
-      ),
-    )
+  let query = model.job_version.trim().to_owned()
+  // 一、输入框：永远在，也永远可写（这一格就是目标版本本身）
+  out.push(
+    @html.input(
+      input_type=Text,
+      id="dsh-job-version",
+      class="dsh-dialog-input dsh-job-version",
+      value=model.job_version,
+      placeholder="选择或输入版本号",
+      attrs=mark("job-version-input", ["maintenance", "start", "version"])
+        .aria_label("目标版本")
+        .role("combobox")
+        .aria_expanded(if has_choices { "true" } else { "false" })
+        .disabled(busy)
+        .spellcheck(false),
+      on_input=emit.map(fn(text) { JobVersionInput(text) }),
+    ),
+  )
+  // 二、候选列表：有候选时按输入过滤。列表里没有的那一行在下面说清「直接开工也行」。
+  if has_choices {
+    let matched : Array[ReleaseVersion] = []
     for item in versions {
-      options.push(
-        @html.option(
-          value=item.version,
-          selected=item.version == model.job_version,
+      if query == "" || job_version_matches(item.version, query) {
+        matched.push(item)
+      }
+    }
+    let shown = if matched.length() > job_version_list_cap {
+      matched[:job_version_list_cap].to_owned()
+    } else {
+      matched
+    }
+    let items : Array[@html.Html] = []
+    for item in shown {
+      let selected = item.version == query
+      let cls = if selected { "dsh-job-version-item selected" } else { "dsh-job-version-item" }
+      items.push(
+        @html.button(
+          class=cls,
+          type_="button",
+          disabled=busy,
           attrs=mark("job-version-option", ["maintenance", "start", "version-option", item.version])
+            .role("option")
+            .aria_selected(if selected { "true" } else { "false" })
             .title(release_option_hint(item)),
-          [@html.text(release_option_text(item))],
+          on_click=emit(JobVersionPicked(item.version)),
+          [@html.span(release_option_text(item))],
         ),
       )
     }
-    out.push(
-      @html.select(
-        id="dsh-job-version-select",
-        class="dsh-select dsh-job-version",
-        disabled=busy,
-        attrs=mark("job-version-select", ["maintenance", "start", "version-select"])
-          .aria_label("目标版本")
-          .title("版本列表来自三个源里第一个答上来的那个；每条都标着 已装 / 最新 / 预发布"),
-        on_change=emit.map(fn(value) { JobVersionPicked(value) }),
-        options,
-      ),
-    )
+    if items.length() > 0 {
+      out.push(
+        @html.div(
+          class="dsh-job-version-list",
+          attrs=mark("job-version-list", ["maintenance", "start", "version-list"])
+            .role("listbox")
+            .aria_label("可选版本"),
+          items,
+        ),
+      )
+    }
+    if matched.length() > shown.length() {
+      out.push(
+        @html.span(
+          class="dsh-job-version-more",
+          attrs=mark("job-version-more", ["maintenance", "start", "version-more"]),
+          "还有 " + (matched.length() - shown.length()).to_string() + " 条匹配，继续输入缩小范围",
+        ),
+      )
+    }
+    if query != "" && matched.length() == 0 {
+      // 自定义版本：列表里没有，就按输入框里这串开工（不做存在性校验，§9.2）
+      out.push(
+        @html.span(
+          class="dsh-job-version-custom",
+          attrs=mark("job-version-custom", ["maintenance", "start", "version-custom"]),
+          "列表里没有 " + query + "，点「开始」就用这个版本",
+        ),
+      )
+    }
     // 一行小字：来源是哪。悬停里是三个源各自的结果与耗时。
     let chosen = match facts {
       Some(got) => got.chosen
@@ -573,48 +754,33 @@ fn job_version_controls(
         "来源：" + release_source_name(chosen),
       ),
     )
-  }
-  if manual {
-    if !has_choices {
-      // 三档分开说：还在问 / 问完了没问到 / 这条接口根本没读到
-      let (text, hint) = if model.releases_loading {
-        ("正在问 GitHub、npm、国内镜像，最多 6 秒", "三个源并发问，各 6 秒硬超时")
-      } else {
-        match facts {
-          Some(got) =>
-            (
-              "没问到可选的版本，下面可以手动填",
-              release_sources_hint(got.sources),
-            )
-          None =>
-            (
-              "没读到版本来源，下面可以手动填",
-              if model.releases_error == "" {
-                "这一版读数里没有版本来源"
-              } else {
-                model.releases_error
-              },
-            )
-        }
+  } else {
+    // 三档分开说：还在问 / 问完了没问到 / 这条接口根本没读到
+    let (text, hint) = if model.releases_loading {
+      ("正在问 GitHub、npm、国内镜像，最多 6 秒", "三个源并发问，各 6 秒硬超时")
+    } else {
+      match facts {
+        Some(got) =>
+          (
+            "一个源都没答上来，直接写上要装的那一版",
+            release_sources_hint(got.sources),
+          )
+        None =>
+          (
+            "没读到版本来源，直接写上要装的那一版",
+            if model.releases_error == "" {
+              "这一版读数里没有版本来源"
+            } else {
+              model.releases_error
+            },
+          )
       }
-      out.push(
-        @html.span(
-          class="dsh-job-version-none",
-          attrs=mark("job-version-none", ["maintenance", "start", "version-none"]).title(hint),
-          text,
-        ),
-      )
     }
     out.push(
-      @html.input(
-        input_type=Text,
-        id="dsh-job-version",
-        class="dsh-dialog-input dsh-job-version",
-        value=model.job_version,
-        attrs=mark("job-version-input", ["maintenance", "start", "version"])
-          .aria_label("目标版本")
-          .spellcheck(false),
-        on_input=emit.map(fn(text) { JobVersionInput(text) }),
+      @html.span(
+        class="dsh-job-version-none",
+        attrs=mark("job-version-none", ["maintenance", "start", "version-none"]).title(hint),
+        text,
       ),
     )
   }
@@ -622,72 +788,31 @@ fn job_version_controls(
 }
 
 ///|
-/// 「手动填写版本」开关。它就是原来那个输入框的大门：关着走下拉，打开回到手填。
-///
-/// 没得选时禁用（而不是藏起来）：那颗开关摆在那儿，说明「这本该有得选」，
-/// 而旁边那句话说明为什么现在只能自己填。
-fn job_version_manual_switch(
-  model : Model,
-  busy : Bool,
-  emit : @cmd.Emit[Msg],
-) -> @html.Html {
-  let versions = match model.releases {
-    Some(got) => got.versions
-    None => []
-  }
-  let has_choices = versions.length() > 0
-  let on = model.job_version_manual || !has_choices
-  @html.button(
-    class=if on { "dsh-switch on" } else { "dsh-switch" },
-    type_="button",
-    disabled=busy || !has_choices,
-    attrs=mark("job-version-manual", ["maintenance", "start", "version-manual"])
-      .role("switch")
-      .aria_checked(if on { "true" } else { "false" })
-      .aria_label("手动填写版本")
-      .title(
-        if !has_choices {
-          "没有可选的版本，只能手动填"
-        } else if on {
-          "回到下拉选择（下拉里那份来自三个源里第一个答上来的）"
-        } else {
-          "自己填一个版本号，不用下拉里的那几个"
-        },
-      ),
-    on_click=emit(JobVersionManual(!model.job_version_manual)),
-    [
-      @html.span(class="dsh-switch-knob", @html.nothing),
-      @html.span(class="dsh-switch-text", "手动填写版本"),
-    ],
-  )
+/// 候选是否匹配输入框里的那串：按包含判（写 "0.2.2" 能列出 0.2.2 与 0.2.2-rc.1）。
+/// 大小写不敏感 —— 版本号里偶尔带字母（rc / beta），不该逼使用者记住大小写。
+fn job_version_matches(version : String, query : String) -> Bool {
+  version.to_lower().contains(query.to_lower())
 }
 
 ///|
 /// 「开始一条新作业」那一块。目标版本必须是使用者选/填的：留空就拦住，不猜一个版本。
 fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) -> @html.Html {
   let busy = model.job_busy != ""
-  // 目标版本留空就禁用「开始」：下拉与手填都是使用者自己给的，不替他挑一个版本装上
+  // 目标版本留空就禁用「开始」：输入框里的字就是使用者自己给的，不替他挑一个版本装上
   let version_empty = model.job_version.trim() == ""
-  let disabled = busy || has_unfinished || version_empty
-  let has_choices = match model.releases {
-    Some(got) => got.versions.length() > 0
-    None => false
-  }
-  // 标签的 for 要指向**这一趟真画出来的那个控件**：下拉与手填是两个 id，
-  // 写死其中一个，另一种状态下标签就指着一个不存在的 id。
-  let manual = model.job_version_manual || !has_choices
-  let version_id = if has_choices && !manual {
-    "dsh-job-version-select"
-  } else {
-    "dsh-job-version"
-  }
+  // 一只可用的 profile 都没有时也拦住：前端知道这一条（下拉里都标着为什么），
+  // 让按钮先灰着比发出去再被后端拒一次好懂
+  let profile_empty = job_profile_choice(model) == ""
+  let disabled = busy || has_unfinished || version_empty || profile_empty
   let hint = if has_unfinished {
     "已经有一条没做完的作业，先做完或中止它"
   } else if version_empty {
-    if has_choices {
-      "先选一个目标版本；这一步只记回退点，不装东西"
+    "先选或填一个目标版本；这一步只记回退点，不装东西"
+  } else if profile_empty {
+    if job_profile_names(model).length() == 0 {
+      "还没读到 profile 读数，试跑得先挑一只能起网页实例的配置"
     } else {
-      "先填要装的新版本号（例如 0.2.2-rc.1）；这一步只记回退点，不装东西"
+      "没有可用的 profile：这一只配置要么读不到，要么起不了网页实例"
     }
   } else {
     "记下回退点与开工前的版本指定，然后停在「安装新版本」"
@@ -701,7 +826,7 @@ fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) 
       @html.div(class="dsh-job-start-row", [
         @html.label(
           class="dsh-label",
-          for_=version_id,
+          for_="dsh-job-version",
           attrs=mark("job-version-label", ["maintenance", "start", "version-label"]),
           "目标版本",
         ),
@@ -710,14 +835,17 @@ fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) 
           attrs=mark("job-version-field", ["maintenance", "start", "version-field"]),
           job_version_controls(model, busy || has_unfinished, emit),
         ),
-        job_version_manual_switch(model, busy || has_unfinished, emit),
         @html.label(
           class="dsh-label",
           for_="dsh-job-profile",
           attrs=mark("job-profile-label", ["maintenance", "start", "profile-label"]),
           "试跑用 profile",
         ),
-        job_profile_select(model, busy || has_unfinished, emit),
+        @html.div(
+          class="dsh-job-profile-field",
+          attrs=mark("job-profile-field", ["maintenance", "start", "profile-field"]),
+          job_profile_field(model, busy || has_unfinished, emit),
+        ),
         @html.button(
           class="dsh-btn primary",
           type_="button",
@@ -789,7 +917,7 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
           if trial_alive {
             "试跑实例已经在跑了；起第二只之前先把它停掉"
           } else {
-            "用作业里那份新版 + 你真实的 DSH_HOME 与 profile 起一只实例，等它答出 dsh web 签名"
+            "用作业里那份新版 + 一份一次性 home 起一只实例，等它答出 dsh web 签名"
           },
           JobAction(job.id, "trial"),
           emit,
@@ -889,7 +1017,7 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
         "job-trial-stop",
         ["maintenance", "job", job.id, "action", "trial-stop"],
         busy,
-        "SIGTERM → 宽限 → SIGKILL 收掉那只实例；作业还停在这一步",
+        "SIGTERM → 宽限 → SIGKILL 收掉那只实例，再删掉这次试跑用的一次性 home；作业还停在这一步",
         JobAction(job.id, "trial-stop"),
         emit,
         false,
@@ -902,7 +1030,7 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
       "job-abort",
       ["maintenance", "job", job.id, "action", "abort"],
       busy,
-      "停掉试跑实例（如果在跑），保留记录与已经做完的步骤；没做的仍然是未开始",
+      "停掉试跑实例（如果在跑）并删掉一次性 home，保留记录与已经做完的步骤；没做的仍然是未开始",
       JobAction(job.id, "abort"),
       emit,
       false,
@@ -946,6 +1074,11 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
   let card_title = "作业 id：" + job.id
   let anchor_hint = card_title + " | 试跑 profile：" +
     (if job.profile == "" { "（没记）" } else { job.profile }) +
+    (if job.trial_home == "" {
+      ""
+    } else {
+      " | 试跑一次性 home：" + job.trial_home
+    }) +
     (if job.anchor_version == "" {
       ""
     } else {
@@ -961,11 +1094,14 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
       })
     }) +
     (if job.target_version == "" { "" } else { " | 目标版本：" + job.target_version })
-  // trial 步：起来了就摆地址，没起来只摆按钮（地址由回执给出）
+  // trial 步：还在跑就摆地址；已经收掉就只摆状态那一句 ——
+  // 收尾时那份一次性 home 已经删了，还摆「新版本起来了」就是一句过期的话
   let show_trial = job.step == "trial" || job.step == "verdict"
   let trial_nodes : Array[@html.Html] = []
   if show_trial && job.trial_pid > 0 {
-    trial_nodes.push(job_trial_block(job))
+    if job.trial_alive {
+      trial_nodes.push(job_trial_block(job))
+    }
     trial_nodes.push(job_trial_status(job))
   }
   @html.article(
@@ -1201,8 +1337,10 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   for block in body {
     children.push(block)
   }
+  // 维护页用满内容区宽度（§9.1）：不套 .dsh-page 的窄栏，作业卡与步骤表跟着铺开。
+  // 关于页、设置页仍是 .dsh-page 的窄栏 —— 那一页是散文与表单，一行太长反而难读。
   @html.section(
-    class="dsh-page dsh-maintenance",
+    class="dsh-maintenance",
     attrs=mark("maintenance-page", ["maintenance", "page"]),
     children,
   )

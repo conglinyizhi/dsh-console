@@ -82,6 +82,13 @@ pub(all) struct JobTrial {
   port : Int
   url : String
   profile : String
+  /// 试跑用的 home（design/deep-home-isolation.md 第 6 节：一次性 home）。
+  /// 空串 = 这条记录是第三版之前留下的（那时试跑用的是真实 home，没有这一格）。
+  home : String
+  /// home 的归属：trial = 这次作业的一次性 home；空串 = 旧记录
+  home_kind : String
+  /// 复制到一次性 home 里的那份 profile 目录（<home>/profiles/<名字>）。空串 = 旧记录
+  profile_copy : String
   started_at : String
   /// 被收掉的时刻（空串 = 还没收过）。只说明动作发生过，不说明进程状态
   mut stopped_at : String
@@ -344,6 +351,9 @@ pub fn job_json(job : Job) -> @json.JsonVal {
         ("port", @json.jint(t.port)),
         ("url", @json.JStr(t.url)),
         ("profile", @json.JStr(t.profile)),
+        ("home", @json.JStr(t.home)),
+        ("homeKind", @json.JStr(t.home_kind)),
+        ("profileCopy", @json.JStr(t.profile_copy)),
         ("startedAt", @json.JStr(t.started_at)),
         ("stoppedAt", @json.JStr(t.stopped_at)),
       ])
@@ -576,6 +586,19 @@ fn parse_job(json : Json) -> Result[Job, String] {
             None => ""
           },
           profile: match field_text(t, "profile") {
+            Some(v) => v
+            None => ""
+          },
+          // 三格都是第三版新增的：旧作业文件里没有它们，读成空串就是「那时用的不是一次性 home」
+          home: match field_text(t, "home") {
+            Some(v) => v
+            None => ""
+          },
+          home_kind: match field_text(t, "homeKind") {
+            Some(v) => v
+            None => ""
+          },
+          profile_copy: match field_text(t, "profileCopy") {
             Some(v) => v
             None => ""
           },

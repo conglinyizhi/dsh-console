@@ -5,9 +5,10 @@
 //              它说的是「退回哪里」，不是「现在用哪一版」。
 //   2 install  安装新版本：pnpm add -g @deepseek-ai/dsh@<版本>。先预演（回确切命令），
 //              confirm=true 才执行。装完不会自动切过去。
-//   3 trial    **只负责把新版起成一只真用的实例**：作业里那份新版包目录 + 用户真实 DSH_HOME +
-//              用户选的 profile + 空闲端口，等监听 + 签名通过，把 pid / port / url 记进 trial。
-//              这一步不判定好坏 —— 好不好用由用户说了算。
+//   3 trial    **只负责把新版起成一只真用的实例**：作业里那份新版包目录 + 一份一次性 home
+//              （homes root 下的 trial-<作业 id 末 6 位>，铺法照 design/deep-home-isolation.md
+//              第 2 节）+ 用户选的 profile + 空闲端口，等监听 + 签名通过，把 pid / port / url /
+//              home 记进 trial。这一步不判定好坏 —— 好不好用由用户说了算。
 //   4 verdict  用户来试：good / bad / later 三条分支。good 停掉试跑实例、step=commit
 //              （**先不写 dsh-pin**）；bad 停掉试跑实例、把 dsh-pin.json 恢复成开工前的样子、
 //              step=rollback；later 什么都不动，留在 verdict 步等用户。
@@ -358,37 +359,71 @@ async fn trial_owner_mismatch(job : @store.Job, pid : Int) -> String? noraise {
 }
 
 ///|
-/// 收掉试跑实例：SIGTERM -> 宽限 -> SIGKILL（沿用 stop-instance 的口径），再从运行登记里摘掉。
+/// 收尾时删掉试跑那份一次性 home（作业里记了才删）。返回一句人话（进正文 / 证据）。
+///
+/// 只删作业记录里的那一条路径，还得先过 homes.mbt 的核对（<homes root>/trial-…）：
+/// 记录里的人为改动、旧版本留下的空值，都在那一道挡掉，不拿它去删别的东西。
+async fn remove_trial_home_of(job : @store.Job) -> String noraise {
+  let t = match job.trial {
+    Some(t) => t
+    None => return ""
+  }
+  if @json.trim_both(t.home) == "" {
+    // 第三版之前的记录：那时试跑借的是真实 home，没有一次性 home 可删
+    return "这条作业没有记一次性 home（旧记录），没有要删的临时目录"
+  }
+  match @profiles.remove_trial_home(t.home) {
+    Ok(note) => note
+    Err((_code, message)) => "一次性 home 没删成：" + message
+  }
+}
+
+///|
+/// 收掉试跑实例：SIGTERM -> 宽限 -> SIGKILL（沿用 stop-instance 的口径），再从运行登记里摘掉；
+/// 然后删掉这份试跑用的一次性 home（design/deep-home-isolation.md 第 6 节）。
 /// 返回一句人话（进正文 / 证据）。
 ///
-/// **只有三个地方会走到它**：job-verdict（good / bad）、job-trial-stop、job-abort。
-/// 试跑实例不会被作业自动收掉 —— 用户可能要试一阵，收到 verdict 步之后还留着才合理。
+/// **只有四个地方会走到它**：job-verdict（good / bad）、job-trial-stop、job-abort。
+/// 试跑实例不会被作业自动收掉 —— 用户可能要试一阵，收到 verdict 步之后还留着才合理；
+/// 而一旦收掉，这次试跑用的 home 也就没有留着的理由了，一起删。
 async fn stop_trial(job : @store.Job) -> String noraise {
   let t = match job.trial {
     Some(t) => t
     None => return "作业里没有试跑实例的记录"
   }
-  if !process_alive(t.pid) {
-    return "试跑实例（PID " + t.pid.to_string() + "）已经不在了"
-  }
-  match trial_owner_mismatch(job, t.pid) {
-    Some(reason) => return reason
-    None => ()
-  }
-  let settings = @store.load_settings().values
-  let attempt = try {
-    Ok(stop_pid(t.pid, settings.process_stop_grace_ms))
-  } catch {
-    // 停不成的原因只进正文；错误码在这里没有用处
-    ActionError(message~, ..) => Err(message)
-  }
-  match attempt {
-    Err(message) => "试跑实例没停成：" + message
-    Ok(stopped) => {
-      let _ = @store.remove_by_pid(t.pid)
-      t.stopped_at = now_iso()
-      "试跑实例已收掉（PID " + stopped.pid.to_string() + "，" + stopped.signal + "）"
+  let stop_note = if !process_alive(t.pid) {
+    "试跑实例（PID " + t.pid.to_string() + "）已经不在了"
+  } else {
+    match trial_owner_mismatch(job, t.pid) {
+      Some(reason) => reason
+      None => {
+        let settings = @store.load_settings().values
+        let attempt = try {
+          Ok(stop_pid(t.pid, settings.process_stop_grace_ms))
+        } catch {
+          // 停不成的原因只进正文；错误码在这里没有用处
+          ActionError(message~, ..) => Err(message)
+        }
+        match attempt {
+          Err(message) => "试跑实例没停成：" + message
+          Ok(stopped) => {
+            let _ = @store.remove_by_pid(t.pid)
+            t.stopped_at = now_iso()
+            "试跑实例已收掉（PID " + stopped.pid.to_string() + "，" + stopped.signal + "）"
+          }
+        }
+      }
     }
+  }
+  // 实例还活着就不动它脚下的 home：删一份正被用着的 home 比留着它糟得多
+  if process_alive(t.pid) {
+    return stop_note + "；一次性 home 先留着：这只实例还在跑（PID " + t.pid.to_string() + "）"
+  }
+  let home_note = remove_trial_home_of(job)
+  if home_note == "" {
+    stop_note
+  } else {
+    stop_note + "；" + home_note
   }
 }
 
@@ -473,8 +508,9 @@ async fn trial_failed(
 /// 建一条作业：第 1 步 lock 立刻做（记回滚锚），然后停在 install。
 ///
 /// 目标版本由前端给，留空就是留空 —— 后端不替你挑一个版本装上（§4）。
-/// profile 必填：试跑用的是**用户真实的 DSH_HOME 与真实 profile**，
-/// 所以开工时就得选定，并且这一份在这里（不是到试跑那一步才发现不存在）。
+/// profile 必填：试跑**从这份 DSH_HOME 里的这只 profile 复制配置**到一次性 home
+/// （design/deep-home-isolation.md 第 6 节），所以开工时就得选定，并且这一份在这里就核对
+/// （不是到试跑那一步才发现不存在）。
 ///
 /// 同时把开工前的 dsh-pin.json 记进作业（pinBefore）：bad 分支能不能真恢复，全看它。
 pub async fn job_start(
@@ -495,7 +531,7 @@ pub async fn job_start(
     None => ""
   }
   if profile == "" {
-    fail("bad-params", "要选一只试跑用的 profile：试跑起的是你真实 home 里的那一份配置")
+    fail("bad-params", "要选一只试跑用的 profile：试跑要从这份 home 里的那只 profile 复制一份配置")
   }
   validate_profile_name(profile)
   let (home, home_source) = @runtime.resolve_dsh_home()
@@ -795,16 +831,21 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
 // ── 3. job-trial ─────────────────────────────────────────────
 
 ///|
-/// 把新版起成一只**真用的实例**：作业 target.dir 那份 dsh + 用户真实 DSH_HOME +
-/// 作业里选的 profile + 空闲端口。等到监听 + 签名通过，把 pid / port / url 记进 trial，
+/// 把新版起成一只**真用的实例**：作业 target.dir 那份 dsh + 一份**一次性 home** +
+/// 作业里选的 profile + 空闲端口。等到监听 + 签名通过，把 pid / port / url / home 记进 trial，
 /// step -> verdict。**这一步不判定好坏** —— 好不好用由用户说了算（verdict 步）。
 ///
+/// 一次性 home（design/deep-home-isolation.md 第 6 节）：在 homes root 下建
+/// trial-<作业 id 末 6 位>，复制选中 profile 的配置、软链 node_modules 与 skills、
+/// 凭证只写路径。用户平时那份 ~/.dsh 与已隔离的其它 home 一个字节都不动；
+/// 收尾时（verdict 的 good / bad、trial-stop、abort）整份删掉。
+///
 /// 起实例走 start_instance 那条路（同样的端口挑选、同样的 bind 归因、同样的运行登记），
-/// 只是把「用哪一份包目录」当参数传进去：不拿 dsh-pin.json 当临时覆盖，
+/// 只是把「用哪一份包目录」与「用哪一份 home」当参数传进去：不拿 dsh-pin.json 当临时覆盖，
 /// 否则用户下次起实例会莫名其妙用上试跑的那一版。
 ///
 /// 起好之后**不自动收掉它**：用户可能要试一阵。收掉它只有 job-trial-stop / job-abort
-/// （以及 verdict 的 good / bad）这三条路。
+/// （以及 verdict 的 good / bad）这几条路，它们同时删掉这份一次性 home。
 pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
   let job = require_job(id)
   if job.step != "trial" {
@@ -888,13 +929,18 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
     fail("bad-params", "这条作业没记试跑用的 profile（开工时就该选好）；到「维护」页重开一条")
   }
   validate_profile_name(profile)
-  let (home, home_source) = @runtime.resolve_dsh_home()
-  let profile_dir = @json.join_all([home, "profiles", profile])
-  if !@json.is_dir(profile_dir) {
+  let (source_home, source_home_source) = @runtime.resolve_dsh_home()
+  let source_profile_dir = @json.join_all([source_home, "profiles", profile])
+  if !@json.is_dir(source_profile_dir) {
     return trial_failed(
       job,
       "这份 DSH_HOME 里没有 profile「" + profile + "」，起不了实例",
-      [("profile", profile), ("home", home), ("homeSource", home_source)],
+      [
+        ("profile", profile),
+        ("sourceHome", source_home),
+        ("sourceHomeSource", source_home_source),
+        ("sourceProfileDir", source_profile_dir),
+      ],
       now,
     )
   }
@@ -909,13 +955,37 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
       abort("unreachable: fail 一定抛错")
     }
   }
+  // 一次性 home：建在 homes root 下（trial-<作业 id 末 6 位>），铺法照隔离 home 那一套。
+  // 试跑跑在它里面，用户平时那份 home 与它的状态都不动；收尾时整份删掉。
+  let trial_home = match @profiles.create_trial_home(job.id, profile) {
+    Ok(home) => home
+    Err((code, message)) =>
+      return trial_failed(
+        job,
+        "没能给试跑铺一份一次性 home（原因在证据里）",
+        [
+          ("profile", profile),
+          ("homeKind", @profiles.home_kind_trial),
+          ("sourceHome", source_home),
+          ("sourceProfileDir", source_profile_dir),
+          ("error", message),
+          ("code", code),
+        ],
+        now,
+      )
+  }
   let started = try {
-    Ok(start_instance_with(profile, Some(home), Some(port), Some(target_dir), true))
+    Ok(start_instance_with(profile, Some(trial_home.path), Some(port), Some(target_dir), true))
   } catch {
     ActionError(code~, message~) => Err((code, message))
   }
   match started {
     Err((code, message)) => {
+      // 实例没起来：这份 home 也没有留着的理由，删掉并写进证据（删不掉也照实写）
+      let teardown = match @profiles.remove_trial_home(trial_home.path) {
+        Ok(note) => note
+        Err((_c, why)) => "一次性 home 没删成：" + why
+      }
       @store.mark_step(
         job,
         "trial",
@@ -923,9 +993,12 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
         "新版没能起成实例（原因在证据里）",
         [
           ("profile", profile),
+          ("homeKind", @profiles.home_kind_trial),
+          ("home", trial_home.path),
+          ("profileCopy", trial_home.profile_dir),
+          ("homeTeardown", teardown),
           ("targetDir", target_dir),
           ("port", port.to_string()),
-          ("home", home),
           ("error", message),
         ],
         now,
@@ -944,29 +1017,45 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
         port: outcome.port,
         url: outcome.url,
         profile,
+        home: trial_home.path,
+        home_kind: @profiles.home_kind_trial,
+        profile_copy: trial_home.profile_dir,
         started_at: now_iso(),
         stopped_at: "",
       })
+      // 证据：这次试跑用的是哪一份临时 home、从哪份 profile 复制过来的、里面是什么
+      let evidence : Array[(String, String)] = [
+        ("pid", outcome.pid.to_string()),
+        ("port", outcome.port.to_string()),
+        ("url", outcome.url),
+        ("profile", profile),
+        ("home", trial_home.path),
+        ("homeKind", @profiles.home_kind_trial),
+        ("profileCopy", trial_home.profile_dir),
+        ("sourceHome", source_home),
+        ("sourceHomeSource", source_home_source),
+        ("sourceProfileDir", source_profile_dir),
+        ("configFilesCopied", trial_home.files_copied.to_string()),
+        ("nodeModulesTarget", trial_home.node_modules_target),
+        ("skillsLinked", if trial_home.skills_linked { "true" } else { "false" }),
+        ("credentialsPath", trial_home.credentials_path),
+        ("credentialsKey", trial_home.credentials_key),
+        ("targetDir", target_dir),
+        ("targetVersion", version),
+        ("bootMs", boot_ms.to_string()),
+        ("logPath", outcome.log_path),
+        ("command", outcome.command),
+      ]
+      if trial_home.replaced != "" {
+        evidence.push(("homeReplaced", trial_home.replaced))
+      }
       @store.mark_step(
         job,
         "trial",
         "passed",
-        "新版本起来了（端口 " + outcome.port.to_string() + "，PID " +
+        "新版本在一次性 home 里起来了（端口 " + outcome.port.to_string() + "，PID " +
         outcome.pid.to_string() + "），等你试",
-        [
-          ("pid", outcome.pid.to_string()),
-          ("port", outcome.port.to_string()),
-          ("url", outcome.url),
-          ("profile", profile),
-          ("profileDir", profile_dir),
-          ("home", home),
-          ("homeSource", home_source),
-          ("targetDir", target_dir),
-          ("targetVersion", version),
-          ("bootMs", boot_ms.to_string()),
-          ("logPath", outcome.log_path),
-          ("command", outcome.command),
-        ],
+        evidence,
         now,
       )
       // verdict 步：结论还没出，记 running —— 到这里写 passed 就是把「没验到」写成「通过」
@@ -994,13 +1083,17 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
           ("port", @json.jint(outcome.port)),
           ("url", @json.JStr(outcome.url)),
           ("profile", @json.JStr(profile)),
+          ("home", @json.JStr(trial_home.path)),
+          ("homeKind", @json.JStr(@profiles.home_kind_trial)),
+          ("profileCopy", @json.JStr(trial_home.profile_dir)),
           ("targetVersion", @json.JStr(version)),
           ("bootMs", @json.jint(boot_ms)),
           ("trialAlive", @json.JBool(true)),
         ],
-        note: "新版本起来了：http://127.0.0.1:" + outcome.port.to_string() +
-          "/ —— 你去用一用，插件、配置、会话都是你平时那一套。试跑用的是 profile " + profile +
-          "。这只实例不会被作业自动收掉，试完再说好用不好用。",
+        note: "新版本在一次性 home 里起来了：http://127.0.0.1:" + outcome.port.to_string() +
+          "/。试跑用的是 profile " + profile + " 的一份配置拷贝，你平时那份 home 没有动。" +
+          "这只实例不会被作业自动收掉；收尾（好用 / 不好用 / 停掉试跑 / 中止）时会停掉它，" +
+          "并删掉 " + trial_home.path + " 这份 home。",
       }
     }
   }

@@ -439,12 +439,10 @@ struct Model {
   // ── 维护页（作业台） ──
   // 与 act_notice 分开：总览页那条提示条读的是 act_notice，借它的话，
   // 在维护页做完动作再切回总览会看到一条与那一页无关的话。
-  /// 新作业表单里选的目标版本（空串 = 没选）。**不在本地补一个「最新版」**：
+  /// 新作业表单里的目标版本（空串 = 没选）。**不在本地补一个「最新版」**：
   /// §4 说得很清楚，版本由使用者选，后端不猜。
-  /// 下拉与手填共用这一格 —— 换的只是输入方式，不是两个值。
+  /// 可搜索的那一版控件里，这一格就是输入框里的原文：点候选写进来，继续自己写就是自定义版本。
   job_version : String
-  /// 「手动填写版本」的开关开着没有。默认关（走下拉）；选了下拉里的版本就不用它。
-  job_version_manual : Bool
   /// 版本来源读数（GET /api/local/dsh-releases）：三个源并发问，各自 6 秒硬超时。
   /// None + 还在问 = 读取中；None + 问完了 = 没读到（releases_error 里有原因）
   releases : ReleasesFacts?
@@ -649,10 +647,8 @@ priv enum Msg {
   // 维护页（作业台）：开始表单 / 展开步骤表 / 某条作业的一步 / 回执
   /// 手填目标版本输入框里的文本
   JobVersionInput(String)
-  /// 从下拉里选了某一版（与手填同一个 job_version，换的只是输入方式）
+  /// 从候选列表里点了一版（写进同一个 job_version）
   JobVersionPicked(String)
-  /// 「手动填写版本」开关（true = 打开手填框，回到原来的输入方式）
-  JobVersionManual(Bool)
   /// 版本来源读数的回执（三个源的结果在里面，包括全都没答上来的那种）
   ReleasesText(Result[String, Error])
   JobProfilePicked(String)
@@ -747,7 +743,6 @@ fn initial_model() -> Model {
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
-    job_version_manual: false,
     releases: None,
     releases_error: "",
     releases_loading: false,

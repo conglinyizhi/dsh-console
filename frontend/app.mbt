@@ -1000,8 +1000,8 @@ fn job_success_text(action : String, outcome : Map[String, Json]?) -> String {
     "job-trial" =>
       if bool_field(o, "started") {
         let url = str_field(o, "url")
-        "新版本起来了：" + (if url == "" { "见下面的地址" } else { url }) +
-        " —— 你去用一用，插件、配置、会话都是你平时那一套"
+        "新版本在一次性 home 里起来了：" + (if url == "" { "见下面的地址" } else { url }) +
+        "。你去用一用，收尾时这只实例会停掉、这份 home 会删掉。"
       } else {
         "新版本没跑起来，这一步记为不通过。原因在悬停里。"
       }
@@ -1011,10 +1011,10 @@ fn job_success_text(action : String, outcome : Map[String, Json]?) -> String {
         "bad" =>
           "回滚了：起实例还是用 " + str_field(o, "anchorVersion") +
           "；新装的那份留着没删，要删单独清理"
-        "later" => "记下了：先放着。试跑实例与版本指定都没动。"
+        "later" => "记下了：先放着。试跑实例、一次性 home 与版本指定都没动。"
         _ => "结论记下了。"
       }
-    "job-trial-stop" => "试跑实例已经收掉了；作业还停在这一步。"
+    "job-trial-stop" => "试跑实例已经收掉了，一次性 home 也删了；作业还停在这一步。"
     "job-commit" =>
       "已经切到 " + str_field(o, "version") +
       "；起实例会用这一版。旧版本留着当回滚锚，确认稳定后再清理"
@@ -1025,7 +1025,7 @@ fn job_success_text(action : String, outcome : Map[String, Json]?) -> String {
       } else {
         "旧版本的包目录本来就不在了，这一步没有可删的。"
       }
-    "job-abort" => "作业已中止；已经做完的步骤都留着。"
+    "job-abort" => "作业已中止，试跑实例与一次性 home 都收掉了；已经做完的步骤都留着。"
     _ => "这一步完成了。"
   }
 }
@@ -1064,14 +1064,19 @@ fn job_start_command(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
       @cmd.none,
     )
   }
-  // profile 必填（后端也拦）：试跑起的是使用者真实 home 里那一份配置。
-  // 名称取自「在跑的 → web → 第一份」，与页面下拉里显示的是同一个函数算出来的。
+  // profile 必填（后端也拦）：试跑要从这只 profile 复制一份配置到一次性 home（§9.4）。
+  // 名称取自「在跑的 → web → 第一份」里第一只**可用**的，与页面下拉里显示的是同一个函数。
   let profile = job_profile_choice(model)
   if profile == "" {
+    let text = if job_profile_names(model).length() == 0 {
+      "先选一只试跑用的 profile：这一页没读到任何 profile 读数。"
+    } else {
+      "没有可用的试跑 profile：这一只配置要么读不到，要么起不了网页实例。"
+    }
     return (
       {
         ..model,
-        job_notice: "先选一只试跑用的 profile：这一页没读到任何 profile 读数。",
+        job_notice: text,
         job_notice_ok: false,
         job_notice_hint: "",
         job_notice_hint_for: "",
@@ -3094,19 +3099,9 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     JobVersionInput(text) => ({ ..model, job_version: text }, @cmd.none)
     JobProfilePicked(name) => ({ ..model, job_profile: name }, @cmd.none)
     JobVersionPicked(version) => (
-      // 下拉里选了一版：手填框不用出现（规格 §2）。两个入口写的是同一格 job_version，
-      // 所以「选了哪一版」与「开始时装哪一版」永远是同一个值。
-      { ..model, job_version: version, job_version_manual: false },
-      @cmd.none,
-    )
-    JobVersionManual(on) => (
-      {
-        ..model,
-        job_version_manual: on,
-        // 回到下拉时把目标版本清空：下拉里一项没选、要装的却是刚才手填的那一版，
-        // 那是「看着一个值、发出去另一个值」。反之打开手填时留着原值，不改使用者写下的字。
-        job_version: if on { model.job_version } else { "" },
-      },
+      // 点候选：把这一版写进输入框（§9.2）。输入框里的字与「开始时装哪一版」永远是同一个值，
+      // 所以点了候选之后还能接着改，改过的就是自定义版本。
+      { ..model, job_version: version },
       @cmd.none,
     )
     ReleasesText(res) => {

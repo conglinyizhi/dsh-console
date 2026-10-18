@@ -1853,41 +1853,99 @@ $drawer-ms: 220ms;
 // 一条作业一张卡：标题 / 状态 / 第几步 / 开始于 / 一句话结果 / 步骤表 / 按钮。
 // 步骤行是「三色灯 + 名字 + 状态词 + 结论」四段：颜色只作辅助（§6），状态词永远在。
 // 命令、包目录、体积、输出尾部都不在这一层 —— 它们在悬停（title）与证据里。
+// 维护页用满内容区宽度（design/ops-maintenance-jobs.md §9.1）：
+// 不套 .dsh-page 的窄栏，只留内边距；作业卡、步骤表、试跑块跟着铺开。
+// 关于页与设置页仍是 .dsh-page 的窄栏（散文与表单，一行太长反而难读），不跟着改。
 .dsh-maintenance {
-  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 22px 24px;
+  max-width: none;
 }
 .dsh-job-start-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 .dsh-job-start-row .dsh-label {
   width: auto;
   flex: none;
+  // 标签与「开始」跟输入框那一行对齐：下面可能还挂着候选列表，
+  // 居中排版会把这两样推到半空中去
+  padding-top: 6px;
 }
 // 版本号是等宽的一段（0.2.2-rc.1 这类），窄屏也不许把整行撑穿
 .dsh-job-version {
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 260px;
+  max-width: 320px;
 }
-// 目标版本那一段是竖排：控件在上，来源小字贴着它。
-// 小字不另起一行挂在整行下面 —— 那是下一组（试跑用 profile）的地方。
+// 目标版本那一段是竖排：输入框在上，候选列表与几行小字贴着它（§9.2）。
+// 列表不绝对定位：它把下面的内容推开，不会盖住试跑那一组控件。
 .dsh-job-version-field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 260px;
+  max-width: 320px;
 }
-// 列里的控件吃满这一列的宽：下拉与输入框在两种输入方式下一样宽，切换时整行不会跳
+// 列里的控件吃满这一列的宽：输入框与下面的列表同一个宽度，整行不会跳
 .dsh-job-version-field > .dsh-job-version {
   flex: none;
   width: 100%;
   max-width: none;
 }
-// 「来源：GitHub」这一行。它说的就是「上面这个列表是谁给的」，所以紧贴着下拉。
+// 候选列表：一行一版，最多滚到 list_cap 那几条的高度（条数由 view 那边封顶）
+.dsh-job-version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 3px;
+  border: 1px solid $line;
+  border-radius: 6px;
+  background: $panel-soft;
+}
+.dsh-job-version-item {
+  display: block;
+  width: 100%;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: $text;
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.dsh-job-version-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+// 选中的那一条：除了底色，左边还有一段竖线 —— 颜色不作唯一信号
+.dsh-job-version-item.selected {
+  background: rgba(120, 200, 160, 0.14);
+  box-shadow: inset 2px 0 0 rgba(120, 200, 160, 0.75);
+}
+.dsh-job-version-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+// 过滤掉的条数 / 「列表里没有 <输入>」这两行小字
+.dsh-job-version-more,
+.dsh-job-version-custom {
+  font-size: 11px;
+  line-height: 1.4;
+  color: $text-dim;
+  cursor: default;
+}
+.dsh-job-version-custom {
+  color: $text-mid;
+}
+// 「来源：GitHub」这一行。它说的就是「上面这个列表是谁给的」，所以紧贴着列表。
 .dsh-job-version-source {
   font-size: 11px;
   color: $text-dim;
@@ -1897,9 +1955,27 @@ $drawer-ms: 220ms;
   text-overflow: ellipsis;
 }
 // 没得选时的那句话（或「正在问」）。颜色走警示档，但它不是错误 ——
-// 手填照旧可用，所以不加边框、不摆成一块通知。
+// 输入框照旧可用，所以不加边框、不摆成一块通知。
 .dsh-job-version-none {
   font-size: 11.5px;
+  line-height: 1.4;
+  color: $warn;
+  cursor: default;
+}
+// 试跑用 profile 那一组：下拉 + 一行状态小字（§9.3）
+.dsh-job-profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: none;
+  max-width: 320px;
+}
+.dsh-job-profile-field > .dsh-job-profile {
+  width: 100%;
+  max-width: none;
+}
+.dsh-job-profile-note {
+  font-size: 11px;
   line-height: 1.4;
   color: $warn;
   cursor: default;
