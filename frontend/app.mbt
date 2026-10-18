@@ -678,6 +678,23 @@ fn send_action(
 }
 
 ///|
+/// 只带 profile 名的参数：{ profile }。
+///
+/// 隔离 / 取消隔离只认这一个键（后端 ensure_action_params 会拒掉多余的），
+/// 所以不能复用 profile_pairs —— 那一条会顺手带上 home，多出来的键就是 bad-params。
+fn profile_name_pairs(row : Row) -> Array[(String, String)] {
+  match row.profile_name {
+    Some(name) =>
+      if name == "" {
+        []
+      } else {
+        [("profile", json_text_literal(name))]
+      }
+    None => []
+  }
+}
+
+///|
 /// 删除的参数：只有 profile 这一项。
 ///
 /// 二次确认串**不在这里** —— 它在 body 顶层，由 delete_confirm_of 给出、走
@@ -1252,6 +1269,36 @@ fn action_receipt(
   // 真正用了哪个（opener + pid）在后端回执里，照旧收进悬停。
   if action == "open-path" {
     return (name + " 已用本机默认程序" + verb + "。", backend_hint(note))
+  }
+  // 配置 home 两条：回执要把**落到哪儿 / 删掉了哪儿**说清楚，
+  // 光说「已隔离」的话，使用者还得自己翻读数去确认用的是哪一份 home
+  if action == "isolate-profile" {
+    let path = match outcome {
+      Some(outcome) => str_field(outcome, "path")
+      None => ""
+    }
+    let text = if path == "" {
+      name + " 已隔离到独立 home。"
+    } else {
+      name + " 已隔离，以后它的实例在 " + path + " 里跑。"
+    }
+    return (text, backend_hint(note))
+  }
+  if action == "deisolate-profile" {
+    let path = match outcome {
+      Some(outcome) => str_field(outcome, "path")
+      None => ""
+    }
+    let size = match outcome {
+      Some(outcome) => outcome_size_text(outcome)
+      None => ""
+    }
+    let text = if path == "" {
+      name + " 的隔离已取消。"
+    } else {
+      name + " 的隔离已取消，" + path + " 已删掉" + (if size == "" { "" } else { "（" + size + "）" })
+    }
+    return (text, backend_hint(note))
   }
   if action == "restore-from-trash" || action == "purge-trash-item" {
     let (text, hint) = trash_receipt(action, name, outcome)
@@ -2478,6 +2525,24 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         CopyTokenUrl => copy_url_action(model, id, "带令牌的地址", true, emit)
         // 复制开发指令：一段给「另一个会话」的任务说明（粘到别的 profile 的会话里用）
         CopyDev => copy_dev_action(model, id, emit)
+        // 配置 home：共用 → 直接发隔离；独立 → 先开确认框（取消隔离会删掉整份 home）。
+        // 两个都会把抽屉收掉：确认框盖在抽屉之上，成功之后这一行的读数也会变。
+        IsolateHome => {
+          let (next, cmd) = send_action(
+            { ..model, drawer_id: "" },
+            id,
+            "isolate-profile",
+            row_name(model, id),
+            "隔离到独立 home",
+            match find_row(model.rows, id) {
+              Some(row) => params_of(profile_name_pairs(row))
+              None => ""
+            },
+            emit,
+          )
+          (next, cmd)
+        }
+        DeisolateHome => (model, emit(HomeDeisolateOpen(id, card_id(id))))
         // 打开工作目录 / 编辑配置：都走 POST open-path，只有 kind 不同（cli 端不给路径）
         Dir => open_path_action(model, id, "dir", "打开工作目录", emit)
         Config => open_path_action(model, id, "config", "打开配置", emit)
@@ -2503,6 +2568,43 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     DeleteOpen(id, return_id) => (
       { ..model, confirm_id: id, confirm_return: return_id },
       focus_after_render("dsh-confirm-ok"),
+    )
+    // 取消隔离的确认：确认之后真发 deisolate-profile（confirm 走 body 顶层），
+    // 关框与焦点回触发元素与删除确认框同一套。
+    HomeDeisolateOpen(id, return_id) => (
+      {
+        ..model,
+        drawer_id: "",
+        home_confirm_id: id,
+        home_confirm_return: return_id,
+      },
+      focus_after_render("dsh-home-confirm-ok"),
+    )
+    HomeDeisolateConfirm =>
+      match find_row(model.rows, model.home_confirm_id) {
+        None => (
+          { ..model, home_confirm_id: "" },
+          focus_after_render(model.home_confirm_return),
+        )
+        Some(row) => {
+          let params = params_of(profile_name_pairs(row))
+          let return_id = model.home_confirm_return
+          let (next, cmd) = send_action(
+            { ..model, home_confirm_id: "", home_confirm_return: "" },
+            model.home_confirm_id,
+            "deisolate-profile",
+            row.name,
+            "取消隔离",
+            params,
+            emit,
+            confirm="DELETE",
+          )
+          (next, @cmd.batch([cmd, focus_after_render(return_id)]))
+        }
+      }
+    HomeDeisolateCancel => (
+      { ..model, home_confirm_id: "" },
+      focus_after_render(model.home_confirm_return),
     )
     // 点整张卡：开抽屉，焦点进抽屉里的关闭键。
     // 卡是 role=button + tabindex=0，键盘也能开（Enter / 空格，见 view_overview 的 card_attrs）。

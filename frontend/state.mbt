@@ -45,6 +45,10 @@ priv enum ActionKey {
   Dir
   /// 打开这只 profile 的 cordis.patch.yml（POST open-path，kind=config）
   Config
+  /// 隔离到独立 home（POST isolate-profile）
+  IsolateHome
+  /// 取消隔离（先开确认框，确认后 POST deisolate-profile）
+  DeisolateHome
 }
 
 ///|
@@ -178,6 +182,13 @@ struct Row {
   user_note : String
   /// 备注的来源 / 读不到的原因，挂在卡上那一行的悬停里（后端原样给）
   user_note_source : String
+  // ── 配置 home（design/deep-home-isolation.md 第 4、5 节）──
+  /// 这只 profile 的 home 归属：isolated（独立）/ shared（共用）/ 空串（读数里没有这一项）
+  home_kind : String
+  /// 那一份 home 的路径（隔离 home 根，或控制台的 DSH_HOME）
+  home_path : String
+  /// 后端给的判断依据（进悬停）。空串 = 读数里没给
+  home_kind_source : String
   /// 卡片第二行第三顺位的「上次启动」时刻（UTC ISO）。空串 = 取不到 ——
   /// 那一行就空着，**绝不写一个编出来的时间**。
   ///
@@ -418,6 +429,10 @@ struct Model {
   note_saving : String
   confirm_id : String
   confirm_return : String
+  // 取消隔离的确认框：目标行 id（空串 = 框关着）与触发元素 id。
+  // 与删除确认框分开一格：两个框说的是两件事，共用一个字段会让「关掉一个，另一个也关了」。
+  home_confirm_id : String
+  home_confirm_return : String
   // 回收站「彻底删除」的确认框：目标目录名（空串 = 框关着）与触发元素 id
   trash_purge_dir : String
   trash_purge_return : String
@@ -620,6 +635,12 @@ priv enum Msg {
   DeleteOpen(String, String)
   DeleteConfirm
   DeleteCancel
+  // 配置 home（design/deep-home-isolation.md）：隔离 / 取消隔离。
+  // 隔离本身只建不改，点了就发（走 RowAction 里的 IsolateHome）；
+  // 取消隔离是破坏性动作，先开确认框 —— 这三条是那个框的三拍。
+  HomeDeisolateOpen(String, String)
+  HomeDeisolateConfirm
+  HomeDeisolateCancel
   // 回收站（第六轮）：恢复某一条 / 点「彻底删除」先开确认框 / 框里的确定与取消
   TrashRestore(String)
   TrashPurgeOpen(String, String)
@@ -721,6 +742,8 @@ fn initial_model() -> Model {
     note_saving: "",
     confirm_id: "",
     confirm_return: "",
+    home_confirm_id: "",
+    home_confirm_return: "",
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
@@ -1881,7 +1904,14 @@ fn running_rows(
       Some(name) => {
         let mut found : ProfileFact? = None
         for item in profiles {
-          if item.name == name && home_matches {
+          // 名字与 home 都要对上，但「这个 home」有两档合法答案：
+          //   ① 控制台的 home（共用这一档，实例跑在 DSH_HOME 里）
+          //   ② 这只 profile 自己的 home（隔离这一档，实例的 DSH_HOME 就是那条隔离路径）
+          // 只认 ① 的话，隔离起来的那只实例反而配不上自己的 profile 读数 ——
+          // 备注 / 缺包 / 配置 home 全变成「读不到」，而答案明明就在读数里。
+          let matches_home = home_matches ||
+            (item.home_path != "" && same_home(instance_home, item.home_path))
+          if item.name == name && matches_home {
             found = Some(item)
           }
         }
@@ -1994,6 +2024,20 @@ fn running_rows(
       },
       user_note_source: match profile_fact {
         Some(item) => item.note_source
+        None => ""
+      },
+      // 配置 home：这一只实例的 profile 解析得出就照它的读数（与已停止那张卡同一个口径）；
+      // 解析不出就三格空着（界面那一格写「读不到」，不按实例的 dshHome 反推归属）
+      home_kind: match profile_fact {
+        Some(item) => item.home_kind
+        None => ""
+      },
+      home_path: match profile_fact {
+        Some(item) => item.home_path
+        None => ""
+      },
+      home_kind_source: match profile_fact {
+        Some(item) => item.home_kind_source
         None => ""
       },
       // 第六格：这只实例用的 profile 目录的最近改动。profile 解析得出就用它的 mtime；
@@ -2231,6 +2275,10 @@ fn profile_rows(
       console_started: false,
       user_note: fact.note,
       user_note_source: fact.note_source,
+      // 配置 home：后端 profiles 读数里每只一项（home.kind / path / homeKindSource）
+      home_kind: fact.home_kind,
+      home_path: fact.home_path,
+      home_kind_source: fact.home_kind_source,
       mtime_ms: fact.dir_mtime_ms,
       mtime_missing: "读不到",
       mtime_hint: match fact.dir_mtime_ms {
@@ -2363,6 +2411,10 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     // 磁盘上没有这只 profile，也就没有备注文件可读：不编
     user_note: "",
     user_note_source: "",
+    // 同理：没有 profile 目录，就没有「这只 profile 的 home」这一项读数
+    home_kind: "",
+    home_path: "",
+    home_kind_source: "",
     // 磁盘上连目录都没有，控制台的启动记录里也不会有这只 profile：那一行空着
     last_started: "",
     last_started_source: "",
@@ -2404,6 +2456,8 @@ fn demo_running() -> Array[Row] {
       deletable: false, archived_at: None, archive_home: "",
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
+      home_kind: "", home_path: "", home_kind_source: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -2428,6 +2482,8 @@ fn demo_running() -> Array[Row] {
       deletable: true, archived_at: None, archive_home: "",
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
+      home_kind: "", home_path: "", home_kind_source: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -2458,6 +2514,8 @@ fn demo_stopped() -> Array[Row] {
       deletable: true, archived_at: None, archive_home: "",
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
+      // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
+      home_kind: "", home_path: "", home_kind_source: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",

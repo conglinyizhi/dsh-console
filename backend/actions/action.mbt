@@ -238,6 +238,40 @@ fn require_order_ids(params : Json) -> Array[String] raise ActionError {
 }
 
 ///|
+/// 建 / 删隔离 home 之前的那道守卫：同一个 profile 不许有实例在跑。
+///
+/// 理由（规格第 3 节）：复制到一半配置被改，建出来的就是一份半新半旧的 home；
+/// 删掉一份正在被用的 home，实例会在下一次读配置时炸掉。两个 home 都查 ——
+/// 隔离前实例跑在控制台的 home 里，取消隔离前则可能跑在隔离 home 里。
+async fn isolated_home_guard(profile : String) -> Unit raise ActionError {
+  let (console_home, _) = @runtime.resolve_dsh_home()
+  let homes : Array[String] = [console_home]
+  match @profiles.isolated_home_of(profile) {
+    Some(isolated) =>
+      if isolated != console_home {
+        homes.push(isolated)
+      }
+    None => ()
+  }
+  for home in homes {
+    match running_for_profile_in(profile, Some(home)) {
+      Some(hit) => {
+        let port_text = match hit.port {
+          Some(p) => "端口 " + p.to_string()
+          None => "端口未识别"
+        }
+        fail(
+          "conflict",
+          "profile " + profile + " 有实例在跑（PID " + hit.pid.to_string() + "，" + port_text +
+          "，home " + home + "）；先停掉它再动隔离 home",
+        )
+      }
+      None => ()
+    }
+  }
+}
+
+///|
 /// 写一行审计（失败不让动作失败，把原因回给调用方拼进 note）。
 async fn audit(
   action : String,
@@ -310,6 +344,9 @@ pub async fn run_action(
           abort("unreachable: fail 一定抛错")
         }
       }
+      // 重启沿用**这一只原来那个 home**（target.home），不重新按默认挑：
+      // 它的会话与状态都在老 home 里，重启时把它悄悄搬到另一份 home，等于把那一份会话丢在身后。
+      // 想让它换到隔离 home 的：先停，再从抽屉里隔离，然后启动。
       let started = start_instance(profile, target.home, target.port)
       @json.JObj([
         ("action", @json.JStr(action)),
@@ -353,6 +390,19 @@ pub async fn run_action(
           note_text = note_text +
             "它的备注（" + outcome.note_path + "）第一行写着来历：" + note_head
       }
+      // 派生的 profile 默认隔离（规格第 8 节）：回执里点名说清落到哪，
+      // 没建成也要说清「派生本身成功、隔离没成」—— 两件事不能混成一句。
+      match outcome.home_path {
+        Some(home) =>
+          note_text = note_text + "。已隔离到 " + home + "（以后用这只 profile 起的实例都在里面跑）"
+        None =>
+          match outcome.home_error {
+            Some(reason) =>
+              note_text = note_text + "。隔离 home 没建成（" + reason + "），派生本身成功；" +
+                "它现在与其它 profile 共用 DSH_HOME"
+            None => ()
+          }
+      }
       note_text = note_text + "。" + copy_note
       let fields : Array[(String, @json.JsonVal)] = [
         ("profile", @json.JStr(outcome.profile)),
@@ -373,6 +423,11 @@ pub async fn run_action(
         ("dirMtimeMs", @json.int64_or_null(outcome.dir_mtime_ms)),
         ("dirMtimeSource", @json.JStr(outcome.dir_mtime_source)),
         ("listPosition", @json.JStr("第一个（列表按最近改动降序）")),
+        // 派生顺手建的隔离 home：建成了给路径，没建成给原因（派生本身照旧成功）
+        ("home", @json.JObj([
+          ("path", @json.str_or_null(outcome.home_path)),
+          ("error", @json.str_or_null(outcome.home_error)),
+        ])),
         ("note", @json.JStr(copy_note)),
       ]
       match outcome.started {
@@ -547,6 +602,89 @@ pub async fn run_action(
           ("remaining", @json.jint(kept.length())),
           ("archivePath", @json.JStr(paths.archive)),
         ])),
+      ])
+    }
+    // ── 隔离 home（design/deep-home-isolation.md 第 3 节）──────────
+    // 建 / 删都只碰 homes root 下的 <root>/<名字>（路径核对在 profiles/homes.mbt），
+    // 不碰 <DSH_HOME>：那是使用者自己的稳定环境（规格第 8 节）。
+    "isolate-profile" => {
+      ensure_action_params(params, "隔离到独立 home：", ["profile"])
+      let profile = require_string(params, "profile")
+      validate_profile_name(profile)
+      isolated_home_guard(profile)
+      let outcome = match @profiles.isolate_profile(profile) {
+        Ok(o) => o
+        Err((code, message)) => {
+          fail(code, message)
+          abort("unreachable: fail 一定抛错")
+        }
+      }
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("profile", @json.JStr(outcome.profile)),
+          ("path", @json.JStr(outcome.path)),
+          ("profileDir", @json.JStr(outcome.profile_dir)),
+          ("filesCopied", @json.jint(outcome.files_copied)),
+          ("nodeModulesTarget", @json.JStr(outcome.node_modules_target)),
+          ("skillsLinked", @json.JBool(outcome.skills_linked)),
+          // 凭证只写路径：键与值都进回执，核对时不用猜用的是哪一个键
+          ("credentialsKey", @json.JStr(outcome.credentials_key)),
+          ("credentialsPath", @json.JStr(outcome.credentials_path)),
+          ("createdAt", @json.str_or_null(outcome.created_at)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            "隔离 home 建在 " + outcome.path + "；凭证只在 cordis.patch.yml 里写了路径（" +
+            outcome.credentials_key + " -> " + outcome.credentials_path +
+            "），密钥本身没有复制、也没有软链过来",
+          ),
+        ),
+      ])
+    }
+    "deisolate-profile" => {
+      ensure_action_params(params, "取消隔离：", ["profile"])
+      let profile = require_string(params, "profile")
+      validate_profile_name(profile)
+      let given = match confirm {
+        Some(v) => @json.trim_both(v)
+        None => ""
+      }
+      if given != "DELETE" {
+        fail(
+          "bad-params",
+          "取消隔离会删掉整份 home（里面的会话、插件状态、日志一起没）；" +
+          "这是破坏性动作，body 顶层必须带 confirm 字段，值是 DELETE",
+        )
+      }
+      isolated_home_guard(profile)
+      let outcome = match @profiles.deisolate_profile(profile) {
+        Ok(o) => o
+        Err((code, message)) => {
+          fail(code, message)
+          abort("unreachable: fail 一定抛错")
+        }
+      }
+      let size = match (outcome.files, outcome.bytes) {
+        (Some(files), Some(bytes)) => files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
+        _ => "文件数读不到（" + outcome.size_source + "）"
+      }
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("profile", @json.JStr(outcome.profile)),
+          ("path", @json.JStr(outcome.path)),
+          ("files", @json.int_or_null(outcome.files)),
+          ("bytes", @json.int64_or_null(outcome.bytes)),
+          ("sizeSource", @json.JStr(outcome.size_source)),
+        ])),
+        (
+          "note",
+          @json.JStr(
+            "已删掉 " + outcome.path + "（" + size + "）；" + "接下来用这只 profile 起的实例回到控制台的 DSH_HOME",
+          ),
+        ),
       ])
     }
     "delete-profile" => {
@@ -804,6 +942,8 @@ pub fn spawn_outcome_json(o : SpawnOutcome) -> @json.JsonVal {
     ("port", @json.jint(o.port)),
     ("profile", @json.JStr(o.profile)),
     ("home", @json.JStr(o.home)),
+    // isolated / shared：这一只落在自己的隔离 home 里，还是与控制台共用 DSH_HOME
+    ("homeKind", @json.JStr(o.home_kind)),
     ("logPath", @json.JStr(o.log_path)),
     ("detached", @json.JBool(o.detached)),
     ("bootMs", @json.jint(o.boot_ms)),

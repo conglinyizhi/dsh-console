@@ -363,6 +363,22 @@ pub(all) struct ProfileFact {
   /// 这个时刻从哪来 / 为什么读不到，后端原样给（dirMtimeSource）；
   /// 字段**根本不在响应里**时由前端补一句说明（见 parse_profiles），别处不改写它。
   dir_mtime_source : String
+  // ── 配置 home（design/deep-home-isolation.md 第 4 节）──
+  //
+  // 后端每只 profile 给一个 home 对象：{ kind, path, profileDir, createdAt }。
+  //   kind = "isolated" 这只 profile 有自己的隔离 home（<DSH_CONSOLE_HOMES_ROOT>/<名字>/）
+  //   kind = "shared"   与控制台共用 DSH_HOME
+  // 空串 = 这一版后端没给这一项（按「读不到」处理，界面不猜一个归属出来）。
+  /// isolated / shared / 空串（读数里没有）
+  home_kind : String
+  /// 隔离 home 根，或控制台的 DSH_HOME
+  home_path : String
+  /// 实例真正读配置的目录（<path>/profiles/<名字>）
+  home_profile_dir : String
+  /// 隔离记录里的时刻；共用那一档没有（后端给 null）
+  home_created_at : String?
+  /// 后端给的一句判断依据（homeKindSource）；空串 = 这一版后端没给
+  home_kind_source : String
 } derive(Eq)
 
 pub extend ProfileFact with Eq::{ not_equal, equal }
@@ -390,6 +406,7 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
     let bundles = obj_field(fact, "bundles")
     let patch = obj_field(fact, "patch")
     let lock = obj_field(fact, "lock")
+    let home = obj_field(fact, "home")
     let missing : Array[String] = []
     for m in arr_field(bundles, "missing") {
       match m {
@@ -420,6 +437,13 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       } else {
         "这一版读数里没有「最近改动」可读"
       },
+      // home 整个不在（这一版后端还没有隔离 home）时三格都是空串：
+      // 界面那一格写「读不到」，**不按 dshHome 猜一个归属**出来
+      home_kind: str_field(home, "kind"),
+      home_path: str_field(home, "path"),
+      home_profile_dir: str_field(home, "profileDir"),
+      home_created_at: opt_str_field(home, "createdAt"),
+      home_kind_source: str_field(fact, "homeKindSource"),
     })
   }
   Ok({

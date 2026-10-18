@@ -87,6 +87,9 @@ pub struct SpawnOutcome {
   port : Int
   profile : String
   home : String
+  /// 这一只用的 home 归属：isolated（这只 profile 自己的隔离 home）/ shared（控制台的 DSH_HOME）。
+  /// 判据是实际用的路径与隔离 home 是否同一条，不靠名字猜。
+  home_kind : String
   log_path : String
   detached : Bool
   boot_ms : Int
@@ -610,7 +613,10 @@ pub async fn start_instance_with(
   let name = @json.trim_both(profile)
   validate_profile_name(name)
   let settings = @store.load_settings().values
-  let (default_home, _) = @runtime.resolve_dsh_home()
+  // 起实例默认用**这只 profile 自己的 home**（design/deep-home-isolation.md 第 3 节）：
+  // 有隔离 home 就用它；没有就用控制台的 DSH_HOME（这时读数与界面标「共用」）。
+  // 显式给了 home 就用给的（重启沿用原 home 走的就是这一支）。
+  let (default_home, _) = @profiles.default_home_of(name)
   let target_home = match home {
     Some(h) =>
       if @json.trim_both(h) == "" {
@@ -619,6 +625,16 @@ pub async fn start_instance_with(
         @json.trim_both(h)
       }
     None => default_home
+  }
+  // 归属按实际用的那条路径判：是这只 profile 的隔离 home 就是 isolated，否则共用
+  let home_kind = match @profiles.isolated_home_of(name) {
+    Some(isolated) =>
+      if target_home == isolated {
+        @profiles.home_kind_isolated
+      } else {
+        @profiles.home_kind_shared
+      }
+    None => @profiles.home_kind_shared
   }
   let profile_dir = @json.join_all([target_home, "profiles", name])
   if !@json.is_dir(profile_dir) {
@@ -789,6 +805,7 @@ pub async fn start_instance_with(
     port: chosen,
     profile: name,
     home: target_home,
+    home_kind,
     log_path,
     detached: settings.process_detach,
     boot_ms,

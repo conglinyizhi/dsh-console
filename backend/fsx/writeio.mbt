@@ -255,6 +255,23 @@ pub async fn remove_file(path : String) -> Result[Unit, String] noraise {
 }
 
 ///|
+/// 建一条符号链接：path 是链接自己，target 是它指向的东西。
+///
+/// 隔离 home 用它摆 node_modules 与 skills（规格第 2 节：软链，不复制）。
+/// 已存在同名路径时算失败 —— 覆盖一条别人摆的软链不是这一次要做的事。
+pub async fn make_symlink(target : String, path : String) -> Result[Unit, String] noraise {
+  if target == "" || path == "" {
+    return Err("建软链失败：目标或链接路径为空")
+  }
+  try {
+    @fs.symlink(target~, path)
+    Ok(())
+  } catch {
+    err => Err("建软链失败：" + path + " -> " + target + "（" + err.to_string() + "）")
+  }
+}
+
+///|
 /// 递归删目录。硬删走这一条。
 pub async fn remove_tree(path : String) -> Result[Unit, String] noraise {
   try {

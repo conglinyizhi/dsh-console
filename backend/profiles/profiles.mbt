@@ -244,6 +244,8 @@ async fn describe_profile(
   dir : String,
   shared_dir : String,
   current_profile : String?,
+  dsh_home : String,
+  dsh_home_source : String,
 ) -> @json.JsonVal noraise {
   let declared = declared_bundles(dir)
   let bundles : Array[Bundle] = []
@@ -281,9 +283,26 @@ async fn describe_profile(
     None
   }
 
+  // 这只 profile 的 home 归属（隔离 / 共用）：判据与读数都在 homes.mbt，前端不自己再推一遍。
+  // dsh_home 是控制台自己的 home —— 「共用」那一档的 path 就是它。
+  let home = home_fact_in(name, dsh_home, dsh_home_source)
+
   @json.JObj([
     ("name", @json.JStr(name)),
     ("dir", @json.JStr(dir)),
+    // 隔离 home 读数（design/deep-home-isolation.md 第 4 节）：
+    //   kind        isolated / shared
+    //   path        隔离 home 根 或 控制台的 DSH_HOME
+    //   profileDir  实例真正读配置的目录（<path>/profiles/<名字>）
+    //   createdAt   隔离记录里的时刻（没有隔离就是 null，那一档没有「建于」可言）
+    ("home", @json.JObj([
+      ("kind", @json.JStr(home.kind)),
+      ("path", @json.JStr(home.path)),
+      ("profileDir", @json.JStr(home.profile_dir)),
+      ("createdAt", @json.str_or_null(home.created_at)),
+    ])),
+    // 一句判断依据：这一档是凭什么判出来的（前端只显示，不再推）
+    ("homeKindSource", @json.JStr(home.source)),
     (
       "isCurrent",
       @json.JBool(match current_profile {
@@ -341,7 +360,16 @@ pub async fn read_profiles() -> @json.JsonVal raise @localapi.ReadError {
   names.sort_by(compare_code_units)
   let profiles : Array[@json.JsonVal] = []
   for name in names {
-    profiles.push(describe_profile(name, @json.join_path(root, name), shared_dir, current_profile))
+    profiles.push(
+      describe_profile(
+        name,
+        @json.join_path(root, name),
+        shared_dir,
+        current_profile,
+        dsh_home,
+        dsh_home_source,
+      ),
+    )
   }
   @json.JObj([
     ("dshHome", @json.JStr(dsh_home)),

@@ -31,6 +31,8 @@ fn action_name(key : ActionKey) -> String {
     Logs => "logs"
     Dir => "dir"
     Config => "config"
+    IsolateHome => "isolate-home"
+    DeisolateHome => "deisolate-home"
   }
 }
 
@@ -622,6 +624,44 @@ fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
 }
 
 ///|
+/// 「配置 home」那一格的两档文字（design/deep-home-isolation.md 第 5 节）。
+fn home_kind_text(kind : String) -> String {
+  match kind {
+    "isolated" => "独立"
+    "shared" => "共用"
+    _ => "读不到"
+  }
+}
+
+///|
+/// 抽屉「配置 home」那一格的值：独立（<路径>）/ 共用（<路径>）/ 读不到。
+///
+/// 路径同时挂在悬停里（完整不省略）：这一格的值太长时会被样式省略，
+/// 而「到底是哪一个 home」是使用者最可能要抄下来的一件事。
+fn home_field_value(row : Row) -> String {
+  if row.home_kind == "" {
+    "读不到"
+  } else if row.home_path == "" {
+    home_kind_text(row.home_kind)
+  } else {
+    home_kind_text(row.home_kind) + "（" + row.home_path + "）"
+  }
+}
+
+///|
+/// 「配置 home」那一格的悬停：完整路径 + 后端给的判断依据。
+/// 读数里没有这一项时如实说「没有这一项」，不按 DSH_HOME 猜一个归属出来。
+fn home_field_hint(row : Row) -> String {
+  if row.home_kind == "" {
+    "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
+  } else if row.home_kind_source == "" {
+    "路径：" + row.home_path + "（读数里没给判断依据）"
+  } else {
+    "路径：" + row.home_path + "｜依据：" + row.home_kind_source
+  }
+}
+
+///|
 /// 抽屉里那一组控制按钮 —— **今天行菜单里有的一个不少**。
 ///
 /// 顺序照原来的菜单骨架：先主操作（打开 / 起停 / 重启），再「打开与复制」那一簇
@@ -713,6 +753,49 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
   if row.deletable {
     mutate.push(drawer_button(row, Delete, "delete-outline", "删除", true, busy, emit))
   }
+  // 配置 home：共用 → 隔离到独立 home；独立 → 取消隔离（先开确认框）。
+  // 读数里没有这一项（home_kind 空串）时给一句「读不到」，不发一个不知道会建到哪儿的动作。
+  let home_items : Array[@html.Html] = []
+  if row.home_kind == "isolated" {
+    home_items.push(
+      @html.button(
+        class="dsh-btn danger",
+        type_="button",
+        disabled=busy,
+        attrs=mark("drawer-deisolate-home", ["overview", "drawer", row.id, "action", "deisolate-home"])
+          .data_set("action", "deisolate-home")
+          .title(
+            "删掉 " + row.home_path + "，里面的会话与插件状态一起没了；控制台的 DSH_HOME 里那份不动",
+          ),
+        on_click=emit(RowAction(row.id, DeisolateHome)),
+        [icon("close"), @html.span("取消隔离")],
+      ),
+    )
+  } else if row.home_kind == "shared" {
+    home_items.push(
+      @html.button(
+        class="dsh-btn",
+        type_="button",
+        disabled=busy,
+        attrs=mark("drawer-isolate-home", ["overview", "drawer", row.id, "action", "isolate-home"])
+          .data_set("action", "isolate-home")
+          .title(
+            "把这支 profile 的配置复制一份到控制台的 homes 根下（目录名就是 profile 名，缺省 ~/.dsh-homes），" +
+            "以后用这支 profile 起的实例都在里面跑，现在这份不动",
+          ),
+        on_click=emit(RowAction(row.id, IsolateHome)),
+        [icon("link-variant"), @html.span("隔离到独立 home")],
+      ),
+    )
+  } else {
+    home_items.push(
+      @html.span(
+        class="dsh-foot",
+        attrs=mark("drawer-home-missing", ["overview", "drawer", row.id, "action", "home-missing"]),
+        "这一版读数里没有「配置 home」，隔离 / 取消隔离都不发",
+      ),
+    )
+  }
   // 运维三项：查看日志 / 打开工作目录 / 编辑配置（第三轮接上的那三项）
   let ops : Array[@html.Html] = [
     drawer_button(row, Logs, "text-box-outline", "查看日志", false, busy, emit),
@@ -725,6 +808,8 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     // 是「拿出去用」，不是「拿走」。组名要与里面装的东西逐字对得上。
     ("打开与复制", take),
     ("改动这只 profile", mutate),
+    // 配置 home 单独一组：它改的是「以后实例落在哪儿」，与改名 / 删除不是一类
+    ("配置 home", home_items),
     // 「运维」偏行话，换成直白的（使用者 2026-10-16 定的）
     ("查看与编辑", ops),
   ]
@@ -822,6 +907,19 @@ fn detail_drawer(
   }
   field_items.push(
     field("home-outline", "home", row.id, "DSH_HOME", row.home, row.home_hint),
+  )
+  // 「配置 home」：独立（隔离 home 路径）/ 共用（控制台的 DSH_HOME）。
+  // 这一格说的是这只 profile 起的实例落在哪个 home，与上面那条「实例自己在用的 DSH_HOME」
+  // 不是同一件事：实例那格读的是进程 environ，这一格读的是 profiles 读数里的归属。
+  field_items.push(
+    field(
+      "cube-outline",
+      "config-home",
+      row.id,
+      "配置 home",
+      home_field_value(row),
+      home_field_hint(row),
+    ),
   )
   field_items.push(
     field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
@@ -1115,6 +1213,63 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+/// 取消隔离的确认框：文案照 design/deep-home-isolation.md 第 5 节。
+///
+/// 与删除确认框分开一格状态（home_confirm_id）：两个框说的是两件事，
+/// 共用一格会让「关掉一个，另一个也关了」。确定键是危险动作，焦点先落在上面。
+fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let (name, path) = match find_row(model.rows, model.home_confirm_id) {
+    Some(row) => (row.name, row.home_path)
+    None => (model.home_confirm_id, "")
+  }
+  let where_text = if path == "" { "这份隔离 home" } else { path }
+  let message = "取消隔离会删掉 " + where_text + " 里的全部内容（会话、插件状态、日志）。确定？"
+  let card = @html.div(class="dsh-dialog-card", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("home-dialog-title", ["dialog", "home-confirm-dialog", "title"]),
+      "取消隔离 " + name + "？",
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("home-dialog-message", ["dialog", "home-confirm-dialog", "message"])
+        .title(where_text),
+      message,
+    ),
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id="dsh-home-confirm-ok",
+        class="dsh-dialog-btn primary",
+        type_="button",
+        attrs=mark("home-dialog-ok", ["dialog", "home-confirm-dialog", "ok"]),
+        on_click=emit(HomeDeisolateConfirm),
+        [@html.text("取消隔离")],
+      ),
+      @html.button(
+        class="dsh-dialog-btn",
+        type_="button",
+        attrs=mark("home-dialog-cancel", ["dialog", "home-confirm-dialog", "cancel"]),
+        on_click=emit(HomeDeisolateCancel),
+        [@html.text("取消")],
+      ),
+    ]),
+  ])
+  dialog(
+    "home-confirm-dialog",
+    "取消隔离 " + name + "？",
+    emit(HomeDeisolateCancel),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        HomeDeisolateCancel
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
+
+///|
 /// 重命名框：预填当前名并全选；空名 / 纯空格禁用确定；Enter 确认、Esc 取消；
 /// 关闭后焦点回到触发元素。
 fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
@@ -1320,6 +1475,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let dialogs : Array[@html.Html] = []
   if model.confirm_id.length() > 0 {
     dialogs.push(confirm_dialog(model, emit))
+  }
+  if model.home_confirm_id.length() > 0 {
+    dialogs.push(home_confirm_dialog(model, emit))
   }
   if model.rename_id.length() > 0 {
     dialogs.push(rename_dialog(model, emit))

@@ -62,6 +62,11 @@ pub struct ForkOutcome {
   dir_mtime_ms : Int64?
   /// mtime 的来源或读不到的原因
   dir_mtime_source : String
+  /// 派生之后顺手建好的隔离 home 路径（规格第 8 节：派生的 profile 默认隔离）。
+  /// None = 没建成，原因在 home_error —— 建失败**不影响派生本身**。
+  home_path : String?
+  /// 隔离没建成的原因（人话）。派生成功但 home 没建成时，回执里要照实说清。
+  home_error : String?
 }
 
 ///|
@@ -118,6 +123,13 @@ pub async fn fork_profile(
   // mtime 在拷贝与写备注**之后**读：这才是这一趟真实留下的"最近改动"，
   // 也正是它在列表里排最前面的依据。读不到给 None + 原因，不拿当前时间冒充。
   let (dir_mtime_ms, dir_mtime_source) = @profiles.read_profile_dir_mtime(target_dir)
+  // 派生出来的 profile 默认隔离（design/deep-home-isolation.md 第 8 节）：顺手把 home 建好。
+  // 建失败不许让派生失败 —— 目录已经拷好了，为了一个 home 把整次派生报成失败是假报；
+  // 原因原样带出去，回执里说清楚「派生成功、隔离没建成」。
+  let (home_path, home_error) = match @profiles.isolate_profile(target_name) {
+    Ok(home) => (Some(home.path), None)
+    Err((_code, message)) => (None, Some(message))
+  }
   let started = match port {
     None => None
     Some(_) =>
@@ -142,6 +154,8 @@ pub async fn fork_profile(
     note_error,
     dir_mtime_ms,
     dir_mtime_source,
+    home_path,
+    home_error,
   }
 }
 

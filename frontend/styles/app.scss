@@ -2129,3 +2129,40 @@ $drawer-ms: 220ms;
   }
 }
 
+
+// ── 关于页「手动启动」（这一轮） ──
+// 两条命令是给人抄的：等宽、可折行、选中即整行。样式只负责可读性，
+// 内容（名字 / home / 包目录）全部来自读数，见 view_about 的 manual_start_panel。
+.dsh-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dsh-manual-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dsh-manual-label {
+  font-size: 11.5px;
+  color: $text-dim;
+}
+.dsh-manual-cmd {
+  display: block;
+  padding: 8px 10px;
+  background: $panel-soft;
+  border: 1px solid $line;
+  border-radius: $radius-sm;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: $text;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+}
+.dsh-manual-note {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: $text-dim;
+}
