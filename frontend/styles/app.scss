@@ -1562,20 +1562,37 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 .dsh-dialog-btn:disabled { opacity: 0.5; cursor: default; }
 .dsh-dialog-btn:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 
-// ── 新建实例框（design/design-fixes.md §19.1） ──
+// ── 新建实例框（design/design-fixes.md §19.1、§23） ──
 // 比其它对话框宽：里面摆的是「选择配置」那一套卡（图标 + 名字 + 备注 + 读数），
-// 360px 会把它挤成一条。卡片列表自己有上限高度、自己滚 —— 一屏里先看见几只是几只，
+// 360px 会把它挤成一条。§23 起桌面放到 880（92vw 兜住小桌面），源卡按栅格排，
+// 一行 2 到 3 张。卡片列表自己有上限高度、自己滚 —— 一屏里先看见几只是几只，
 // 不把整个对话框撑到贴满上下边。
 .dsh-new-card {
-  width: min(520px, calc(100vw - 32px));
+  width: min(880px, 92vw);
 }
 .dsh-new-pick {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: min(46vh, 340px);
+  max-height: min(46vh, 420px);
   overflow-y: auto;
   padding-right: 2px;
+}
+// 源卡排栅格（§23）：**只挂在这个框里**那一份列表上。同一个类还有两处在用
+// （维护页「选择配置」侧栏、总览「整体替换」右侧栏），那两处仍是竖排一列 ——
+// .dsh-profile-sidebar-list 自己的规则不动，这里只是多一条带祖先的选择器。
+//
+// 为什么 auto-fill 而不是 auto-fit：卡片宽度只由容器宽度决定，不因为「这一组只剩
+// 两张」就摊开，2 张与 3 张两组里的卡一样宽。剩下那条空轨留在右边；
+// 遮罩盖的是整片 .dsh-new-pick-wrap（见 .dsh-new-pick-veil），空轨也在里面。
+// 单卡最小 260px：再窄，名字那一行与读数那两行就挤成一团。
+// 自动折行按 260 算列数，用 min(260px, 100%) 兜住比 260 还窄的容器（不横向溢出）。
+// align-items: start —— 每张卡保持自己的高度，横排不互相拉齐（§23「卡片高度保持现状」）。
+.dsh-new-pick .dsh-profile-sidebar-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 8px;
+  align-items: start;
 }
 // 源卡区外面那层（§22）：只负责给遮罩一个定位容器。列表的高度上限与滚动还在
 // .dsh-new-pick 上 —— 锁上、解锁都是这套 DOM，滚动位置因此一个像素都不动。
@@ -1672,14 +1689,19 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   line-height: 1.5;
   color: $text-mid;
 }
-/* 窄屏：卡片列表按视口高度再收一档，名字那一格与两颗键永远看得见 */
+/* 窄屏：对话框贴满宽，栅格收成一列（§23「窄屏仍是一行一张」）。
+   宽度够凑两列时也不凑，钉一列 —— 窄屏上源卡是拿来逐张读完再点的，
+   不是拿来比宽度的。列表高度不在这里另立一档（见这一段末尾的注释）。 */
 @media (max-width: 819.98px) {
   .dsh-new-card {
     width: calc(100vw - 24px);
   }
-  .dsh-new-pick {
-    max-height: 40vh;
+  .dsh-new-pick .dsh-profile-sidebar-list {
+    grid-template-columns: minmax(0, 1fr);
   }
+  // 高度上限不再另立一档：§23 给的那条 min(46vh, 420px) 本身已经按视口算，
+  // 再叠一条 40vh 会让窄屏下的实测值不是 §23 写的那条（这里删掉的就是原来那条 40vh）。
+  // 420px 那一半是「桌面一屏里先看见几只是几只」的上限，窄屏用不到它，46vh 自己就够小。
 }
 
 // ── 实例总览页（OverviewView.vue） ──
