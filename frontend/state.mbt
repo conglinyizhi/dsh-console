@@ -784,6 +784,12 @@ priv enum Msg {
   /// 上面那一枪的回执（POST refresh-releases；成没排上都在这里判）
   ReleasesRefreshDone(Result[String, Error])
   JobProfilePicked(String)
+  /// 维护页空态里那颗「开始一条作业」：把焦点送到表单的「当前版本」那一格
+  /// （design/design-fixes.md 第 3 条）。不改任何读数，只挪焦点与视口。
+  JobStartFocus
+  /// 总览空态里那颗「刷新读数」：重发 profiles + instances 两份读数。
+  /// 与写动作成功之后那一条走同一个函数（refresh_readings），不另开一条刷新路。
+  RefreshReadings
   JobStart
   /// 作业 id + 这一步的动作（install-preview / install-confirm / test /
   /// commit / cleanup-preview / cleanup / abort）。后端动作名在 app.mbt 里映射。

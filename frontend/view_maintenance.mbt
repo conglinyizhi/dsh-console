@@ -2298,6 +2298,18 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
                 class="dsh-empty-sub",
                 "一条作业是按顺序做完的事，中间停止也不会丢进度。",
               ),
+              // 行动号召（design/design-fixes.md 第 3 条）：一颗真能点的按钮。
+              // 它把焦点送到上面「当前版本」那一格（选目标版本的那一格）：
+              // 走第一条作业的第一步就是选一版，按钮直接把位置指出来，
+              // 不留一句「请在下面开始」让人自己找。
+              @html.button(
+                class="dsh-empty-cta",
+                type_="button",
+                attrs=mark("jobs-empty-start", ["maintenance", "empty", "start"])
+                  .title("滚到上面的表单，焦点落在「当前版本」那一格（选目标版本）"),
+                on_click=emit(JobStartFocus),
+                [icon("tune", size=13), @html.span("开始一条作业")],
+              ),
             ],
           ),
         )

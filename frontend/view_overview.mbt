@@ -223,6 +223,17 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       ),
       card_name_text(row),
     ),
+    // 状态词：颜色之外的第二条通道（design/design-fixes.md 第 1 条）。
+    // 灰度截图下运行中 / 故障 / 已停止几乎同一亮度，只靠那颗圆读不出来；
+    // 这个词与灯同源（light_label），data-state 与灯上那一格一字不差，探针按它认。
+    // 摆在第一行、名字与端口之间：**不新起一行**，卡片高度不变（70px）。
+    @html.span(
+      class="dsh-dot-state " + light_key(row.light),
+      attrs=mark("card-state", ["overview", "card", row.id, "state"])
+        .data_set("state", light_key(row.light))
+        .title(light_label(row.light) + "：" + row.light_reason),
+      light_label(row.light),
+    ),
   ]
   // 小金标紧跟在名字后面（隔离那一档才有节点）：它是金边之外的第二信号
   match row.home_kind {
@@ -2437,7 +2448,10 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         Some(tag) => tag.detail
         None => ""
       }
-      running_list.push({ id: "", node: running_empty(running_summary(model), detail) })
+      running_list.push({
+        id: "",
+        node: running_empty(running_summary(model), detail, emit),
+      })
     }
   }
   let stopped_list : Array[DragItem] = stopped.map(fn(row) {
@@ -2482,7 +2496,7 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-head-text", [
           @html.h1(class="dsh-page-title", "实例总览"),
           source_badge(model.tag_runtime, ["overview", "head", "source-badge"]),
-          @html.span(class="dsh-head-note", "点卡片看读数与控制；卡片上的圆是状态灯"),
+          @html.span(class="dsh-head-note", "点卡片看读数与控制；灯旁边的词就是状态"),
         ]),
         @html.button(
           class="dsh-new-btn",

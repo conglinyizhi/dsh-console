@@ -3629,6 +3629,19 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       { ..model, job_profile: name, profile_sidebar: false },
       focus_after_render(profile_choose_id()),
     )
+    // 空态那颗「开始一条作业」：先滚到表单，再把焦点送进「当前版本」那一格。
+    // 两步都是 after_render —— 顺序由 batch 保证：先滚（视口到位），后聚焦
+    // （聚焦也会自己滚一次，那时已经离得很近了，不会再跳）。
+    JobStartFocus => (
+      model,
+      @cmd.batch([
+        scroll_into_view_after_render(version_choose_id()),
+        focus_after_render(version_choose_id()),
+      ]),
+    )
+    // 总览空态那颗「刷新读数」：与写动作成功之后同一条路（两份读数都重读）。
+    // 特意不弹提示条：这是个「再读一遍」的动作，结果本来就会落在列表或空态上。
+    RefreshReadings => refresh_readings(model, emit)
     ReleasesText(res) => {
       // 三个源全没答上来**不是失败**：那是读数里的一个事实，照实摆在页面上（spec §1.3）。
       // 真正的失败只有一种：这一条接口没读到（网络、后端没这个路由）。

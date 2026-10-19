@@ -63,7 +63,14 @@ fn section_head(group : String, title : String, count : String, tag : SourceTag?
 ///
 /// detail 是**读数出岔子时**那一句（读失败的原因）；读到了就是空串 ——
 /// 那时它本来也只是把 summary 又说了一遍，多一行反而让人以为漏看了什么。
-fn running_empty(summary : String, detail : String) -> @html.Html {
+/// 空态里的行动号召（design/design-fixes.md 第 3 条）：一颗真能点的按钮，
+/// 不是一句「请先…」。样式是线框档（.dsh-empty-cta），一页只有一颗实心主操作。
+///
+/// 为什么是「重新读一遍」而不是「新建实例」：新建那颗按钮今天没有挂动作
+/// （view_overview 的 dsh-new-btn 没有 on_click），点下去什么都不会发生 ——
+/// 空态里的号召按钮点不动，比没有更糟。重新读数是现成动作：点一下两份读数都重发，
+/// 骨架屏立刻立起来，读完再落回列表或空态。
+fn running_empty(summary : String, detail : String, emit : @cmd.Emit[Msg]) -> @html.Html {
   let lines : Array[@html.Html] = [
     @html.span(class="dsh-empty-icon", [icon("server", size=26)]),
     @html.p(class="dsh-empty-line", "当前没有检测到正在运行的 dsh 实例。"),
@@ -72,6 +79,16 @@ fn running_empty(summary : String, detail : String) -> @html.Html {
   if detail != "" {
     lines.push(@html.p(class="dsh-empty-sub", attrs=@html.Attrs::build().title(detail), detail))
   }
+  lines.push(
+    @html.button(
+      class="dsh-empty-cta",
+      type_="button",
+      attrs=mark("running-empty-refresh", ["overview", "section", "running", "empty", "refresh"])
+        .title("重新读一遍实例与 profile 的读数，读完还空就还是这一张"),
+      on_click=emit(RefreshReadings),
+      [icon("refresh", size=13), @html.span("刷新读数")],
+    ),
+  )
   @html.section(
     class="dsh-empty",
     attrs=mark("running-empty", ["overview", "section", "running", "empty"]),

@@ -9,18 +9,38 @@
 // 组件 DOM 与类名照 Vue 版，图标是 icons.mbt 的内联 SVG。
 
 // ── 设计 token ─────────────────────────────────────────────
-// 就是 Vue 版 src/styles/app.css 的 :root，逐条搬过来。
-$bg: #131417;
-$panel: #1b1d21;
-$panel-soft: #212429;
-$line: rgba(255, 255, 255, 0.08);
-$line-strong: rgba(255, 255, 255, 0.16);
+// 中性色阶：9 档实色，从页面底一路排到最亮的次要文字（design/design-fixes.md 第 2 条）。
+// 层级靠**色阶**，不靠 rgba 叠在底色上凑 —— 叠出来的灰说不清自己是哪一档，
+// 也没法去重计数（改前量到 5 档，其中三档还是透明度合成出来的）。
+//
+//   0  页面底            5  线（1px 分隔、输入框描边）
+//   1  面板（侧栏 / 顶栏） 6  次要文字（dim）
+//   2  卡片（含内容面板）  7  次要文字（mid）
+//   3  悬停 / 选中        8  强线（按钮、徽标描边）
+//   4  输入框底
+//
+// 取值的约束只有两条：相邻档的亮度差要**看得出来**（0→2 差 13 级，2→3 差 7 级），
+// 文字档的反差只许升不许降（改前 text-dim 是 0.72 的白叠在面板上，合成出来 ≈ #aeadaa，
+// 现在 #b4b3ae，比它亮）。precss 不做颜色函数求值，所以这里全是字面值。
+$gray-0: #101114;
+$gray-1: #16171c;
+$gray-2: #1c1f24;
+$gray-3: #23262b;
+$gray-4: #292c32;
+$gray-5: #34383d;
+$gray-6: #b4b3ae;
+$gray-7: #cfcdc8;
+$gray-8: #43474d;
+$bg: $gray-0;
+$panel: $gray-1;
+$panel-soft: $gray-3;
+$card: $gray-2;
+$line: $gray-5;
+$line-strong: $gray-8;
 $text: #e8e6e1;
-// Vue 的 --text-mid / --text-dim 是实色 #b9b6ae / #8b8880。md2 那版没有独立色值，
-// 用 on-surface 加透明度近似出来（0.82 / --v-medium-emphasis-opacity 0.72），
-// 渲染结果比实色亮一档。这一版沿用同样的透明度：这次只是摘依赖，不动观感。
-$text-mid: rgba(232, 230, 225, 0.82);
-$text-dim: rgba(232, 230, 225, 0.72);
+// 次要文字两档改成实色（改前是 0.82 / 0.72 的白叠在底色上，合成值随底色漂）。
+$text-mid: $gray-7;
+$text-dim: $gray-6;
 $accent: #4f8cff;
 $accent-soft: rgba(79, 140, 255, 0.14);
 $accent-rgb: 79, 140, 255;
@@ -388,7 +408,7 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-badge.pending {
   color: $text-dim;
   border-color: $line;
-  background: rgba(255, 255, 255, 0.03);
+  background: $panel-soft;
 }
 
 // ── 分组头（InstanceGroup.vue，ArchivedSection.vue 同款） ──
@@ -485,9 +505,29 @@ select { appearance: none; -webkit-appearance: none; }
   padding: 30px 16px 32px;
   border: 1px dashed $line-strong;
   border-radius: $radius;
-  background: rgba(255, 255, 255, 0.014);
+  background: $panel;
   text-align: center;
 }
+/* 空态里的那颗行动号召（design/design-fixes.md 第 3 条）。
+   样子是**线框**、不是实心：本页的主操作已经有一个（总览右上角「新建实例」），
+   一页两颗实心就互相打架（军规 06）。灰度下它靠亮字与深一档的描边站起来：
+   文字用 $text，描边 $line-strong，比旁边那两句说明（$text-mid / $text-dim）重得多。 */
+.dsh-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  margin-top: 12px;
+  padding: 0 12px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $card;
+  color: $text;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dsh-empty-cta:hover { background: $panel-soft; }
+.dsh-empty-cta:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 .dsh-empty-icon {
   color: $text-dim;
   margin-bottom: 8px;
@@ -570,7 +610,7 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-skeleton-tile {
   width: 40px; height: 40px; flex: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: $panel-soft;
 }
 /* 名字位：占满余下的宽度、最宽 120px，窄到放不下就自己缩 ——
    与 .dsh-name 的 flex: 1 1 auto + min-width: 0 同一套（那边靠省略号，这边靠变窄），
@@ -578,7 +618,7 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-skeleton-name {
   flex: 1 1 auto; min-width: 0; max-width: 120px;
   height: 12px; border-radius: 6px;
-  background: rgba(255, 255, 255, 0.07);
+  background: $gray-4;
 }
 /* 第二行那一格：条目第二行可能是一条备注、也可能是一个时刻、也可能没有。
    占位块取中间那一档（有内容但更短更淡），高度 8 < 真条目的 16 ——
@@ -587,7 +627,7 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-skeleton-sub {
   width: 64px; max-width: 60%;
   height: 8px; border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  background: $panel-soft;
 }
 /* 说明那一行：占满整行（它是栅格项，不跟占位块挤一列）。
    text-align 显式写 left：.dsh-loading 的居中会沿继承传下来，而这一行是
@@ -717,15 +757,17 @@ select { appearance: none; -webkit-appearance: none; }
   min-width: 0;
   position: relative;
   display: flex; flex-direction: row; align-items: center; gap: 10px;
-  padding: 14px 16px;
-  background: $panel;
-  border: 1px solid $line;
+  /* 第 5 条：卡片与页面底之间不再画线，靠色差分（$card 与 $bg 差 13 级）。
+     边框那 1px 加进内边距里（14 + 1 = 15），**条目高度仍是 70px**
+     （15 + 40 + 15 = 70），列数那套算式与「同列状态点对齐」都不受影响。 */
+  padding: 15px 17px;
+  background: $card;
   border-radius: $radius;
   color: $text;
   text-align: left;
   cursor: pointer;
 }
-.dsh-case:hover { background: $panel-soft; border-color: $line-strong; }
+.dsh-case:hover { background: $panel-soft; }
 .dsh-case:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 
 /* ── 独立 home 的卡：一道金边（design/deep-home-isolation.md §9.6）────────────────
@@ -737,12 +779,11 @@ select { appearance: none; -webkit-appearance: none; }
         并且排在 .dsh-case:hover 之后 —— 以后再加状态色规则也盖不掉它；
      3. 金色不作唯一信号：卡上还有一个「独立 home」小金标（.dsh-home-badge，文字 + 金边）。 */
 .dsh-case.dsh-case-home-isolated[data-status] {
-  border-color: $gold;
-  /* 一圈很淡的金色内晕：在深色底上，纯描边容易被看成「选中态」，加这层才读得出是归属 */
-  box-shadow: inset 0 0 0 1px rgba($gold-rgb, 0.18);
+  /* 金边改画在盒内（inset 阴影），不再占 1px 边框：卡片高度与别的卡一模一样，
+     其它页的 1px 线条数也不会因为这一只多出四条。 */
+  box-shadow: inset 0 0 0 1px $gold, inset 0 0 0 3px rgba($gold-rgb, 0.16);
 }
 .dsh-case.dsh-case-home-isolated[data-status]:hover {
-  border-color: $gold;
   background: $panel-soft;
 }
 /* 小金标：名字后面那一个。line-height 16 + 上下 padding 各 1 + 边框 1 = 20 < 第一行 22，
@@ -786,9 +827,14 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-tile { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; }
 .dsh-tile.accent { background: rgba($ok-rgb, 0.14); color: $ok; }
 .dsh-tile.violet { background: $violet-soft; color: $violet; }
+/* 名字不再吃掉余量（第 1 条加状态词时改的）：原来是 flex: 1 1 auto，靠它把端口顶到
+   右缘；现在名字后面多了状态词，名字一撑开就会把那个词推到卡的右半边 —— 状态词
+   是灯的第二通道，离灯越近越好。改成「名字按内容宽、状态词紧跟」，由端口那一格
+   的 margin-left: auto 负责顶到右缘。名字仍可缩（flex-shrink 1 + min-width 0 + 省略号），
+   任何宽度都不横向溢出。 */
 .dsh-name {
   display: block;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px; font-weight: 600; line-height: 22px; color: $text;
@@ -802,6 +848,8 @@ select { appearance: none; -webkit-appearance: none; }
    line-height 16 < 第一行行高 22，所以带端口的条目高度与不带的一模一样。 */
 .dsh-card-port {
   flex: none;
+  /* 顶到第一行右缘的那一格（见 .dsh-name 的注释） */
+  margin-left: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px; line-height: 16px; color: $text-mid;
   white-space: nowrap;
@@ -862,6 +910,22 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-dot.light-unknown { background: transparent; border-color: $text-dim; box-shadow: none; }
 /* 抽屉里的那一颗：跟着标题走，不绝对定位 */
 .dsh-drawer .dsh-dot { position: static; flex: none; }
+
+/* ── 状态词：灯旁边的那一个词（第 1 条，军规 15） ──
+   灯的颜色不是唯一信号：运行中 / 故障 / 已停止 / 正在启动 / 状态未知 五个词
+   写在卡片第一行（名字后面、端口前面），灰度下这一行就已经读得出来。
+   几何上它**不占新的一行**：line-height 16 < 第一行 22，flex: none + nowrap，
+   卡窄了让名字先省略 —— 卡片高度还是 70px（改前 70，改后 70，差 0px）。 */
+.dsh-dot-state {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+  color: $text-mid;
+  white-space: nowrap;
+}
+/* 故障与已停止这两档把词也压亮一档：黑白打印 / 灰度截图里，「故障」两个字
+   该和「运行中」一样读得出来，而不是靠那颗黄点。 */
+.dsh-dot-state.fault, .dsh-dot-state.stopped { color: $text; }
 @keyframes dot-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.32; }
@@ -1359,21 +1423,33 @@ $drawer-ms: 220ms;
 
 /* ── 删除按钮的 Shift 语义（design/ops-maintenance-jobs.md §13.2）────────────────
    两条路都指向同一副「彻底删除」的样子，而且都不走状态回环：
-     · data-mode="hard"：回收站关着（safety.deleteToTrash=false）—— **始终**红底 + 彻底删除，
+     · data-mode="hard"：回收站关着（safety.deleteToTrash=false）—— **始终**红字红边 + 彻底删除，
        不管按没按 Shift；这一格由后端读数在渲染时定。
      · body[data-shift="1"]：文档级 keydown / keyup 打的标记（见 dom.mbt 的 js_shift_watch）。
        按住的那一刻直接换色换字，没有「事件 → update → 重渲染」那一拍。
+   **实心红不在这里**：抽屉里它最多是次要档（军规 06），红底那一档只出现在删除确认框里。
   标签两段都在 DOM 里（.dsh-delete-soft / .dsh-delete-hard），显示哪一段由这两条规则决定。 */
 .dsh-btn.dsh-delete .dsh-delete-hard { display: none; }
 .dsh-btn.dsh-delete[data-mode="hard"] .dsh-delete-soft { display: none; }
 .dsh-btn.dsh-delete[data-mode="hard"] .dsh-delete-hard { display: inline; }
 .dsh-btn.dsh-delete[data-mode="hard"] {
-  background: $danger; border-color: transparent; color: #fff;
+  /* 第 4 条：这一颗原来是实心红。抽屉里已经有「启动 / 打开 Web UI」这一颗主操作，
+     再叠一颗实心红，一屏就有两个主操作（军规 06）。改成**红字红边**：
+     危险仍然一眼看得出，但重量降到次要档；真正升级成红底实心的是点开之后的确认框
+     （.dsh-dialog-btn.danger，那一屏只有它一个主操作）。 */
+  background: transparent; border-color: $danger; color: $danger;
+}
+.dsh-btn.dsh-delete[data-mode="hard"]:hover:not(:disabled) {
+  background: rgba($danger-rgb, 0.14);
 }
 body[data-shift="1"] .dsh-btn.dsh-delete .dsh-delete-soft { display: none; }
 body[data-shift="1"] .dsh-btn.dsh-delete .dsh-delete-hard { display: inline; }
 body[data-shift="1"] .dsh-btn.dsh-delete {
-  background: $danger; border-color: transparent; color: #fff;
+  /* 按住 Shift 与「回收站关着」走同一副样子（见上一条）：红字红边，不是实心红 */
+  background: transparent; border-color: $danger; color: $danger;
+}
+body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
+  background: rgba($danger-rgb, 0.14);
 }
 /* 灰掉的那一颗（没在跑的行的「复制访问地址」）不跟着 Shift 变样：它的 disabled 状态
    由 .dsh-btn:disabled 那条给（透明度 + 不看指针），这里只补一句「不响应悬停高亮」。 */
@@ -1724,11 +1800,13 @@ body[data-shift="1"] .dsh-btn.dsh-delete {
   font-weight: 600;
   letter-spacing: 0.2px;
 }
+/* 内容面板（关于页四块、日志页、设置页共用）：**没有 1px 边**（第 5 条）。
+   面板与页面底之间靠 $card 与 $bg 的色差分开，留白本来就够（页头与面板之间 12px）。
+   验收「三类页面 1px 线条数」时，这一条一次抵掉 4 条边。 */
 .dsh-panel {
-  padding: 13px 15px 14px;
-  border: 1px solid $line;
+  padding: 14px 15px 15px;
   border-radius: $radius;
-  background: $panel;
+  background: $card;
 }
 .dsh-panel-title {
   margin: 0 0 10px;
@@ -1740,7 +1818,9 @@ body[data-shift="1"] .dsh-btn.dsh-delete {
 .dsh-para {
   margin: 0 0 6px;
   font-size: 12.5px;
-  line-height: 1.7;
+  /* 第 6 条：正文行高 1.7 → 1.8。这一栏最宽 760px（约 60 个汉字），
+     按军规 11「行越宽行距越大」，1.8 才配得上这条行长。 */
+  line-height: 1.8;
   color: $text-dim;
 }
 .dsh-para:last-child {
@@ -1961,9 +2041,8 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 6px;
-  background: $panel;
-  border: 1px solid $line;
+  padding: 7px;
+  background: $card;
   border-radius: $radius;
 }
 .dsh-settings-tab {
@@ -2011,9 +2090,8 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 }
 .dsh-settings-panel {
   min-width: 0;
-  padding: 13px 15px 14px;
-  background: $panel;
-  border: 1px solid $line;
+  padding: 14px 15px 15px;
+  background: $card;
   border-radius: $radius;
 }
 .dsh-settings-panel-title {
@@ -2032,15 +2110,15 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   flex-direction: column;
 }
 .dsh-setting {
+  /* 条目之间不再画分隔线（第 5 条）：改用留白。一行上下各 13px，
+     两行之间是 26px，比原来那条 1px 线给出的间隔宽得多。 */
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  padding: 11px 0;
-  border-top: 1px solid $line;
+  padding: 13px 0;
 }
 .dsh-setting:first-child {
-  border-top: 0;
   padding-top: 2px;
 }
 // 窄屏（手机）：设置页从「左索引 + 右面板」的两列改成一条竖排。
@@ -2129,7 +2207,9 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   padding: 0 9px;
   border: 1px solid $line-strong;
   border-radius: $radius-sm;
-  background: $panel-soft;
+  /* 输入框底是色阶的第 4 档，不跟悬停共用一档：改前它和「悬停」都是 $panel-soft，
+     而输入框是**常驻**的控件，一直亮着悬停那一档等于这一档在骗人。 */
+  background: $gray-4;
   color: $text;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
@@ -2312,6 +2392,15 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 }
 .dsh-job-choose {
   flex: none;
+}
+/* 维护页空态那颗「开始一条作业」把焦点送到这一格，用的是脚本 focus()。
+   Chromium 只在「上一次输入是键盘」时给 :focus-visible，鼠标点出来的焦点没有环 ——
+   那一格看起来就像什么都没发生，所以这里**显式**给 :focus 一圈主色环。
+   只针对这一颗：别的按钮仍按浏览器那套（键盘才显示环）。 */
+.dsh-job-choose:focus {
+  outline: 2px solid $accent;
+  outline-offset: 2px;
+  border-radius: $radius-sm;
 }
 .dsh-job-start-btn {
   margin-left: auto;

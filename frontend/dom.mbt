@@ -87,6 +87,13 @@ extern "js" fn js_scroll_bottom_id(id : String) -> Unit =
   #| id => { const el = document.getElementById(id); if (el) el.scrollTop = el.scrollHeight; }
 
 ///|
+/// 把某个节点滚进视口（居中）。维护页空态那颗「开始一条作业」用它：
+/// 表单在空态上面，窄屏或作业多的时候不一定在视口里 —— 焦点送过去了，
+/// 人却还看不见那一格，等于没送。behavior 用 'smooth'，减少动效那一档由浏览器自己关。
+extern "js" fn js_scroll_into_view_id(id : String) -> Unit =
+  #| id => { const el = document.getElementById(id); if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center', behavior: 'smooth' }) }
+
+///|
 /// 把控件上的值写回 DOM。用在「保存失败要把草稿退回去」这一处：
 /// 只靠 vdom 的 value 属性未必会落到真实节点上（用户改过的值是直接写在 DOM 上的，
 /// 而 diff 只比上一次渲染的属性），所以失败之后显式写一次，控件上不会留着没保存的数。
@@ -619,4 +626,9 @@ fn focus_end_after_render(id : String) -> @cmd.Cmd {
 ///|
 fn scroll_bottom_after_render(id : String) -> @cmd.Cmd {
   @cmd.custom_cmd(fn(_scheduler) { js_scroll_bottom_id(id) }, kind=@cmd.after_render)
+}
+
+///|
+fn scroll_into_view_after_render(id : String) -> @cmd.Cmd {
+  @cmd.custom_cmd(fn(_scheduler) { js_scroll_into_view_id(id) }, kind=@cmd.after_render)
 }
