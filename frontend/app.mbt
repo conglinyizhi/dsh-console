@@ -20,9 +20,17 @@ pub fn app() -> @rabbita.Val[@html.Html] {
       } else {
         replace_route(route_url(model.page, model.settings_group, model.log_source))
       }
+      // 设置**启动时读一次**（这一轮起）：侧栏的形态存在 ui.sidebarCollapsed 里，
+      // 不读就不知道刷新之后该画展开还是收起 —— 先画展开再收一下，那一下是跳的。
+      // 这一枪与「进设置页才拉」不冲突：ensure_settings_read 自带去重，
+      // route_into 落在设置页时这里什么都不发。
+      let (boot, read_settings) = ensure_settings_read(model, emit)
       // Shift 监视在启动时装一次（删除按钮的「按住 Shift = 彻底删除」由它打标记，见 dom.mbt）。
       js_shift_watch()
-      (model, @cmd.batch([load(emit), enter, listen_popstate(emit), settle]))
+      (
+        boot,
+        @cmd.batch([load(emit), enter, read_settings, listen_popstate(emit), settle]),
+      )
     },
     update=update,
   )
@@ -72,6 +80,9 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
     // 分组只在地址真写着设置页时才进 model：切到别的页面不该把用户记住的那一组抹掉
     settings_group: if route.page is Settings { route.group } else { model.settings_group },
     route_notice: route.notice,
+    // 进一页就把窄屏的覆盖层收掉：它盖在页面上，新的一页不该从它下面出来。
+    // 三条关闭路径里的「点导航项」与浏览器前进 / 后退都经过这里。
+    sidebar_overlay: false,
   }
   match route.page {
     Logs => {
@@ -1926,6 +1937,39 @@ fn default_archive_open(model : Model, facts : SettingsFacts) -> Bool {
 }
 
 ///|
+/// 宽屏侧栏的形态，**判据只有设置里的 ui.sidebarCollapsed**（design/sidebar-collapse.md）。
+///
+/// 读不到就是 false（展开）：契约缺省本来就是展开，而且「没读到就收起」会让
+/// 一台还没提供设置接口的后端把导航藏成一条图标栏。
+fn sidebar_collapsed_of(facts : SettingsFacts) -> Bool {
+  match lookup_setting(facts.values, "ui.sidebarCollapsed") {
+    Some(VBool(on)) => on
+    _ => false
+  }
+}
+
+///|
+/// 设置里存着的形态（模型里那份副本写失败时要退回它）。
+fn sidebar_collapsed_stored(model : Model) -> Bool {
+  match model.settings {
+    Some(facts) => sidebar_collapsed_of(facts)
+    None => false
+  }
+}
+
+///|
+/// 宽屏顶栏的折叠按钮：**先翻界面，再写设置**。
+///
+/// 先翻是因为「点了没动」最容易被再点一次；写设置走的是与「高级操作」同一条 PUT
+/// （commit_setting_value），回执失败时 settings_saved_state 会把形态退回存着的那一份，
+/// 所以这里不必再挂一份回滚。
+fn toggle_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let next = !model.sidebar_collapsed
+  let (saving, cmd) = commit_setting_value(model, "ui.sidebarCollapsed", VBool(next), emit)
+  ({ ..saving, sidebar_collapsed: next }, cmd)
+}
+
+///|
 /// GET /api/local/settings 的结果落地。404 / 501 与别的失败分开记：
 /// 前者是「后端还没提供这个接口」，页面要照实说。
 fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, @cmd.Cmd) {
@@ -1976,6 +2020,7 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
                 // 读到了就不摆标记：连上一次失败留下的那一副也要清掉
                 tag_settings: None,
                 archived_open: default_archive_open(base, facts),
+                sidebar_collapsed: sidebar_collapsed_of(facts),
               },
               @cmd.none,
             )
@@ -2111,11 +2156,16 @@ fn settings_saved_state(
   let drafts = drop_draft(model.settings_draft, key)
   if !ok {
     let back = setting_stored_text(model, key)
+    let failed = { ..model, settings_saving: "", settings_pending: None, settings_draft: drafts }
+    // 侧栏那一次点击是**先动界面、再写设置**的：写失败就把界面退回设置里存着的那一份，
+    // 不能停在「看着收起了、其实没存下」的状态（与拖动换位的回滚同一条规矩）。
+    let failed = if key == "ui.sidebarCollapsed" {
+      { ..failed, sidebar_collapsed: sidebar_collapsed_stored(model) }
+    } else {
+      failed
+    }
     return (
-      notice_err(
-        { ..model, settings_saving: "", settings_pending: None, settings_draft: drafts },
-        label + " 没保存：" + note,
-      ),
+      notice_err(failed, label + " 没保存：" + note),
       set_control_after_render(setting_control_id(key), back),
     )
   }
@@ -2124,16 +2174,23 @@ fn settings_saved_state(
     Some(value) => setting_value_text(value)
     None => "已保存"
   }
+  let saved = {
+    ..model,
+    settings: Some(facts),
+    settings_saving: "",
+    settings_pending: None,
+    settings_draft: drafts,
+    tag_settings: None,
+  }
+  // 设置页那颗开关与外壳那颗折叠按钮是同一个键：两边都得跟着读数走
+  let saved = if key == "ui.sidebarCollapsed" {
+    { ..saved, sidebar_collapsed: sidebar_collapsed_of(facts) }
+  } else {
+    saved
+  }
   (
     notice_ok(
-      {
-        ..model,
-        settings: Some(facts),
-        settings_saving: "",
-        settings_pending: None,
-        settings_draft: drafts,
-        tag_settings: None,
-      },
+      saved,
       label + " 已保存：" + value_text,
       "",
     ),
@@ -2510,6 +2567,18 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       (next, scroll_bottom_after_render("dsh-log-box"))
     }
     // 侧栏切页：状态与地址一起走。同一页连点两次不会攒出两条一样的历史（见 route.mbt）。
+    SidebarToggle => toggle_sidebar(model, emit)
+    SidebarOverlayOpen => (
+      { ..model, sidebar_overlay: true },
+      // 焦点进第一个导航项：键盘接下来直接落在导航里，不用先 Tab 过顶栏
+      focus_after_render(nav_dom_id(Overview)),
+    )
+    SidebarOverlayClose =>
+      if model.sidebar_overlay {
+        ({ ..model, sidebar_overlay: false }, focus_after_render(side_burger_id()))
+      } else {
+        (model, @cmd.none)
+      }
     Navigate(page) => {
       let route : Route = {
         page,
@@ -2523,12 +2592,20 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         },
         notice: "",
       }
+      let from_overlay = model.sidebar_overlay
       let (next, enter) = route_into(model, route, emit)
+      // 从覆盖层里点了一项：侧栏收起后焦点回汉堡（它就在顶栏那一行，接着按键盘不用重新找）
+      let back = if from_overlay {
+        focus_after_render(side_burger_id())
+      } else {
+        @cmd.none
+      }
       (
         next,
         @cmd.batch([
           enter,
           push_route(route_url(next.page, next.settings_group, next.log_source)),
+          back,
         ]),
       )
     }

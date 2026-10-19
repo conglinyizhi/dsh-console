@@ -11,6 +11,7 @@
 //   logs.defaultTail         200     日志页默认尾部行数
 //   ui.archiveOpenByDefault  false   归档区默认是否展开
 //   ui.advancedActions       false   抽屉里是否摆「硬开裸地址」这类有风险的按钮
+//   ui.sidebarCollapsed      false   宽屏侧栏是否收成图标栏（窄屏不看这一项）
 //   safety.deleteToTrash     true    删除进回收站还是硬删
 //
 // 这个文件只做三件事：列键（顺序、分组、控件、说明）、从 GET 的响应里取值、
@@ -95,7 +96,7 @@ let settings_groups : Array[SettingGroup] = [
 ]
 
 ///|
-/// 十个键（顺序即条目顺序）。
+/// 十一个键（顺序即条目顺序）。
 let settings_table : Array[SettingDef] = [
   {
     key: "instance.basePort",
@@ -166,6 +167,14 @@ let settings_table : Array[SettingDef] = [
     group: "ui",
     label: "高级操作",
     desc: "在抽屉里显示「硬开裸地址」这类有风险的按钮。手机上没有修饰键，只能用这个开关",
+    kind: CBool,
+    fallback: VBool(false),
+  },
+  {
+    key: "ui.sidebarCollapsed",
+    group: "ui",
+    label: "侧栏收起",
+    desc: "宽屏下把侧栏收成一列图标，主区更宽；悬停图标可以看到名字。窄屏不看这一项：那一档的侧栏从顶部汉堡滑出，不占位。",
     kind: CBool,
     fallback: VBool(false),
   },

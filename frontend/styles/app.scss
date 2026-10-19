@@ -123,6 +123,9 @@ select { appearance: none; -webkit-appearance: none; }
   display: flex;
   flex-direction: column;
   padding: 12px 11px 10px;
+  /* 收起 / 展开那一下走宽度：这一列在文档流里，宽度一变主区就跟着让位，
+     transition 让那一下是滑过去的，不是跳过去的（减少动效那一档关掉它）。 */
+  transition: width 200ms ease;
 }
 .dsh-brand {
   display: flex;
@@ -200,10 +203,163 @@ select { appearance: none; -webkit-appearance: none; }
   background: $ok;
 }
 
-// ── 顶栏：没有了 ──
-// 「设置」搬进侧栏之后顶栏只剩一条 44px 的空带子（它当时就为那一个按钮存在），
-// 所以整条去掉，内容区直接顶到窗口上沿。顶栏的 .dsh-settings / .dsh-topbar 两条规则
-// 跟着一起删：留着就是没有 DOM 对应的死样式。
+// ── 顶栏 ──
+// 上一轮顶栏整条去掉过：当时它只为「设置」那一个按钮存在，按钮搬进侧栏之后
+// 只剩一条 44px 的空带子。这一轮侧栏要能收起，开关得有地方放，顶栏回来一条窄的，
+// 并且带上当前页名 —— 只有一颗按钮的空带子正是上一轮删掉的东西，不再造一遍。
+//
+// 两套顶栏按宽度分：宽屏是折叠按钮，窄屏是汉堡；两者只显示一套（display 由断点切）。
+.dsh-topbar,
+.dsh-narrowbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid $line;
+  background: $panel;
+}
+.dsh-topbar { height: 44px; }
+.dsh-narrowbar { display: none; height: 48px; }
+.dsh-topbar-title,
+.dsh-narrowbar-title {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-mid;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsh-narrowbar-title { color: $text; }
+/* 顶栏上的方图标按钮（折叠 / 汉堡）：30px 的方框，可点区域比 16px 的图标大一圈。
+   :hover 才亮，静止时是透明的 —— 顶栏里它是唯一的控件，不该抢页面的眼睛。 */
+.dsh-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: $text-mid;
+}
+.dsh-icon-btn:hover {
+  background: $panel-soft;
+  color: $text;
+}
+.dsh-icon-btn:focus-visible {
+  outline: 2px solid $accent;
+  outline-offset: 1px;
+}
+
+// ── 侧栏的图标栏形态（宽屏） ──
+// 56px 只放图标：名字、品牌名、页脚那句话都收起来（display: none，不是 visibility ——
+// 它们不该在 Tab 序列里留一个看不见的目标；名字仍由按钮的 aria-label 说着）。
+// 悬停出名字用 .dsh-nav-tip 那颗小条，绝对定位挂在导航项右边，
+// 指针在它上面时不吃事件（pointer-events: none），所以不会挡住去路。
+.dsh-nav-tip { display: none; }
+@media (min-width: 1024px) {
+  .dsh-side.collapsed {
+    width: 56px;
+    padding: 12px 9px 10px;
+  }
+  .dsh-side.collapsed .dsh-brand {
+    justify-content: center;
+    padding: 0 0 12px;
+  }
+  .dsh-side.collapsed .dsh-brand-title,
+  .dsh-side.collapsed .dsh-nav-label,
+  .dsh-side.collapsed .dsh-side-foot-text {
+    display: none;
+  }
+  .dsh-side.collapsed .dsh-nav-item {
+    position: relative;
+    justify-content: center;
+    padding: 0;
+  }
+  .dsh-side.collapsed .dsh-side-foot {
+    justify-content: center;
+    padding: 0;
+  }
+  .dsh-side.collapsed .dsh-nav-item:hover .dsh-nav-tip,
+  .dsh-side.collapsed .dsh-nav-item:focus-visible .dsh-nav-tip {
+    display: block;
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 9px;
+    border: 1px solid $line-strong;
+    border-radius: $radius-sm;
+    background: $panel-soft;
+    color: $text;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: 44;
+  }
+}
+
+// ── 窄屏：侧栏不占位，从左边滑出来盖住内容 ──
+// 断点取 1024：这一档以下主区满宽，覆盖面宽 min(280px, 78vw) ——
+// 390 的窗口里是 280（剩 110 露出底下的页面，一眼看出「这是盖上去的一层」）。
+// 收起来用 transform 移出视口，**再用 visibility: hidden** 把它从 Tab 序列与
+// 无障碍树里摘掉（只位移的话，键盘还能 Tab 到屏幕外面去）。
+// visibility 的 transition 延迟到滑完再藏，滑出那一段因此看得见。
+.dsh-side-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 41;
+  background: rgba(8, 9, 11, 0.55);
+}
+@media (max-width: 1023.98px) {
+  .dsh-topbar { display: none; }
+  .dsh-narrowbar { display: flex; }
+  .dsh-side,
+  .dsh-side.collapsed {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 78vw);
+    z-index: 42;
+    padding: 14px 12px 12px;
+    border-right: 1px solid $line-strong;
+    box-shadow: 6px 0 26px rgba(0, 0, 0, 0.45);
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: transform 220ms ease, visibility 0s linear 220ms;
+  }
+  .dsh-side.open,
+  .dsh-side.collapsed.open {
+    visibility: visible;
+    transform: none;
+    transition: transform 220ms ease, visibility 0s;
+  }
+  .dsh-side-scrim.open { display: block; }
+  // 覆盖层里文字照旧显示：collapsed 那一套（图标栏）是宽屏的形态，
+  // 窄屏不看设置里的这一项（规格 §2 最后一条）。
+  .dsh-side.collapsed .dsh-brand-title,
+  .dsh-side.collapsed .dsh-nav-label,
+  .dsh-side.collapsed .dsh-side-foot-text {
+    display: inline;
+  }
+}
+/* 减少动效：滑出、收起、遮罩都不做过渡，直接出现 / 消失。 */
+@media (prefers-reduced-motion: reduce) {
+  .dsh-side,
+  .dsh-side.open,
+  .dsh-side.collapsed,
+  .dsh-side.collapsed.open {
+    transition: none;
+  }
+}
 
 // ── 数据源徽标 ──
 // 只在读数出岔子时出现（读到了就什么都不摆），所以这里只有「回退」与「读取中」两档；

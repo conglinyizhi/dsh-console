@@ -5,8 +5,12 @@
 // 顶部那条 .dsh-route-notice 只在地址认不出来、被回落时出现 —— 回落必须说清为什么，
 // 不然「点进来发现不是自己要的那一页」就成了没法解释的怪事。
 //
-// 「设置」从顶栏搬到侧栏（这一轮）：顶栏当时只有那一个按钮，按钮一走顶栏就成了
-// 一条 44px 的空带子，所以整条顶栏一起去掉，内容区直接顶到窗口上沿。
+// 侧栏有两副形状（design/sidebar-collapse.md）：
+//   ≥1024  文档流里的第一列。190px 展开，或 56px 的图标栏（顶栏那颗按钮切换，
+//          形态存进设置 ui.sidebarCollapsed，刷新之后照旧）。
+//   <1024  不占位：主区满宽，顶栏换成一条窄栏（汉堡 + 当前页名）。点汉堡时侧栏
+//          从左边滑出来盖在页面上（宽 min(280px, 78vw)），底下加一层遮罩。
+//          收起来的三种走法：Esc / 点遮罩 / 点任意导航项。
 //
 // 外壳自建，不套现成的抽屉/顶栏组件：以前试过 md2 的 navigation_drawer / app_bar，
 // 那两个把 position: fixed、z-index、side 偏移写成了**内联样式**，而这套外壳是文档流里的
@@ -14,17 +18,54 @@
 // 形状全部来自 styles/app.scss，与 Vue 版逐条对齐。
 
 ///|
-fn nav_item(page : Page, current : Page, label : String, icon_name : String, emit : @cmd.Emit[Msg]) -> @html.Html {
+/// 导航项的 DOM id：窄屏覆盖层打开时焦点要落在第一项上（app.mbt 按它找节点）。
+fn nav_dom_id(page : Page) -> String {
+  "dsh-nav-" + nav_key(page)
+}
+
+///|
+/// 窄屏顶栏那颗汉堡的 id：覆盖层收起之后焦点回它。
+fn side_burger_id() -> String {
+  "dsh-side-burger"
+}
+
+///|
+/// 宽屏顶栏那颗折叠按钮的 id。
+fn side_toggle_id() -> String {
+  "dsh-side-toggle"
+}
+
+///|
+/// 导航项的文字（侧栏的一行、顶栏的当前页名，宽屏窄屏两处都用这一份）。
+fn page_label(page : Page) -> String {
+  match page {
+    Overview => "实例总览"
+    Maintenance => "维护"
+    Logs => "日志"
+    Settings => "设置"
+    Trash => "回收站"
+    About => "关于"
+  }
+}
+
+///|
+fn nav_item(page : Page, current : Page, icon_name : String, emit : @cmd.Emit[Msg]) -> @html.Html {
   let active = page == current
+  let label = page_label(page)
   @html.button(
+    id=nav_dom_id(page),
     class=if active { "dsh-nav-item active" } else { "dsh-nav-item" },
     type_="button",
     attrs=mark("nav-" + nav_key(page), ["shell", "nav", nav_key(page)])
-      .aria_current(if active { "page" } else { "false" }),
+      .aria_current(if active { "page" } else { "false" })
+      // 收起成图标栏时文字那一格不显示，名字靠这条 aria-label 与下面那颗提示
+      .aria_label(label),
     on_click=emit(Navigate(page)),
     [
       @html.span(class="dsh-nav-icon", [icon(icon_name, size=16)]),
       @html.span(class="dsh-nav-label", label),
+      // 悬停提示：只在宽屏的图标栏形态下显示（见 app.scss），展开态与窄屏都不产出视觉
+      @html.span(class="dsh-nav-tip", label),
     ],
   )
 }
@@ -42,29 +83,133 @@ fn nav_key(page : Page) -> String {
 }
 
 ///|
+/// 侧栏本体。两个类名说的是两件事，互不覆盖：
+///   collapsed  宽屏的图标栏形态（窄屏的样式块把它整段盖过去）
+///   open       窄屏的覆盖层正在滑出
+///   （没有类名就是宽屏的展开态 / 窄屏的收起态）
 fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  @html.aside(class="dsh-side", attrs=mark("side-nav", ["shell", "side-nav"]), [
-    @html.div(class="dsh-brand", [
-      @html.span(class="dsh-brand-icon", [icon("hub-outline", size=17)]),
-      @html.span(class="dsh-brand-title", "DSH 控制台"),
-    ]),
-    @html.nav(class="dsh-nav", [
-      nav_item(Overview, model.page, "实例总览", "view-grid-outline", emit),
-      // 维护紧跟在实例总览下面（规格 §2 定的位置）：它是第二条「对整台机器做事」的入口
-      nav_item(Maintenance, model.page, "维护", "tune", emit),
-      nav_item(Logs, model.page, "日志", "text-box-outline", emit),
-      nav_item(Settings, model.page, "设置", "cog-outline", emit),
-      // 回收站挨着「关于」放：它是一条能真删东西的入口，摆在一排设置项后面不抢视线，
-      // 也不跟「实例总览」那种常用项混在一起
-      nav_item(Trash, model.page, "回收站", "delete-outline", emit),
-      nav_item(About, model.page, "关于", "shield-outline", emit),
-    ]),
-    @html.p(class="dsh-side-foot", [
-      @html.i(class="dsh-side-dot", @html.nothing),
-      @html.span("本机运行，仅限回环访问"),
-    ]),
-  ])
+  let cls = if model.sidebar_overlay {
+    if model.sidebar_collapsed {
+      "dsh-side collapsed open"
+    } else {
+      "dsh-side open"
+    }
+  } else if model.sidebar_collapsed {
+    "dsh-side collapsed"
+  } else {
+    "dsh-side"
+  }
+  @html.aside(
+    id="dsh-side-nav",
+    class=cls,
+    attrs=mark("side-nav", ["shell", "side-nav"])
+      .aria_label("主导航")
+      .data_set("collapsed", if model.sidebar_collapsed { "true" } else { "false" })
+      .data_set("open", if model.sidebar_overlay { "true" } else { "false" }),
+    [
+      @html.div(class="dsh-brand", [
+        @html.span(class="dsh-brand-icon", [icon("hub-outline", size=17)]),
+        @html.span(class="dsh-brand-title", "DSH 控制台"),
+      ]),
+      @html.nav(class="dsh-nav", [
+        nav_item(Overview, model.page, "view-grid-outline", emit),
+        // 维护紧跟在实例总览下面（规格 §2 定的位置）：它是第二条「对整台机器做事」的入口
+        nav_item(Maintenance, model.page, "tune", emit),
+        nav_item(Logs, model.page, "text-box-outline", emit),
+        nav_item(Settings, model.page, "cog-outline", emit),
+        // 回收站挨着「关于」放：它是一条能真删东西的入口，摆在一排设置项后面不抢视线，
+        // 也不跟「实例总览」那种常用项混在一起
+        nav_item(Trash, model.page, "delete-outline", emit),
+        nav_item(About, model.page, "shield-outline", emit),
+      ]),
+      @html.p(class="dsh-side-foot", [
+        @html.i(class="dsh-side-dot", @html.nothing),
+        @html.span(class="dsh-side-foot-text", "本机运行，仅限回环访问"),
+      ]),
+    ],
+  )
 }
+
+///|
+/// 宽屏顶栏（≥1024 才显示）：折叠按钮在前，紧挨着当前页名，右边留空。
+///
+/// 上一轮把顶栏整条去掉，是因为它当时只为「设置」那一个按钮存在；这一轮侧栏要能收起，
+/// 那开关得有地方放，于是顶栏回来一条窄的并带上当前页名 —— 只有一颗按钮的空带子
+/// 正是上一轮删掉的东西，不再造一遍。
+fn shell_topbar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let collapsed = model.sidebar_collapsed
+  @html.header(
+    class="dsh-topbar",
+    attrs=mark("topbar", ["shell", "topbar"]),
+    [
+      @html.button(
+        id=side_toggle_id(),
+        class="dsh-icon-btn",
+        type_="button",
+        attrs=mark("side-toggle", ["shell", "topbar", "side-toggle"])
+          .aria_label(if collapsed { "展开侧栏" } else { "收起侧栏" })
+          .aria_expanded(if collapsed { "false" } else { "true" })
+          .aria_controls("dsh-side-nav")
+          .title(
+            if collapsed {
+              "展开侧栏（190px，带文字）"
+            } else {
+              "收起成 56px 的图标栏，悬停看名字"
+            },
+          ),
+        on_click=emit(SidebarToggle),
+        [icon(if collapsed { "chevron-double-right" } else { "chevron-double-left" }, size=16)],
+      ),
+      @html.span(
+        class="dsh-topbar-title",
+        attrs=mark("topbar-title", ["shell", "topbar", "title"]),
+        page_label(model.page),
+      ),
+    ],
+  )
+}
+
+///|
+/// 窄屏顶栏（<1024 才显示）：汉堡 + 当前页名，右侧留空。
+fn shell_narrowbar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  @html.header(
+    class="dsh-narrowbar",
+    attrs=mark("narrowbar", ["shell", "narrowbar"]),
+    [
+      @html.button(
+        id=side_burger_id(),
+        class="dsh-icon-btn",
+        type_="button",
+        attrs=mark("side-burger", ["shell", "narrowbar", "burger"])
+          .aria_label("打开导航")
+          .aria_expanded(if model.sidebar_overlay { "true" } else { "false" })
+          .aria_controls("dsh-side-nav")
+          .title("打开导航"),
+        on_click=emit(SidebarOverlayOpen),
+        [icon("menu", size=18)],
+      ),
+      @html.span(
+        class="dsh-narrowbar-title",
+        attrs=mark("narrowbar-title", ["shell", "narrowbar", "title"]),
+        page_label(model.page),
+      ),
+    ],
+  )
+}
+
+///|
+/// 窄屏侧栏的遮罩。**节点一直在 DOM 里**，只有窄屏且覆盖层开着时才显示
+/// （见 app.scss 的 display 规则）：这样宽屏不会因为它多一层浮层，
+/// 从窄屏拉宽到宽屏时也不会留下一个盖住整页的东西。
+fn side_scrim(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  @html.div(
+    class=if model.sidebar_overlay { "dsh-side-scrim open" } else { "dsh-side-scrim" },
+    attrs=mark("side-scrim", ["shell", "side-scrim"]),
+    on_click=emit(SidebarOverlayClose),
+    @html.nothing,
+  )
+}
+
 
 ///|
 /// 地址回落说明：认不出来的地址落在这一页时，把「为什么」摆在最上面。
@@ -188,12 +333,27 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.drag_active {
     shell_attrs = shell_attrs.on_scroll(fn(_event) { emit(DragCancel) })
   }
+  // 窄屏覆盖层开着时 Esc 收掉它。挂在 shell 上而不是 document 上：
+  // 打开时焦点已经进了第一个导航项，按键从那里冒泡上来，这一层收得到。
+  if model.sidebar_overlay {
+    shell_attrs = shell_attrs.on_keydown(fn(event) {
+      if event.key() == "Escape" {
+        emit(SidebarOverlayClose)
+      } else {
+        @cmd.none
+      }
+    })
+  }
   @html.div(
     class="dsh-shell",
     attrs=shell_attrs,
     [
+      // 遮罩节点一直在（宽屏不显示）：见 side_scrim
+      side_scrim(model, emit),
       side_nav(model, emit),
       @html.div(class="dsh-workbench", [
+        shell_topbar(model, emit),
+        shell_narrowbar(model, emit),
         route_notice_bar(model),
         @html.main_(class="dsh-main", [body]),
       ]),

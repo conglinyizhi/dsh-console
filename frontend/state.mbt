@@ -563,6 +563,17 @@ struct Model {
   // 回执从 §14 起走全局提示：改完版本切到任何一页都看得见，不再借总览页的格子。
   /// 正在指定的那一份包目录（空串 = 没有在指定，按钮因此可点）
   dsh_pin_busy : String
+  // 外壳的侧栏（design/sidebar-collapse.md）
+  //
+  // 两格说的是两件不同的事，寿命也不同：
+  //   sidebar_collapsed  宽屏的形态（190px 展开 / 56px 图标栏）。**状态存在设置里**
+  //                      （ui.sidebarCollapsed），这一格是它的界面副本 —— 设置读到、
+  //                      这一项保存成功、恢复默认三条路都会把它同步过来（见 app.mbt）。
+  //   sidebar_overlay    窄屏的覆盖层开着没有，**不持久化**：每次进来都是收起的。
+  /// 宽屏侧栏是不是收成了图标栏
+  sidebar_collapsed : Bool
+  /// 窄屏侧栏覆盖层开着没有（宽屏不摆遮罩，这一格没有意义）
+  sidebar_overlay : Bool
   // 设置页
   settings_loaded : Bool
   settings_loading : Bool
@@ -651,6 +662,12 @@ priv enum Msg {
   InstancesText(Result[String, Error])
   LogsText(Result[String, Error])
   Navigate(Page)
+  /// 宽屏顶栏的折叠按钮：翻一下侧栏形态，并把新形态写进设置（ui.sidebarCollapsed）
+  SidebarToggle
+  /// 窄屏顶栏的汉堡：侧栏以覆盖层滑出，焦点进第一个导航项
+  SidebarOverlayOpen
+  /// 收起窄屏覆盖层（Esc / 点遮罩；点导航项与切页在 Navigate 里一起收）
+  SidebarOverlayClose
   /// 浏览器前进 / 后退（或手改了 path）：按当前地址复原页面，不写历史
   RouteChanged
   RowAction(String, ActionKey)
@@ -893,6 +910,10 @@ fn initial_model() -> Model {
     archived_open: false,
     archived_user_toggled: false,
     dsh_pin_busy: "",
+    // 首帧按展开画。设置回执一到（启动时就发了一次）就换成存下来的那一份 ——
+    // 于是刷新之后看到的是折叠过的侧栏，不是先展开再收一下。
+    sidebar_collapsed: false,
+    sidebar_overlay: false,
     settings_loaded: false,
     settings_loading: false,
     settings: None,

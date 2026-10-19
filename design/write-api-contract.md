@@ -54,6 +54,7 @@ PUT /api/local/settings   body { values:{...} }  → 校验后落盘并返回新
 | `logs.defaultTail` | 200 | 日志页默认尾部行数 |
 | `ui.archiveOpenByDefault` | false | 归档区默认是否展开 |
 | `ui.advancedActions` | false | 抽屉里是否摆「硬开裸地址」这类有风险的按钮（手机上没有修饰键，用这个开关） |
+| `ui.sidebarCollapsed` | false | 宽屏下侧栏是展开还是收成 56px 的图标栏（窄屏不看这一项，侧栏从汉堡滑出、不占位） |
 | `safety.deleteToTrash` | true | 删除是进回收站还是硬删 |
 
 **新键一律「读不到就用缺省」**，文件坏了不能让接口挂掉（回退 + 在 sources 里写明原因）。
