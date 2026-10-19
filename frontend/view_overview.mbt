@@ -2437,6 +2437,30 @@ fn new_instance_first_usable(model : Model) -> String {
 }
 
 ///|
+/// 点「从基础实例开始」之后名字那一格预填什么：`base-<两位序号>`，读数里已有的就顺延
+/// （design/design-fixes.md 第 20 节）。
+///
+/// 「已存在」拿手上这份 profiles 读数判（列表里看得见的那几只），序号从 01 起挨个试。
+/// 读数里没有、磁盘上却有的名字交给后端兜底：那时它回 conflict，原因写在框里，
+/// 改个名字就能再点一次 —— 比前端凭空猜一个号更诚实。
+fn new_instance_base_name(model : Model) -> String {
+  let taken : Array[String] = []
+  for fact in job_profile_facts(model) {
+    taken.push(fact.name)
+  }
+  let mut index = 1
+  while index <= 999 {
+    let digits = if index < 10 { "0" + index.to_string() } else { index.to_string() }
+    let candidate = "base-" + digits
+    if !taken.contains(candidate) {
+      return candidate
+    }
+    index = index + 1
+  }
+  "base-" + index.to_string()
+}
+
+///|
 /// 框里的一张源卡：与「选择配置」是**同一份画法**（profile_pick_card），
 /// 只是换一套 data-name 与消息。选中那一张挂一枚「已选」—— 文字标记，不只靠高亮色。
 fn new_instance_source_card(
@@ -2518,12 +2542,23 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       picks.push(new_instance_group("stopped", "已停止的实例", stopped, model, emit))
     }
   }
-  let source_text = if model.new_source == "" {
+  // 源那一格：从基础模板开始时写「基础模板」，否则写选中的那一只（还没选就写「还没选」）
+  let source_text = if model.new_base {
+    "基础模板"
+  } else if model.new_source == "" {
     "还没选"
   } else {
     model.new_source
   }
-  let can_create = model.new_source != "" && model.new_name_draft.trim() != "" && !model.new_busy
+  let has_source = model.new_base || model.new_source != ""
+  let can_create = has_source && model.new_name_draft.trim() != "" && !model.new_busy
+  // 说明那一句随源走：从基础模板开始时不派生、也不读现有配置，照旧的「从一只现有的配置派生」
+  // 在那一刻就是一句错话。
+  let message_text = if model.new_base {
+    "用 dsh 自带的基础模板新建一份，不依赖现有配置。新实例默认隔离到自己的 home。"
+  } else {
+    "从一只现有的配置派生一份新副本。新副本默认隔离到自己的 home，源配置一份都不动。"
+  }
   let error_block = if model.new_error.length() > 0 {
     @html.p(
       class="dsh-dialog-error",
@@ -2541,8 +2576,9 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("new-instance-message", ["dialog", "new-instance", "message"]),
-      "从一只现有的配置派生一份新副本。新副本默认隔离到自己的 home，源配置一份都不动。",
+      attrs=mark("new-instance-message", ["dialog", "new-instance", "message"])
+        .data_set("source", if model.new_base { "base" } else { "profile" }),
+      message_text,
     ),
     @html.div(
       class="dsh-new-pick",
@@ -2577,25 +2613,41 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       ),
     ]),
     error_block,
-    @html.div(class="dsh-dialog-foot", [
+    // 左下角那颗不显眼的入口（§20.2）：文本按钮，无边框、低对比、字号比正文小一档，
+    // 与右下角的「创建 / 取消」分开。现有配置全坏 / 全不可用时它是框里唯一还能走的路。
+    @html.div(class="dsh-dialog-foot dsh-dialog-foot-split", [
       @html.button(
-        id=new_instance_ok_id(),
-        class="dsh-dialog-btn primary",
-        type_="button",
-        disabled=!can_create,
-        attrs=mark("new-instance-ok", ["dialog", "new-instance", "ok"]),
-        on_click=emit(NewInstanceConfirm),
-        [@html.text(if model.new_busy { "正在创建…" } else { "创建" })],
-      ),
-      @html.button(
-        id="dsh-new-instance-cancel",
-        class="dsh-dialog-btn",
+        id=new_instance_base_id(),
+        class="dsh-new-base",
         type_="button",
         disabled=model.new_busy,
-        attrs=mark("new-instance-cancel", ["dialog", "new-instance", "cancel"]),
-        on_click=emit(NewInstanceClose),
-        [@html.text("取消")],
+        attrs=mark("new-instance-base", ["dialog", "new-instance", "base"])
+          .data_set("chosen", if model.new_base { "true" } else { "false" })
+          .title("用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。")
+          .aria_label("从基础实例开始：用 dsh 自带的基础模板新建一份"),
+        on_click=emit(NewInstanceBasePicked),
+        [@html.text("从基础实例开始")],
       ),
+      @html.div(class="dsh-dialog-actions", [
+        @html.button(
+          id=new_instance_ok_id(),
+          class="dsh-dialog-btn primary",
+          type_="button",
+          disabled=!can_create,
+          attrs=mark("new-instance-ok", ["dialog", "new-instance", "ok"]),
+          on_click=emit(NewInstanceConfirm),
+          [@html.text(if model.new_busy { "正在创建…" } else { "创建" })],
+        ),
+        @html.button(
+          id="dsh-new-instance-cancel",
+          class="dsh-dialog-btn",
+          type_="button",
+          disabled=model.new_busy,
+          attrs=mark("new-instance-cancel", ["dialog", "new-instance", "cancel"]),
+          on_click=emit(NewInstanceClose),
+          [@html.text("取消")],
+        ),
+      ]),
     ]),
   ])
   dialog(

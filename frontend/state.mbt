@@ -504,6 +504,9 @@ struct Model {
   new_open : Bool
   /// 选中的源 profile 名（空串 = 还没选）。选中那一张卡高亮，创建键按它可点。
   new_source : String
+  /// 源是不是「基础模板」（design/design-fixes.md 第 20 节）：真时创建走 create-base-profile，
+  /// 不再走派生，也不读任何现有配置。点左下角那颗入口置真，点任何一张源卡置回假。
+  new_base : Bool
   /// 名字输入框里的原文。选源时默认填 <源>-dev，可改。
   new_name_draft : String
   /// 上一次创建失败的原因（后端原话）。框开着时写在框里，框不关。
@@ -846,6 +849,12 @@ priv enum Msg {
   NewInstanceNameInput(String)
   NewInstanceConfirm
   NewInstanceDone(Result[String, Error])
+  /// 点左下角「从基础实例开始」：源切成基础模板、名字预填 base-<两位序号>、焦点进名字格
+  /// （design/design-fixes.md 第 20 节）。
+  NewInstanceBasePicked
+  /// 从基础模板新建的回执。与 NewInstanceDone 分开一条：它判的是另一组字段
+  /// （name / home），重建回执时不能与派生的 newName / profile 混着读。
+  NewInstanceBaseDone(Result[String, Error])
   Noop
 }
 
@@ -920,6 +929,7 @@ fn initial_model() -> Model {
     promote_confirm: false,
     new_open: false,
     new_source: "",
+    new_base: false,
     new_name_draft: "",
     new_error: "",
     new_busy: false,
@@ -1277,9 +1287,16 @@ fn new_instance_name_id() -> String {
 }
 
 ///|
-/// 「创建」那颗键的 id（打开时若一只可用的 profile 都没有，焦点落在这儿）。
+/// 「创建」那颗键的 id。
 fn new_instance_ok_id() -> String {
   "dsh-new-instance-ok"
+}
+
+///|
+/// 新建实例框左下角那颗「从基础实例开始」的 id。
+/// 一只可用的 profile 都没有时，打开框的焦点落在这儿（那一刻它是框里唯一能点的）。
+fn new_instance_base_id() -> String {
+  "dsh-new-instance-base"
 }
 
 

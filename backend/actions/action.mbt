@@ -440,6 +440,47 @@ pub async fn run_action(
         ("note", @json.JStr(note_text)),
       ])
     }
+    // ── 从基础模板新建（design/design-fixes.md 第 20 节）────────────
+    // 现有 profile 全坏 / 全不可用时的备用入口：用 dsh 自带的基础模板新建一份，
+    // 不读任何现有配置。新建出来的这份默认隔离（与派生同一档），隔离没建成照实说 ——
+    // 「建成了」与「隔离成了」是两件事，不能混成一句。
+    "create-base-profile" => {
+      ensure_action_params(params, "从基础模板新建", ["name"])
+      let outcome = create_base_profile(require_string(params, "name"))
+      let home_text = match outcome.home_path {
+        Some(path) =>
+          "新 profile 默认隔离，已经落到 " + path + "（以后用这只 profile 起的实例都在里面跑）"
+        None =>
+          match outcome.home_error {
+            Some(reason) =>
+              "隔离 home 没建成（" + reason + "），它与别的 profile 共用 DSH_HOME"
+            None => "隔离 home 没建成，它与别的 profile 共用 DSH_HOME"
+          }
+      }
+      let note_text = "用 dsh " + outcome.dsh_version + "（" + outcome.package_dir +
+        "）自带的基础模板 " + base_template_profile + " 新建；核对过三条：package.json 读得出、" +
+        "bundles 里有 " + @profiles.web_app_bundle + "、cordis.patch.yml 在；" +
+        "dsh 那一步用了 " + outcome.ms.to_string() + " 毫秒，退出码 0，没有留下进程。" + home_text
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([
+          ("name", @json.JStr(outcome.name)),
+          ("dir", @json.JStr(outcome.dir)),
+          // 建的是哪一份模板、用哪一份 dsh 跑的：核对时对得上号
+          ("template", @json.JStr(base_template_profile)),
+          ("dshVersion", @json.JStr(outcome.dsh_version)),
+          ("dshPackageDir", @json.JStr(outcome.package_dir)),
+          ("bundles", @json.jstr_array(outcome.bundles)),
+          ("ms", @json.jint(outcome.ms)),
+          // 隔离建成与没建成是两件事：建成了给路径，没建成给原因（建本身照旧成功）
+          ("home", @json.JObj([
+            ("path", @json.str_or_null(outcome.home_path)),
+            ("error", @json.str_or_null(outcome.home_error)),
+          ])),
+        ])),
+        ("note", @json.JStr(note_text)),
+      ])
+    }
     "rename-profile" => {
       let outcome = rename_profile(
         require_string(params, "profile"),

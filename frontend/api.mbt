@@ -251,6 +251,28 @@ fn new_instance_cmd(source : String, name : String, emit : @cmd.Emit[Msg]) -> @c
 }
 
 ///|
+/// POST /api/local/action 的 **create-base-profile**，从「＋新建实例」框左下角那颗
+/// 「从基础实例开始」发（design/design-fixes.md 第 20 节）。
+///
+/// 单独一条而不是复用 new_instance_cmd：参数只有名字（没有源），动作名也不同，
+/// 回执里判的字段是 name / home，与派生的 newName / profile 不是一组。
+fn base_profile_cmd(name : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  let params = "{\"name\":" + json_text_literal(name) + "}"
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(NewInstanceBaseDone(res)) },
+    async fn() {
+      let text : String = js_http_call(
+        "POST",
+        "/api/local/action",
+        action_body("create-base-profile", params),
+        write_headers(),
+      ).wait().cast()
+      text
+    },
+  )
+}
+
+///|
 /// POST /api/local/action 的 **set-row-order**：body 是 { action, params: { order: [...] } }。
 ///
 /// 为什么单开一条而不是复用 action_cmd：这条回执要做一件别处不做的事 ——

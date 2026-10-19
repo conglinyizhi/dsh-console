@@ -1863,6 +1863,60 @@ fn new_instance_settled(
 }
 
 ///|
+/// 「从基础实例开始」这一枪的回执（design/design-fixes.md 第 20 节）。
+///
+/// 成：回执照规格写「已从基础模板新建 <名字>（已隔离到 <路径>）」，隔离没建成时那一支
+/// 照实说「共用 DSH_HOME」；框关掉，重读读数，新卡出现之后焦点再送过去（与派生同一套）。
+/// 败：**框不关**，后端原话写在框里 —— 那句原因要能对着改名字（同名 conflict 尤其常见）。
+fn base_profile_settled(
+  model : Model,
+  res : Result[String, Error],
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let (ok, note) = interpret_http(res)
+  if !ok {
+    return ({ ..model, new_busy: false, new_error: note }, @cmd.none)
+  }
+  let outcome = match outcome_of(res) {
+    Some(fields) => fields
+    None =>
+      return (
+        { ..model, new_busy: false, new_error: "回执里没有 outcome，这一版认不出新建结果" },
+        @cmd.none,
+      )
+  }
+  let created = str_field(outcome, "name")
+  let home = obj_field(outcome, "home")
+  let home_path = str_field(home, "path")
+  let home_error = str_field(home, "error")
+  let name = if created == "" { model.new_name_draft.trim().to_owned() } else { created }
+  // 隔离建成与没建成是两件事：没建成时不能说「已隔离到」，那是假报（与派生那一支同一口径）
+  let text = if home_path != "" {
+    "已从基础模板新建 " + name + "（已隔离到 " + home_path + "）"
+  } else if home_error != "" {
+    "已从基础模板新建 " + name + "（隔离 home 没建成：" + home_error +
+    "，它与别的 profile 共用 DSH_HOME）"
+  } else {
+    "已从基础模板新建 " + name
+  }
+  let closed = notice_ok(
+    {
+      ..model,
+      new_open: false,
+      new_source: "",
+      new_base: false,
+      new_name_draft: "",
+      new_error: "",
+      new_busy: false,
+      new_focus: name,
+    },
+    text,
+    backend_hint(note),
+  )
+  refresh_readings(closed, emit)
+}
+
+///|
 /// 写动作成功之后刷新读数：重发 profiles + instances。
 /// 两份都先置回「未落地」再发 —— 否则先回来的那一份会拿着旧的另一份拼一次列表，
 /// 而那时 built 已经是 true，后回来的那一份就白读了（卡上还是动作前的老样子）。
@@ -3585,12 +3639,15 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           ..model,
           new_open: true,
           new_source: "",
+          new_base: false,
           new_name_draft: "",
           new_error: "",
           new_busy: false,
         },
         if first == "" {
-          focus_after_render(new_instance_ok_id())
+          // 一只可用的源都没有：焦点落在左下角那颗「从基础实例开始」上 ——
+          // 它是这一刻框里唯一能点的东西（「创建」还锁着，「取消」谁都知道在哪儿）。
+          focus_after_render(new_instance_base_id())
         } else {
           focus_after_render(new_instance_card_id(first))
         },
@@ -3603,7 +3660,14 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         (model, @cmd.none)
       } else {
         (
-          { ..model, new_open: false, new_source: "", new_name_draft: "", new_error: "" },
+          {
+            ..model,
+            new_open: false,
+            new_source: "",
+            new_base: false,
+            new_name_draft: "",
+            new_error: "",
+          },
           focus_after_render(new_instance_btn_id()),
         )
       }
@@ -3616,6 +3680,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       let next = {
         ..model,
         new_source: name,
+        // 选了具体的源就走派生：从基础模板那一档退出来
+        new_base: false,
         new_name_draft: if keep { model.new_name_draft } else { name + "-dev" },
         new_error: "",
       }
@@ -3627,13 +3693,14 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     // 空名字不带 newName —— 后端自己会按 <源>-dev 起一个。
     NewInstanceConfirm => {
       let source = model.new_source
+      let base = model.new_base
       let draft = model.new_name_draft.trim().to_owned()
-      if source == "" || draft == "" || model.new_busy {
+      if (!base && source == "") || draft == "" || model.new_busy {
         (
           {
             ..model,
-            new_error: if source == "" {
-              "先选一只源配置，再创建"
+            new_error: if !base && source == "" {
+              "先选一只源配置，或者从基础实例开始"
             } else {
               "名字不能为空"
             },
@@ -3643,13 +3710,46 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       } else {
         (
           { ..model, new_busy: true, new_error: "" },
-          new_instance_cmd(source, draft, emit),
+          if base {
+            // 源是基础模板：不派生，直接用 dsh 自带的基础模板新建一份
+            base_profile_cmd(draft, emit)
+          } else {
+            new_instance_cmd(source, draft, emit)
+          },
         )
       }
+    }
+    // 点左下角「从基础实例开始」：源切成基础模板、选中的源卡让位、名字预填
+    // base-<两位序号>（读数里已有的就顺延），焦点与光标送进名字格。
+    // 已经亲手改过名字的（不等于上一次的默认值）不覆盖 —— 与选源那条同一套规矩。
+    NewInstanceBasePicked => {
+      let draft = model.new_name_draft.trim().to_owned()
+      let keep = draft != "" &&
+        !(model.new_source != "" && draft == model.new_source + "-dev") &&
+        draft != new_instance_base_name(model)
+      (
+        {
+          ..model,
+          new_source: "",
+          new_base: true,
+          new_name_draft: if keep { model.new_name_draft } else { new_instance_base_name(model) },
+          new_error: "",
+        },
+        focus_select_after_render(new_instance_name_id()),
+      )
     }
     NewInstanceDone(res) => {
       let (next, cmd) = new_instance_settled(model, res, emit)
       // 失败时把焦点拉回名字那一格：要改的就是那里
+      if next.new_error != "" {
+        (next, @cmd.batch([cmd, focus_select_after_render(new_instance_name_id())]))
+      } else {
+        (next, cmd)
+      }
+    }
+    NewInstanceBaseDone(res) => {
+      let (next, cmd) = base_profile_settled(model, res, emit)
+      // 失败同样不关框、焦点回名字格（同名 conflict 就是在那儿改）
       if next.new_error != "" {
         (next, @cmd.batch([cmd, focus_select_after_render(new_instance_name_id())]))
       } else {
