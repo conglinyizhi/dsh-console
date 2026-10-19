@@ -34,7 +34,10 @@ const opened = JSON.parse(await ev(`(() => {
   if (!d) return JSON.stringify({ open: false })
   const r = d.getBoundingClientRect()
   const btns = [...d.querySelectorAll('button')]
-  const reach = btns.map((b) => { const br = b.getBoundingClientRect(); const hit = document.elementFromPoint(br.x + br.width / 2, br.y + br.height / 2); return !!(hit && (hit === b || b.contains(hit))) })
+  // 抽屉正文可滚：按钮在折叠线以下时先滚到它再判可达。
+  // 不滚就量等于在问「一屏装不装得下」，而不是「点不点得到」——抽屉内容只会越来越长。
+  const reach = btns.map((b) => { b.scrollIntoView({ block: 'center' }); const br = b.getBoundingClientRect(); const hit = document.elementFromPoint(br.x + br.width / 2, br.y + br.height / 2); return !!(hit && (hit === b || b.contains(hit))) })
+  const back = d.querySelector('.dsh-drawer-body'); if (back) back.scrollTop = 0
   return JSON.stringify({ open: true, rect: { x: Math.round(r.x), w: Math.round(r.width), right: Math.round(r.right) }, vw: innerWidth,
     buttonCount: btns.length,
     // 空集不许算过：按钮数为 0 时一律记 false（「没东西所以全可达」是假绿灯 ✗）
