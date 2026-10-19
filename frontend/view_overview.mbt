@@ -2472,8 +2472,9 @@ fn new_instance_base_name(model : Model) -> String {
 }
 
 ///|
-/// 框里的一张源卡：与「选择配置」是**同一份画法**（profile_pick_card），
-/// 只是换一套 data-name 与消息。选中那一张挂一枚「已选」—— 文字标记，不只靠高亮色。
+/// 框里的一张源卡：与「选择配置」「整体替换选源」是**同一份画法**
+/// （view_parts.mbt 的 profile_card）。这一处只决定点下去发什么、路径前缀、
+/// 挂不挂「已选」那枚标记。选中那一张挂一枚「已选」—— 文字标记，不只靠高亮色。
 ///
 /// 勾上「从基础实例开始」时整组不可选，但那一档不写在卡上（§22）：容器 inert + 遮罩，
 /// 卡片照旧只写读数带来的 data-usable —— 同一张卡在维护页与这里长得一模一样。
@@ -2485,7 +2486,7 @@ fn new_instance_source_card(
   let selected = pick.name == model.new_source
   let ok = pick.usable
   let aria = if ok { "用 " + pick.name + " 当源配置" } else { pick.name + " 不可用：" + pick.why }
-  profile_pick_card(
+  profile_card(
     pick,
     new_instance_card_id(pick.name),
     "new-instance",
@@ -2496,9 +2497,6 @@ fn new_instance_source_card(
     fn(name) { NewInstanceStatePicked(name) },
     emit,
     chosen=selected,
-    // 这个框里的卡钉死高度（§24.2），原因那一行会被省略号截；完整句进悬停。
-    // 维护页与整体替换两处不传，行为一个字不动。
-    why_title=true,
   )
 }
 
@@ -2626,11 +2624,9 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let has_source = model.new_base || model.new_source != ""
   let can_create = has_source && model.new_name_draft.trim() != "" && !model.new_busy
-  // 说明那一句随源走：从基础模板开始时不派生、也不读现有配置，照旧的「从一只现有的配置派生」
-  // 在那一刻就是一句错话。两句**都常驻**（§24.3）：同一格里叠着，只把没生效那句
-  // visibility: hidden —— 行高按两句里高的那一句算，勾上勾下因此不会差一行。
-  let message_profile = "从一只现有的配置派生一份新副本。新副本默认隔离到自己的 home，源配置一份都不动。"
-  let message_base = "用 dsh 自带的基础模板新建一份，不依赖现有配置。新实例默认隔离到自己的 home。"
+  // 框头那句**固定**（§25.4）：它说的是这个框有两条路（复制现有配置 / 用基础模板新建），
+  // 勾不勾复选框都不改这一句。复选框只影响卡片区锁不锁、名字格引导要不要显示。
+  let message_line = "从现有的某个配置复制一个，或者是创建一个全新的"
   let error_block = if model.new_error.length() > 0 {
     @html.p(
       class="dsh-dialog-error",
@@ -2716,25 +2712,10 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       "新建实例",
     ),
     @html.p(
-      class="dsh-dialog-message dsh-new-message",
+      class="dsh-dialog-message",
       attrs=mark("new-instance-message", ["dialog", "new-instance", "message"])
         .data_set("source", if model.new_base { "base" } else { "profile" }),
-      [
-        @html.span(
-          class="dsh-new-message-text",
-          attrs=@html.Attrs::build()
-            .data_set("mode", "profile")
-            .data_set("active", if model.new_base { "false" } else { "true" }),
-          message_profile,
-        ),
-        @html.span(
-          class="dsh-new-message-text",
-          attrs=@html.Attrs::build()
-            .data_set("mode", "base")
-            .data_set("active", if model.new_base { "true" } else { "false" }),
-          message_base,
-        ),
-      ],
+      message_line,
     ),
     none_usable_note,
     pick_area,

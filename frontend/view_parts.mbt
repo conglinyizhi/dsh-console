@@ -307,6 +307,206 @@ fn kv_row(label : String, value : String, hint : String) -> @html.Html {
   )
 }
 
+// ── 配置卡片（design/design-fixes.md §25） ───────────────────
+
+///|
+/// 一张配置卡要的几格：名字、备注、状态灯与状态词、缺包数、home 归属、
+/// 可用性与原因、在不在跑。
+///
+/// 数据来自总览那一套行与 profile 读数（见 view_maintenance.mbt 的 job_profile_pick），
+/// 这里只是卡片自己的入参形状。三个调用点传的是同一份结构，所以卡片只有一份画法。
+priv struct ProfilePick {
+  name : String
+  note : String
+  note_source : String
+  light : Light
+  light_reason : String
+  light_basis : String
+  missing : Int
+  missing_names : String
+  home_kind : String
+  home_path : String
+  running : Bool
+  usable : Bool
+  why : String
+}
+
+///|
+/// 一条 data-name 路径：前缀 + 这一格的尾巴。
+/// 三张卡（新建实例框 / 选择配置 / 替换用源）共用一份画法，差别之一就是前缀，所以路径得拼。
+fn mark_path(marks : Array[String], tail : Array[String]) -> Array[String] {
+  let out : Array[String] = []
+  for m in marks {
+    out.push(m)
+  }
+  for t in tail {
+    out.push(t)
+  }
+  out
+}
+
+///|
+/// 一张配置卡：**三行、96px、一律单行省略**（design/design-fixes.md §25）。
+///
+/// 第 1 行 名字 + 状态词（紧跟名字）+ 标记（当前配置 / 已选）；
+/// **不再单独挂「在跑」**：状态词就在名字后面，「运行中」与「在跑」是同一件事，
+/// 两枚并排只会把名字挤成省略号。
+/// 第 2 行 备注，没有就写「没有备注」；
+/// 第 3 行 缺包数 + 配置 home 档；不可用的卡第 3 行换成原因（单行省略，全文进悬停）。
+///
+/// **不再显示**缺包清单与 home 路径：两样都只进悬停（缺包挂在「缺 N 个包」上、路径挂在
+/// 「配置 home：…」上，灯的判据挂在灯上、原因的全文挂在原因那一行上）。配置卡本来就没有
+/// 「上次启动」这一格，三行里也不新开一格。状态灯挂在图标右上角（图标容器
+/// position: relative），不相对整张卡定位 —— 这样卡片能安心 overflow: hidden，
+/// 灯也不会因为卡片的裁剪切出一道斜口。
+///
+/// 三个调用点（新建实例框源卡、维护页选择配置、整体替换选源；见 job_profile_card /
+/// promote_source_card / new_instance_source_card）只在五件事上不同：点下去发哪条消息、
+/// data-name 前缀、挂不挂「当前配置 / 已选」那枚标记、aria 那句话、是不是当前高亮。
+/// 这五件以外，卡片长得一模一样 —— 改一处就是改三处。
+fn profile_card(
+  pick : ProfilePick,
+  card_id : String,
+  mark_prefix : String,
+  marks : Array[String],
+  selected_text : String,
+  aria_ok : String,
+  aria_bad : String,
+  picked : (String) -> Msg,
+  emit : @cmd.Emit[Msg],
+  chosen? : Bool = false,
+) -> @html.Html {
+  let usable = pick.usable
+  let why = pick.why
+  // 状态灯：挂在图标右上角。悬停给两样 —— 先是那句人话，再是技术依据。
+  let light_attrs = mark(mark_prefix + "-card-light", mark_path(marks, [pick.name, "light"]))
+    .data_set("state", light_key(pick.light))
+    .role("img")
+    .aria_label(light_label(pick.light))
+  let light_attrs = if pick.light_basis == "" {
+    light_attrs.title(pick.light_reason)
+  } else {
+    light_attrs.title(pick.light_reason + "\n" + pick.light_basis)
+  }
+  // 第 1 行：名字 + 状态词 + 标记。三样都 nowrap，名字先让位（省略号）。
+  let head : Array[@html.Html] = [
+    @html.span(
+      class="dsh-name",
+      attrs=mark(mark_prefix + "-card-name", mark_path(marks, [pick.name, "name"])).title(pick.name),
+      pick.name,
+    ),
+    @html.span(
+      class="dsh-dot-state " + light_key(pick.light),
+      attrs=mark(mark_prefix + "-card-state", mark_path(marks, [pick.name, "state"]))
+        .data_set("state", light_key(pick.light))
+        .title(pick.light_reason),
+      light_label(pick.light),
+    ),
+  ]
+  if selected_text != "" {
+    head.push(
+      @html.span(
+        class="dsh-profile-card-mark selected",
+        attrs=mark(mark_prefix + "-card-mark", mark_path(marks, [pick.name, "mark"])),
+        selected_text,
+      ),
+    )
+  }
+  // 第 2 行：有备注就写备注（人写的，带左侧细线；完整内容与来源在悬停里）；
+  // 没有就写「没有备注」。空着与「没有」是两件事，这一行是卡上的固定一格。
+  let note_line = if pick.note != "" {
+    @html.span(
+      class="dsh-card-note",
+      attrs=mark(mark_prefix + "-card-note", mark_path(marks, [pick.name, "note"])).title(
+        if pick.note_source == "" {
+          pick.note
+        } else {
+          pick.note + "\n（" + pick.note_source + "）"
+        },
+      ),
+      [@html.span(class="dsh-card-note-text", pick.note)],
+    )
+  } else {
+    @html.span(
+      class="dsh-profile-card-sub dsh-profile-card-nonote",
+      attrs=mark(mark_prefix + "-card-nonote", mark_path(marks, [pick.name, "nonote"])),
+      "没有备注",
+    )
+  }
+  // 第 3 行：可用时是「缺 N 个包」+「配置 home：<档>」两个短标记（各挂各的悬停）；
+  // 不可用时换成原因一行。缺包清单与 home 路径只进悬停，正文一个字都不占。
+  let missing_text = "缺 " + pick.missing.to_string() + " 个包"
+  let missing_attrs = mark(mark_prefix + "-card-missing", mark_path(marks, [pick.name, "missing"]))
+  let missing_attrs = if pick.missing_names == "" {
+    missing_attrs
+  } else {
+    missing_attrs.title("缺的包：" + pick.missing_names)
+  }
+  let home_attrs = mark(mark_prefix + "-card-home", mark_path(marks, [pick.name, "home"]))
+  let home_attrs = if pick.home_path == "" {
+    home_attrs
+  } else {
+    home_attrs.title(pick.home_path)
+  }
+  let meta = if usable {
+    @html.div(class="dsh-profile-card-meta", [
+      @html.span(class="dsh-profile-card-missing", attrs=missing_attrs, missing_text),
+      @html.span(class="dsh-profile-card-home", attrs=home_attrs, job_pick_home_text(pick)),
+    ])
+  } else {
+    // 完整句进悬停：三行钉死之后这一行会被省略号截，被截掉的半句得能读回来。
+    @html.span(
+      class="dsh-profile-card-sub unusable",
+      attrs=mark(mark_prefix + "-card-why", mark_path(marks, [pick.name, "why"])).title(why),
+      why,
+    )
+  }
+  let lines : Array[@html.Html] = [@html.div(class="dsh-case-head", head), note_line, meta]
+  let click = if usable {
+    emit(picked(pick.name))
+  } else {
+    @cmd.none
+  }
+  // 选中那一条整张卡再亮一层（底色 + 左侧一道主色竖条）：卡上那枚「已选 / 当前配置」
+  // 是文字通道，这里补的是色块通道 —— 不是只靠颜色，也不是只靠一个字。
+  let base_class = if usable {
+    "dsh-case dsh-profile-card"
+  } else {
+    "dsh-case dsh-profile-card disabled"
+  }
+  let card_class = if chosen && usable { base_class + " chosen" } else { base_class }
+  @html.article(
+    id=card_id,
+    class=card_class,
+    attrs=mark(mark_prefix + "-card", mark_path(marks, [pick.name]))
+      .data_set("usable", if usable { "true" } else { "false" })
+      .data_set("group", if pick.running { "running" } else { "stopped" })
+      .data_set("chosen", if chosen { "true" } else { "false" })
+      .role("button")
+      .tabindex(if usable { 0 } else { -1 })
+      .aria_disabled(if usable { "false" } else { "true" })
+      .aria_label(if usable { aria_ok } else { aria_bad })
+      .on_click(fn(_event) { click })
+      .on_keydown(fn(event) {
+        if usable && (event.key() == "Enter" || event.key() == " ") {
+          emit(picked(pick.name))
+        } else {
+          @cmd.none
+        }
+      }),
+    [
+      @html.span(class="dsh-tile-slot", [
+        @html.span(
+          class=if pick.running { "dsh-tile accent" } else { "dsh-tile violet" },
+          [icon("cube-outline", size=20)],
+        ),
+        @html.span(class="dsh-dot " + light_class(pick.light), attrs=light_attrs, @html.nothing),
+      ]),
+      @html.div(class="dsh-case-body", lines),
+    ],
+  )
+}
+
 // ── 对话框 ─────────────────────────────────────────────────
 
 ///|

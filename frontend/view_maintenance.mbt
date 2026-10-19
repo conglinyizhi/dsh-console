@@ -435,31 +435,6 @@ fn job_profile_choice(model : Model) -> String {
 }
 
 ///|
-/// 配置侧栏里的一张卡要的几格（§12.4）：名字、备注、状态灯与状态词、缺包数、
-/// home 归属、可用性与原因、在不在跑。
-///
-/// 数据来自**总览那一套行**（见 job_profile_picks）：这里只把行摊成卡片要的几格，
-/// 不重新判谁在跑、也不重新排一次序。
-///
-/// 为什么状态灯与状态词要从行里来、不从 profile 读数重算：运行中那一只的灯是实例
-/// 读数给的（绿 = 签名探测通过），拿 profiles 读数重算只会把它说成「没有在跑」。
-priv struct ProfilePick {
-  name : String
-  note : String
-  note_source : String
-  light : Light
-  light_reason : String
-  light_basis : String
-  missing : Int
-  missing_names : String
-  home_kind : String
-  home_path : String
-  running : Bool
-  usable : Bool
-  why : String
-}
-
-///|
 /// 按名字找一只 profile 的读数（找不到给 None）。
 fn job_profile_fact_of(model : Model, name : String) -> ProfileFact? {
   for fact in job_profile_facts(model) {
@@ -663,200 +638,16 @@ fn job_profile_current(
 }
 
 ///|
-/// 一条 data-name 路径：前缀 + 这一格的尾巴。
-/// 两张卡（选择配置 / 替换用源）共用一份画法，差别之一就是前缀，所以路径得拼。
-fn mark_path(marks : Array[String], tail : Array[String]) -> Array[String] {
-  let out : Array[String] = []
-  for m in marks {
-    out.push(m)
-  }
-  for t in tail {
-    out.push(t)
-  }
-  out
-}
-
-///|
-/// 一张 profile 卡（**复用总览卡片那一套样式**：.dsh-case，含图标位与三行）。
-///
-/// 两处共用这一份画法：「选择配置」（维护页的试跑用配置）与
-/// 「用另一只配置替换这一只」（总览抽屉里的整体替换）。差别只在四件事：
-/// 点下去发哪条消息、data-name 前缀、挂不挂「当前配置」那枚标记、aria 那句话。
-///
-/// 卡上五样（§12.4）：名字、备注（没有就写「没有备注」）、状态灯 + 状态词、缺包数、
-/// home 归属；不可用的卡另写一行原因，并整张置灰、不可点、从 Tab 序列里摘掉。
-/// 运行中的卡带「在跑」—— 标记都是文字，不只靠颜色。
-///
-/// 缺包**不算不可用**（§9.3）：卡照旧能点，「缺 N 个包」只是如实摆着的读数。
-fn profile_pick_card(
-  pick : ProfilePick,
-  card_id : String,
-  mark_prefix : String,
-  marks : Array[String],
-  selected_text : String,
-  aria_ok : String,
-  aria_bad : String,
-  picked : (String) -> Msg,
-  emit : @cmd.Emit[Msg],
-  chosen? : Bool = false,
-  why_title? : Bool = false,
-) -> @html.Html {
-  // 卡上只写读数带来的 data-usable。「这一刻整组不可选」那一档已经挪到容器上
-  // （inert + 遮罩，design/design-fixes.md §22）：卡片自己不再知道时刻，
-  // 也就不再写 data-selectable / data-locked —— 同一张卡在两处是同一张卡。
-  let usable = pick.usable
-  let why = pick.why
-  let head : Array[@html.Html] = [
-    @html.span(
-      class="dsh-name",
-      attrs=mark(mark_prefix + "-card-name", mark_path(marks, [pick.name, "name"])),
-      pick.name,
-    ),
-  ]
-  if pick.running {
-    head.push(
-      @html.span(
-        class="dsh-profile-card-mark running",
-        attrs=mark(mark_prefix + "-card-running", mark_path(marks, [pick.name, "running"])),
-        "在跑",
-      ),
-    )
-  }
-  if selected_text != "" {
-    head.push(
-      @html.span(
-        class="dsh-profile-card-mark selected",
-        attrs=mark(mark_prefix + "-card-mark", mark_path(marks, [pick.name, "mark"])),
-        selected_text,
-      ),
-    )
-  }
-  // 备注那一行：有就写备注（人写的，带左侧细线，与总览同一副样子）；
-  // 没有就写「没有备注」。空着与「没有」在这里是两件事，而这一行是卡上的固定一格。
-  let note_line = if pick.note != "" {
-    @html.span(
-      class="dsh-card-note",
-      attrs=mark(mark_prefix + "-card-note", mark_path(marks, [pick.name, "note"])).title(
-        if pick.note_source == "" { pick.note } else { pick.note + "\n（" + pick.note_source + "）" },
-      ),
-      [@html.span(class="dsh-card-note-text", pick.note)],
-    )
-  } else {
-    @html.span(
-      class="dsh-profile-card-sub dsh-profile-card-nonote",
-      attrs=mark(mark_prefix + "-card-nonote", mark_path(marks, [pick.name, "nonote"])),
-      "没有备注",
-    )
-  }
-  // 读数那一行：状态灯 + 状态词 + 缺包数 + home 归属。灯与词永远并排，颜色不作唯一信号。
-  let light_attrs = mark(mark_prefix + "-card-light", mark_path(marks, [pick.name, "light"]))
-    .data_set("state", light_key(pick.light))
-    .role("img")
-    .aria_label(light_label(pick.light))
-  let light_attrs = if pick.light_basis == "" {
-    light_attrs.title(pick.light_reason)
-  } else {
-    light_attrs.title(pick.light_reason + "\n" + pick.light_basis)
-  }
-  let missing_text = "缺 " + pick.missing.to_string() + " 个包"
-  let missing_attrs = mark(mark_prefix + "-card-missing", mark_path(marks, [pick.name, "missing"]))
-  let missing_attrs = if pick.missing_names == "" {
-    missing_attrs
-  } else {
-    missing_attrs.title("缺的包：" + pick.missing_names)
-  }
-  let home_attrs = mark(mark_prefix + "-card-home", mark_path(marks, [pick.name, "home"]))
-  let home_attrs = if pick.home_path == "" {
-    home_attrs
-  } else {
-    home_attrs.title(pick.home_path)
-  }
-  let meta : Array[@html.Html] = [
-    @html.span(class="dsh-dot " + light_class(pick.light), attrs=light_attrs, @html.nothing),
-    @html.span(
-      class="dsh-profile-card-state",
-      attrs=mark(mark_prefix + "-card-state", mark_path(marks, [pick.name, "state"]))
-        .data_set("state", light_key(pick.light)),
-      light_label(pick.light),
-    ),
-    @html.span(class="dsh-profile-card-missing", attrs=missing_attrs, missing_text),
-    @html.span(
-      class="dsh-profile-card-home",
-      attrs=home_attrs,
-      job_pick_home_text(pick),
-    ),
-  ]
-  let lines : Array[@html.Html] = [
-    @html.div(class="dsh-case-head", head),
-    note_line,
-    @html.div(class="dsh-profile-card-meta", meta),
-  ]
-  if !usable {
-    // 原因这一行本来就只占一行（.dsh-profile-card-sub 带省略号）。完整句挂不挂悬停
-    // 由调用点决定：新建实例框里的卡钉死高度（§24.2），被截掉的那半句得能读回来；
-    // 维护页与整体替换两处不传，那两处的行为一个字不动。
-    let why_attrs = mark(mark_prefix + "-card-why", mark_path(marks, [pick.name, "why"]))
-    let why_attrs = if why_title { why_attrs.title(why) } else { why_attrs }
-    lines.push(
-      @html.span(
-        class="dsh-profile-card-sub unusable",
-        attrs=why_attrs,
-        why,
-      ),
-    )
-  }
-  let click = if usable {
-    emit(picked(pick.name))
-  } else {
-    @cmd.none
-  }
-  // 选中那一条整张卡再亮一层（底色 + 左侧一道主色竖条）：卡上那枚「已选 / 当前配置」
-  // 是文字通道，这里补的是色块通道 —— 不是只靠颜色，也不是只靠一个字。
-  let base_class = if usable {
-    "dsh-case dsh-profile-card"
-  } else {
-    "dsh-case dsh-profile-card disabled"
-  }
-  let card_class = if chosen && usable { base_class + " chosen" } else { base_class }
-  @html.article(
-    id=card_id,
-    class=card_class,
-    attrs=mark(mark_prefix + "-card", mark_path(marks, [pick.name]))
-      .data_set("usable", if usable { "true" } else { "false" })
-      .data_set("group", if pick.running { "running" } else { "stopped" })
-      .data_set("chosen", if chosen { "true" } else { "false" })
-      .role("button")
-      .tabindex(if usable { 0 } else { -1 })
-      .aria_disabled(if usable { "false" } else { "true" })
-      .aria_label(if usable { aria_ok } else { aria_bad })
-      .on_click(fn(_event) { click })
-      .on_keydown(fn(event) {
-        if usable && (event.key() == "Enter" || event.key() == " ") {
-          emit(picked(pick.name))
-        } else {
-          @cmd.none
-        }
-      }),
-    [
-      @html.span(class="dsh-tile-slot", [
-        @html.span(
-          class=if pick.running { "dsh-tile accent" } else { "dsh-tile violet" },
-          [icon("cube-outline", size=20)],
-        ),
-      ]),
-      @html.div(class="dsh-case-body", lines),
-    ],
-  )
-}
-
-///|
 /// 「选择配置」那一栏里的一张卡：点下去回填试跑用配置。
+///
+/// 画法在 view_parts.mbt 的 profile_card（§25）：这一处只决定点下去发什么、路径前缀、
+/// 挂不挂「当前配置」那枚标记、aria 那句话。
 fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) -> @html.Html {
   let choice = job_profile_choice(model)
   let selected = pick.name == choice
   let ok = pick.usable
   let aria = if ok { "试跑用 " + pick.name } else { pick.name + " 不可用：" + pick.why }
-  profile_pick_card(
+  profile_card(
     pick,
     job_profile_card_id(pick.name),
     "job-profile",
@@ -871,11 +662,11 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
 
 ///|
 /// 整体替换那一栏里的一张源卡：点下去选它当源（点完在同一侧栏里出差异预览）。
-/// 与「选择配置」是**同一份画法**（profile_pick_card），只是换一套 data-name 与消息。
+/// 与「选择配置」是**同一份画法**（view_parts.mbt 的 profile_card），只是换一套 data-name 与消息。
 fn promote_source_card(pick : ProfilePick, emit : @cmd.Emit[Msg]) -> @html.Html {
   let ok = pick.usable
   let aria = if ok { "用 " + pick.name + " 的配置替换" } else { pick.name + " 不可用：" + pick.why }
-  profile_pick_card(
+  profile_card(
     pick,
     promote_card_id(pick.name),
     "promote",

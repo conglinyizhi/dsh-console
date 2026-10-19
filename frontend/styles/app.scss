@@ -911,8 +911,10 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-dot.light-stop { background: $danger; }
 /* 没读到 state：不上色。空心灰环 + 一圈底色描边，一眼看出「这一格没有读数」 */
 .dsh-dot.light-unknown { background: transparent; border-color: $text-dim; box-shadow: none; }
-/* 抽屉里的那一颗：跟着标题走，不绝对定位 */
-.dsh-drawer .dsh-dot { position: static; flex: none; }
+/* 抽屉状态那一行里的那一颗：跟着标题走，不绝对定位。
+   选择器的范围要窄 —— 试跑配置侧栏与整体替换侧栏也是 .dsh-drawer，里面卡片上的灯
+   挂在图标右上角（§25），那条规则不能被这一条按下去。 */
+.dsh-drawer-light-line .dsh-dot { position: static; flex: none; }
 
 /* ── 状态词：灯旁边的那一个词（第 1 条，军规 15） ──
    灯的颜色不是唯一信号：运行中 / 故障 / 已停止 / 正在启动 / 状态未知 五个词
@@ -926,6 +928,11 @@ select { appearance: none; -webkit-appearance: none; }
   color: $text-mid;
   white-space: nowrap;
 }
+/* 运行中这一档保持中间灰（与正文同一档）：绿色留给那颗灯，词本身不染色。
+   这一条也把档位写全 —— 类名契约要求 DOM 里出现的每个 class 都有一条规则，
+   而「运行中」那一档原先只是靠「在跑」那枚标记的规则顺手带过（§25 把那枚标记去掉之后
+   这里就露出来了）。 */
+.dsh-dot-state.running { color: $text-mid; }
 /* 故障与已停止这两档把词也压亮一档：黑白打印 / 灰度截图里，「故障」两个字
    该和「运行中」一样读得出来，而不是靠那颗黄点。 */
 .dsh-dot-state.fault, .dsh-dot-state.stopped { color: $text; }
@@ -1575,6 +1582,9 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   flex-direction: column;
   gap: 10px;
   max-height: min(46vh, 420px);
+  /* 横向不滚（§25.3）：列表里的卡任何一张都不许把宽度顶出去。
+     纵向照旧自己滚 —— 一屏里先看见几只是几只。 */
+  overflow-x: hidden;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -1595,37 +1605,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   gap: 8px;
   align-items: stretch;
 }
-// 框里的源卡钉死 96px（§24.2）。上下内边距收成 10：内容盒 76px，
-// 名字 22 + 备注 16 + 读数 18 + 原因 16 = 72，四行都摆得下，还不留一条空轨。
-// 内容真超出就裁（overflow: clip，带 8px 余量，见下一条）—— 卡片高度只由这一条决定，
-// 不许被内容撑开。
-// 这一段只带 .dsh-new-pick 祖先：维护页「选择配置」与总览「整体替换」两处的卡
-// 仍是原来的内容高，行为一个字不动。
-.dsh-new-pick .dsh-profile-card {
-  height: 96px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  /* 卡片本身裁掉超出的内容，但留 8px 的余量：状态灯挂在卡的角上（top/right: -3px，
-     灯外还有 2px 光晕），硬裁会把那颗灯削成一道斜口。clip 不带滚动容器，
-     余量之外的多余内容照样看不见。 */
-  overflow: clip;
-  overflow-clip-margin: 8px;
-}
-// 四行之间不留缝：96 是算出来的（10 + 72 + 10 + 剩 4 由居中摊平），
-// 再挂 gap 就会把原因那一行挤出去。读数那一行不折行，折一行就多 18px。
-// 这里**不能**再挂 overflow: hidden —— 状态灯是这个 body 的后代，祖先一裁，
-// 灯就只剩卡角上那一道斜口。裁剪统一交给上面的卡片。
-.dsh-new-pick .dsh-profile-card .dsh-case-body {
-  gap: 0;
-}
-.dsh-new-pick .dsh-profile-card .dsh-profile-card-meta {
-  flex-wrap: nowrap;
-  overflow: hidden;
-}
-// 「没有备注」与「不可用原因」这两行与备注同一档：16px 一行。
-.dsh-new-pick .dsh-profile-card-sub {
-  line-height: 16px;
-}
+// 框里的源卡不再单独立一档高度（§25）：96px、三行、单行省略这一套是卡片自己的
+// 基线（见下面 .dsh-profile-card 一节），三个调用点共用。这里只留下栅格。
 // 源卡区外面那层（§22）：只负责给遮罩一个定位容器。列表的高度上限与滚动还在
 // .dsh-new-pick 上 —— 锁上、解锁都是这套 DOM，滚动位置因此一个像素都不动。
 .dsh-new-pick-wrap {
@@ -1651,19 +1632,9 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   color: rgba(255, 255, 255, 0.82);
   text-align: center;
 }
-// 框顶那句说明（§24.3）：勾上复选框会换一句，两句就叠在同一格里 ——
-// 没生效的那句 visibility: hidden，行高按高的一句算，勾上勾下不会差一行。
-// 与名字格下面那句引导同一套做法，只是这里两句正文不同。
-.dsh-new-message {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-.dsh-new-message-text {
-  grid-area: 1 / 1;
-}
-.dsh-new-message-text[data-active="false"] {
-  visibility: hidden;
-}
+// 框顶那句说明（§25.4）：固定一句，勾不勾复选框都不改字 ——
+// 所以不必再叠两格、藏一格（§24.3 那套占位做法随两句一起删了）。
+// 复选框只管卡片区锁不锁、名字格引导要不要显示。
 .dsh-new-name {
   display: flex;
   flex-direction: column;
@@ -2903,10 +2874,18 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* 横向不滚（§25.3）：维护页「选择配置」与总览「整体替换」两处都挂这个类。
+     卡片自己已经 overflow: hidden，列表这一条是第二道 —— 卡片边框的 1px 与
+     选中那条竖条都不该让列表长出横向滚动条。 */
+  overflow-x: hidden;
 }
 .dsh-profile-card {
   // 卡片在侧栏里按列摆，不参与总览那一套栅格
   flex: none;
+  /* §25：三个调用点共用同一张卡 —— 三行钉死 96px，内容超出就裁。
+     高度只由这一条决定，不许被名字、备注或缺包读数顶高。 */
+  height: 96px;
+  overflow: hidden;
 }
 .dsh-profile-card.disabled,
 .dsh-profile-card.disabled:hover {
@@ -2950,41 +2929,54 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   font-weight: 600;
   color: $text-mid;
 }
-// 读数那一行：状态灯 + 状态词 + 缺包数 + home 归属。灯在抽屉里是 static（见 .dsh-drawer .dsh-dot），
-// 所以它与状态词能并排；窄了自动折行，不省略成一串。
+// 第 3 行（§25.2）：缺包数 + 配置 home 档，两个短标记同一行。
+// nowrap + 省略号：这一行永远只占 18px，卡片高度不随读数长短变。
+// 灯不在这里了 —— 它挂在图标右上角（见 .dsh-profile-card .dsh-tile-slot）。
 .dsh-profile-card-meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
   font-size: 11.5px;
   line-height: 18px;
   color: $text-mid;
-}
-.dsh-profile-card-meta .dsh-dot {
-  width: 9px;
-  height: 9px;
-  border-width: 0;
-}
-.dsh-profile-card-state {
-  font-weight: 600;
-  color: $text;
+  white-space: nowrap;
 }
 .dsh-profile-card-missing,
 .dsh-profile-card-home {
+  min-width: 0;
   color: $text-dim;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+// 第 1 行（§25.2）：名字 + 状态词 + 标记，一行。卡窄时名字先省略，
+// 状态词与标记 flex: none（见 .dsh-dot-state / .dsh-profile-card-mark），不折行、也不被挤掉。
+// 这一行自己是裁剪区，卡片的 scrollWidth 因此不会因为一个过长的名字变大。
+.dsh-profile-card .dsh-case-head {
+  min-width: 0;
+  overflow: hidden;
+}
+// 第 2 行：备注。人写的那一档带左侧细线（.dsh-card-note），没有就写「没有备注」。
+// 两档都只占一行、都带省略号 —— 备注多长都不改变卡片高度。
+.dsh-profile-card .dsh-card-note {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dsh-profile-card .dsh-card-note-text {
+  flex: 0 1 auto;
 }
 // 「没有备注」：与人写的备注同一处位置，但不带左侧那道竖线 —— 那道线是「这是人写的」的记号，
-// 这一行说的是「没有」。
+// 这一行说的是「没有」。行高与备注那一行一致（16px），三行加起来才钉得住。
 .dsh-profile-card-nonote {
   color: $text-dim;
+  line-height: 16px;
 }
-// 「在跑」/「当前配置」两枚标记。文字永远在场，颜色只是让它们一眼分得开。
-.dsh-profile-card-mark.running {
-  border-color: rgba($ok-rgb, 0.5);
-  background: rgba($ok-rgb, 0.12);
-  color: $ok;
-}
+// 「当前配置 / 已选」那枚标记。文字永远在场，颜色只是让它一眼分得开。
+// 「在跑」不再单独挂一枚：状态词「运行中」就紧跟名字，同一件事说两遍只是挤掉名字的宽度。
 .dsh-profile-card-mark.selected {
   border-color: rgba($accent-rgb, 0.5);
   background: rgba($accent-rgb, 0.12);
@@ -2998,6 +2990,7 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   font-size: 10px;
   line-height: 16px;
   color: $text-dim;
+  white-space: nowrap;
 }
 .dsh-job-cards {
   display: flex;
