@@ -699,8 +699,15 @@ fn profile_pick_card(
   picked : (String) -> Msg,
   emit : @cmd.Emit[Msg],
   chosen? : Bool = false,
+  // 这一刻整张卡被拦住（不是读数说它不可用）：新建实例框勾上「从基础实例开始」时用这一档
+  // （design/design-fixes.md §21）—— 卡照样是「可用」的，只是这一刻不参与选源。
+  locked? : Bool = false,
+  locked_label? : String = "",
 ) -> @html.Html {
-  let ok = pick.usable
+  // usable 说的是读数；ok 说的是「这一刻点得动」。两者分开：锁上的卡不是坏卡，
+  // data-usable 照旧照读数写，data-selectable 才是这一刻能不能点。
+  let usable = pick.usable
+  let ok = usable && !locked
   let why = pick.why
   let head : Array[@html.Html] = [
     @html.span(
@@ -787,7 +794,7 @@ fn profile_pick_card(
     note_line,
     @html.div(class="dsh-profile-card-meta", meta),
   ]
-  if !ok {
+  if !usable {
     lines.push(
       @html.span(
         class="dsh-profile-card-sub unusable",
@@ -809,13 +816,15 @@ fn profile_pick_card(
     id=card_id,
     class=card_class,
     attrs=mark(mark_prefix + "-card", mark_path(marks, [pick.name]))
-      .data_set("usable", if ok { "true" } else { "false" })
+      .data_set("usable", if usable { "true" } else { "false" })
+      .data_set("selectable", if ok { "true" } else { "false" })
+      .data_set("locked", if locked { "true" } else { "false" })
       .data_set("group", if pick.running { "running" } else { "stopped" })
       .data_set("chosen", if chosen { "true" } else { "false" })
       .role("button")
       .tabindex(if ok { 0 } else { -1 })
       .aria_disabled(if ok { "false" } else { "true" })
-      .aria_label(if ok { aria_ok } else { aria_bad })
+      .aria_label(if locked { locked_label } else if usable { aria_ok } else { aria_bad })
       .on_click(fn(_event) { click })
       .on_keydown(fn(event) {
         if ok && (event.key() == "Enter" || event.key() == " ") {

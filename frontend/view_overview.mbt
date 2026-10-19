@@ -2437,8 +2437,19 @@ fn new_instance_first_usable(model : Model) -> String {
 }
 
 ///|
-/// 点「从基础实例开始」之后名字那一格预填什么：`base-<两位序号>`，读数里已有的就顺延
-/// （design/design-fixes.md 第 20 节）。
+/// 这一刻「一只可用的源都没有」成不成立（design/design-fixes.md §21.4）。
+///
+/// **要求读数已经落地**（built）：读数还在路上时框里写的是「还没读到」，那时说
+/// 「一只可用的都没有」是把「还不知道」说成了「没有」。读数落地、而第一张可点的源卡
+/// 不存在（一只 profile 都没有，或全不可用）时才算成立 —— 这时复选框默认勾上，
+/// 因为它是唯一能走的路。
+fn new_instance_no_usable_source(model : Model) -> Bool {
+  model.built && new_instance_first_usable(model) == ""
+}
+
+///|
+/// 勾上复选框之后名字那一格预填什么：`base-<两位序号>`，读数里已有的就顺延
+/// （design/design-fixes.md 第 20 / 21 节）。
 ///
 /// 「已存在」拿手上这份 profiles 读数判（列表里看得见的那几只），序号从 01 起挨个试。
 /// 读数里没有、磁盘上却有的名字交给后端兜底：那时它回 conflict，原因写在框里，
@@ -2463,6 +2474,9 @@ fn new_instance_base_name(model : Model) -> String {
 ///|
 /// 框里的一张源卡：与「选择配置」是**同一份画法**（profile_pick_card），
 /// 只是换一套 data-name 与消息。选中那一张挂一枚「已选」—— 文字标记，不只靠高亮色。
+///
+/// 勾上「从基础实例开始」（§21）时整张卡被锁住：置灰、aria-disabled、点击与回车都没有反应、
+/// 从 Tab 序列里摘掉。它**不是坏卡** —— 读数那一格照旧写可用，只是这一刻不参与选源。
 fn new_instance_source_card(
   model : Model,
   pick : ProfilePick,
@@ -2482,6 +2496,8 @@ fn new_instance_source_card(
     fn(name) { NewInstanceStatePicked(name) },
     emit,
     chosen=selected,
+    locked=model.new_base,
+    locked_label=pick.name + " 这一刻不可选：已勾上「从基础实例开始」",
   )
 }
 
@@ -2518,23 +2534,57 @@ fn new_instance_group(
 }
 
 ///|
+/// 源卡区上面那一句说明（§21）：两种时刻各一句，同一副样式，靠 data-kind 分开。
+///
+/// 为什么要有这一句：勾上复选框之后卡片置了灰，而**灰不是一句话**（硬约束：颜色不能是
+/// 唯一信号）；「一只可用的都没有」也需要一个说清出路的句子，不是让几行「不可用：…」
+/// 自己躺着。
+fn new_instance_note(kind : String, text : String) -> @html.Html {
+  @html.p(
+    class="dsh-new-note",
+    attrs=mark("new-instance-note", ["dialog", "new-instance", "note"]).data_set("kind", kind),
+    text,
+  )
+}
+
+///|
 /// 「＋新建实例」的居中对话框：两步在同一个框里 —— 选源配置、填名字。
 ///
 /// 源卡是「选择配置」那一套（全部 profile，含隔离的）；名字默认 `<源>-dev`，可改。
+/// 左下角是「从基础实例开始」复选框（§21）：勾上就把源卡整组锁上、名字预填 base-NN、
+/// 焦点进名字格；勾掉卡片恢复可选、名字一个字不动。
 /// 底部两颗键：创建走既有 fork-profile（新副本默认隔离），取消把焦点还给页头那颗按钮。
 /// 创建失败**不关框**：后端原话写在框里，改个名字就能再点一次。
 fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let (running, stopped) = job_profile_picks(model)
+  // 「读数到了没有」与「有没有可用源」是两件事：前者说知道不知道，后者才说得出口
+  // 「一只可用的都没有」。空态那一句按这两档分开写。
+  let landed = model.built
+  let no_usable = new_instance_no_usable_source(model)
   let picks : Array[@html.Html] = []
   if running.length() == 0 && stopped.length() == 0 {
     picks.push(
       @html.p(
         class="dsh-empty-sub",
-        attrs=mark("new-instance-empty", ["overview", "new-instance", "empty"]),
-        "还没读到 profile 读数，等读数回来再挑。",
+        attrs=mark("new-instance-empty", ["overview", "new-instance", "empty"])
+          .data_set("state", if landed { "none-usable" } else { "loading" }),
+        if landed {
+          "现在一只可用的都没有，可以勾上「从基础实例开始」新建一份。"
+        } else {
+          "还没读到 profile 读数，等读数回来再挑。"
+        },
       ),
     )
   } else {
+    // 有卡但一张都点不动：出路写在卡上面，不让几行「不可用」自己猜
+    if no_usable {
+      picks.push(
+        new_instance_note("none-usable", "现在一只可用的都没有，可以勾上「从基础实例开始」新建一份。"),
+      )
+    } else if model.new_base {
+      // 卡片这一刻被锁住（不是坏）：置灰之外再给一句文字，颜色不作唯一信号
+      picks.push(new_instance_note("locked", "已勾上「从基础实例开始」，这些源配置这一刻不可选。"))
+    }
     if running.length() > 0 {
       picks.push(new_instance_group("running", "当前运行的实例", running, model, emit))
     }
@@ -2568,6 +2618,46 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   } else {
     @html.nothing
   }
+  // 名字这一格：标签 + 输入框；勾上复选框时在标签下面补一句引导（§21.1）——
+  // 那一刻源卡全锁着，能做的只有填名字，「填一个名字，它会用基础模板新建」就是下一步。
+  let name_lines : Array[@html.Html] = [
+    @html.label(
+      class="dsh-new-name-label",
+      for_=new_instance_name_id(),
+      attrs=mark("new-instance-name-label", ["dialog", "new-instance", "name-label"]),
+      "新实例名字（源配置：" + source_text + "）",
+    ),
+  ]
+  if model.new_base {
+    name_lines.push(
+      @html.span(
+        class="dsh-new-name-guide",
+        attrs=mark("new-instance-name-guide", ["dialog", "new-instance", "name-guide"]),
+        "填一个名字，它会用基础模板新建",
+      ),
+    )
+  }
+  name_lines.push(
+    @html.input(
+      input_type=Text,
+      id=new_instance_name_id(),
+      class="dsh-dialog-input",
+      value=model.new_name_draft,
+      attrs=mark("new-instance-name", ["dialog", "new-instance", "name"])
+        .aria_label("新实例名字")
+        .spellcheck(false)
+        // Enter 只挂在名字这一格上，不挂整个框：源卡自己也吃 Enter（选中），
+        // 挂在框上会让「回车选源」同一次按键里顺手把实例也建了。
+        .on_keydown(fn(event) {
+          if event.key() == "Enter" {
+            emit(NewInstanceConfirm)
+          } else {
+            @cmd.none
+          }
+        }),
+      on_input=emit.map(fn(text) { NewInstanceNameInput(text) }),
+    ),
+  )
   let card = @html.div(class="dsh-dialog-card dsh-new-card", [
     @html.h2(
       class="dsh-dialog-title",
@@ -2585,48 +2675,35 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       attrs=mark("new-instance-pick", ["dialog", "new-instance", "pick"]),
       picks,
     ),
-    @html.div(class="dsh-new-name", [
-      @html.label(
-        class="dsh-new-name-label",
-        for_=new_instance_name_id(),
-        attrs=mark("new-instance-name-label", ["dialog", "new-instance", "name-label"]),
-        "新实例名字（源配置：" + source_text + "）",
-      ),
-      @html.input(
-        input_type=Text,
-        id=new_instance_name_id(),
-        class="dsh-dialog-input",
-        value=model.new_name_draft,
-        attrs=mark("new-instance-name", ["dialog", "new-instance", "name"])
-          .aria_label("新实例名字")
-          .spellcheck(false)
-          // Enter 只挂在名字这一格上，不挂整个框：源卡自己也吃 Enter（选中），
-          // 挂在框上会让「回车选源」同一次按键里顺手把实例也建了。
-          .on_keydown(fn(event) {
-            if event.key() == "Enter" {
-              emit(NewInstanceConfirm)
-            } else {
-              @cmd.none
-            }
-          }),
-        on_input=emit.map(fn(text) { NewInstanceNameInput(text) }),
-      ),
-    ]),
+    @html.div(class="dsh-new-name", name_lines),
     error_block,
-    // 左下角那颗不显眼的入口（§20.2）：文本按钮，无边框、低对比、字号比正文小一档，
-    // 与右下角的「创建 / 取消」分开。现有配置全坏 / 全不可用时它是框里唯一还能走的路。
+    // 左下角「从基础实例开始」复选框（§21，原来那颗文本按钮）：勾上 = 换一种模式，
+    // 不是「挑一种源」—— 源卡整组锁上，名字预填、焦点进名字格。与右下角的「创建 / 取消」分开。
+    // 一只可用的源都没有时它默认勾上（见 app.mbt 的 NewInstanceOpen）。
     @html.div(class="dsh-dialog-foot dsh-dialog-foot-split", [
-      @html.button(
-        id=new_instance_base_id(),
-        class="dsh-new-base",
-        type_="button",
-        disabled=model.new_busy,
-        attrs=mark("new-instance-base", ["dialog", "new-instance", "base"])
-          .data_set("chosen", if model.new_base { "true" } else { "false" })
-          .title("用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。")
-          .aria_label("从基础实例开始：用 dsh 自带的基础模板新建一份"),
-        on_click=emit(NewInstanceBasePicked),
-        [@html.text("从基础实例开始")],
+      @html.label(
+        class="dsh-new-base-check",
+        for_=new_instance_base_id(),
+        attrs=mark("new-instance-base-label", ["dialog", "new-instance", "base-label"])
+          .data_set("checked", if model.new_base { "true" } else { "false" })
+          // 悬停说明挂在 label 上（挂在 input 上时只有指着那个小方块才出得来）
+          .title("用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。"),
+        [
+          @html.input(
+            input_type=Checkbox,
+            id=new_instance_base_id(),
+            class="dsh-new-base-box",
+            checked=model.new_base,
+            attrs=mark("new-instance-base", ["dialog", "new-instance", "base"])
+              .data_set("checked", if model.new_base { "true" } else { "false" })
+              .title("用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。")
+              .aria_label("从基础实例开始")
+              .disabled(model.new_busy)
+              // 勾的是「勾完之后的那一档」：模型是唯一真相，原生复选框的翻转随后由重渲染对齐
+              .on_click(fn(_event) { emit(NewInstanceBaseToggled(!model.new_base)) }),
+          ),
+          @html.span("从基础实例开始"),
+        ],
       ),
       @html.div(class="dsh-dialog-actions", [
         @html.button(

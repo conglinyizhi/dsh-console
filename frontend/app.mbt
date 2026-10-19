@@ -1851,7 +1851,9 @@ fn new_instance_settled(
       ..model,
       new_open: false,
       new_source: "",
+      new_base: false,
       new_name_draft: "",
+      new_name_dirty: false,
       new_error: "",
       new_busy: false,
       new_focus: name,
@@ -1906,6 +1908,7 @@ fn base_profile_settled(
       new_source: "",
       new_base: false,
       new_name_draft: "",
+      new_name_dirty: false,
       new_error: "",
       new_busy: false,
       new_focus: name,
@@ -3631,21 +3634,28 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       }
     }
     // ── 新建实例框（design/design-fixes.md §19.1）─────────────
-    // 开框：清掉上一次的错与草稿，焦点落在第一张可点的源卡上（一只都没有就落「创建」键）。
+    // 开框：清掉上一次的错与草稿。没有可用源时「从基础实例开始」默认勾上（§21.4）：
+    // 这时它是唯一能走的路，名字预填 base-NN、焦点直接进名字格。
+    // 有可用源就照旧把焦点落在第一张可点的源卡上；读数还没落地时卡都点不了，落在复选框上。
     NewInstanceOpen => {
       let first = new_instance_first_usable(model)
+      let default_base = new_instance_no_usable_source(model)
       (
         {
           ..model,
           new_open: true,
           new_source: "",
-          new_base: false,
-          new_name_draft: "",
+          new_base: default_base,
+          new_name_draft: if default_base { new_instance_base_name(model) } else { "" },
+          new_name_dirty: false,
           new_error: "",
           new_busy: false,
         },
-        if first == "" {
-          // 一只可用的源都没有：焦点落在左下角那颗「从基础实例开始」上 ——
+        if default_base {
+          // 勾上了：名字格已经预填 base-NN，焦点与光标送进去，接着打字就是改名
+          focus_select_after_render(new_instance_name_id())
+        } else if first == "" {
+          // 读数还没到、或一只可用的都没有：焦点落在复选框上 ——
           // 它是这一刻框里唯一能点的东西（「创建」还锁着，「取消」谁都知道在哪儿）。
           focus_after_render(new_instance_base_id())
         } else {
@@ -3666,6 +3676,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             new_source: "",
             new_base: false,
             new_name_draft: "",
+            new_name_dirty: false,
             new_error: "",
           },
           focus_after_render(new_instance_btn_id()),
@@ -3688,7 +3699,12 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       // 焦点与光标送进名字那一格，默认那段选上：接着打字就是改名
       (next, focus_select_after_render(new_instance_name_id()))
     }
-    NewInstanceNameInput(text) => ({ ..model, new_name_draft: text, new_error: "" }, @cmd.none)
+    // 名字框的输入事件：脏标记置位（§21）。勾上复选框时靠它判断「用户已经输入过任何字符」——
+    // 预填不走这条消息，所以预填不会把标记点亮。
+    NewInstanceNameInput(text) => (
+      { ..model, new_name_draft: text, new_name_dirty: true, new_error: "" },
+      @cmd.none,
+    )
     // 创建：走既有 fork-profile（新副本默认隔离）。名字按输入框的原话发，
     // 空名字不带 newName —— 后端自己会按 <源>-dev 起一个。
     NewInstanceConfirm => {
@@ -3700,7 +3716,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           {
             ..model,
             new_error: if !base && source == "" {
-              "先选一只源配置，或者从基础实例开始"
+              "先选一只源配置，或者勾上「从基础实例开始」"
             } else {
               "名字不能为空"
             },
@@ -3719,25 +3735,37 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         )
       }
     }
-    // 点左下角「从基础实例开始」：源切成基础模板、选中的源卡让位、名字预填
-    // base-<两位序号>（读数里已有的就顺延），焦点与光标送进名字格。
-    // 已经亲手改过名字的（不等于上一次的默认值）不覆盖 —— 与选源那条同一套规矩。
-    NewInstanceBasePicked => {
-      let draft = model.new_name_draft.trim().to_owned()
-      let keep = draft != "" &&
-        !(model.new_source != "" && draft == model.new_source + "-dev") &&
-        draft != new_instance_base_name(model)
-      (
-        {
-          ..model,
-          new_source: "",
-          new_base: true,
-          new_name_draft: if keep { model.new_name_draft } else { new_instance_base_name(model) },
-          new_error: "",
-        },
-        focus_select_after_render(new_instance_name_id()),
-      )
-    }
+    // 勾上「从基础实例开始」（§21）：源换成基础模板、选中的源卡让位（卡片自己由视图锁上）、
+    // 名字**只在它现在是空的、而且用户一个字都没输入过**时预填 base-<两位序号>；
+    // 焦点进名字格。勾掉：卡片恢复可选，名字框一个字都不动 —— 两条都不看文本框的内容去还原 / 清空。
+    NewInstanceBaseToggled(on) =>
+      if model.new_busy {
+        (model, @cmd.none)
+      } else if on {
+        let prefill = !model.new_name_dirty && model.new_name_draft == ""
+        let draft = if prefill {
+          new_instance_base_name(model)
+        } else {
+          model.new_name_draft
+        }
+        (
+          {
+            ..model,
+            new_source: "",
+            new_base: true,
+            new_name_draft: draft,
+            new_error: "",
+          },
+          // 刚预填的那一段整段选上（接着打字就是改名）；用户自己的字只落焦点，不动选区
+          if prefill {
+            focus_select_after_render(new_instance_name_id())
+          } else {
+            focus_after_render(new_instance_name_id())
+          },
+        )
+      } else {
+        ({ ..model, new_base: false, new_error: "" }, @cmd.none)
+      }
     NewInstanceDone(res) => {
       let (next, cmd) = new_instance_settled(model, res, emit)
       // 失败时把焦点拉回名字那一格：要改的就是那里

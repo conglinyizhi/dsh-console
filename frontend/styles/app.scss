@@ -1586,8 +1586,11 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   font-size: 11.5px;
   color: $text-dim;
 }
-// 左下角那颗「从基础实例开始」（§20.2）：**文本按钮** —— 无边框、低对比、
-// 字号比正文小一档。三颗按键因此分成两端：这颗在左，创建 / 取消在右（.dsh-dialog-actions）。
+// 左下角「从基础实例开始」复选框（§21，原来那颗文本按钮）：位置不抢戏 ——
+// 字号比正文小一档、低对比；但勾选框本身用主色（accent-color），勾没勾上一眼分得出。
+// 按下之后它换的是一种**模式**（源卡整组锁上），所以勾上时整行字也提一档 ——
+// 不能只靠那个小方块里的一个勾。
+// 一颗复选框 + 右下角的创建 / 取消，因此分成两端（.dsh-dialog-foot-split）。
 .dsh-dialog-foot-split {
   justify-content: flex-start;
   align-items: center;
@@ -1597,37 +1600,51 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   display: flex;
   gap: 8px;
 }
-.dsh-new-base {
-  height: 30px;
-  padding: 0 4px 0 2px;
+.dsh-new-base-check {
   display: inline-flex;
   align-items: center;
-  border: 0;
-  background: transparent;
-  color: $text-dim;
+  gap: 6px;
+  height: 30px;
+  padding: 0 2px;
   font-size: 11.5px;
   line-height: 1;
+  color: $text-dim;
   cursor: pointer;
-  text-decoration: none;
+  user-select: none;
 }
-.dsh-new-base:hover:not(:disabled) {
+.dsh-new-base-check:hover {
   color: $text;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
-/* 选中基础模板时仍是那颗不显眼的按钮，但要看得出「现在走的是它」：字色升一档 + 下划线 */
-.dsh-new-base[data-chosen="true"] {
+.dsh-new-base-check[data-checked="true"] {
   color: $text;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
-.dsh-new-base:disabled {
-  opacity: 0.5;
+.dsh-new-base-box {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  flex: none;
+  accent-color: $accent;
+  cursor: pointer;
+}
+.dsh-new-base-box:disabled {
   cursor: default;
 }
-.dsh-new-base:focus-visible {
+.dsh-new-base-box:focus-visible {
   outline: 2px solid $text;
   outline-offset: 1px;
+}
+// 源卡区上面那一句（勾上之后源卡不可选 / 一只可用的都没有）：一行说明，不占按钮的位置
+.dsh-new-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: $text-dim;
+}
+// 勾上复选框时名字格下面那句引导：填名字是下一刻唯一要做的事，字色比标签亮一档
+.dsh-new-name-guide {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: $text-mid;
 }
 /* 窄屏：卡片列表按视口高度再收一档，名字那一格与两颗键永远看得见 */
 @media (max-width: 819.98px) {

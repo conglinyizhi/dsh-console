@@ -504,11 +504,17 @@ struct Model {
   new_open : Bool
   /// 选中的源 profile 名（空串 = 还没选）。选中那一张卡高亮，创建键按它可点。
   new_source : String
-  /// 源是不是「基础模板」（design/design-fixes.md 第 20 节）：真时创建走 create-base-profile，
-  /// 不再走派生，也不读任何现有配置。点左下角那颗入口置真，点任何一张源卡置回假。
+  /// 「从基础实例开始」这枚复选框勾着没有（design/design-fixes.md 第 20 / 21 节）：
+  /// 勾着时创建走 create-base-profile，不派生、也不读任何现有配置；同时上面每一张源卡
+  /// 都不可选（置灰 + aria-disabled + 点击无反应），名字框旁边给一句引导。
+  /// 勾掉不碰名字框里的字，卡片恢复可选。
   new_base : Bool
-  /// 名字输入框里的原文。选源时默认填 <源>-dev，可改。
+  /// 名字输入框里的原文。选源时默认填 <源>-dev，勾上复选框时（只在它是空的时候）填 base-NN。
   new_name_draft : String
+  /// 名字框脏标记（§21）：**只有输入事件**置位（预填不置位）。
+  /// 勾上「从基础实例开始」时靠它判断「用户已经输入过任何字符」—— 输入过就一个字都不动，
+  /// 哪怕现在又被删空了也不预填。勾掉同样不看它、不碰文本框。
+  new_name_dirty : Bool
   /// 上一次创建失败的原因（后端原话）。框开着时写在框里，框不关。
   new_error : String
   /// 正在创建（请求已经发出去，两颗键都锁住，免得连点两次派生两份）
@@ -849,9 +855,10 @@ priv enum Msg {
   NewInstanceNameInput(String)
   NewInstanceConfirm
   NewInstanceDone(Result[String, Error])
-  /// 点左下角「从基础实例开始」：源切成基础模板、名字预填 base-<两位序号>、焦点进名字格
-  /// （design/design-fixes.md 第 20 节）。
-  NewInstanceBasePicked
+  /// 勾 / 勾掉「从基础实例开始」这枚复选框（design/design-fixes.md 第 21 节）。
+  /// 带的是勾完之后的那一档：真 = 走基础模板、源卡全部锁上、焦点进名字格；
+  /// 假 = 源卡恢复可选、名字框一个字不动。
+  NewInstanceBaseToggled(Bool)
   /// 从基础模板新建的回执。与 NewInstanceDone 分开一条：它判的是另一组字段
   /// （name / home），重建回执时不能与派生的 newName / profile 混着读。
   NewInstanceBaseDone(Result[String, Error])
@@ -931,6 +938,7 @@ fn initial_model() -> Model {
     new_source: "",
     new_base: false,
     new_name_draft: "",
+    new_name_dirty: false,
     new_error: "",
     new_busy: false,
     new_focus: "",
@@ -1293,8 +1301,9 @@ fn new_instance_ok_id() -> String {
 }
 
 ///|
-/// 新建实例框左下角那颗「从基础实例开始」的 id。
-/// 一只可用的 profile 都没有时，打开框的焦点落在这儿（那一刻它是框里唯一能点的）。
+/// 新建实例框左下角那枚「从基础实例开始」复选框的 id（label 的 for 指向它）。
+/// 一只可用的 profile 都没有、读数又还没落地时，打开框的焦点落在这儿
+/// （那一刻框里只有它还能点）。
 fn new_instance_base_id() -> String {
   "dsh-new-instance-base"
 }
