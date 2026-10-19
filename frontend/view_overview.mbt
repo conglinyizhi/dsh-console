@@ -1651,9 +1651,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       archived_section(model, emit),
     ]),
   ]
-  for node in dialogs {
-    body.push(node)
-  }
+  // 对话框一律排在最后 push（见本函数末尾），不能插在抽屉前面：
+  // 抽屉的入场动画挂在元素本身上，节点序号一变它就重新挂一次，动画会重放一遍。
+  // 实测过：开着抽屉点「删除」，对话框一插到抽屉前头，抽屉就再滑进来一次。
   // 详情抽屉：同一时刻只开一个，开着的那一行必须在（列表重建后行没了就自动不开，
   // 见 app.mbt 的 rebuild —— 抽屉指向一个不存在的行会留下一个关不掉的空面板）。
   match find_row(model.rows, model.drawer_id) {
@@ -1679,6 +1679,10 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   // 读屏播报：只在拖动态存在时才有一个节点（它是提醒，不是常驻状态）
   body.push(drag_live_region(model))
+  // 对话框放在整张页面的最末：它们出现 / 消失只改自己这一段，不动前面抽屉的节点序号。
+  for node in dialogs {
+    body.push(node)
+  }
   @html.div(
     class="dsh-overview",
     attrs=mark("overview-page", ["overview", "page"]),
