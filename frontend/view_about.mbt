@@ -184,18 +184,8 @@ fn dsh_version_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       body.push(dsh_pin_line(facts))
     }
   }
-  // 改完指定之后的反馈：成功失败都留在这儿，直到下一次点 ——
-  // 这一页没有总览页那条提示条，不留一行的话「点了没反应」与「成功了」看着一样。
-  if model.dsh_pin_notice != "" {
-    body.push(
-      @html.div(
-        class=if model.dsh_pin_notice_ok { "dsh-notice" } else { "dsh-notice err" },
-        attrs=mark("dsh-pin-notice", ["about", "dsh-version", "notice"])
-          .data_set("ok", if model.dsh_pin_notice_ok { "true" } else { "false" }),
-        [@html.span(class="dsh-notice-text", model.dsh_pin_notice)],
-      ),
-    )
-  }
+  // 改完指定之后的反馈走外壳那一条全局提示（§14.3）：切到别的页也看得见，
+  // 本页不再留第二份（§14.4）。
   body.push(
     @html.p(
       class="dsh-foot",

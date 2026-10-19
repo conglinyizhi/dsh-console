@@ -1631,7 +1631,9 @@ fn job_version_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       ]),
     )
   }
-  // 底部小字：来源 + 拉取时间 + 「正在重新拉取」/失败原因。悬停里是三个源各自的结果与耗时。
+  // 底部小字：**只剩来源与拉取时间**（§14.3）。「重新拉取没成」走全局提示 ——
+  // 它是动作结果；「正在重新拉取」由那颗按钮自己说（按下去之后按钮就是这个字）。
+  // 悬停里是三个源各自的结果与耗时。
   let chosen = match facts {
     Some(got) => got.chosen
     None => ""
@@ -1650,14 +1652,16 @@ fn job_version_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if stamp != "" {
     meta = meta + " · 拉取于 " + stamp
   }
-  let status_text = if loading {
-    if stamp == "" { "正在拉版本列表" } else { "正在重新拉取" }
-  } else if model.releases_refresh_error != "" {
-    "重新拉取没成：" + model.releases_refresh_error
-  } else if fetch_error != "" {
-    "上次没拉到：" + fetch_error
-  } else {
-    ""
+  // 「上次没拉到」是**读取失败**，不是动作结果：按 §14.4 留在原位（这一栏里），
+  // 不进全局提示，也不从界面上消失。
+  if fetch_error != "" && !loading {
+    body.push(
+      @html.span(
+        class="dsh-version-dialog-status",
+        attrs=mark("job-version-status", ["maintenance", "version-sidebar", "status"]),
+        "上次没拉到：" + fetch_error,
+      ),
+    )
   }
   let foot : Array[@html.Html] = [
     @html.span(
@@ -1671,15 +1675,6 @@ fn job_version_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       meta,
     ),
   ]
-  if status_text != "" {
-    foot.push(
-      @html.span(
-        class="dsh-version-dialog-status",
-        attrs=mark("job-version-status", ["maintenance", "version-sidebar", "status"]),
-        status_text,
-      ),
-    )
-  }
   // 手动重拉（§11.3）：只负责排一趟后台刷新，结果照旧靠轮询接上。
   // 在路上时按钮按成「正在重新拉取」并禁用，避免同一拍连点把补问预算耗掉。
   foot.push(
@@ -1783,7 +1778,8 @@ fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) 
     attrs=mark("job-start-panel", ["maintenance", "start-panel"]),
     [
       @html.h2(class="dsh-panel-title", "升级 dsh"),
-      @html.p(class="dsh-para", "先留下旧版本，新版本你自己试过再切"),
+      // 这里原来还有一句「先留下旧版本，新版本你自己试过再切」—— 与作业卡副标题一字不差。
+      // §14.5 的文案扫描要求同一句话不出现两处，这一句的正式位置是作业卡副标题（§5）。
       @html.div(class="dsh-job-start-row", [
         @html.div(
           class="dsh-job-current-field",
@@ -2053,6 +2049,20 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
     }
     trial_nodes.push(job_trial_status(job))
   }
+  // 最近一次动作的细节（§14.3「回执照旧写进作业卡」）：确切命令 / 包目录 / 输出尾部。
+  // 结论在全局提示里，这里只说细节 —— 同一句话不会在页面上出现两遍。
+  let detail = if model.job_detail_for == job.id && model.job_detail != "" {
+    @html.div(
+      class="dsh-job-detail",
+      attrs=mark("job-detail", ["maintenance", "job", job.id, "detail"]),
+      [
+        @html.span(class="dsh-job-detail-tag", "最近一次操作"),
+        @html.span(class="dsh-job-detail-text", model.job_detail),
+      ],
+    )
+  } else {
+    @html.nothing
+  }
   @html.article(
     class="dsh-job-card",
     attrs=head_attrs.title(anchor_hint).data_set("step", job.step),
@@ -2106,6 +2116,7 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
         )
       },
       job_receipt(job),
+      detail,
       @html.button(
         class="dsh-collapse dsh-job-toggle",
         type_="button",
@@ -2247,29 +2258,8 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         body.push(@html.div(class="dsh-job-cards", cards))
       }
   }
-  // 提示条：成功失败都留在这一页（这一页没有别的地方能说），细节进悬停。
-  let notice : Array[@html.Html] = []
-  if model.job_notice != "" {
-    let hint = if model.job_notice_hint != "" &&
-      model.job_notice_hint_for == model.job_notice {
-      model.job_notice_hint
-    } else {
-      ""
-    }
-    let text_attrs = if hint == "" {
-      mark("job-notice-text", ["maintenance", "notice", "text"])
-    } else {
-      mark("job-notice-text", ["maintenance", "notice", "text"]).title(hint)
-    }
-    notice.push(
-      @html.div(
-        class=if model.job_notice_ok { "dsh-notice" } else { "dsh-notice err" },
-        attrs=mark("job-notice", ["maintenance", "notice"])
-          .data_set("ok", if model.job_notice_ok { "true" } else { "false" }),
-        [@html.span(class="dsh-notice-text", attrs=text_attrs, model.job_notice)],
-      ),
-    )
-  }
+  // 动作结果不在这里：从 §14 起走外壳那一条全局提示（结论），
+  // 细节写进对应的作业卡（job_detail）。两处各说一半，同一句话不会出现两遍。
   let children : Array[@html.Html] = [
     @html.header(class="dsh-page-head", [
       @html.h1(
@@ -2286,9 +2276,6 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   if model.profile_sidebar {
     children.push(job_profile_sidebar(model, emit))
-  }
-  for node in notice {
-    children.push(node)
   }
   for block in body {
     children.push(block)

@@ -382,21 +382,6 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 保存反馈 —— **只管失败**：成功那一半走 shell 层的 toast（view_shell 的 flash_toast），
-/// 出现几秒自己淡出。失败留在这里，直到使用者自己处理掉下一次保存。
-/// 没有反馈（或反馈是成功）时一个节点都不占。
-fn settings_feedback(model : Model) -> @html.Html {
-  if model.settings_feedback.length() == 0 || model.settings_feedback_ok {
-    return @html.nothing
-  }
-  @html.p(
-    class="dsh-settings-feedback err",
-    attrs=mark("settings-feedback", ["settings", "feedback"]).data_set("ok", "false"),
-    model.settings_feedback,
-  )
-}
-
-///|
 /// 设置页。
 fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let body = if model.settings_loading && !model.settings_loaded {
@@ -434,7 +419,7 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         ),
         "改动即保存。",
       ),
-      settings_feedback(model),
+      // 保存成功 / 失败从 §14 起走外壳那一条全局提示：本页不留第二份（§14.4）
       body,
     ],
   )

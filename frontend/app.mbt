@@ -367,7 +367,7 @@ fn matches_source_row(fact : InstanceFact, row : Row) -> Bool {
 ///
 /// 目标只有 profile 名与 kind 两个参数 —— **路径不由前端给**（契约里的硬要求），
 /// 后端按枚举目标自己解析，前端连一个 path 字段都不拼。
-/// 走 send_action 的同一条通道：这一行置忙、回执进 action_notice，
+/// 走 send_action 的同一条通道：这一行置忙、回执进全局提示（§14），
 /// 失败时把后端给的 code 与 message 原样贴出来（not-found / io-error / not-authorized…），
 /// 本地不放行、不假装打开成功。
 fn open_path_action(
@@ -433,15 +433,9 @@ fn open_web_ui(
   match row.web_url {
     Some(url) => {
       let (ok, tail) = open_outcome_text(js_open_url(url))
-      (
-        {
-          ..model,
-          act_notice: row.name + " 的 Web UI " + tail + "。地址 " + url + "（令牌来源：" +
-            row.web_url_source + "）",
-          act_notice_ok: ok,
-        },
-        @cmd.none,
-      )
+      let text = row.name + " 的 Web UI " + tail + "。地址 " + url + "（令牌来源：" +
+        row.web_url_source + "）"
+      (notice_put(model, ok, text, ""), @cmd.none)
     }
     None => {
       let reason = if row.web_url_source == "" {
@@ -450,13 +444,12 @@ fn open_web_ui(
         row.web_url_source
       }
       (
-        {
-          ..model,
-          act_notice: row.name + " 的 Web UI 没有打开：读不到握手令牌，一个标签页都没开。" +
-            reason + "。裸地址 " + row.url +
-            " 直接打开会被挡在门外；可以从启动它的那个终端里，把启动横幅里带令牌的完整地址抄过来。",
-          act_notice_ok: false,
-        },
+        notice_err(
+          model,
+          row.name + " 的 Web UI 没有打开：读不到握手令牌，一个标签页都没开。" + reason +
+          "。裸地址 " + row.url +
+          " 直接打开会被挡在门外；可以从启动它的那个终端里，把启动横幅里带令牌的完整地址抄过来。",
+        ),
         @cmd.none,
       )
     }
@@ -485,11 +478,7 @@ fn copy_url_action(
   // （design/ops-maintenance-jobs.md §13.1）。
   if !with_token && !row.url_copyable {
     return (
-      {
-        ..model,
-        act_notice: row.name + " 的" + what + "没能复制：没在跑，没有访问地址可复制",
-        act_notice_ok: false,
-      },
+      notice_err(model, row.name + " 的" + what + "没能复制：没在跑，没有访问地址可复制"),
       @cmd.none,
     )
   }
@@ -514,16 +503,12 @@ fn copy_url_action(
       "这一行的读数里没有访问地址"
     }
     return (
-      {
-        ..model,
-        act_notice: row.name + " 的" + what + "没能复制：" + why + "，没有可复制的内容",
-        act_notice_ok: false,
-      },
+      notice_err(model, row.name + " 的" + what + "没能复制：" + why + "，没有可复制的内容"),
       @cmd.none,
     )
   }
   (
-    { ..model, act_notice: "" },
+    notice_clear(model),
     copy_cmd(row.name + " 的" + what, text, emit),
   )
 }
@@ -635,15 +620,11 @@ fn copy_dev_action(model : Model, row_id : String, emit : @cmd.Emit[Msg]) -> (Mo
       "拿控制台自己的 home 顶上就会把开发会话引回主线，所以这一枪不发"
     }
     return (
-      {
-        ..model,
-        act_notice: row.name + " 的开发指令没能复制：" + why + "，拼不出可粘的说明",
-        act_notice_ok: false,
-      },
+      notice_err(model, row.name + " 的开发指令没能复制：" + why + "，拼不出可粘的说明"),
       @cmd.none,
     )
   }
-  ({ ..model, act_notice: "" }, copy_cmd(row.name + " 的开发指令", text, emit))
+  (notice_clear(model), copy_cmd(row.name + " 的开发指令", text, emit))
 }
 
 ///|
@@ -665,18 +646,16 @@ fn send_action(
 ) -> (Model, @cmd.Cmd) {
   if params == "" {
     (
-      {
-        ..model,
-        act_notice: name + " " + verb +
-          "没执行：这一行的读数里没有可用的目标（profile 目录名或端口读不到）",
-        act_notice_ok: false,
-      },
+      notice_err(
+        model,
+        name + " " + verb + "没执行：这一行的读数里没有可用的目标（profile 目录名或端口读不到）",
+      ),
       @cmd.none,
     )
   } else {
     let busy = map_rows(model, id, fn(row) { { ..row, busy: true } })
     (
-      { ..busy, act_notice: "" },
+      notice_clear(busy),
       action_cmd(
         id,
         action,
@@ -899,17 +878,13 @@ fn pin_dsh_version(
 ) -> (Model, @cmd.Cmd) {
   if dir == "" {
     return (
-      {
-        ..model,
-        dsh_pin_notice: "这一份 dsh 的目录没读到，没法指定（读数里那一格是空的）",
-        dsh_pin_notice_ok: false,
-      },
+      notice_err(model, "这一份 dsh 的目录没读到，没法指定（读数里那一格是空的）"),
       @cmd.none,
     )
   }
   let params = params_of([("dir", json_text_literal(dir))])
   (
-    { ..model, dsh_pin_busy: dir, dsh_pin_notice: "" },
+    notice_clear({ ..model, dsh_pin_busy: dir }),
     action_cmd("", "pin-dsh", version, "用这一版", action_body("pin-dsh", params), emit),
   )
 }
@@ -918,7 +893,7 @@ fn pin_dsh_version(
 /// 关于页「回到自动」：撤掉指定（POST unpin-dsh，没有参数）。
 fn unpin_dsh_version(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   (
-    { ..model, dsh_pin_busy: "auto", dsh_pin_notice: "" },
+    notice_clear({ ..model, dsh_pin_busy: "auto" }),
     action_cmd("", "unpin-dsh", "", "回到自动", action_body("unpin-dsh", "{}"), emit),
   )
 }
@@ -944,7 +919,7 @@ fn dsh_pin_settled(
     "没能回到自动：" + note
   }
   (
-    { ..model, dsh_pin_busy: "", dsh_pin_notice: text, dsh_pin_notice_ok: ok },
+    notice_put({ ..model, dsh_pin_busy: "" }, ok, text, ""),
     if ok { load_runtime(emit) } else { @cmd.none },
   )
 }
@@ -1084,16 +1059,7 @@ fn job_cmd(action : String, params : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd 
 fn job_start_command(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   let version = model.job_version.trim().to_owned()
   if version == "" {
-    return (
-      {
-        ..model,
-        job_notice: "先填上要装的目标版本，再点开始。",
-        job_notice_ok: false,
-        job_notice_hint: "",
-        job_notice_hint_for: "",
-      },
-      @cmd.none,
-    )
+    return (notice_err(model, "先填上要装的目标版本，再点开始。"), @cmd.none)
   }
   // profile 必填（后端也拦）：试跑要从这只 profile 复制一份配置到一次性 home（§9.4）。
   // 名称取自「在跑的 → web → 第一份」里第一只**可用**的，与页面下拉里显示的是同一个函数。
@@ -1104,23 +1070,14 @@ fn job_start_command(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
     } else {
       "没有可用的试跑 profile：这一只配置要么读不到，要么起不了网页实例。"
     }
-    return (
-      {
-        ..model,
-        job_notice: text,
-        job_notice_ok: false,
-        job_notice_hint: "",
-        job_notice_hint_for: "",
-      },
-      @cmd.none,
-    )
+    return (notice_err(model, text), @cmd.none)
   }
   let params = params_of([
     ("kind", json_text_literal("upgrade-dsh")),
     ("version", json_text_literal(version)),
     ("profile", json_text_literal(profile)),
   ])
-  ({ ..model, job_busy: "new", job_notice: "" }, job_cmd("job-start", params, emit))
+  (notice_clear({ ..model, job_busy: "new" }), job_cmd("job-start", params, emit))
 }
 
 ///|
@@ -1136,35 +1093,27 @@ fn job_step_command(
   if id == "" {
     return (model, @cmd.none)
   }
-  let refuse = fn(text : String) {
-    ({
-      ..model,
-      job_notice: text,
-      job_notice_ok: false,
-      job_notice_hint: "",
-      job_notice_hint_for: "",
-    }, @cmd.none)
-  }
+  let refuse = fn(text : String) { (notice_err(model, text), @cmd.none) }
   let params_with = fn(confirm_key : String, confirm_value : String) {
     params_of([("id", json_text_literal(id)), (confirm_key, confirm_value)])
   }
   match step {
     "install-preview" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd("job-install", params_with("confirm", "false"), emit),
     )
     "install-confirm" =>
       if model.job_previewed != id || model.job_previewed_step != "install" {
         refuse("先点「预演这一步」，看过确切命令再确认执行。")
       } else {
-        ({ ..model, job_busy: id, job_notice: "" }, job_cmd("job-install", params_with("confirm", "true"), emit))
+        (notice_clear({ ..model, job_busy: id }), job_cmd("job-install", params_with("confirm", "true"), emit))
       }
     "trial" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd("job-trial", params_of([("id", json_text_literal(id))]), emit),
     )
     "verdict-good" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd(
         "job-verdict",
         params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("good"))]),
@@ -1172,7 +1121,7 @@ fn job_step_command(
       ),
     )
     "verdict-bad" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd(
         "job-verdict",
         params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("bad"))]),
@@ -1180,7 +1129,7 @@ fn job_step_command(
       ),
     )
     "verdict-later" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd(
         "job-verdict",
         params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("later"))]),
@@ -1188,25 +1137,25 @@ fn job_step_command(
       ),
     )
     "trial-stop" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd("job-trial-stop", params_of([("id", json_text_literal(id))]), emit),
     )
     "commit" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd("job-commit", params_of([("id", json_text_literal(id))]), emit),
     )
     "cleanup-preview" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd("job-cleanup-preview", params_of([("id", json_text_literal(id))]), emit),
     )
     "cleanup" =>
       if model.job_previewed != id || model.job_previewed_step != "cleanup" {
         refuse("先点「清理旧版本」，看过会删掉什么再确认执行。")
       } else {
-        ({ ..model, job_busy: id, job_notice: "" }, job_cmd("job-cleanup", params_with("confirm", "DELETE"), emit))
+        (notice_clear({ ..model, job_busy: id }), job_cmd("job-cleanup", params_with("confirm", "DELETE"), emit))
       }
     "abort" => (
-      { ..model, job_busy: id, job_notice: "" },
+      notice_clear({ ..model, job_busy: id }),
       job_cmd("job-abort", params_of([("id", json_text_literal(id))]), emit),
     )
     _ => refuse("认不出这一步，没有发出请求。")
@@ -1214,7 +1163,12 @@ fn job_step_command(
 }
 
 ///|
-/// 作业动作的回执：成功写正文与悬停（命令 / 路径 / 输出尾部只进悬停），失败连原因留下。
+/// 作业动作的回执。
+///
+/// 出口分两处、各说一半（§14.3）：
+///   - 全局提示：一条结论（成功 toast / 失败常驻），切到哪一页都看得见
+///   - 作业卡：这次动作的**细节**（确切命令 / 包目录 / 输出尾部），跟着那条作业留在页面上
+/// 两处的话不重叠，所以同一句话不会在页面上出现两遍（§14.4）。
 /// 成功之后重读 console —— 作业的真实状态在那份读数里，不在本地猜。
 fn job_settled(
   model : Model,
@@ -1226,14 +1180,9 @@ fn job_settled(
   let outcome = job_outcome_of(res)
   if !ok {
     return (
-      {
-        ..model,
-        job_busy: "",
-        job_notice: job_action_label(action) + "没成功：" + note,
-        job_notice_ok: false,
-        job_notice_hint: "",
-        job_notice_hint_for: "",
-      },
+      // 失败不往作业卡里写细节：原因在常驻提示条上（看得见），历史在后端写的步骤表里。
+      notice_err({ ..model, job_busy: "", job_detail: "", job_detail_for: "" },
+        job_action_label(action) + "没成功：" + note),
       // 失败也可能改过作业记录（例如清理没删掉时那一步被记成 failed）：
       // 重读一次 console，让步骤表与后端那份记录对上，而不是停在动作前的样子。
       load_console(emit),
@@ -1246,14 +1195,11 @@ fn job_settled(
     None => Map([])
   }, "executed")
   let preview_cleanup = action == "job-cleanup-preview"
-  let mut next = {
-    ..model,
-    job_busy: "",
-    job_notice: body,
-    job_notice_ok: true,
-    job_notice_hint: note,
-    job_notice_hint_for: body,
-  }
+  let mut next = notice_ok(
+    { ..model, job_busy: "", job_detail: note, job_detail_for: job_id },
+    body,
+    "",
+  )
   if action == "job-start" {
     next = { ..next, job_version: "" }
     next = {
@@ -1429,11 +1375,7 @@ fn start_instance(
   let name = row.name
   if params == "" {
     return (
-      {
-        ..model,
-        act_notice: name + " 启动没执行：读数里没有 profile 目录名",
-        act_notice_ok: false,
-      },
+      notice_err(model, name + " 启动没执行：读数里没有 profile 目录名"),
       @cmd.none,
     )
   }
@@ -1450,7 +1392,6 @@ fn start_instance(
       act_tick: false,
       act_ok: false,
       act_note: "",
-      act_notice: "",
       act_name: name,
       act_verb: "启动",
       start_tab: tab,
@@ -1494,14 +1435,7 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     // 启动成了：占位标页先留着 —— 带令牌的地址由 instances 读数给出（见 fill_start_tab）
     let text = name + " 已" + verb + "。"
     refresh_readings(
-      {
-        ..cleared,
-        act_notice: text,
-        act_notice_ok: true,
-        act_notice_hint: backend_hint(note),
-        act_notice_hint_for: text,
-        start_tab_waiting: true,
-      },
+      notice_ok({ ..cleared, start_tab_waiting: true }, text, backend_hint(note)),
       emit,
     )
   } else {
@@ -1517,17 +1451,10 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
       ""
     }
     (
-      {
-        ..cleared,
-        act_notice: name + " " + verb + "失败：" + note + tail,
-        act_notice_ok: false,
-        act_notice_hint: "",
-        act_notice_hint_for: "",
-        start_tab: "",
-        start_tab_profile: "",
-        start_tab_waiting: false,
-        start_tab_tries: 0,
-      },
+      notice_err(
+        { ..cleared, start_tab: "", start_tab_profile: "", start_tab_waiting: false, start_tab_tries: 0 },
+        name + " " + verb + "失败：" + note + tail,
+      ),
       @cmd.none,
     )
   }
@@ -1605,11 +1532,11 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
       } else {
         "自动开标页没成（" + model.start_tab + "）"
       }
-      let text = model.act_notice + "；" + tail + "。带令牌的地址：" + url
+      let (base_text, base_hint) = notice_parts(model)
+      let text = base_text + "；" + tail + "。带令牌的地址：" + url
       (
         {
-          ..model,
-          act_notice: text,
+          ..notice_put(model, true, text, base_hint),
           notice_url: Some(url),
           notice_url_notice: text,
           start_tab: "",
@@ -1637,17 +1564,13 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
           "本来就没有开成标页"
         }
         let why = start_tab_block_reason(model.rows, profile)
+        let (base_text, _) = notice_parts(model)
         (
-          {
-            ..model,
-            act_notice: model.act_notice + "；等不到带令牌的地址（" + why + "），" + tail +
-              "。令牌由实例日志的启动横幅给出，稍后刷新读数再点卡上的「打开 Web UI」",
-            act_notice_ok: false,
-            start_tab: "",
-            start_tab_profile: "",
-            start_tab_waiting: false,
-            start_tab_tries: 0,
-          },
+          notice_err(
+            { ..model, start_tab: "", start_tab_profile: "", start_tab_waiting: false, start_tab_tries: 0 },
+            base_text + "；等不到带令牌的地址（" + why + "），" + tail +
+            "。令牌由实例日志的启动横幅给出，稍后刷新读数再点卡上的「打开 Web UI」",
+          ),
           @cmd.none,
         )
       }
@@ -1671,16 +1594,11 @@ fn note_settled(
   let (ok, _) = interpret_http(res)
   if ok {
     let (text, hint) = note_receipt(name, note, res)
-    let closed = {
-      ..base,
-      note_open: "",
-      note_draft: "",
-      note_error: "",
-      act_notice: text,
-      act_notice_ok: true,
-      act_notice_hint: hint,
-      act_notice_hint_for: text,
-    }
+    let closed = notice_ok(
+      { ..base, note_open: "", note_draft: "", note_error: "" },
+      text,
+      hint,
+    )
     let (next, cmd) = refresh_readings(closed, emit)
     (next, @cmd.batch([cmd, focus_after_render(return_id)]))
   } else {
@@ -1960,12 +1878,10 @@ fn commit_setting(
         Err(reason) => {
           let back = setting_stored_text(model, key)
           (
-            {
-              ..model,
-              settings_draft: drop_draft(model.settings_draft, key),
-              settings_feedback: def.label + " 没保存：" + reason,
-              settings_feedback_ok: false,
-            },
+            notice_err(
+              { ..model, settings_draft: drop_draft(model.settings_draft, key) },
+              def.label + " 没保存：" + reason,
+            ),
             set_control_after_render(setting_control_id(key), back),
           )
         }
@@ -1985,14 +1901,14 @@ fn commit_setting_value(
 ) -> (Model, @cmd.Cmd) {
   match setting_by_key(key) {
     None => (model, @cmd.none)
-    Some(def) =>
+    Some(_) =>
+      // 「正在保存 …」不播报（§14.3 只认保存成功 / 失败）：这一句既不是结果，
+      // 又会把刚才那条失败提示顶掉。控件自己在 settings_saving 期间是禁用的。
       (
         {
           ..model,
           settings_saving: key,
           settings_pending: Some(value),
-          settings_feedback: "正在保存 " + def.label + " …",
-          settings_feedback_ok: true,
         },
         settings_put_cmd(key, settings_put_body(key, value), emit),
       )
@@ -2017,11 +1933,7 @@ fn reset_setting(model : Model, key : String, emit : @cmd.Emit[Msg]) -> (Model, 
   match value {
     Some(value) => commit_setting_value(model, key, value, emit)
     None => (
-      {
-        ..model,
-        settings_feedback: label + " 没能恢复默认：读数里没有这一项的缺省值",
-        settings_feedback_ok: false,
-      },
+      notice_err(model, label + " 没能恢复默认：读数里没有这一项的缺省值"),
       @cmd.none,
     )
   }
@@ -2041,14 +1953,10 @@ fn settings_saved_state(
   if !ok {
     let back = setting_stored_text(model, key)
     return (
-      {
-        ..model,
-        settings_saving: "",
-        settings_pending: None,
-        settings_draft: drafts,
-        settings_feedback: label + " 没保存：" + note,
-        settings_feedback_ok: false,
-      },
+      notice_err(
+        { ..model, settings_saving: "", settings_pending: None, settings_draft: drafts },
+        label + " 没保存：" + note,
+      ),
       set_control_after_render(setting_control_id(key), back),
     )
   }
@@ -2058,16 +1966,18 @@ fn settings_saved_state(
     None => "已保存"
   }
   (
-    {
-      ..model,
-      settings: Some(facts),
-      settings_saving: "",
-      settings_pending: None,
-      settings_draft: drafts,
-      settings_feedback: label + " 已保存：" + value_text,
-      settings_feedback_ok: true,
-      tag_settings: None,
-    },
+    notice_ok(
+      {
+        ..model,
+        settings: Some(facts),
+        settings_saving: "",
+        settings_pending: None,
+        settings_draft: drafts,
+        tag_settings: None,
+      },
+      label + " 已保存：" + value_text,
+      "",
+    ),
     @cmd.none,
   )
 }
@@ -2117,60 +2027,90 @@ fn put_setting(facts : SettingsFacts, key : String, value : SettingValue?) -> Se
 // ── 更新 ───────────────────────────────────────────────────
 
 ///|
-/// 更新循环的外壳。里面那一份照旧（update_inner），出来之后只补一件事：
-/// 页面上新出现一条成功提示时，给它挂一个到期的计时。
+/// 发一条**成功**提示：底部 toast，flash_ms 之后自己走（悬停在上面时顺延，见 update）。
 ///
-/// **为什么挂在出口**：设置提示的地方有近二十处（act_notice 与 settings_feedback 各一条路），
-/// 每一处都挂一次计时，就是二十处漏挂的机会；出口只有一个。
-/// 判断只看「这一拍页面上正摆着哪条成功提示」：换了一条就重新计时，同一条不重挂。
-/// 失败不在这一路上 —— 它不许自动消失（见 view_overview 的 action_notice）✗
-fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
-  let (next, cmd) = update_inner(model, msg, emit)
-  let key = flash_key(next)
-  if key == "" {
-    if next.flash_serial == 0 {
-      (next, cmd)
-    } else {
-      ({ ..next, flash_serial: 0, flash_fading: false }, cmd)
-    }
-  } else if key == flash_key(model) && next.flash_serial != 0 {
-    // 同一条还在（或刚被鼠标重新计时过）：计时已经在跑，不重挂
-    (next, cmd)
-  } else {
-    let serial = next.flash_serial + 1
-    (
-      { ..next, flash_serial: serial, flash_fading: false, flash_hover: false },
-      @cmd.batch([cmd, @cmd.delay(emit(FlashExpire(serial)), flash_ms)]),
-    )
+/// 这是动作结果的唯一出口（§14）：设置页保存、关于页切版本、总览的启动 / 复制、
+/// 维护页的每一条回执都走它，页面里不再各留一份。
+fn notice_ok(model : Model, text : String, hint : String) -> Model {
+  notice_put(model, true, text, hint)
+}
+
+///|
+/// 发一条**失败**提示：常驻提示条，直到下一条动作替换它（不挂到期计时）。
+///
+/// 失败与成功同住一条出口，但**读取失败不进这里** —— 那解释的是「这一块为什么是空的」，
+/// 留在页面原位（§14.4）。
+fn notice_err(model : Model, text : String) -> Model {
+  notice_put(model, false, text, "")
+}
+
+///|
+/// 换掉当前这条提示：序号 +1，外壳与到期计时都按序号认人。
+fn notice_put(model : Model, ok : Bool, text : String, hint : String) -> Model {
+  let seq = model.notice_serial + 1
+  {
+    ..model,
+    notice_serial: seq,
+    notice: Some({ seq, ok, text, hint, at: local_time_now() }),
+    flash_fading: false,
+    flash_hover: false,
   }
 }
 
 ///|
-/// 「这一拍页面上摆着哪条成功提示」的身份就是它的文字。
-/// 空串 = 没有；有它才谈得上计时（见 update）。
-fn flash_key(model : Model) -> String {
-  let (text, _) = flash_text(model)
-  text
+/// 把提示收掉：成功 toast 到期，或者下一次动作开始前清场。
+/// 悬停补充与那颗「打开 Web UI」跟着正文一起收 —— 它们只属于当前这一条文字。
+fn notice_clear(model : Model) -> Model {
+  {
+    ..model,
+    notice: None,
+    flash_fading: false,
+    flash_hover: false,
+    notice_url: None,
+    notice_url_notice: "",
+  }
 }
 
 ///|
-/// 把当前那条成功提示收掉（toast 到点了）。
-/// 连悬停补充与那颗「打开 Web UI」一起收 —— 它们本来就跟这条文字绑在一起
-/// （act_notice_hint_for / notice_url_notice），文字走了它们留着就是一段对不上号的东西。
-fn clear_flash(model : Model) -> Model {
-  let base = { ..model, flash_serial: 0, flash_fading: false, flash_hover: false }
-  if model.page is Settings {
-    { ..base, settings_feedback: "" }
-  } else {
-    // 悬停补充与那颗「打开 Web UI」跟着正文一起收：它们本来就只属于这一条文字
-    {
-      ..base,
-      act_notice: "",
-      act_notice_hint: "",
-      act_notice_hint_for: "",
-      notice_url: None,
-      notice_url_notice: "",
-    }
+/// 当前那条提示的（正文, 悬停补充）。没有就是两个空串。
+/// 启动收尾那一段要把新地址接在原来的正文后面，所以需要一个读回来的口子。
+fn notice_parts(model : Model) -> (String, String) {
+  match model.notice {
+    None => ("", "")
+    Some(n) => (n.text, n.hint)
+  }
+}
+
+///|
+/// 当前那条提示的序号（0 = 没有）。到期消息带着序号回来，对不上就作废。
+fn notice_seq(model : Model) -> Int {
+  match model.notice {
+    Some(n) => n.seq
+    None => 0
+  }
+}
+
+///|
+/// 更新循环的外壳。里面那一份照旧（update_inner），出来之后只补一件事：
+/// 新出现一条**成功**提示时给它挂一个到期的计时。
+///
+/// **为什么挂在出口**：发提示的地方有二十多处，每一处都挂一次计时就是二十处漏挂的机会；
+/// 出口只有一个。判断只看序号：换了一条就重新计时，同一条不重挂。
+/// 失败不在这一路上 —— 它不许自动消失（§14.1）✗
+fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let (next, cmd) = update_inner(model, msg, emit)
+  match next.notice {
+    None => (next, cmd)
+    Some(n) =>
+      if !n.ok {
+        // 失败常驻：不挂计时，也不重置任何东西
+        (next, cmd)
+      } else if n.seq == notice_seq(model) {
+        // 同一条还在（悬停重新计时也走这里）：计时已经在跑，不重挂
+        (next, cmd)
+      } else {
+        (next, @cmd.batch([cmd, @cmd.delay(emit(FlashExpire(n.seq)), flash_ms)]))
+      }
   }
 }
 
@@ -2561,13 +2501,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 }
                 // 没有在跑的实例可读：留在总览页把原因说清，不切到一个空日志页
                 None => (
-                  {
-                    ..model,
-                    drawer_id: "",
-                    act_notice: row.name +
-                      " 现在没有在跑的实例，没有可读的日志来源（查看日志这一步没有执行）",
-                    act_notice_ok: false,
-                  },
+                  notice_err(
+                    { ..model, drawer_id: "" },
+                    row.name +
+                    " 现在没有在跑的实例，没有可读的日志来源（查看日志这一步没有执行）",
+                  ),
                   @cmd.none,
                 )
               }
@@ -2935,27 +2873,15 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 「顺序表」是内部的叫法，落盘路径也不是使用者要读的东西（第六轮契约第二节：
         // 细节收进悬停，正文说人话）。路径与条数一个字都没丢，它们在悬停里。
         (
-          {
-            ..model,
-            act_notice: "顺序已保存",
-            act_notice_ok: true,
-            act_notice_hint: text,
-            act_notice_hint_for: "顺序已保存",
-            order_before: [],
-          },
+          notice_ok({ ..model, order_before: [] }, "顺序已保存", text),
           @cmd.none,
         )
       } else {
         // 失败：**回滚到提交前那一份**。停在「看着是新的、其实没存下」比不做还糟 ——
         // 下一次刷新列表会跳回原样，而使用者不知道自己刚才拖的那一下去哪了。
         (
-          {
-            ..model,
-            order: model.order_before,
-            order_before: [],
-            act_notice: "顺序没保存：" + text,
-            act_notice_ok: false,
-          },
+          notice_err({ ..model, order: model.order_before, order_before: [] },
+            "顺序没保存：" + text),
           @cmd.none,
         )
       }
@@ -2981,12 +2907,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           let (ok, tail) = open_outcome_text(js_open_url(url))
           let text = "Web UI " + tail + "。" + url
           (
-            {
-              ..model,
-              act_notice: text,
-              act_notice_ok: ok,
-              notice_url_notice: text,
-            },
+            { ..notice_put(model, ok, text, ""), notice_url_notice: text },
             @cmd.none,
           )
         }
@@ -3070,7 +2991,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           } else {
             // 这一行不置忙：备注保存时卡片本身还能用，忙碌态只锁保存键
             (
-              { ..model, note_saving: row.id, note_error: "", act_notice: "" },
+              notice_clear({ ..model, note_saving: row.id, note_error: "" }),
               action_cmd(
                 row.id,
                 "set-profile-note",
@@ -3174,7 +3095,6 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         version_query: "",
         releases_ticks: 0,
         releases_poll_pending: false,
-        releases_refresh_error: "",
       },
       @cmd.batch([load_releases(emit), focus_after_render(version_search_id())]),
     )
@@ -3286,7 +3206,6 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       {
         ..model,
         releases_loading: true,
-        releases_refresh_error: "",
         releases_ticks: 0,
         releases_poll_pending: false,
       },
@@ -3298,7 +3217,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       let (ok, note) = interpret_http(res)
       if !ok {
         (
-          { ..model, releases_loading: false, releases_refresh_error: note },
+          notice_err({ ..model, releases_loading: false }, "重新拉取没成：" + note),
           @cmd.none,
         )
       } else {
@@ -3377,27 +3296,9 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           let (shown, hint) = action_receipt(action, name, verb, note, res)
           // 本地不猜结果：归档记录、运行时登记、回收站条目都在后端的读数里，
           // 重读 console / profiles / instances 之后界面自己会变
-          refresh_readings(
-            {
-              ..cleared,
-              act_notice: shown,
-              act_notice_ok: true,
-              act_notice_hint: hint,
-              act_notice_hint_for: shown,
-            },
-            emit,
-          )
+          refresh_readings(notice_put(cleared, true, shown, hint), emit)
         } else {
-          (
-            {
-              ..cleared,
-              act_notice: name + " " + verb + "失败：" + note,
-              act_notice_ok: false,
-              act_notice_hint: "",
-              act_notice_hint_for: "",
-            },
-            @cmd.none,
-          )
+          (notice_err(cleared, name + " " + verb + "失败：" + note), @cmd.none)
         }
       }
     }
@@ -3408,29 +3309,29 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         Ok(text) => parse_copy_result(text)
         Err(err) => (false, "剪贴板调用没发出去（" + describe(err) + "）")
       }
-      (
-        { ..model, act_notice: subject + note, act_notice_ok: ok },
-        @cmd.none,
-      )
+      (notice_put(model, ok, subject + note, ""), @cmd.none)
     }
-    // toast 到期：序号对不上说明这一条已经被换掉了，那一枪作废
+    // toast 到期：序号对不上说明这一条已经被换掉了（或已经收掉了），那一枪作废
     FlashExpire(serial) =>
-      if serial != model.flash_serial {
-        (model, @cmd.none)
-      } else if model.flash_hover {
-        // 鼠标正停在上面：这一拍不算数，重新计一遍 —— 不许它正好在眼皮底下消失
-        (model, @cmd.delay(emit(FlashExpire(serial)), flash_ms))
-      } else {
-        (
-          { ..model, flash_fading: true },
-          @cmd.delay(emit(FlashRemove(serial)), flash_fade_ms),
-        )
+      match model.notice {
+        None => (model, @cmd.none)
+        Some(n) =>
+          if n.seq != serial {
+            (model, @cmd.none)
+          } else if model.flash_hover {
+            // 鼠标正停在上面：这一拍不算数，重新计一遍 —— 不许它正好在眼皮底下消失
+            (model, @cmd.delay(emit(FlashExpire(serial)), flash_ms))
+          } else {
+            (
+              { ..model, flash_fading: true },
+              @cmd.delay(emit(FlashRemove(serial)), flash_fade_ms),
+            )
+          }
       }
     FlashRemove(serial) =>
-      if serial != model.flash_serial {
-        (model, @cmd.none)
-      } else {
-        (clear_flash(model), @cmd.none)
+      match model.notice {
+        None => (model, @cmd.none)
+        Some(n) => if n.seq == serial { (notice_clear(model), @cmd.none) } else { (model, @cmd.none) }
       }
     FlashHover(on) => ({ ..model, flash_hover: on }, @cmd.none)
     // 关于页：把某一份 dsh 指定成起实例用的那一版 / 撤掉指定回到自动

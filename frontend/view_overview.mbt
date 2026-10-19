@@ -1268,40 +1268,7 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
 }
 
-// ── 提示条与对话框 ─────────────────────────────────────────
-
-///|
-/// 动作结果提示条 —— **只管失败**。成功那一半走 toast（见 view_shell 的 flash_toast）：
-/// 它出现几秒、自己淡出；失败留在这儿不动，直到使用者自己处理掉下一条动作。
-/// 同一条规矩的两个面：正常可以沉默，异常不能沉默 —— 所以只有成功会被自动收走
-///
-/// 失败里写清后端给的原因（conflict / not-authorized …）。
-/// 动作发不出去（这一行的读数里没有目标）也走这里，所以「没反应」这件事不会发生。
-fn action_notice(model : Model) -> @html.Html {
-  if model.act_notice.length() == 0 || model.act_notice_ok {
-    return @html.nothing
-  }
-  let tone = " err"
-  // 正文之外的细节（删除回执里的路径 / mode / hardDeleted）收在悬停里。
-  // 只在「这段悬停确实属于当前这条提示」时挂上去：提示条被别的动作改写之后它自己失效。
-  let hint = if model.act_notice_hint != "" && model.act_notice_hint_for == model.act_notice {
-    model.act_notice_hint
-  } else {
-    ""
-  }
-  let text_attrs = if hint == "" {
-    mark("action-notice-text", ["overview", "action-notice", "text"])
-  } else {
-    mark("action-notice-text", ["overview", "action-notice", "text"]).title(hint)
-  }
-  @html.div(
-    class="dsh-notice" + tone,
-    attrs=mark("action-notice", ["overview", "action-notice"]).data_set("ok", "false"),
-    [
-      @html.span(class="dsh-notice-text", attrs=text_attrs, model.act_notice),
-    ],
-  )
-}
+// ── 对话框 ─────────────────────────────────────────────────
 
 ///|
 /// 删除确认框：打开时焦点落在确认键，Esc 关闭，关闭后焦点回到触发元素。
@@ -1667,7 +1634,6 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           [@html.span(class="dsh-plus", "＋"), @html.span("新建实例")],
         ),
       ]),
-      action_notice(model),
       section_head(
         "running",
         "当前运行的实例",

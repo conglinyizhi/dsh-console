@@ -294,7 +294,8 @@ pub let reorder_preview_ms : Int = 190
 /// 成功提示（toast）的寿命：出现之后这么多毫秒开始淡出。
 ///
 /// 只有**成功**的提示会走：失败要留到使用者自己处理掉（见 app.mbt 的 update 外壳）。
-pub let flash_ms : Int = 4000
+/// 3.5 秒是规格 14.1 定的数（旧版 4 秒）。
+pub let flash_ms : Int = 3500
 
 ///|
 /// toast 淡出那一小段（毫秒）：先把不透明度收下去，再撤节点。
@@ -331,6 +332,27 @@ struct SettingDraft {
 } derive(Eq)
 
 pub extend SettingDraft with Eq::{ not_equal, equal }
+
+///|
+/// 一条全局提示（design/ops-maintenance-jobs.md §14.1）。
+///
+/// 成功与失败同住一条：ok 决定外壳把它画成底部 toast（3.5 秒后自己走）
+/// 还是常驻提示条（直到下一条动作替换它）。
+struct Notice {
+  /// 这是第几条。外壳按它认「到期消息说的还是不是当前这一条」——
+  /// 号对不上就作废，不把一条新提示提前收掉。
+  seq : Int
+  /// 成功（toast，会自己走）还是失败（常驻）
+  ok : Bool
+  /// 正文：一句话说清这次动作的结果
+  text : String
+  /// 正文之外的细节（路径 / 格式 / 后端原文），只进悬停
+  hint : String
+  /// 发出去的时刻（HH:MM:SS，浏览器本地时钟）。只作记录，不上屏
+  at : String
+} derive(Eq)
+
+pub extend Notice with Eq::{ not_equal, equal }
 
 ///|
 struct Model {
@@ -451,8 +473,7 @@ struct Model {
   trash_purge_dir : String
   trash_purge_return : String
   // ── 维护页（作业台） ──
-  // 与 act_notice 分开：总览页那条提示条读的是 act_notice，借它的话，
-  // 在维护页做完动作再切回总览会看到一条与那一页无关的话。
+  // 动作结果从 §14 起走全局提示；这一页只留作业自己的状态（步骤表、预演记录、卡里的细节）。
   /// 新作业表单里的目标版本（空串 = 没选）。**不在本地补一个「最新版」**：
   /// §4 说得很清楚，版本由使用者选，后端不猜。
   /// 第六版起这一格只由版本侧栏回填：表里点一版、或按自定义版本那一行。
@@ -473,9 +494,6 @@ struct Model {
   releases : ReleasesFacts?
   releases_error : String
   releases_loading : Bool
-  /// 上一次「重新拉取」那一枪没排上的原因（空串 = 没失败 / 已重试）。
-  /// 与 releases_error 分开：那条说的是「读数读不到」，这条说的是「手动刷新没发出去」。
-  releases_refresh_error : String
   /// 已经为「还在拉」补问了几次（进维护页 / 打开侧栏时清零）。
   /// 后端那条 GET 只回缓存，所以读到 loading 之后要隔一会儿再问一次才拿得到结果；
   /// 上限见 state.mbt 的 releases_poll_cap，免得某次真挂了把定时器挂成永动机。
@@ -492,13 +510,14 @@ struct Model {
   job_profile : String
   /// 正在发的那条作业动作："new" 或作业 id（空串 = 没有在发）
   job_busy : String
-  /// 上一次作业动作的结果（正文；失败也走这里 —— 这一页没有别的地方能说）
-  job_notice : String
-  job_notice_ok : Bool
-  /// 正文之外的细节（确切命令 / 包目录 / 体积 / 输出尾部）—— 只进悬停
-  job_notice_hint : String
-  /// 上面那段悬停属于哪一句正文。与当前 job_notice 不一致时不出现
-  job_notice_hint_for : String
+  /// 最近一次作业动作的**细节**（确切命令 / 包目录 / 输出尾部），写进那条作业的卡里。
+  ///
+  /// §14 之后动作结果走全局提示（一条结论），这里只留细节：两处各说一半，
+  /// 同一句话就不会在页面上出现两遍。失败不写这一格 —— 失败的原因在全局提示条上，
+  /// 历史留在后端写的步骤表里。
+  job_detail : String
+  /// 上面那段细节属于哪条作业（空串 = 没有要摆的）
+  job_detail_for : String
   /// 被使用者亲手收起的作业 id。**默认全部展开** —— 收起是一个显式动作，
   /// 记下收起的那几条就够了；不必再维护一份「展开着哪些」（新作业进来时它会漏掉）。
   job_collapsed : Array[String]
@@ -511,13 +530,9 @@ struct Model {
   archived_user_toggled : Bool
   // 关于页「这台的 dsh 版本」（指定用哪一版起实例）
   //
-  // 这三格与 act_notice 分开：总览页那条提示条读的是 act_notice，
-  // 在这里借它的话，改完版本切回总览会看到一条与那一页无关的话。
+  // 回执从 §14 起走全局提示：改完版本切到任何一页都看得见，不再借总览页的格子。
   /// 正在指定的那一份包目录（空串 = 没有在指定，按钮因此可点）
   dsh_pin_busy : String
-  /// 上一次指定 / 撤指定之后那句话（失败也走这里 —— 那一页没有别的地方能说）
-  dsh_pin_notice : String
-  dsh_pin_notice_ok : Bool
   // 设置页
   settings_loaded : Bool
   settings_loading : Bool
@@ -532,8 +547,6 @@ struct Model {
   settings_saving : String
   /// 正在保存的那个键准备写入的值（回执里没带新值时按它记账）
   settings_pending : SettingValue?
-  settings_feedback : String
-  settings_feedback_ok : Bool
   // 写动作（POST /api/local/action）
   /// 正在等响应的启动动作所在的行；空串表示没有
   act_pending : String
@@ -543,16 +556,17 @@ struct Model {
   act_tick : Bool
   act_ok : Bool
   act_note : String
-  /// 页面上那条动作结果提示
-  act_notice : String
-  act_notice_ok : Bool
-  /// 提示条正文的悬停补充：删除回执里那些路径 / mode / hardDeleted 就收在这里，
-  /// 不摊在正文上（第六轮契约第二节）。空串 = 这一条提示没有要补充的。
-  act_notice_hint : String
-  /// 上面那段悬停**属于哪一条提示文字**。与当前 act_notice 不一致时悬停不出现 ——
-  /// 提示条被别的动作改写之后，那段路径说明自己失效，不留一段对不上号的悬停
-  /// （与 notice_url_notice 同一套口径）。
-  act_notice_hint_for : String
+  // 动作结果的唯一出口（design/ops-maintenance-jobs.md §14）。
+  //
+  // 删掉了五组各自为政的格子（总览的 act_notice、设置页的 settings_feedback、
+  // 关于页的 dsh_pin_notice、版本侧栏的 releases_refresh_error，以及它们各自的
+  // ok / hint 尾巴）：谁都只管自己那一页，切一页就看不见了。
+  /// 现在这条提示。None = 没有。成功与失败都走它：成功是底部 toast（3.5 秒后自己走），
+  /// 失败是常驻提示条（直到下一条动作替换它，不自动消失）。
+  notice : Notice?
+  /// 已经发过几条。每发一条 +1，Notice.seq 取的就是它 ——
+  /// 提示被收掉之后这格仍然往前走，旧的到期消息回来才认得出「那一条早就不在了」。
+  notice_serial : Int
   /// 启动等待态里那句提示要用的两个词（回执与计时是两条路，各自都拿得到它们）：
   /// 谁（web-dev）与做了什么（启动）。组句见 app.mbt 的 action_receipt。
   act_name : String
@@ -570,14 +584,11 @@ struct Model {
   /// 提示条里那颗「打开 Web UI」要开的地址（方案 B：用户再点一下 = 新手势，
   /// 一定不被弹窗拦截器吃掉）。None = 不摆按钮。
   notice_url : String?
-  /// 上面那个地址属于哪一条提示条文字。与当前 act_notice 不一致时按钮不出现 ——
+  /// 上面那个地址属于哪一条提示条文字（Notice.text）。与当前那条不一致时按钮不出现 ——
   /// 提示条被别的动作改写之后，按钮自己失效，不留一个对不上号的入口。
   notice_url_notice : String
-  // 成功提示的 toast（外观与位置见 view_shell 的 flash_toast，计时见 app.mbt 的 flash_timer）
-  /// 当前这条 toast 的序号。0 = 现在没有 toast。
-  /// 到期消息带着它回来：号对不上就说明这一条已经被换掉了，那一枪作废。
-  flash_serial : Int
-  /// 鼠标正停在 toast 上：这一拍不许它消失（悬停时别让它正好在眼皮底下走掉）
+  // 成功 toast 的两格过程状态（外观见 view_shell 的 global_notice，计时见 app.mbt 的 update）
+  /// 鼠标正停在提示上：这一拍不许它消失（悬停时别让它正好在眼皮底下走掉）
   flash_hover : Bool
   /// 正在淡出（去掉节点前的最后一小段，见 flash_fade_ms）
   flash_fading : Bool
@@ -806,16 +817,13 @@ fn initial_model() -> Model {
     releases: None,
     releases_error: "",
     releases_loading: false,
-    releases_refresh_error: "",
     releases_ticks: 0,
     releases_poll_pending: false,
     profile_sidebar: false,
     job_profile: "",
     job_busy: "",
-    job_notice: "",
-    job_notice_ok: false,
-    job_notice_hint: "",
-    job_notice_hint_for: "",
+    job_detail: "",
+    job_detail_for: "",
     job_collapsed: [],
     job_previewed: "",
     job_previewed_step: "",
@@ -824,8 +832,6 @@ fn initial_model() -> Model {
     archived_open: false,
     archived_user_toggled: false,
     dsh_pin_busy: "",
-    dsh_pin_notice: "",
-    dsh_pin_notice_ok: false,
     settings_loaded: false,
     settings_loading: false,
     settings: None,
@@ -837,17 +843,13 @@ fn initial_model() -> Model {
     settings_draft: [],
     settings_saving: "",
     settings_pending: None,
-    settings_feedback: "",
-    settings_feedback_ok: false,
     act_pending: "",
     act_response: false,
     act_tick: false,
     act_ok: false,
     act_note: "",
-    act_notice: "",
-    act_notice_ok: false,
-    act_notice_hint: "",
-    act_notice_hint_for: "",
+    notice: None,
+    notice_serial: 0,
     act_name: "",
     act_verb: "",
     start_tab: "",
@@ -856,7 +858,6 @@ fn initial_model() -> Model {
     start_tab_tries: 0,
     notice_url: None,
     notice_url_notice: "",
-    flash_serial: 0,
     flash_hover: false,
     flash_fading: false,
     console: None,

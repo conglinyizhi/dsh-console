@@ -263,7 +263,8 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         body.push(@html.div(class="dsh-trash-rows", rows))
       }
   }
-  // 页头 + 提示条 + 三档空白里的一档，排在同一列里
+  // 页头 + 三档空白里的一档，排在同一列里。动作结果不在这里：
+  // 从 §14 起走外壳那一条全局提示（切页也跟着走，本页不再留第二份）。
   let children : Array[@html.Html] = [
     @html.header(class="dsh-overview-head", [
       @html.div(class="dsh-head-text", [
@@ -272,7 +273,6 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.span(class="dsh-head-note", "删掉的 profile 在这里，能恢复也能彻底删掉"),
       ]),
     ]),
-    action_notice(model),
   ]
   for block in body {
     children.push(block)
