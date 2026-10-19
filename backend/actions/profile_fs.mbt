@@ -99,7 +99,9 @@ pub async fn fork_profile(
   let target_dir = @json.join_path(root, target_name)
   // 源备注在拷贝**之前**读：拷完之后目标目录里也有一份同样的内容，那时再读就分不清是谁的
   let (source_note, _) = @profiles.read_profile_note(source_dir)
-  let stats = match @fsx.copy_tree(source_dir, target_dir, ["node_modules"]) {
+  // .snapshots 不复制（design/ops-maintenance-jobs.md 16.1）：那是源 profile 的历史，
+  // 带过去只会让人以为新 profile 也拍过那些。
+  let stats = match @fsx.copy_tree(source_dir, target_dir, ["node_modules", @profiles.snapshots_dir_name]) {
     Ok(s) => s
     Err(e) => {
       fail("io-error", e)

@@ -248,6 +248,12 @@ struct Row {
   also_ports : Array[String]
   /// 上面那一行的悬停：每个端口各自是什么（后端给的那句话）
   also_ports_hint : String
+  // ── 配置快照（design/ops-maintenance-jobs.md §16.2）──
+  /// 这只 profile 的快照列表，从新到旧。空数组 = 还没拍过（或读数里没有这一项，
+  /// 两种情况由 snapshots_source 分开说 —— 空态文案只给「还没拍过」那一档）。
+  snapshots : Array[SnapshotFact]
+  /// 快照读数的来源 / 读不到的原因（后端原样给，进悬停）
+  snapshots_source : String
 } derive(Eq)
 
 pub extend Row with Eq::{ not_equal, equal }
@@ -469,6 +475,14 @@ struct Model {
   /// 正在移动的那一行（空串 = 没有在移）。抽屉里那颗按钮在这期间显示「正在移动…」并禁用 ——
   /// 移动是一次可能耗时（跨盘退回复制时尤其）的真实文件操作，按下去没反应最容易被再点一次。
   home_move_id : String
+  // 配置历史的「还原」确认框（design/ops-maintenance-jobs.md §16.4）。
+  // 与删除 / 取消隔离两个确认框分开三格：三个框说的是三件事，共用会让「关掉一个，另一个也关了」。
+  /// 还原确认框正对着哪一行（空串 = 框关着）
+  snapshot_confirm_id : String
+  /// 那一行里要还原的那一份快照 id
+  snapshot_confirm_snap : String
+  /// 触发元素 id（关框之后焦点回到它）
+  snapshot_confirm_return : String
   // 回收站「彻底删除」的确认框：目标目录名（空串 = 框关着）与触发元素 id
   trash_purge_dir : String
   trash_purge_return : String
@@ -691,6 +705,12 @@ priv enum Msg {
   HomeDeisolateOpen(String, String)
   HomeDeisolateConfirm
   HomeDeisolateCancel
+  // 配置历史（design/ops-maintenance-jobs.md §16.4）：创建快照（行 id）/ 还原（先开确认框）。
+  // 还原确认框的三格是行 id / 快照 id / 触发元素 id。
+  SnapshotCreate(String)
+  SnapshotRestoreOpen(String, String, String)
+  SnapshotRestoreConfirm
+  SnapshotRestoreCancel
   // 回收站（第六轮）：恢复某一条 / 点「彻底删除」先开确认框 / 框里的确定与取消
   TrashRestore(String)
   TrashPurgeOpen(String, String)
@@ -811,6 +831,9 @@ fn initial_model() -> Model {
     home_confirm_id: "",
     home_confirm_return: "",
     home_move_id: "",
+    snapshot_confirm_id: "",
+    snapshot_confirm_snap: "",
+    snapshot_confirm_return: "",
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
@@ -2246,6 +2269,15 @@ fn running_rows(
       ),
       last_started,
       last_started_source,
+      // 配置快照跟着那只 profile 走：实例解析出 profile 就用它的读数
+      snapshots: match profile_fact {
+        Some(item) => item.snapshots
+        None => []
+      },
+      snapshots_source: match profile_fact {
+        Some(item) => item.snapshots_source
+        None => "profiles 读数里没有这只实例的 profile，读不到它的配置快照"
+      },
     }
   })
 }
@@ -2466,6 +2498,9 @@ fn profile_rows(
       // 没有在跑的实例，也就没有「同一个进程的另一个端口」这回事
       also_ports: [],
       also_ports_hint: "",
+      // 配置快照：profiles 读数里每只一份，从新到旧
+      snapshots: fact.snapshots,
+      snapshots_source: fact.snapshots_source,
     })
   }
   // 已停止这一组按**最近改动降序**：新的在最上面。
@@ -2601,6 +2636,9 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     health_free: false,
     also_ports: [],
     also_ports_hint: "",
+    // 磁盘上没有目录，没有 .snapshots 可读
+    snapshots: [],
+    snapshots_source: "磁盘上没有这只 profile 的目录，没有配置快照可读",
   }
 }
 
@@ -2642,6 +2680,9 @@ fn demo_running() -> Array[Row] {
       health_free: false,
       also_ports: [],
       also_ports_hint: "",
+      // 演示数据不是读数：没有快照可读（空数组 + 原因，界面据此不摆列表）
+      snapshots: [],
+      snapshots_source: "演示数据：不是真实读数，没有配置快照可读",
     },
     {
       id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
@@ -2668,6 +2709,9 @@ fn demo_running() -> Array[Row] {
       health_free: false,
       also_ports: [],
       also_ports_hint: "",
+      // 演示数据不是读数：没有快照可读（空数组 + 原因，界面据此不摆列表）
+      snapshots: [],
+      snapshots_source: "演示数据：不是真实读数，没有配置快照可读",
     },
   ]
 }
@@ -2700,6 +2744,9 @@ fn demo_stopped() -> Array[Row] {
       health_free: false,
       also_ports: [],
       also_ports_hint: "",
+      // 演示数据不是读数：没有快照可读（空数组 + 原因，界面据此不摆列表）
+      snapshots: [],
+      snapshots_source: "演示数据：不是真实读数，没有配置快照可读",
     },
   ]
 }

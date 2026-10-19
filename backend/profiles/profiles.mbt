@@ -334,6 +334,8 @@ async fn describe_profile(
   let pkg_ok = package_json_ok(dir)
   let (note, note_source) = read_profile_note(dir)
   let (dir_mtime, dir_mtime_source) = read_profile_dir_mtime(dir)
+  // 配置快照（design/ops-maintenance-jobs.md 第 16.2 节）：从新到旧，读不出来给空数组与原因。
+  let (snapshots, snapshots_source) = read_snapshots(dir)
 
   let lock_exists = @json.exists(@json.join_path(dir, "pnpm-lock.yaml"))
   let lock_mtime = if lock_exists {
@@ -387,6 +389,24 @@ async fn describe_profile(
     ])),
     ("note", @json.JStr(note)),
     ("noteSource", @json.JStr(note_source)),
+    // 配置快照（design/ops-maintenance-jobs.md 第 16.2 节）：每份 { id, at, reason, files, bytes }，
+    // 按时间从新到旧。读不出来给空数组，原因在 snapshotsSource 里 ——
+    // 「没拍过」与「读不到」不是一件事，界面按来源串分得开。
+    (
+      "snapshots",
+      @json.JArr(
+        snapshots.map(fn(s) {
+          @json.JObj([
+            ("id", @json.JStr(s.id)),
+            ("at", @json.JStr(s.at)),
+            ("reason", @json.JStr(s.reason)),
+            ("files", @json.jint(s.files)),
+            ("bytes", @json.JNum(s.bytes.to_int().to_double())),
+          ])
+        }),
+      ),
+    ),
+    ("snapshotsSource", @json.JStr(snapshots_source)),
     ("dirMtimeMs", @json.int64_or_null(dir_mtime)),
     ("dirMtimeSource", @json.JStr(dir_mtime_source)),
     ("lock", @json.JObj([

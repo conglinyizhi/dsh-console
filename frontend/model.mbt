@@ -361,6 +361,23 @@ pub(all) struct ProfileBundles {
 pub extend ProfileBundles with Eq::{ not_equal, equal }
 
 ///|
+/// 一份配置快照（design/ops-maintenance-jobs.md 第 16.2 节）。
+///
+/// 后端每只 profile 给一个 snapshots 数组，从新到旧。at 是 ISO 时刻；
+/// reason 是拍的时候写的那句话；files / bytes 是这一份里存了几个文件、共多少字节。
+/// 没有 snapshots 这一项（旧后端）时按空数组解析，界面走空态。
+pub(all) struct SnapshotFact {
+  id : String
+  at : String
+  reason : String
+  files : Int
+  /// meta.json 里记的字节数。接口给的是数字，按 Double 收（与回收站条目同一口径）
+  bytes : Double
+} derive(Eq)
+
+pub extend SnapshotFact with Eq::{ not_equal, equal }
+
+///|
 pub(all) struct ProfileFact {
   name : String
   is_current : Bool
@@ -406,6 +423,12 @@ pub(all) struct ProfileFact {
   package_json_ok : Bool?
   /// dsh.profile.bundles 里有没有 @deepseek-ai/dsh-web-app（false = 命令行型，没有网页入口）
   web_app : Bool?
+  // ── 配置快照（design/ops-maintenance-jobs.md §16.2）──
+  /// 这只 profile 的快照列表，从新到旧。空数组 = 还没拍过（或这一版后端没给这一项，
+  /// 那时 snapshots_source 里会是一句前端补的说明，而不是后端的原因）。
+  snapshots : Array[SnapshotFact]
+  /// 快照读数的来源 / 读不到的原因（后端原样给）
+  snapshots_source : String
 } derive(Eq)
 
 pub extend ProfileFact with Eq::{ not_equal, equal }
@@ -441,6 +464,20 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
         _ => ()
       }
     }
+    let snapshots : Array[SnapshotFact] = []
+    for item in arr_field(fact, "snapshots") {
+      guard item is Json::Object(snapshot) else { continue }
+      snapshots.push({
+        id: str_field(snapshot, "id"),
+        at: str_field(snapshot, "at"),
+        reason: str_field(snapshot, "reason"),
+        files: int_or(snapshot, "files", 0),
+        bytes: match num_field(snapshot, "bytes") {
+          Some(value) => value
+          None => 0.0
+        },
+      })
+    }
     list.push({
       name: str_field(fact, "name"),
       is_current: bool_field(fact, "isCurrent"),
@@ -474,6 +511,16 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       home_profile_dir: str_field(home, "profileDir"),
       home_created_at: opt_str_field(home, "createdAt"),
       home_kind_source: str_field(fact, "homeKindSource"),
+      snapshots,
+      // 字段整个不在（这一版后端还没落地）时补一句前端自己的话：
+      // 那与「后端读了但没有」不是同一件事，不能都写成空。
+      snapshots_source: if has_key(fact, "snapshotsSource") {
+        str_field(fact, "snapshotsSource")
+      } else if has_key(fact, "snapshots") {
+        "读数里没有给快照来源"
+      } else {
+        "这一版读数里没有「配置快照」这一项"
+      },
     })
   }
   Ok({

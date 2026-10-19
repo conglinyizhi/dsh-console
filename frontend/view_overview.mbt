@@ -804,6 +804,155 @@ fn drawer_advanced_toggle(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   )
 }
 
+// ── 配置历史（design/ops-maintenance-jobs.md §16.4）──────────────
+
+///|
+/// 快照那一行的时间：本地短格式（10-19 15:04）。读不出来写「—」，不编一个时刻。
+fn snapshot_time_text(snap : SnapshotFact) -> String {
+  match js_short_time(snap.at) {
+    "" => "—"
+    short => short
+  }
+}
+
+///|
+/// 快照那一行的「N 个文件 · X KB」。体积换算与回收站条目同一套（trash_size_text）。
+fn snapshot_size_text(snap : SnapshotFact) -> String {
+  snap.files.to_string() + " 个文件 · " + trash_size_text(Some(snap.bytes))
+}
+
+///|
+/// 快照原因那一格：空串（只有 meta.json 读不出来时才会）写「没有写原因」，
+/// 不拿「手动快照」冒充一个当时没记下来的原因。
+fn snapshot_reason_text(snap : SnapshotFact) -> String {
+  if snap.reason == "" {
+    "没有写原因"
+  } else {
+    snap.reason
+  }
+}
+
+///|
+/// 快照那一行的悬停：完整原因与拍下来的时刻都在这里（正文里过长的原因会被省略号收掉）。
+fn snapshot_row_hint(snap : SnapshotFact) -> String {
+  let when = if snap.at == "" { "读不到时刻" } else { snap.at }
+  "拍下来的时刻：" + when + "；原因：" + snapshot_reason_text(snap) + "；快照 id：" + snap.id +
+  "；这一份里存了 " + snapshot_size_text(snap) + "。还原会用它的三个文件覆盖现在的内容"
+}
+
+///|
+/// 在列表里找一份快照。找不到给 None（行被重读之后对不上了就什么都不做）。
+fn find_snapshot(snaps : Array[SnapshotFact], id : String) -> SnapshotFact? {
+  for snap in snaps {
+    if snap.id == id {
+      return Some(snap)
+    }
+  }
+  None
+}
+
+///|
+/// 抽屉「配置历史」那一组：创建快照按钮 + 快照列表 + 空态。
+///
+/// 空态只在**真读到空**时出现。读数里根本没有 snapshots 这一项时（旧后端）
+/// 换成一句「这一版读数里没有配置快照」，与「还没拍过」分开说 ——
+/// 把「读不到」写成「没有」，正是这套界面一直要避开的那件事。
+fn snapshot_history(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let busy = row.busy
+  let creatable = row.profile_name is Some(_) && !busy
+  let items : Array[@html.Html] = [
+    @html.div(
+      class="dsh-snapshot-create-line",
+      attrs=mark("drawer-snapshot-create-line", ["overview", "drawer", row.id, "snapshot", "create"]),
+      [
+        @html.button(
+          class="dsh-btn",
+          type_="button",
+          disabled=!creatable,
+          attrs=mark("drawer-snapshot-create", [
+            "overview", "drawer", row.id, "action", "snapshot-create",
+          ])
+            .data_set("action", "snapshot-create")
+            .title(
+              "把 package.json、cordis.patch.yml、pnpm-workspace.yaml 拍成一张快照（有才存），" +
+              "保留最近 20 份；这只 profile 有实例在跑时不让动配置",
+            ),
+          on_click=emit(SnapshotCreate(row.id)),
+          [icon("clock-outline"), @html.span("创建快照")],
+        ),
+      ],
+    ),
+  ]
+  if row.snapshots.length() == 0 {
+    let text = if row.snapshots_source == "这一版读数里没有「配置快照」这一项" {
+      "这一版读数里没有配置快照，暂时拍不了也还原不了。"
+    } else {
+      "还没有快照。动配置之前可以先拍一张，出了问题能还原。"
+    }
+    items.push(
+      @html.p(
+        class="dsh-snapshot-empty",
+        attrs=mark("drawer-snapshot-empty", ["overview", "drawer", row.id, "snapshot", "empty"])
+          .title(row.snapshots_source),
+        text,
+      ),
+    )
+  } else {
+    for snap in row.snapshots {
+      items.push(
+        @html.div(
+          class="dsh-snapshot-row",
+          attrs=mark("drawer-snapshot-row", ["overview", "drawer", row.id, "snapshot", snap.id])
+            .data_set("snapshot", snap.id)
+            .title(snapshot_row_hint(snap)),
+          [
+            @html.span(
+              class="dsh-snapshot-time",
+              attrs=mark("drawer-snapshot-time", [
+                "overview", "drawer", row.id, "snapshot", snap.id, "time",
+              ]),
+              snapshot_time_text(snap),
+            ),
+            @html.span(
+              class="dsh-snapshot-reason",
+              attrs=mark("drawer-snapshot-reason", [
+                "overview", "drawer", row.id, "snapshot", snap.id, "reason",
+              ]),
+              snapshot_reason_text(snap),
+            ),
+            @html.span(
+              class="dsh-snapshot-size",
+              attrs=mark("drawer-snapshot-size", [
+                "overview", "drawer", row.id, "snapshot", snap.id, "size",
+              ]),
+              snapshot_size_text(snap),
+            ),
+            @html.button(
+              class="dsh-snapshot-restore",
+              type_="button",
+              disabled=busy,
+              attrs=mark("drawer-snapshot-restore", [
+                "overview", "drawer", row.id, "snapshot", snap.id, "restore",
+              ])
+                .data_set("snapshot", snap.id)
+                .title("把这份快照里的三个文件写回去；还原之前会先给当前状态拍一张"),
+              on_click=emit(SnapshotRestoreOpen(row.id, snap.id, card_id(row.id))),
+              [@html.text("还原")],
+            ),
+          ],
+        ),
+      )
+    }
+  }
+  @html.div(
+    class="dsh-drawer-history",
+    attrs=mark("drawer-snapshot-history", ["overview", "drawer", row.id, "snapshot", "history"])
+      .data_set("count", row.snapshots.length().to_string())
+      .title("配置快照：" + (if row.snapshots_source == "" { "读数里没给来源" } else { row.snapshots_source })),
+    items,
+  )
+}
+
 ///|
 /// 「配置 home」那一格的三档文字（design/deep-home-isolation.md 第 5 节、
 /// design/ops-maintenance-jobs.md §11.1）。
@@ -1047,6 +1196,9 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     // 是「拿出去用」，不是「拿走」。组名要与里面装的东西逐字对得上。
     ("打开与复制", take),
     ("改动这只 profile", mutate),
+    // 配置历史（§16.4）：动配置之前先拍一张、之后能还原。
+    // 放在「改动这只 profile」下面 —— 它是给这一组那些动作兜底的。
+    ("配置历史", [snapshot_history(row, model, emit)]),
     // 配置 home 单独一组：它改的是「以后实例落在哪儿」，与改名 / 删除不是一类
     ("配置 home", home_items),
     // 「运维」偏行话，换成直白的（使用者 2026-10-16 定的）
@@ -1489,6 +1641,85 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+/// 配置历史的还原确认框：文案照 design/ops-maintenance-jobs.md §16.4。
+///
+/// 「会先用当前状态拍一张」不是安慰话：后端 restore-snapshot 的第二步就是先拍
+/// 一张 reason 为「还原前」的快照，那张拍不成就不动任何文件。
+fn snapshot_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let empty : SnapshotFact = { id: model.snapshot_confirm_snap, at: "", reason: "", files: 0, bytes: 0.0 }
+  let (name, snap) = match find_row(model.rows, model.snapshot_confirm_id) {
+    Some(row) =>
+      match find_snapshot(row.snapshots, model.snapshot_confirm_snap) {
+        Some(found) => (row.name, found)
+        None => (row.name, empty)
+      }
+    None => (model.snapshot_confirm_id, empty)
+  }
+  // 时间读不出来时用「这份快照」：标题与正文说同一件事，不塞一个编出来的时刻。
+  // 正文里的 <时间> 只是时刻本身（不带「那一份」）—— 那句的原话是
+  // 「会先用当前状态拍一张，再把 <时间> 的三个文件写回去」。
+  let stamp = snapshot_time_text(snap)
+  let title = if stamp == "—" {
+    "还原到这份快照？"
+  } else {
+    "还原到 " + stamp + " 那一份？"
+  }
+  let message = if stamp == "—" {
+    "会先用当前状态拍一张，再把这份快照的三个文件写回去"
+  } else {
+    "会先用当前状态拍一张，再把 " + stamp + " 的三个文件写回去"
+  }
+  let card = @html.div(class="dsh-dialog-card", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("snapshot-dialog-title", ["dialog", "snapshot-confirm-dialog", "title"]),
+      title,
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("snapshot-dialog-message", ["dialog", "snapshot-confirm-dialog", "message"]),
+      message,
+    ),
+    @html.p(
+      class="dsh-dialog-note",
+      attrs=mark("snapshot-dialog-what", ["dialog", "snapshot-confirm-dialog", "what"]),
+      name + " 的这一份：" + (if snap.reason == "" { "没有写原因" } else { snap.reason }) + "，" +
+      (if snap.files == 0 { "文件数读不到" } else { snapshot_size_text(snap) }),
+    ),
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id="dsh-snapshot-confirm-ok",
+        class="dsh-dialog-btn primary",
+        type_="button",
+        attrs=mark("snapshot-dialog-ok", ["dialog", "snapshot-confirm-dialog", "ok"]),
+        on_click=emit(SnapshotRestoreConfirm),
+        [@html.text("还原")],
+      ),
+      @html.button(
+        class="dsh-dialog-btn",
+        type_="button",
+        attrs=mark("snapshot-dialog-cancel", ["dialog", "snapshot-confirm-dialog", "cancel"]),
+        on_click=emit(SnapshotRestoreCancel),
+        [@html.text("取消")],
+      ),
+    ]),
+  ])
+  dialog(
+    "snapshot-confirm-dialog",
+    title,
+    emit(SnapshotRestoreCancel),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        SnapshotRestoreCancel
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
+
+///|
 /// 重命名框：预填当前名并全选；空名 / 纯空格禁用确定；Enter 确认、Esc 取消；
 /// 关闭后焦点回到触发元素。
 fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
@@ -1697,6 +1928,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   if model.home_confirm_id.length() > 0 {
     dialogs.push(home_confirm_dialog(model, emit))
+  }
+  if model.snapshot_confirm_id.length() > 0 {
+    dialogs.push(snapshot_confirm_dialog(model, emit))
   }
   if model.rename_id.length() > 0 {
     dialogs.push(rename_dialog(model, emit))

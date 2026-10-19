@@ -1072,6 +1072,34 @@ $drawer-ms: 220ms;
   line-height: 1.5;
   color: $text-dim;
 }
+/* ── 配置历史（design/ops-maintenance-jobs.md §16.4）────────────────
+   这一组给「改动这只 profile」兜底：一颗创建快照 + 一份快照列表。
+   自己占满一整行（.dsh-drawer-btns 是 flex-wrap），列表行横向排：
+   时间 / 原因 / 体积 / 还原。原因过长时用省略号收尾，全文在那一行的悬停里。 */
+.dsh-drawer-history { flex: 0 0 100%; display: flex; flex-direction: column; gap: 4px; }
+.dsh-snapshot-create-line { display: flex; }
+.dsh-snapshot-empty { margin: 0; font-size: 11px; line-height: 1.5; color: $text-dim; }
+.dsh-snapshot-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: $panel-soft;
+  font-size: 11.5px; color: $text-dim;
+}
+.dsh-snapshot-time { color: $text; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dsh-snapshot-reason {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dsh-snapshot-size { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dsh-snapshot-restore {
+  height: 24px; padding: 0 8px;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: transparent; color: $text;
+  font-size: 11.5px; cursor: pointer; white-space: nowrap;
+}
+.dsh-snapshot-restore:hover:not(:disabled) { background: $panel; }
+.dsh-snapshot-restore:disabled { opacity: 0.6; cursor: default; }
 
 // ── 控制按钮（抽屉里那一排；形状与原来的行内按钮组逐条一致） ──
 .dsh-btn {

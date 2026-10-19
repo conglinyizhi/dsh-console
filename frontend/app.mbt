@@ -1363,6 +1363,47 @@ fn action_receipt(
     }
     return (head + tail, backend_hint(note))
   }
+  // 配置快照（design/ops-maintenance-jobs.md §16.3）：回执说清这一趟存了什么 / 还原到哪一份，
+  // 后端原文与快照目录收进悬停。
+  if action == "snapshot-profile" {
+    let (files, bytes, dir, at) = match outcome {
+      Some(o) =>
+        (int_or(o, "files", 0), num_field(o, "bytes"), str_field(o, "dir"), str_field(o, "at"))
+      None => (0, None, "", "")
+    }
+    let when = match js_short_time(at) {
+      "" => ""
+      short => "（" + short + "）"
+    }
+    let text = "已给 " + name + " 拍了一张快照" + when + "：" + files.to_string() + " 个文件 · " +
+      trash_size_text(bytes) + "。"
+    let hint = backend_hint(note) + (if dir == "" { "" } else { "\n快照目录：" + dir })
+    return (text, hint)
+  }
+  if action == "restore-snapshot" {
+    let (at, restored, pre_id, dir) = match outcome {
+      Some(o) =>
+        (
+          str_field(o, "at"),
+          str_array_field(o, "restored"),
+          str_field(obj_field(o, "preSnapshot"), "id"),
+          str_field(o, "dir"),
+        )
+      None => ("", [], "", "")
+    }
+    let when = match js_short_time(at) {
+      "" => "这一份快照"
+      short => short + " 那一份"
+    }
+    let text = if restored.length() == 0 {
+      name + " 已还原到 " + when + "，但那三个文件快照里一个都没有，profile 里的内容没动。"
+    } else {
+      name + " 已还原到 " + when + "（写回 " + restored.join("、") + "）。"
+    }
+    let hint = backend_hint(note) + (if pre_id == "" { "" } else { "\n还原前那张快照：" + pre_id }) +
+      (if dir == "" { "" } else { "\n这一份快照在：" + dir })
+    return (text, hint)
+  }
   if action == "restore-from-trash" || action == "purge-trash-item" {
     let (text, hint) = trash_receipt(action, name, outcome)
     if text != "" {
@@ -1390,6 +1431,19 @@ fn action_receipt(
     name + " 已" + verb + "。"
   }
   (text, backend_hint(note))
+}
+
+///|
+/// 取一个字符串数组字段（不是数组 / 元素不是字符串都按空处理）。
+fn str_array_field(obj : Map[String, Json], key : String) -> Array[String] {
+  let out : Array[String] = []
+  for item in arr_field(obj, key) {
+    match item {
+      Json::String(s) => out.push(s)
+      _ => ()
+    }
+  }
+  out
 }
 
 ///|
@@ -2676,6 +2730,74 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       { ..model, home_confirm_id: "" },
       focus_after_render(model.home_confirm_return),
     )
+    // ── 配置历史（design/ops-maintenance-jobs.md §16.4）────────────
+    // 创建快照是一条真实写动作：回执走全局提示，成功后重读读数 ——
+    // 列表不在这里本地插一条，刷新的是读数，界面自己会变。
+    SnapshotCreate(id) =>
+      match find_row(model.rows, id) {
+        None => (model, @cmd.none)
+        Some(row) =>
+          send_action(
+            model,
+            id,
+            "snapshot-profile",
+            row.name,
+            "创建快照",
+            params_of(profile_name_pairs(row)),
+            emit,
+          )
+      }
+    // 打开还原确认框：先把抽屉收掉（对话框在抽屉之上，背后那张留着没有意义），
+    // 焦点回触发它的那张卡 —— 与删除 / 取消隔离同一套。
+    SnapshotRestoreOpen(id, snap, return_id) => (
+      {
+        ..model,
+        drawer_id: "",
+        snapshot_confirm_id: id,
+        snapshot_confirm_snap: snap,
+        snapshot_confirm_return: return_id,
+      },
+      focus_after_render("dsh-snapshot-confirm-ok"),
+    )
+    // 确认还原：params 带 profile 与 snapshot，二次确认串 RESTORE 走 body 顶层。
+    SnapshotRestoreConfirm =>
+      match find_row(model.rows, model.snapshot_confirm_id) {
+        None => (
+          {
+            ..model,
+            snapshot_confirm_id: "",
+            snapshot_confirm_snap: "",
+            snapshot_confirm_return: "",
+          },
+          focus_after_render(model.snapshot_confirm_return),
+        )
+        Some(row) => {
+          let pairs = profile_name_pairs(row)
+          pairs.push(("snapshot", json_text_literal(model.snapshot_confirm_snap)))
+          let return_id = model.snapshot_confirm_return
+          let confirm_id = model.snapshot_confirm_id
+          let (next, cmd) = send_action(
+            {
+              ..model,
+              snapshot_confirm_id: "",
+              snapshot_confirm_snap: "",
+              snapshot_confirm_return: "",
+            },
+            confirm_id,
+            "restore-snapshot",
+            row.name,
+            "还原快照",
+            params_of(pairs),
+            emit,
+            confirm="RESTORE",
+          )
+          (next, @cmd.batch([cmd, focus_after_render(return_id)]))
+        }
+      }
+    SnapshotRestoreCancel => (
+      { ..model, snapshot_confirm_id: "", snapshot_confirm_snap: "" },
+      focus_after_render(model.snapshot_confirm_return),
+    )
     // 点整张卡：开抽屉，焦点进抽屉里的关闭键。
     // 卡是 role=button + tabindex=0，键盘也能开（Enter / 空格，见 view_overview 的 card_attrs）。
     DrawerOpen(id) =>
@@ -3360,6 +3482,15 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 移动这一枪的回执到了：抽屉里那颗按钮的「正在移动…」随之收掉（成没成都收）。
         if action == "isolate-profile" || action == "deisolate-profile" {
           cleared = { ..cleared, home_move_id: "" }
+        }
+        // 还原这一枪的回执到了：确认框那三格随之清空（成没成都清）
+        if action == "restore-snapshot" {
+          cleared = {
+            ..cleared,
+            snapshot_confirm_id: "",
+            snapshot_confirm_snap: "",
+            snapshot_confirm_return: "",
+          }
         }
         if ok {
           // 回执说人话：谁 + 做了什么 + 结果（见 action_receipt）。
