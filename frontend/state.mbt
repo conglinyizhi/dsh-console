@@ -499,6 +499,20 @@ struct Model {
   promote_loading : Bool
   /// 确认框开着没有（§17.4 那颗「确认替换」之后的框）
   promote_confirm : Bool
+  // 「＋新建实例」对话框（design/design-fixes.md §19.1）：同一个框里两步 —— 选源配置、填名字。
+  /// 框开着没有（空 = 关着）
+  new_open : Bool
+  /// 选中的源 profile 名（空串 = 还没选）。选中那一张卡高亮，创建键按它可点。
+  new_source : String
+  /// 名字输入框里的原文。选源时默认填 <源>-dev，可改。
+  new_name_draft : String
+  /// 上一次创建失败的原因（后端原话）。框开着时写在框里，框不关。
+  new_error : String
+  /// 正在创建（请求已经发出去，两颗键都锁住，免得连点两次派生两份）
+  new_busy : Bool
+  /// 创建成功、等读数落地之后把焦点送到哪一只：存新 profile 名（空串 = 没有等着的那张卡）。
+  /// 新卡是**重读 profiles 之后**才有的，所以焦点不能当场发 —— 由 rebuild 收这一格。
+  new_focus : String
   // 回收站「彻底删除」的确认框：目标目录名（空串 = 框关着）与触发元素 id
   trash_purge_dir : String
   trash_purge_return : String
@@ -823,6 +837,15 @@ priv enum Msg {
   // 带的是包目录与版本号 —— 回执要说清「以后起实例用的是哪一版」，不能只说「成功了」。
   DshVersionPin(String, String)
   DshVersionUnpin
+  // 「＋新建实例」对话框（design/design-fixes.md §19.1）：开 / 选源 / 输入名字 / 创建 / 取消 / 回执。
+  // 创建走既有的 fork-profile（新副本默认隔离），回执单开一条 NewInstanceDone：
+  // 它要塞进框里的失败原因，与别的动作那条通用回执不是同一个去处。
+  NewInstanceOpen
+  NewInstanceClose
+  NewInstanceStatePicked(String)
+  NewInstanceNameInput(String)
+  NewInstanceConfirm
+  NewInstanceDone(Result[String, Error])
   Noop
 }
 
@@ -895,6 +918,12 @@ fn initial_model() -> Model {
     promote_preview_error: "",
     promote_loading: false,
     promote_confirm: false,
+    new_open: false,
+    new_source: "",
+    new_name_draft: "",
+    new_error: "",
+    new_busy: false,
+    new_focus: "",
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
@@ -1227,6 +1256,30 @@ fn promote_confirm_ok_id() -> String {
 ///|
 fn archive_trigger_id(id : String) -> String {
   "dsh-archive-trigger-" + dom_key(id)
+}
+
+///|
+/// 页头那颗「＋新建实例」的 id：对话框关掉之后焦点回它（与重命名 / 备注同一套）。
+fn new_instance_btn_id() -> String {
+  "dsh-new-instance-btn"
+}
+
+///|
+/// 新建实例框里一颗源卡的 DOM id（按 profile 名算，打开时焦点落在第一张可点的卡上）。
+fn new_instance_card_id(name : String) -> String {
+  "dsh-new-instance-card-" + dom_key(name)
+}
+
+///|
+/// 名字输入框的 id：选中源之后焦点与光标送进来，默认那段 <源>-dev 全选，直接打字就是换名。
+fn new_instance_name_id() -> String {
+  "dsh-new-instance-name"
+}
+
+///|
+/// 「创建」那颗键的 id（打开时若一只可用的 profile 都没有，焦点落在这儿）。
+fn new_instance_ok_id() -> String {
+  "dsh-new-instance-ok"
 }
 
 

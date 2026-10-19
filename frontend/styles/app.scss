@@ -205,14 +205,17 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-nav-label {
   font-size: 13px;
 }
+/* 页脚那句「本机运行，仅限回环访问」：10px 太小，一屏里最该读到的边界说明
+   反而比任何一栏次要文字都淡（design/design-fixes.md §19.4）。字号提到 11px，
+   行高跟着按同一比例走（1.45 × 11 ≈ 16px）。 */
 .dsh-side-foot {
   display: flex;
   align-items: center;
   gap: 6px;
   margin: auto 0 0;
   padding: 0 2px;
-  font-size: 10px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.45;
   color: $text-dim;
 }
 .dsh-side-dot {
@@ -1559,6 +1562,40 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 .dsh-dialog-btn:disabled { opacity: 0.5; cursor: default; }
 .dsh-dialog-btn:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 
+// ── 新建实例框（design/design-fixes.md §19.1） ──
+// 比其它对话框宽：里面摆的是「选择配置」那一套卡（图标 + 名字 + 备注 + 读数），
+// 360px 会把它挤成一条。卡片列表自己有上限高度、自己滚 —— 一屏里先看见几只是几只，
+// 不把整个对话框撑到贴满上下边。
+.dsh-new-card {
+  width: min(520px, calc(100vw - 32px));
+}
+.dsh-new-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(46vh, 340px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.dsh-new-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dsh-new-name-label {
+  font-size: 11.5px;
+  color: $text-dim;
+}
+/* 窄屏：卡片列表按视口高度再收一档，名字那一格与两颗键永远看得见 */
+@media (max-width: 819.98px) {
+  .dsh-new-card {
+    width: calc(100vw - 24px);
+  }
+  .dsh-new-pick {
+    max-height: 40vh;
+  }
+}
+
 // ── 实例总览页（OverviewView.vue） ──
 .dsh-overview {
   display: flex;
@@ -1756,6 +1793,26 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 }
 .dsh-log-body {
   color: $text;
+}
+/* 窄屏日志（design/design-fixes.md §19.2）：一行 1152px 塞进 154px 的箱体，
+   只剩时间戳加一个字母 —— 横向滚动在这里不是「看不全」，是没法读。
+   这一档改成换行：时刻与级别留在行首，正文从它俩右边起、按箱体宽度折。
+   宽屏保持行内横向滚动（等宽日志按行对齐更好扫），所以这些规则只在这个断点里。 */
+@media (max-width: 819.98px) {
+  .dsh-log-line {
+    flex-wrap: wrap;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .dsh-log-body {
+    /* 只吃剩下的宽度，不撑破箱体：min-width: 0 是 flex 里换行的前提 */
+    flex: 1 1 0;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .dsh-log-box {
+    overflow-x: hidden;
+  }
 }
 .dsh-log-empty {
   flex: 1;
@@ -2691,6 +2748,13 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   border-color: $line;
   cursor: default;
 }
+// 选中那一条（新建实例框里选源）：底色淡主色 + 左侧一道主色竖条。
+// 卡片是无边框的（第 5 条那条规矩），所以这道条用 box-shadow 画，不新增 1px 边框、
+// 也不改卡片尺寸；鼠标划过时 hover 的底色压不过它（两个类的优先级更高）。
+.dsh-profile-card.chosen {
+  background: rgba($accent-rgb, 0.1);
+  box-shadow: inset 2px 0 0 rgba($accent-rgb, 0.8);
+}
 .dsh-profile-card-sub {
   display: block;
   font-size: 11.5px;
@@ -3050,4 +3114,45 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   font-size: 11.5px;
   line-height: 1.45;
   color: $text-dim;
+}
+
+// ── 关于页 1280×900 首屏装得下（design/design-fixes.md §19.3） ──
+// 现状是内容 979 > 一屏 856（顶栏 44 + 视口 900 里的可用高度），底部被切。
+// 做法：把版本表与手动启动两块的**纵向间距收一档**，内容一个不删 ——
+// 组间距与行内边距各收 2 到 4px，字号、行高、颜色一律不动。
+// 全部规则都收在 .dsh-page 下面：同一个 .dsh-panel / .dsh-row 在维护页也在用，
+// 这里只紧这一页，别处的留白不动。
+.dsh-page {
+  gap: 9px;
+  padding: 14px 22px 18px;
+}
+.dsh-page .dsh-page-head {
+  gap: 4px;
+}
+.dsh-page .dsh-panel {
+  padding: 12px 15px 12px;
+}
+.dsh-page .dsh-panel-title {
+  margin: 0 0 7px;
+}
+.dsh-page .dsh-row {
+  padding: 4px 0;
+}
+.dsh-page .dsh-para {
+  margin-bottom: 4px;
+}
+.dsh-page .dsh-foot {
+  margin-top: 6px;
+}
+.dsh-page .dsh-dsh-pin-line {
+  margin-top: 6px;
+}
+.dsh-page .dsh-manual {
+  gap: 8px;
+}
+.dsh-page .dsh-manual-row {
+  gap: 4px;
+}
+.dsh-page .dsh-manual-cmd {
+  padding: 6px 10px;
 }

@@ -698,6 +698,7 @@ fn profile_pick_card(
   aria_bad : String,
   picked : (String) -> Msg,
   emit : @cmd.Emit[Msg],
+  chosen? : Bool = false,
 ) -> @html.Html {
   let ok = pick.usable
   let why = pick.why
@@ -800,12 +801,17 @@ fn profile_pick_card(
   } else {
     @cmd.none
   }
+  // 选中那一条整张卡再亮一层（底色 + 左侧一道主色竖条）：卡上那枚「已选 / 当前配置」
+  // 是文字通道，这里补的是色块通道 —— 不是只靠颜色，也不是只靠一个字。
+  let base_class = if ok { "dsh-case dsh-profile-card" } else { "dsh-case dsh-profile-card disabled" }
+  let card_class = if chosen && ok { base_class + " chosen" } else { base_class }
   @html.article(
     id=card_id,
-    class=if ok { "dsh-case dsh-profile-card" } else { "dsh-case dsh-profile-card disabled" },
+    class=card_class,
     attrs=mark(mark_prefix + "-card", mark_path(marks, [pick.name]))
       .data_set("usable", if ok { "true" } else { "false" })
       .data_set("group", if pick.running { "running" } else { "stopped" })
+      .data_set("chosen", if chosen { "true" } else { "false" })
       .role("button")
       .tabindex(if ok { 0 } else { -1 })
       .aria_disabled(if ok { "false" } else { "true" })

@@ -66,10 +66,11 @@ fn section_head(group : String, title : String, count : String, tag : SourceTag?
 /// 空态里的行动号召（design/design-fixes.md 第 3 条）：一颗真能点的按钮，
 /// 不是一句「请先…」。样式是线框档（.dsh-empty-cta），一页只有一颗实心主操作。
 ///
-/// 为什么是「重新读一遍」而不是「新建实例」：新建那颗按钮今天没有挂动作
-/// （view_overview 的 dsh-new-btn 没有 on_click），点下去什么都不会发生 ——
-/// 空态里的号召按钮点不动，比没有更糟。重新读数是现成动作：点一下两份读数都重发，
-/// 骨架屏立刻立起来，读完再落回列表或空态。
+/// 为什么是「重新读一遍」而不是「新建实例」：这一格摆的是「扫完了，确实一个都没在跑」——
+/// 这时候要的多半是先确认读数是不是新鲜（另一台窗口里的实例刚停、刚起来），
+/// 重读一次就能分辨。新建一份 profile 与「一个实例都没在跑」不是同一件事，
+/// 那件事由页头那颗「＋新建实例」负责（design/design-fixes.md §19.1 起它会开框）。
+/// 这一颗是现成动作：点一下两份读数都重发，骨架屏立刻立起来，读完再落回列表或空态。
 fn running_empty(summary : String, detail : String, emit : @cmd.Emit[Msg]) -> @html.Html {
   let lines : Array[@html.Html] = [
     @html.span(class="dsh-empty-icon", [icon("server", size=26)]),

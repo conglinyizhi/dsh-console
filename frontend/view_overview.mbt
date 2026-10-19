@@ -2414,6 +2414,205 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   )
 }
 
+// ── 新建实例框（design/design-fixes.md §19.1）───────────────
+
+///|
+/// 第一张可点的源卡是哪一只：开框时焦点落在它身上。
+///
+/// 与「选择配置」侧栏同一个口径（job_profile_first_usable）：顺序就是显示顺序
+/// （运行中那一组在前），「第一张」在界面上是看得见的那一条。
+fn new_instance_first_usable(model : Model) -> String {
+  let (running, stopped) = job_profile_picks(model)
+  for pick in running {
+    if pick.usable {
+      return pick.name
+    }
+  }
+  for pick in stopped {
+    if pick.usable {
+      return pick.name
+    }
+  }
+  ""
+}
+
+///|
+/// 框里的一张源卡：与「选择配置」是**同一份画法**（profile_pick_card），
+/// 只是换一套 data-name 与消息。选中那一张挂一枚「已选」—— 文字标记，不只靠高亮色。
+fn new_instance_source_card(
+  model : Model,
+  pick : ProfilePick,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let selected = pick.name == model.new_source
+  let ok = pick.usable
+  let aria = if ok { "用 " + pick.name + " 当源配置" } else { pick.name + " 不可用：" + pick.why }
+  profile_pick_card(
+    pick,
+    new_instance_card_id(pick.name),
+    "new-instance",
+    ["overview", "new-instance"],
+    if selected { "已选" } else { "" },
+    aria,
+    aria,
+    fn(name) { NewInstanceStatePicked(name) },
+    emit,
+    chosen=selected,
+  )
+}
+
+///|
+/// 框里的一组源卡：分组头（与「选择配置」同一个说法）+ 卡片。
+fn new_instance_group(
+  key : String,
+  title : String,
+  picks : Array[ProfilePick],
+  model : Model,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let cards : Array[@html.Html] = []
+  for pick in picks {
+    cards.push(new_instance_source_card(model, pick, emit))
+  }
+  @html.div(
+    class="dsh-profile-sidebar-group",
+    attrs=mark("new-instance-group", ["overview", "new-instance", "group", key])
+      .data_set("group", key),
+    [
+      @html.h3(
+        class="dsh-profile-sidebar-group-title",
+        attrs=mark("new-instance-group-title", ["overview", "new-instance", "group", key, "title"]),
+        title + " (" + picks.length().to_string() + ")",
+      ),
+      @html.div(
+        class="dsh-profile-sidebar-list",
+        attrs=mark("new-instance-list", ["overview", "new-instance", "list", key]),
+        cards,
+      ),
+    ],
+  )
+}
+
+///|
+/// 「＋新建实例」的居中对话框：两步在同一个框里 —— 选源配置、填名字。
+///
+/// 源卡是「选择配置」那一套（全部 profile，含隔离的）；名字默认 `<源>-dev`，可改。
+/// 底部两颗键：创建走既有 fork-profile（新副本默认隔离），取消把焦点还给页头那颗按钮。
+/// 创建失败**不关框**：后端原话写在框里，改个名字就能再点一次。
+fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let (running, stopped) = job_profile_picks(model)
+  let picks : Array[@html.Html] = []
+  if running.length() == 0 && stopped.length() == 0 {
+    picks.push(
+      @html.p(
+        class="dsh-empty-sub",
+        attrs=mark("new-instance-empty", ["overview", "new-instance", "empty"]),
+        "还没读到 profile 读数，等读数回来再挑。",
+      ),
+    )
+  } else {
+    if running.length() > 0 {
+      picks.push(new_instance_group("running", "当前运行的实例", running, model, emit))
+    }
+    if stopped.length() > 0 {
+      picks.push(new_instance_group("stopped", "已停止的实例", stopped, model, emit))
+    }
+  }
+  let source_text = if model.new_source == "" {
+    "还没选"
+  } else {
+    model.new_source
+  }
+  let can_create = model.new_source != "" && model.new_name_draft.trim() != "" && !model.new_busy
+  let error_block = if model.new_error.length() > 0 {
+    @html.p(
+      class="dsh-dialog-error",
+      attrs=mark("new-instance-error", ["dialog", "new-instance", "error"]),
+      model.new_error,
+    )
+  } else {
+    @html.nothing
+  }
+  let card = @html.div(class="dsh-dialog-card dsh-new-card", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("new-instance-title", ["dialog", "new-instance", "title"]),
+      "新建实例",
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("new-instance-message", ["dialog", "new-instance", "message"]),
+      "从一只现有的配置派生一份新副本。新副本默认隔离到自己的 home，源配置一份都不动。",
+    ),
+    @html.div(
+      class="dsh-new-pick",
+      attrs=mark("new-instance-pick", ["dialog", "new-instance", "pick"]),
+      picks,
+    ),
+    @html.div(class="dsh-new-name", [
+      @html.label(
+        class="dsh-new-name-label",
+        for_=new_instance_name_id(),
+        attrs=mark("new-instance-name-label", ["dialog", "new-instance", "name-label"]),
+        "新实例名字（源配置：" + source_text + "）",
+      ),
+      @html.input(
+        input_type=Text,
+        id=new_instance_name_id(),
+        class="dsh-dialog-input",
+        value=model.new_name_draft,
+        attrs=mark("new-instance-name", ["dialog", "new-instance", "name"])
+          .aria_label("新实例名字")
+          .spellcheck(false)
+          // Enter 只挂在名字这一格上，不挂整个框：源卡自己也吃 Enter（选中），
+          // 挂在框上会让「回车选源」同一次按键里顺手把实例也建了。
+          .on_keydown(fn(event) {
+            if event.key() == "Enter" {
+              emit(NewInstanceConfirm)
+            } else {
+              @cmd.none
+            }
+          }),
+        on_input=emit.map(fn(text) { NewInstanceNameInput(text) }),
+      ),
+    ]),
+    error_block,
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id=new_instance_ok_id(),
+        class="dsh-dialog-btn primary",
+        type_="button",
+        disabled=!can_create,
+        attrs=mark("new-instance-ok", ["dialog", "new-instance", "ok"]),
+        on_click=emit(NewInstanceConfirm),
+        [@html.text(if model.new_busy { "正在创建…" } else { "创建" })],
+      ),
+      @html.button(
+        id="dsh-new-instance-cancel",
+        class="dsh-dialog-btn",
+        type_="button",
+        disabled=model.new_busy,
+        attrs=mark("new-instance-cancel", ["dialog", "new-instance", "cancel"]),
+        on_click=emit(NewInstanceClose),
+        [@html.text("取消")],
+      ),
+    ]),
+  ])
+  dialog(
+    "new-instance-dialog",
+    "新建实例",
+    emit(NewInstanceClose),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        NewInstanceClose
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
+
 // ── 页面 ───────────────────────────────────────────────────
 
 ///|
@@ -2490,6 +2689,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.note_open.length() > 0 {
     dialogs.push(note_dialog(model, emit))
   }
+  if model.new_open {
+    dialogs.push(new_instance_dialog(model, emit))
+  }
   let body : Array[@html.Html] = [
     @html.section(class="dsh-overview-page", [
       @html.header(class="dsh-overview-head", [
@@ -2498,10 +2700,13 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           source_badge(model.tag_runtime, ["overview", "head", "source-badge"]),
           @html.span(class="dsh-head-note", "点卡片看读数与控制；灯旁边的词就是状态"),
         ]),
+        // 页头的主操作：点开新建实例框（§19.1）。它不再是颗点了没反应的按钮。
         @html.button(
+          id=new_instance_btn_id(),
           class="dsh-new-btn",
           type_="button",
           attrs=mark("new-instance", ["overview", "new-instance"]),
+          on_click=emit(NewInstanceOpen),
           [@html.span(class="dsh-plus", "＋"), @html.span("新建实例")],
         ),
       ]),

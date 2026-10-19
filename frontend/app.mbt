@@ -211,10 +211,37 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     // 刚补发了一次读取：加载态立起来，回执到了再放下去
     log_loading: if reload { true } else { model.log_loading },
   }
-  // 列表拼好之后还有一件跟读数有关的事要办：启动成功的那只实例，
-  // 它在点击那一栈里占下的标页正等着带令牌的地址（见 fill_start_tab）
-  let (filled, waiting) = fill_start_tab(next, emit)
-  (filled, @cmd.batch([cmd, waiting]))
+  // 列表拼好之后还有两件跟读数有关的事要办：
+  //   ① 启动成功的那只实例，它在点击那一栈里占下的标页正等着带令牌的地址（见 fill_start_tab）；
+  //   ② 刚创建出来的那份 profile 的卡，焦点要落在它身上（§19.1）。
+  //      「刚创建」那一枪的回执里只有名字，卡是这一次重读之后才有的 —— 所以只能在这里收。
+  let (focused, focus_new) = focus_new_card(next)
+  let (filled, waiting) = fill_start_tab(focused, emit)
+  (filled, @cmd.batch([cmd, waiting, focus_new]))
+}
+
+///|
+/// 新建实例之后那把焦点：读数落地、列表里真有那只 profile 的卡，才把焦点送过去。
+///
+/// 找不到就只清掉这一格：读数已经重读过了，列表里没有它就是真没有（派生那一步
+/// 可能没成），留着一个指不到的 id 只会让下一次重读也来发一枪空焦点。
+fn focus_new_card(model : Model) -> (Model, @cmd.Cmd) {
+  if model.new_focus == "" {
+    return (model, @cmd.none)
+  }
+  let mut target = ""
+  for row in model.rows {
+    match row.profile_name {
+      Some(name) => if name == model.new_focus {
+        target = row.id
+      }
+      None => ()
+    }
+  }
+  if target == "" {
+    return ({ ..model, new_focus: "" }, @cmd.none)
+  }
+  ({ ..model, new_focus: "" }, focus_after_render(card_id(target)))
 }
 
 // ── 行操作 ─────────────────────────────────────────────────
@@ -1774,6 +1801,65 @@ fn note_settled(
   } else {
     ({ ..base, note_error: note }, @cmd.none)
   }
+}
+
+///|
+/// 「＋新建实例」这一枪的回执（design/design-fixes.md §19.1）。
+///
+/// 成：回执写新名字与它隔离到哪儿，框关掉，重读读数；新卡要等读数落地才有，
+/// 所以焦点不在这里发 —— 把名字记进 new_focus，由 rebuild 在列表拼好之后送过去。
+/// 败：**框不关**，后端原话写在框里。用户改个名字就能再点一次创建；
+/// 关掉的话那句原因就成了一闪而过的提示条。
+///
+/// 两条路都不在本地插一条卡：新卡是重读 profiles 之后由读数给出的，本地先插一条
+/// 会让「看着有、其实没派生」和「派生成功」长得一样。
+fn new_instance_settled(
+  model : Model,
+  res : Result[String, Error],
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let (ok, note) = interpret_http(res)
+  if !ok {
+    return ({ ..model, new_busy: false, new_error: note }, @cmd.none)
+  }
+  let outcome = match outcome_of(res) {
+    Some(fields) => fields
+    None =>
+      return (
+        { ..model, new_busy: false, new_error: "回执里没有 outcome，这一版认不出派生结果" },
+        @cmd.none,
+      )
+  }
+  // 新名字以**回执**为准：重名时后端会自动加序号，前端猜不出它加到几
+  let created = str_field(outcome, "newName")
+  let source = str_field(outcome, "profile")
+  let home = obj_field(outcome, "home")
+  let home_path = str_field(home, "path")
+  let home_error = str_field(home, "error")
+  let name = if created == "" { model.new_name_draft.trim().to_owned() } else { created }
+  // 隔离建成与没建成是两件事：没建成时不能说「已隔离到」，那是假报
+  let text = if home_path != "" {
+    "已创建 " + name + "（已隔离到 " + home_path + "）"
+  } else if home_error != "" {
+    "已创建 " + name + "（隔离 home 没建成：" + home_error + "，它现在与别的 profile 共用 DSH_HOME）"
+  } else {
+    "已创建 " + name
+  }
+  let hint = backend_hint(note) + (if source == "" { "" } else { "\n源配置：" + source })
+  let closed = notice_ok(
+    {
+      ..model,
+      new_open: false,
+      new_source: "",
+      new_name_draft: "",
+      new_error: "",
+      new_busy: false,
+      new_focus: name,
+    },
+    text,
+    hint,
+  )
+  refresh_readings(closed, emit)
 }
 
 ///|
@@ -3490,6 +3576,87 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         )
       }
     }
+    // ── 新建实例框（design/design-fixes.md §19.1）─────────────
+    // 开框：清掉上一次的错与草稿，焦点落在第一张可点的源卡上（一只都没有就落「创建」键）。
+    NewInstanceOpen => {
+      let first = new_instance_first_usable(model)
+      (
+        {
+          ..model,
+          new_open: true,
+          new_source: "",
+          new_name_draft: "",
+          new_error: "",
+          new_busy: false,
+        },
+        if first == "" {
+          focus_after_render(new_instance_ok_id())
+        } else {
+          focus_after_render(new_instance_card_id(first))
+        },
+      )
+    }
+    // 取消 / Esc / 点遮罩：框关掉，草稿与错误一起清掉，焦点回页头那颗按钮。
+    // 创建中不许关：请求已经出去了，关掉框会让人以为没创建（回执照样会把它关掉）。
+    NewInstanceClose =>
+      if model.new_busy {
+        (model, @cmd.none)
+      } else {
+        (
+          { ..model, new_open: false, new_source: "", new_name_draft: "", new_error: "" },
+          focus_after_render(new_instance_btn_id()),
+        )
+      }
+    // 选中一只源：名字默认填 <源>-dev。已经亲手改过名字的（不等于上一个默认值）就不覆盖，
+    // 换源不该把人家刚打的字抹掉。
+    NewInstanceStatePicked(name) => {
+      let draft = model.new_name_draft.trim().to_owned()
+      let keep = draft != "" &&
+        !(model.new_source != "" && draft == model.new_source + "-dev")
+      let next = {
+        ..model,
+        new_source: name,
+        new_name_draft: if keep { model.new_name_draft } else { name + "-dev" },
+        new_error: "",
+      }
+      // 焦点与光标送进名字那一格，默认那段选上：接着打字就是改名
+      (next, focus_select_after_render(new_instance_name_id()))
+    }
+    NewInstanceNameInput(text) => ({ ..model, new_name_draft: text, new_error: "" }, @cmd.none)
+    // 创建：走既有 fork-profile（新副本默认隔离）。名字按输入框的原话发，
+    // 空名字不带 newName —— 后端自己会按 <源>-dev 起一个。
+    NewInstanceConfirm => {
+      let source = model.new_source
+      let draft = model.new_name_draft.trim().to_owned()
+      if source == "" || draft == "" || model.new_busy {
+        (
+          {
+            ..model,
+            new_error: if source == "" {
+              "先选一只源配置，再创建"
+            } else {
+              "名字不能为空"
+            },
+          },
+          @cmd.none,
+        )
+      } else {
+        (
+          { ..model, new_busy: true, new_error: "" },
+          new_instance_cmd(source, draft, emit),
+        )
+      }
+    }
+    NewInstanceDone(res) => {
+      let (next, cmd) = new_instance_settled(model, res, emit)
+      // 失败时把焦点拉回名字那一格：要改的就是那里
+      if next.new_error != "" {
+        (next, @cmd.batch([cmd, focus_select_after_render(new_instance_name_id())]))
+      } else {
+        (next, cmd)
+      }
+    }
+
     // 删除也是真实动作：POST delete-profile。删掉的行由重读 profiles 之后消失，
     // 不在这里先手动抹掉 —— 后端失败时列表不该少一行。
     DeleteConfirm => {

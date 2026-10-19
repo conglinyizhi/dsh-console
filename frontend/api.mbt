@@ -226,6 +226,31 @@ fn promote_preview_cmd(from : String, to : String, emit : @cmd.Emit[Msg]) -> @cm
 }
 
 ///|
+/// POST /api/local/action 的 **fork-profile**，从「＋新建实例」框里发
+/// （design/design-fixes.md §19.1）。
+///
+/// 单开一条而不是复用 action_cmd：这条回执里有两样别处没有的东西 ——
+///   ① 新名字与它隔离到哪儿，要拼成一句「已创建 <名字>（已隔离到 <路径>）」；
+///   ② 失败的原因要**写进那个还开着的框**里，而不是挂到全局提示条上。
+/// 复用通用回执的话，这两种去处都没有位置。
+fn new_instance_cmd(source : String, name : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  let params = "{\"profile\":" + json_text_literal(source) + ",\"newName\":" +
+    json_text_literal(name) + "}"
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(NewInstanceDone(res)) },
+    async fn() {
+      let text : String = js_http_call(
+        "POST",
+        "/api/local/action",
+        action_body("fork-profile", params),
+        write_headers(),
+      ).wait().cast()
+      text
+    },
+  )
+}
+
+///|
 /// POST /api/local/action 的 **set-row-order**：body 是 { action, params: { order: [...] } }。
 ///
 /// 为什么单开一条而不是复用 action_cmd：这条回执要做一件别处不做的事 ——
