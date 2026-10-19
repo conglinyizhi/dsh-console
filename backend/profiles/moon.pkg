@@ -3,6 +3,7 @@ import {
   "conglinyizhi/dsh-console-backend/fsx",
   "conglinyizhi/dsh-console-backend/localapi",
   "conglinyizhi/dsh-console-backend/runtime",
+  "conglinyizhi/dsh-console-backend/store",
   "moonbitlang/async",
   "moonbitlang/async/fs",
 }

@@ -151,6 +151,12 @@ struct Row {
   profile_hint : String
   home_hint : String
   url : String
+  /// 「有地址可复制」这个标记：只有**真在跑、地址不是占位串**的行才是 true。
+  ///
+  /// 为什么要有它：停用行的 url 是「已停用，无法访问」这个占位串，抽屉里那颗
+  /// 「复制访问地址」却亮着，点下去把这句占位话写进剪贴板（design/ops-maintenance-jobs.md §13.1）。
+  /// 判据放在行上，视图按它置灰、复制动作自己也按它拦一道 —— 两道都从这一个值走。
+  url_copyable : Bool
   /// 带令牌的访问地址（能直接过握手）。None = 读不到令牌 ——
   /// 「打开 Web UI」这时**不打开任何标签页**，把原因与裸地址说清就停。
   web_url : String?
@@ -429,10 +435,18 @@ struct Model {
   note_saving : String
   confirm_id : String
   confirm_return : String
-  // 取消隔离的确认框：目标行 id（空串 = 框关着）与触发元素 id。
+  /// 点开删除确认框**那一刻**是哪种模式（true = 彻底删除，不进回收站）。
+  ///
+  /// 按当时记下来、按记下来的发请求（design/ops-maintenance-jobs.md §13.2）：
+  /// 确认框开着的时候设置页可能把它改了，事后再去读一遍设置就是「靠事后猜」。
+  confirm_hard : Bool
+  // 移回共用 home 的确认框：目标行 id（空串 = 框关着）与触发元素 id。
   // 与删除确认框分开一格：两个框说的是两件事，共用一个字段会让「关掉一个，另一个也关了」。
   home_confirm_id : String
   home_confirm_return : String
+  /// 正在移动的那一行（空串 = 没有在移）。抽屉里那颗按钮在这期间显示「正在移动…」并禁用 ——
+  /// 移动是一次可能耗时（跨盘退回复制时尤其）的真实文件操作，按下去没反应最容易被再点一次。
+  home_move_id : String
   // 回收站「彻底删除」的确认框：目标目录名（空串 = 框关着）与触发元素 id
   trash_purge_dir : String
   trash_purge_return : String
@@ -651,11 +665,13 @@ priv enum Msg {
   NoteInput(String)
   NoteConfirm
   NoteCancel
-  DeleteOpen(String, String)
+  /// 打开删除确认框：目标行 id + 触发元素 id + **点下去那一刻是不是彻底删除**
+  /// （Shift 按住，或回收站关掉）。第三格按当时定，确认框的三处文案与请求都照它走。
+  DeleteOpen(String, String, Bool)
   DeleteConfirm
   DeleteCancel
-  // 配置 home（design/deep-home-isolation.md）：隔离 / 取消隔离。
-  // 隔离本身只建不改，点了就发（走 RowAction 里的 IsolateHome）；
+  // 配置 home（design/deep-home-isolation.md）：移到独立 home / 移回共用 home。
+  // 移动本身不改配置内容，点了就发（走 RowAction 里的 IsolateHome）；
   // 取消隔离是破坏性动作，先开确认框 —— 这三条是那个框的三拍。
   HomeDeisolateOpen(String, String)
   HomeDeisolateConfirm
@@ -775,8 +791,11 @@ fn initial_model() -> Model {
     note_saving: "",
     confirm_id: "",
     confirm_return: "",
+    // 没点开过确认框：这一格没有意义，缺省按「进回收站」那一支（框真开时会被覆盖）。
+    confirm_hard: false,
     home_confirm_id: "",
     home_confirm_return: "",
+    home_move_id: "",
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
@@ -2118,6 +2137,10 @@ fn running_rows(
       },
       home_hint: fact.dsh_home_source,
       url: fact.url,
+      // 「有地址可复制」= 真在跑 **且** 这一格不是占位串。两个条件都要看：
+      // 判据是地址本身，不是「这一行走到了哪个分支」——实例读数理论上也可能给不出地址，
+      // 那时按钮照旧不该亮（§13.1 的口径）。
+      url_copyable: fact.url != "" && fact.url != "—" && fact.url != "已停用，无法访问",
       // 带令牌的地址来自后端（按实例端口对出来的那一条），前端不自己拼、也不缓存
       web_url: fact.web_url,
       web_url_source: fact.web_url_source,
@@ -2396,6 +2419,9 @@ fn profile_rows(
         "它与控制台自己的 home 可以相同、也可以不同。这一格说的是这一只属于哪儿，不是控制台在用什么"
       },
       url: "已停用，无法访问",
+      // 占位串不是地址：这一行**没有**可复制的东西（§13.1）。
+      // 「复制访问地址」按这一格置灰，复制动作也按它拦一道 —— 不许把这句占位话写进剪贴板。
+      url_copyable: false,
       // 这只 profile 现在没有在跑的实例：没有地址可握手，也就没有令牌可读
       web_url: None,
       web_url_source: "这只 profile 现在没有在运行的实例，没有访问地址可握手",
@@ -2535,6 +2561,7 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
       "这是这一只自己的 home，不是控制台当前在用的那一个"
     },
     url: "—",
+    url_copyable: false,
     web_url: None,
     web_url_source: "磁盘上没有这只 profile 的目录，没有实例可读，也没有令牌",
     plugin_count: "—",
@@ -2589,7 +2616,8 @@ fn demo_running() -> Array[Row] {
       tone: Accent, status: Running, uptime: Some(138), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "main", home: "/Users/you/.dsh/work-main",
-      url: "http://127.0.0.1:8100", web_url: None,
+      // 演示行不是读数：没有真在跑的实例，地址是编的 —— 不当成「有地址可复制」
+      url: "http://127.0.0.1:8100", url_copyable: false, web_url: None,
       web_url_source: "演示数据：端口 8100 上没有真实实例，读不到令牌",
       plugin_count: "5 个", plugin_detail: "",
       deletable: false, archived_at: None, archive_home: "",
@@ -2615,7 +2643,7 @@ fn demo_running() -> Array[Row] {
       tone: Violet, status: Running, uptime: Some(42), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "dev", home: "/Users/you/.dsh/plugin-dev",
-      url: "http://127.0.0.1:8200", web_url: None,
+      url: "http://127.0.0.1:8200", url_copyable: false, web_url: None,
       web_url_source: "演示数据：端口 8200 上没有真实实例，读不到令牌",
       plugin_count: "2 个（开发中）", plugin_detail: "",
       deletable: true, archived_at: None, archive_home: "",
@@ -2647,7 +2675,7 @@ fn demo_stopped() -> Array[Row] {
       tone: Violet, status: Stopped, uptime: Some(0), uptime_hint: "",
       port_note: "", idle_note: "", note: "", busy: false,
       version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "staging", home: "/Users/you/.dsh/staging",
-      url: "http://127.0.0.1:8300", web_url: None,
+      url: "http://127.0.0.1:8300", url_copyable: false, web_url: None,
       web_url_source: "演示数据：端口 8300 上没有真实实例，读不到令牌",
       plugin_count: "3 个", plugin_detail: "",
       deletable: true, archived_at: None, archive_home: "",

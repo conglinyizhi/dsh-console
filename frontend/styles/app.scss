@@ -30,12 +30,17 @@ $violet-rgb: 157, 123, 255;
 $ok: #4ec27a;
 $warn: #e0a458;
 $danger: #e0685f;
+// 金色：只给「独立 home」这一件事用（design/deep-home-isolation.md §9.6）。
+// 它不参与状态色（绿 / 红 / 灰）那一套：状态灯照旧由运行状态决定，金边说的是
+// 「这只 profile 的目录在它自己的 home 里」，两件事互不覆盖。
+$gold: #d8b25a;
 // 需要带透明度时用这几个 RGB 三元组，不要写 rgba($ok, 0.1)：
 // precss 不做颜色函数求值，那样会原样吐成 `rgba(#4ec27a, 0.1)` —— 浏览器认不了，
 // 整条声明被丢掉，背景/描边会静默回落成上一条规则的值。三元组走的是纯文本替换。
 $ok-rgb: 78, 194, 122;
 $warn-rgb: 224, 164, 88;
 $danger-rgb: 224, 104, 95;
+$gold-rgb: 216, 178, 90;
 $radius: 10px;
 $radius-sm: 6px;
 
@@ -566,6 +571,41 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-case:hover { background: $panel-soft; border-color: $line-strong; }
 .dsh-case:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+
+/* ── 独立 home 的卡：一道金边（design/deep-home-isolation.md §9.6）────────────────
+   三条口径，缺一条就不成立：
+     1. 描边挂在**卡片本身**上（.dsh-case），不挂在状态灯上：灯的颜色照旧只看运行状态
+        （绿 / 红 / 灰），两件事各说各的；
+     2. 这一条要压过任何按状态给卡片上色的规则。写法上故意把选择器加重
+        （两个类 + 一个属性选择器 = 0,3,0，比 .dsh-case[data-status="…"] 那种 0,2,0 重），
+        并且排在 .dsh-case:hover 之后 —— 以后再加状态色规则也盖不掉它；
+     3. 金色不作唯一信号：卡上还有一个「独立 home」小金标（.dsh-home-badge，文字 + 金边）。 */
+.dsh-case.dsh-case-home-isolated[data-status] {
+  border-color: $gold;
+  /* 一圈很淡的金色内晕：在深色底上，纯描边容易被看成「选中态」，加这层才读得出是归属 */
+  box-shadow: inset 0 0 0 1px rgba($gold-rgb, 0.18);
+}
+.dsh-case.dsh-case-home-isolated[data-status]:hover {
+  border-color: $gold;
+  background: $panel-soft;
+}
+/* 小金标：名字后面那一个。line-height 16 + 上下 padding 各 1 + 边框 1 = 20 < 第一行 22，
+   所以带标与不带标的卡片**一样高**（卡片高度不变式：70px），响应式列数不用重算。 */
+.dsh-home-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid rgba($gold-rgb, 0.52);
+  border-radius: 999px;
+  background: rgba($gold-rgb, 0.12);
+  color: $gold;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 /* 右半那两行。justify-content: center 是**关键的一条**：
    只有一行的时候（没有备注也没有时刻），这一行要落在图标的正中间 ——
    与第七轮「名字在 40px 行里居中」的位置一模一样，条目因此逐像素不变。
@@ -1025,6 +1065,32 @@ $drawer-ms: 220ms;
 }
 .dsh-btn:hover { background: $panel-soft; }
 .dsh-btn:disabled { opacity: 0.6; cursor: default; }
+/* 危险动作那一档（抽屉里的「删除」）。与 .dsh-archive-btn.danger / .dsh-trash-btn.danger
+   同一副脸色：平时只是红字红边 —— 「按住 Shift 变红」才需要一条比它更重的样子。 */
+.dsh-btn.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
+.dsh-btn.danger:hover:not(:disabled) { background: rgba($danger-rgb, 0.12); }
+
+/* ── 删除按钮的 Shift 语义（design/ops-maintenance-jobs.md §13.2）────────────────
+   两条路都指向同一副「彻底删除」的样子，而且都不走状态回环：
+     · data-mode="hard"：回收站关着（safety.deleteToTrash=false）—— **始终**红底 + 彻底删除，
+       不管按没按 Shift；这一格由后端读数在渲染时定。
+     · body[data-shift="1"]：文档级 keydown / keyup 打的标记（见 dom.mbt 的 js_shift_watch）。
+       按住的那一刻直接换色换字，没有「事件 → update → 重渲染」那一拍。
+  标签两段都在 DOM 里（.dsh-delete-soft / .dsh-delete-hard），显示哪一段由这两条规则决定。 */
+.dsh-btn.dsh-delete .dsh-delete-hard { display: none; }
+.dsh-btn.dsh-delete[data-mode="hard"] .dsh-delete-soft { display: none; }
+.dsh-btn.dsh-delete[data-mode="hard"] .dsh-delete-hard { display: inline; }
+.dsh-btn.dsh-delete[data-mode="hard"] {
+  background: $danger; border-color: transparent; color: #fff;
+}
+body[data-shift="1"] .dsh-btn.dsh-delete .dsh-delete-soft { display: none; }
+body[data-shift="1"] .dsh-btn.dsh-delete .dsh-delete-hard { display: inline; }
+body[data-shift="1"] .dsh-btn.dsh-delete {
+  background: $danger; border-color: transparent; color: #fff;
+}
+/* 灰掉的那一颗（没在跑的行的「复制访问地址」）不跟着 Shift 变样：它的 disabled 状态
+   由 .dsh-btn:disabled 那条给（透明度 + 不看指针），这里只补一句「不响应悬停高亮」。 */
+.dsh-btn:disabled:hover { background: transparent; }
 .dsh-btn.primary {
   border-color: transparent; color: #fff;
   background: var(--btn-bg, $accent);

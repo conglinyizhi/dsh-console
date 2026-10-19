@@ -35,6 +35,16 @@ pub let homes_root_env : String = "DSH_CONSOLE_HOMES_ROOT"
 pub let isolation_marker : String = ".dsh-console-isolation.json"
 
 ///|
+/// 回收站里放「整份额外 home」的那一格目录名（design/deep-home-isolation.md 第 9.4 节）：
+/// `<trash>/homes/<名字>-<毫秒>/`。
+///
+/// 与回收站里 profile 目录那一条不同：这一格装的是**一整份 home**（里面有 profiles/、
+/// sessions/、logs/ 与插件写在根下的目录），不是一只 profile 的目录。所以它放在子目录里，
+/// 而且回收站的列表与恢复 / 彻底删除都要把它当成「容器」跳过 —— 拿它当条目去恢复，
+/// 就是把整份 home 当成一只 profile 挪进别人的 profiles/ 里。
+pub let trash_homes_dir : String = "homes"
+
+///|
 /// 读数里的两档归属。
 pub let home_kind_isolated : String = "isolated"
 pub let home_kind_shared : String = "shared"
@@ -135,6 +145,56 @@ pub async fn default_home_of(name : String) -> (String, String) noraise {
       (dsh_home, home_kind_shared)
     }
   }
+}
+
+///|
+/// 这只 profile 的目录**现在**在磁盘上的哪儿，以及它属于哪一份 home。
+///
+/// 真移动之后这两件事必须一起回答（以前是复制，共用那一份还在，只按 DSH_HOME 拼也对）：
+///   隔离的那一只 → <root>/<名字>/profiles/<名字>（它的目录已经搬进自己的 home）
+///   共用的那一只 → <DSH_HOME>/profiles/<名字>
+///
+/// 返回 (profile 目录, 那一份 home 的根)。名字先过 single_segment —— 拼出来的路径只可能
+/// 是这两条中的一条，不会因为名字里带斜杠跑到别处。
+pub async fn profile_location(name_in : String) -> (String, String) noraise {
+  let name = @json.trim_both(name_in)
+  if !single_segment(name) {
+    // 名字不合法时给共用那一档的拼法：调用方随后一定撞上 not-found，
+    // 而不是被这里领到一个**看着像真的**路径上去动手。
+    let (dsh_home, _) = @runtime.resolve_dsh_home()
+    return (@json.join_path(@json.join_path(dsh_home, "profiles"), name), dsh_home)
+  }
+  match isolated_home_of(name) {
+    Some(home) => (@json.join_all([home, "profiles", name]), home)
+    None => {
+      let (dsh_home, _) = @runtime.resolve_dsh_home()
+      (@json.join_all([dsh_home, "profiles", name]), dsh_home)
+    }
+  }
+}
+
+///|
+/// homes root 下现在有哪些名字是真的隔离 home（<root>/<名字>/profiles/<名字> 是目录）。
+///
+/// 名册只从磁盘读，不从任何记录里猜：试跑的一次性 home（trial- 前缀）不算 ——
+/// 那不是任何一只 profile 的家。真移动之后，总览要靠这一份名册才看得见隔离的那几只
+/// （它们的目录已经不在 <DSH_HOME>/profiles 下了）。
+pub async fn isolated_profile_names() -> Array[String] noraise {
+  let (root, _) = homes_root()
+  let out : Array[String] = []
+  if !@json.is_dir(root) {
+    return out
+  }
+  for entry in @json.list_entries(root) {
+    let (name, is_dir) = entry
+    if !is_dir || !single_segment(name) || name.has_prefix(trial_home_prefix) {
+      continue
+    }
+    if @json.is_dir(@json.join_all([root, name, "profiles", name])) {
+      out.push(name)
+    }
+  }
+  out
 }
 
 ///|
@@ -273,16 +333,20 @@ pub async fn home_fact_in(
 }
 
 ///|
-/// 一次隔离的结果。
+/// 一次「移到独立 home」的结果（规格第 9 节：这是真移动，不是复制）。
 pub(all) struct IsolateOutcome {
   profile : String
   /// 隔离 home 根：<root>/<名字>
   path : String
   /// 配置目录：<root>/<名字>/profiles/<名字>
   profile_dir : String
-  /// 真复制过去的配置份数
-  files_copied : Int
-  /// node_modules 软链指向哪儿
+  /// 移之前它在哪儿：<DSH_HOME>/profiles/<名字>
+  from : String
+  /// 同设备那一条的实测（两边设备号），进回执的悬停当证据
+  device_note : String
+  /// 移动后那三条核对过了（过不了不会走到成功这一支：一律移回原处）
+  verified : Bool
+  /// 移过来的 node_modules 指向哪儿（没有这一项就是空串）
   node_modules_target : String
   /// skills 软链摆上了吗（源 <DSH_HOME>/skills 不存在时不摆）
   skills_linked : Bool
@@ -294,28 +358,139 @@ pub(all) struct IsolateOutcome {
 }
 
 ///|
-/// 一次取消隔离的结果。
+/// 一次「移回共用 home」的结果。
+///
+/// 两件事分开报：profile 目录移回到哪儿（to），以及这份额外 home 里**剩下的**东西
+/// 移进了回收站哪一条（trash_path）。混成一句会让「我的会话还在不在」这个问题没人答。
 pub(all) struct DeisolateOutcome {
   profile : String
-  path : String
-  /// 删之前数出来的文件数与字节数；数不到给 None + 原因
+  /// 移回到哪儿：<DSH_HOME>/profiles/<名字>
+  to : String
+  /// 原来那份额外 home（移完就没了）
+  home : String
+  /// 剩下的东西进了回收站的哪一条：<trash>/homes/<名字>-<毫秒>
+  trash_path : String
+  /// 怎么移进去的、跳过了什么（人话，进悬停）
+  trash_note : String
+  /// 移进回收站那一份的文件数与字节数；数不到给 None + 原因
   files : Int?
   bytes : Int64?
   size_source : String
 }
 
 ///|
-/// 回滚：删掉刚建的 home，并把原因写成一句人话。删不掉也要说出来（不假装收干净了）。
-async fn rollback(
+/// 移动一个目录（rename：同一文件系统上只改目录项，与体积无关）。
+async fn move_dir(from : String, to : String) -> Result[Unit, (String, String)] noraise {
+  match @fsx.rename_path(from, to) {
+    Ok(_) => Ok(())
+    Err(e) => Err(("io-error", "移动没完成：" + e))
+  }
+}
+
+///|
+/// 移动前的前件之一：两边在不在同一个文件系统（规格 9.2 第 1 条）。
+///
+/// 设备号不同就停手：跨盘 rename 会给 EXDEV，退化成「复制再删」之后体积一大就不再是
+/// 瞬时的，而使用者要的是「移动」这件事本身。成功时把实测的设备号写进那句话（进悬停）。
+async fn require_same_device(
+  a : String,
+  b : String,
+) -> Result[String, (String, String)] noraise {
+  let dev_a = match @fsx.dev_of(a) {
+    Ok(d) => d
+    Err(e) => return Err(("io-error", e))
+  }
+  let dev_b = match @fsx.dev_of(b) {
+    Ok(d) => d
+    Err(e) => return Err(("io-error", e))
+  }
+  if dev_a != dev_b {
+    return Err(
+      (
+        "io-error",
+        "两边不在同一个文件系统，移动会退化成复制：把 homes root 放到与 DSH_HOME 同一个盘上再试" +
+        "（" + a + " 的设备号 " + dev_a.to_string() + "，" + b + " 的设备号 " +
+        dev_b.to_string() + "）",
+      ),
+    )
+  }
+  Ok("两边同一个文件系统（设备号 " + dev_a.to_string() + "）：" + a + " 与 " + b)
+}
+
+///|
+/// 移动过关之后又发现不对：把目录移回原处，并把「已经放回原处」这件事写进回执。
+///
+/// 这一支必须把话说全（规格 9.2 第 5 条）：能放回去与放不回去是两种完全不同的处境，
+/// 后者要指名那条路径还在哪儿，不能只报一句「失败」。
+async fn put_back(
   home : String,
+  src_dir : String,
+  profile_dir : String,
   code : String,
   message : String,
 ) -> Result[IsolateOutcome, (String, String)] noraise {
-  let note = match @fsx.remove_tree(home) {
-    Ok(_) => "；刚建的 " + home + " 已删掉（没有留下半成品）"
-    Err(e) => "；刚建的 " + home + " 没能删掉：" + e
+  let note = match @fsx.rename_path(profile_dir, src_dir) {
+    Ok(_) =>
+      match @fsx.remove_tree(home) {
+        Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
+        Err(e) => "；移动没完成，已经放回原处（" + src_dir + "），但刚建的 " + home +
+          " 没能删掉：" + e
+      }
+    Err(e) => "；移动没完成，也没能放回原处：" + e + "（" + profile_dir +
+      " 现在还在那儿，要手动挪回 " + src_dir + "）"
   }
   Err((code, message + note))
+}
+
+///|
+/// 取消隔离时，「剩下的东西」整份移进回收站：<trash>/homes/<名字>-<毫秒>。
+///
+/// 口径（规格 9.4 第 2 条）：不复用、不删 —— 会话、插件状态、日志、插件写在根下的目录
+/// 一起搬进回收站，事后能捞回来。搬的方式先试 rename（同盘 O(1)）；跨盘 rename 会 EXDEV，
+/// 那一支退回复制再删，并把「软链跳过了」写进那句人话（复制只搬普通文件与目录）。
+async fn move_remainder_to_trash(
+  home : String,
+  name : String,
+) -> Result[(String, String), String] noraise {
+  let root = @store.state_paths().trash
+  let bucket = @json.join_path(root, trash_homes_dir)
+  match @fsx.ensure_dir(bucket) {
+    Ok(_) => ()
+    Err(e) => return Err("建不了回收站的 " + bucket + "：" + e)
+  }
+  let stamp = @async.now().to_string()
+  let dest = @json.join_path(bucket, name + "-" + stamp)
+  if @json.exists(dest) {
+    return Err("回收站里已经有这一条了：" + dest + "（不覆盖）")
+  }
+  match @fsx.rename_path(home, dest) {
+    Ok(_) => Ok((dest, "整份 rename 进回收站（同一文件系统，没复制内容）"))
+    Err(first) => {
+      match @fsx.copy_tree(home, dest, []) {
+        Ok(stats) => {
+          let skipped = if stats.skipped.length() > 0 {
+            "；跳过了 " + stats.skipped.join("、")
+          } else {
+            ""
+          }
+          match @fsx.remove_tree(home) {
+            Ok(_) =>
+              Ok(
+                (
+                  dest,
+                  first + "；退回复制再删（" + stats.files.to_string() + " 个文件" + skipped + "）",
+                ),
+              )
+            Err(e) =>
+              Err(
+                first + "；退回复制成功了，但删源头失败：" + e + "（这份东西在两处各有一份）",
+              )
+          }
+        }
+        Err(e) => Err(first + "；退回复制也失败：" + e)
+      }
+    }
+  }
 }
 
 ///|
@@ -374,28 +549,60 @@ async fn add_credentials_patch(path : String, cred_path : String) -> Result[Unit
 }
 
 ///|
-/// 复制完的核对：package.json 读得出来、node_modules 软链指得通、cordis.patch.yml 在。
-/// 任何一条不过给 Some(原因)，调用方据此回滚。
+/// 一份 profile 目录里的 node_modules 指向哪儿：软链就给目标，真实目录或没有就给空串。
+/// 只用于回执里那句证据，不参与判断（判断在 verify_isolated）。
+fn node_modules_target_of(pdir : String) -> String {
+  let link = @json.join_path(pdir, "node_modules")
+  match @json.read_link(link) {
+    Ok(target) => target
+    Err(_) => ""
+  }
+}
+
+///|
+/// 一份 profile 目录的核对（复制完 / 移动完都用这一套）：目录在、package.json 读得出、
+/// node_modules **如果有**就指得通、cordis.patch.yml 在。任何一条不过给 Some(原因)，
+/// 调用方据此回滚或移回原处。
+///
+/// nm_target 非空时还要比对软链目标（复制那条路知道自己摆的是哪一条）；
+/// 移动那条路传空串 —— 移过来的 node_modules 是这一份自己带着的，比对的对象不存在，
+/// 只核对「指得通」。移动不新摆软链，所以真实目录也算过（规格 9.2 第 4 条只在有它时要求）。
 async fn verify_isolated(pdir : String, nm_target : String) -> String? noraise {
+  if !@json.is_dir(pdir) {
+    return Some("profile 目录不在：" + pdir)
+  }
   let pkg = @json.join_path(pdir, "package.json")
   match @json.read_text_file(pkg) {
-    Err(e) => return Some("复制过去的 package.json 读不出来：" + pkg + "（" + e + "）")
+    Err(e) => return Some("package.json 读不出来：" + pkg + "（" + e + "）")
     Ok(text) =>
       match @json.json_parse(text) {
         Some(_) => ()
-        None => return Some("复制过去的 package.json 不是合法 JSON：" + pkg)
+        None => return Some("package.json 不是合法 JSON：" + pkg)
       }
   }
   let link = @json.join_path(pdir, "node_modules")
-  if !@json.is_dir(link) {
-    return Some("node_modules 软链指不到目录：" + link + " -> " + nm_target)
+  let kind = try {
+    @fs.kind(link, follow_symlink=false)
+  } catch {
+    _ => Unknown
   }
-  match @json.read_link(link) {
-    Err(e) => return Some("node_modules 软链读不出目标：" + link + "（" + e + "）")
-    Ok(target) =>
-      if target != nm_target {
+  match kind {
+    Directory => ()
+    SymLink => {
+      let target = match @json.read_link(link) {
+        Err(e) => return Some("node_modules 软链读不出目标：" + link + "（" + e + "）")
+        Ok(target) => target
+      }
+      if !@json.is_dir(link) {
+        return Some("node_modules 软链指不到目录：" + link + " -> " + target)
+      }
+      if nm_target != "" && target != nm_target {
         return Some("node_modules 软链指向 " + target + "，不是 " + nm_target)
       }
+    }
+    Regular =>
+      return Some("node_modules 是个普通文件：" + link + "（既不是目录也不是软链）")
+    _ => ()
   }
   let patch = @json.join_path(pdir, "cordis.patch.yml")
   if !@json.exists(patch) {
@@ -495,9 +702,18 @@ async fn layout_home(
 }
 
 ///|
-/// 建一只 profile 的隔离 home。已存在报 conflict（不覆盖）。
+/// 把一只 profile **移**进它的独立 home（规格第 9 节：真移动，不是复制）。
 ///
-/// 失败一律回滚：删掉刚建的目录再报，不留半成品（规格第 3 节）。
+/// 步骤照 9.2 / 9.3：
+///   1. 前件：名字是单段、原处是真的 profile 目录、目标不存在（不覆盖）、两边同一个文件系统；
+///   2. rename `<DSH_HOME>/profiles/<名字>` → `<root>/<名字>/profiles/<名字>`（同盘 O(1)）；
+///   3. 移动后核对三条（profiles/<名字> 在、package.json 读得出、node_modules 有就指得通）；
+///   4. 再铺隔离 home 的其余部分：skills 软链、logs/、凭证路径那条 patch、隔离记录。
+///
+/// 任何一条不过都**移回原处**，并把「已经放回原处」写进回执（9.2 第 5 条）——
+/// 不留半成品，也不留一只找不着的 profile。
+///
+/// 有实例在跑由调用方（actions 的 isolated_home_guard）先挡：这里只管磁盘。
 pub async fn isolate_profile(
   name_in : String,
 ) -> Result[IsolateOutcome, (String, String)] noraise {
@@ -505,11 +721,16 @@ pub async fn isolate_profile(
   if !single_segment(name) {
     return Err(("bad-params", "profile 名要是单段（不含 / 与 ..，非空）：" + name))
   }
-  let (root, _root_source) = homes_root()
+  let (root, root_source) = homes_root()
   let (dsh_home, _dsh_home_source) = @runtime.resolve_dsh_home()
   let src_dir = @json.join_all([dsh_home, "profiles", name])
   if !@json.is_dir(src_dir) {
-    return Err(("not-found", "profile 目录不存在：" + src_dir))
+    return Err(
+      (
+        "not-found",
+        "profile 目录不存在：" + src_dir + "（homes root 来自 " + root_source + "：" + root + "）",
+      ),
+    )
   }
   let home = isolated_home_dir(root, name)
   // 硬约束：目标必须正好是 <root>/<单段名字>，拼出来不是这一条就不动
@@ -517,52 +738,105 @@ pub async fn isolate_profile(
     return Err(("bad-params", "隔离 home 路径不在 " + root + " 下：" + home))
   }
   if @json.exists(home) {
-    return Err(("conflict", "隔离 home 已经存在：" + home + "（不覆盖；要重建先取消隔离）"))
+    return Err(
+      ("conflict", "隔离 home 已经存在：" + home + "（不覆盖；要重建先移回共用 home）"),
+    )
   }
-  let layout = match layout_home(home, name, src_dir, dsh_home) {
-    Err((code, message)) => return rollback(home, code, message)
-    Ok(got) => got
+  let src_parent = @json.join_all([dsh_home, "profiles"])
+  let dst_parent = @json.join_all([home, "profiles"])
+  match @fsx.ensure_dir(dst_parent) {
+    Ok(_) => ()
+    Err(e) => return Err(("io-error", "建不了移动的落点 " + dst_parent + "：" + e))
   }
-  let pdir = @json.join_all([home, "profiles", name])
+  // 落点目录已经建了：从这里往后任何一条不过，都要把 <root>/<名字> 收掉再报
+  let device_note = match require_same_device(src_parent, dst_parent) {
+    Err((code, message)) => {
+      let _ = @fsx.remove_tree(home)
+      return Err((code, message + "；刚建的 " + home + " 已经删掉，" + src_dir + " 一个字都没动"))
+    }
+    Ok(note) => note
+  }
+  let profile_dir = @json.join_all([home, "profiles", name])
+  match move_dir(src_dir, profile_dir) {
+    Err((code, message)) => {
+      let _ = @fsx.remove_tree(home)
+      return Err((code, message + "；刚建的 " + home + " 已经删掉，" + src_dir + " 一个字都没动"))
+    }
+    Ok(_) => ()
+  }
+  // 移动之后那三条核对（9.2 第 4 条）。移过来的 node_modules 是这一份自己带着的，
+  // 所以只核对「指得通」，不比对目标。
+  match verify_isolated(profile_dir, "") {
+    Some(problem) =>
+      return put_back(home, src_dir, profile_dir, "io-error", "移动之后的核对没过：" + problem)
+    None => ()
+  }
+  // 铺其余部分：skills 软链（源里有才摆）、logs/、凭证路径那条 patch、隔离记录
+  let mut skills_linked = false
+  let src_skills = @json.join_path(dsh_home, "skills")
+  if @json.is_dir(src_skills) {
+    match @fsx.make_symlink(src_skills, @json.join_path(home, "skills")) {
+      Ok(_) => skills_linked = true
+      Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "摆 skills 软链失败：" + e)
+    }
+  }
+  match @fsx.ensure_dir(@json.join_path(home, "logs")) {
+    Ok(_) => ()
+    Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "建 logs/ 失败：" + e)
+  }
+  // 凭证：只写路径，不碰文件本身（@json.exists 只 stat，不读内容）
+  let cred = @json.join_path(dsh_home, ".credentials.yaml")
+  match add_credentials_patch(@json.join_path(profile_dir, "cordis.patch.yml"), cred) {
+    Ok(_) => ()
+    Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "写凭证路径失败：" + e)
+  }
   let created = @json.iso_from_epoch_ms(@async.now())
   let marker = @json.JObj([
     ("profile", @json.JStr(name)),
     ("createdAt", @json.JStr(created)),
+    ("kind", @json.JStr(home_kind_isolated)),
     ("dshHome", @json.JStr(dsh_home)),
     ("homesRoot", @json.JStr(root)),
-    ("credentialsPath", @json.JStr(layout.credentials_path)),
-    ("credentialsKey", @json.JStr(layout.credentials_key)),
-    ("nodeModulesTarget", @json.JStr(layout.node_modules_target)),
+    ("movedFrom", @json.JStr(src_dir)),
+    ("deviceNote", @json.JStr(device_note)),
+    ("credentialsPath", @json.JStr(cred)),
+    ("credentialsKey", @json.JStr("credentials.config.path")),
   ])
   match @fsx.write_text_atomic(
     @json.join_path(home, isolation_marker),
     @json.encode(marker) + "\n",
   ) {
     Ok(_) => ()
-    Err(e) => return rollback(home, "io-error", "写隔离记录失败：" + e)
-  }
-  match verify_isolated(pdir, layout.node_modules_target) {
-    Some(problem) => return rollback(home, "io-error", "隔离后的核对没过：" + problem)
-    None => ()
+    Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "写隔离记录失败：" + e)
   }
   Ok({
     profile: name,
     path: home,
-    profile_dir: pdir,
-    files_copied: layout.files_copied,
-    node_modules_target: layout.node_modules_target,
-    skills_linked: layout.skills_linked,
-    credentials_path: layout.credentials_path,
-    credentials_key: layout.credentials_key,
+    profile_dir,
+    from: src_dir,
+    device_note,
+    verified: true,
+    node_modules_target: node_modules_target_of(profile_dir),
+    skills_linked,
+    credentials_path: cred,
+    credentials_key: "credentials.config.path",
     created_at: Some(created),
   })
 }
 
 ///|
-/// 删一只 profile 的隔离 home（只删 <root>/<名字>，不碰 <DSH_HOME>）。
+/// 把一只 profile **移回**共用 home（规格 9.4）。
 ///
-/// 前缀口径与路径核对都在这里：名字不是单段、或拼出来的不是 <root>/<单段名字>，一律拒。
-/// 有实例在跑由调用方（actions）先挡 —— 这里只管磁盘。
+/// 两步，两步都要如实报：
+///   1. `<root>/<名字>/profiles/<名字>` → `<DSH_HOME>/profiles/<名字>`，同一套前件与校验
+///      （同设备、目标不存在、移动后核对），任何一条不过就移回原处并报「移动没完成，已经放回原处」；
+///   2. 这份额外 home 里**剩下的**东西（sessions、storages、logs、插件写在根下的目录）
+///      不移回、也不删：整份移进回收站 `<trash>/homes/<名字>-<毫秒>/`，事后能捞回来。
+///
+/// 硬约束：只碰 `<root>/<单段名字>` 与 `<DSH_HOME>/profiles/<单段名字>` 这两条路径，
+/// 两边都用拼出来的值核对过；不接收客户端给的任何路径。
+///
+/// 有实例在跑由调用方（actions 的 isolated_home_guard）先挡：这里只管磁盘。
 pub async fn deisolate_profile(
   name_in : String,
 ) -> Result[DeisolateOutcome, (String, String)] noraise {
@@ -571,6 +845,7 @@ pub async fn deisolate_profile(
     return Err(("bad-params", "profile 名要是单段（不含 / 与 ..，非空）：" + name))
   }
   let (root, root_source) = homes_root()
+  let (dsh_home, _dsh_home_source) = @runtime.resolve_dsh_home()
   let home = isolated_home_dir(root, name)
   if home != root + "/" + name {
     return Err(("bad-params", "隔离 home 路径不在 " + root + " 下：" + home))
@@ -578,15 +853,75 @@ pub async fn deisolate_profile(
   if !@json.is_dir(home) {
     return Err(("not-found", "没有隔离 home：" + home + "（homes root 来自 " + root_source + "）"))
   }
+  let src_dir = @json.join_all([home, "profiles", name])
+  if !@json.is_dir(src_dir) {
+    return Err(
+      (
+        "not-found",
+        "这份 home 里没有 profiles/" + name + "：" + src_dir + "（读数说它是隔离的，磁盘上不在）",
+      ),
+    )
+  }
+  let dst_parent = @json.join_all([dsh_home, "profiles"])
+  let dst = @json.join_path(dst_parent, name)
+  if @json.exists(dst) {
+    return Err(
+      (
+        "conflict",
+        "共用 home 里已经有同名 profile：" + dst + "（不覆盖；先给它改名或删掉，再移回）",
+      ),
+    )
+  }
+  match @fsx.ensure_dir(dst_parent) {
+    Ok(_) => ()
+    Err(e) => return Err(("io-error", "建不了移动的落点 " + dst_parent + "：" + e))
+  }
+  let src_parent = @json.join_all([home, "profiles"])
+  match require_same_device(src_parent, dst_parent) {
+    Err((code, message)) => return Err((code, message + "；" + src_dir + " 还在原处"))
+    Ok(_) => ()
+  }
+  match move_dir(src_dir, dst) {
+    Err((code, message)) => return Err((code, message + "；" + src_dir + " 还在原处"))
+    Ok(_) => ()
+  }
+  match verify_isolated(dst, "") {
+    Some(problem) => {
+      let note = match @fsx.rename_path(dst, src_dir) {
+        Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
+        Err(e) =>
+          "；移动没完成，也没能放回原处：" + e + "（" + dst + " 现在在共用 home 里，要手动挪回 " +
+          src_dir + "）"
+      }
+      return Err(("io-error", "移动之后的核对没过：" + problem + note))
+    }
+    None => ()
+  }
+  // 剩下的东西：整份移进回收站，不删。
   let (files, bytes, size_source) = match @fsx.measure_tree(home) {
     Ok((f, b)) => (Some(f), Some(b), "")
     Err(e) => (None, None, e)
   }
-  match @fsx.remove_tree(home) {
-    Ok(_) => ()
-    Err(e) => return Err(("io-error", e))
+  match move_remainder_to_trash(home, name) {
+    Err(why) =>
+      return Err(
+        (
+          "io-error",
+          name + " 的目录已经移回共用 home（" + dst + "），但这份额外 home 里剩下的东西" +
+          "没能移进回收站：" + why,
+        ),
+      )
+    Ok((trash_path, trash_note)) => Ok({
+      profile: name,
+      to: dst,
+      home,
+      trash_path,
+      trash_note,
+      files,
+      bytes,
+      size_source,
+    })
   }
-  Ok({ profile: name, path: home, files, bytes, size_source })
 }
 
 

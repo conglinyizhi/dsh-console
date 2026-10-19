@@ -17,6 +17,13 @@
 // 数不出来的数（文件数 / 体积）一律给「读不到」并把原因带出去，不给一个偏小的数冒充真实体积。
 
 ///|
+/// 回收站根下那一格「整份额外 home」的容器目录名（与 profiles/homes.mbt 的
+/// trash_homes_dir 是同一个名字）。它自己不是一条条目：列表、恢复、彻底删除都跳过它。
+fn is_trash_bucket(name : String) -> Bool {
+  name == @profiles.trash_homes_dir
+}
+
+///|
 /// 一条回收站读数。
 pub struct TrashEntry {
   /// trash 下的目录名，也就是恢复 / 彻底删除时的 dir 参数
@@ -124,6 +131,11 @@ pub async fn list_trash() -> Array[TrashEntry] noraise {
     if !is_dir {
       continue
     }
+    // homes/ 是「整份额外 home」那一格的容器目录（design/deep-home-isolation.md 第 9.4 节），
+    // 它自己不是一条可恢复的条目：条目是它里面的 <名字>-<毫秒>，恢复与彻底删除都不从这里走。
+    if is_trash_bucket(name) {
+      continue
+    }
     let path = @json.join_path(root, name)
     let (profile, deleted_at_ms, deleted_at_source) = split_trash_name(name)
     let (file_count, bytes, size_source) = measure_entry(path)
@@ -186,6 +198,13 @@ pub async fn resolve_trash_dir(dir : String) -> String raise ActionError {
   }
   if name.has_prefix(".") {
     fail("bad-params", "dir 不能以点开头：" + name)
+  }
+  if is_trash_bucket(name) {
+    fail(
+      "bad-params",
+      "「" + name + "」是回收站里放整份额外 home 的那一格，不是一条可恢复的条目：" +
+      "恢复 / 彻底删除都不对它下手",
+    )
   }
   for ch in name {
     let code = ch.to_int()

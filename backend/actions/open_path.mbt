@@ -81,8 +81,9 @@ fn tail_lines(text : String, lines : Int) -> String {
 pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome raise ActionError {
   let name = @json.trim_both(profile)
   validate_profile_name(name)
-  let root = profiles_root()
-  let dir = @json.join_path(root, name)
+  // 「工作目录 / 配置」指的是这只 profile **自己现在那一份**：隔离的那一只在它的 home 里。
+  let (dir, home) = @profiles.profile_location(name)
+  let root = @json.join_path(home, "profiles")
   // 防目录穿越的第二道：白名单已经保证 name 是单段（无斜杠、不是 . / ..），
   // 这里再确认拼出来的路径确实在 profilesRoot 里面，两道都留着。
   if !dir.has_prefix(root + "/") || dir == root {

@@ -20,6 +20,8 @@ pub fn app() -> @rabbita.Val[@html.Html] {
       } else {
         replace_route(route_url(model.page, model.settings_group, model.log_source))
       }
+      // Shift 监视在启动时装一次（删除按钮的「按住 Shift = 彻底删除」由它打标记，见 dom.mbt）。
+      js_shift_watch()
       (model, @cmd.batch([load(emit), enter, listen_popstate(emit), settle]))
     },
     update=update,
@@ -478,6 +480,19 @@ fn copy_url_action(
     None => return (model, @cmd.none)
     Some(row) => row
   }
+  // 第二道（第一道是按钮置灰）：裸地址这一枪只认行上那个「有地址可复制」标记。
+  // 停用行的 url 是「已停用，无法访问」这个占位串，照着复制的就是把一句占位话写进剪贴板
+  // （design/ops-maintenance-jobs.md §13.1）。
+  if !with_token && !row.url_copyable {
+    return (
+      {
+        ..model,
+        act_notice: row.name + " 的" + what + "没能复制：没在跑，没有访问地址可复制",
+        act_notice_ok: false,
+      },
+      @cmd.none,
+    )
+  }
   let text = if with_token {
     match row.web_url {
       Some(url) => url
@@ -710,20 +725,34 @@ fn delete_pairs(model : Model, row_id : String) -> Array[(String, String)] {
 }
 
 ///|
-/// 删除要不要带二次确认串，带的话是什么。
+/// 删除要不要带二次确认串，带的话是什么 —— **按确认框打开那一刻记下来的模式**（§13.2）。
 ///
 /// 契约第一节：safety.deleteToTrash=false 时删除是硬删，**body 顶层**必须带 "confirm":"DELETE"。
-/// 读不到删除方式时按「可能要硬删」处理，也带上它 —— 少带一次的代价是删不掉并弹一个 bad-params，
-/// 多带一次只是一个多余字段（进回收站那条路后端根本不看它）。
+/// 认的是 model.confirm_hard（点开确认框时定下的那一格），不是此刻的设置页读数：
+/// 框开着的这几秒里设置被改了，请求该照当时那个决定发，而不是悄悄换一种删法。
 ///
 /// 这个串走 action_body_with_confirm（放顶层），不再塞进 params：
 /// 后端是从顶层读的（handle_action 里的 json_field(json, "confirm")），
 /// 塞进 params 的结果是硬删永远以 bad-params 告终 —— 这条实测复现过 ✗
 fn delete_confirm_of(model : Model) -> String {
-  if delete_to_trash_of(model) == Some(true) {
-    ""
-  } else {
+  if model.confirm_hard {
     "DELETE"
+  } else {
+    ""
+  }
+}
+
+///|
+/// 点下删除按钮那一刻是哪种模式：按住 Shift（读文档级打的那个标记），**或**回收站关着。
+///
+/// 由 DOM 监听器同步调用（见 view_overview 的 delete_click）：Shift 状态不进 model、
+/// 不走状态回环 —— CSS 那边也是按同一个标记直接换色换字（§13.2）。
+fn delete_mode_now(model : Model) -> Bool {
+  if js_shift_held() {
+    true
+  } else {
+    // 回收站没开时删除就是彻底删除，不管按没按 Shift；读不到设置也按可能要硬删处理
+    delete_to_trash_of(model) != Some(true)
   }
 }
 
@@ -1277,35 +1306,55 @@ fn action_receipt(
   if action == "open-path" {
     return (name + " 已用本机默认程序" + verb + "。", backend_hint(note))
   }
-  // 配置 home 两条：回执要把**落到哪儿 / 删掉了哪儿**说清楚，
-  // 光说「已隔离」的话，使用者还得自己翻读数去确认用的是哪一份 home
+  // 配置 home 两条：回执要把**从哪儿移到哪儿**说清楚，而且要说「这是移动」——
+  // 光说「已隔离」的话，使用者还得自己翻读数去确认那份目录现在在哪。
   if action == "isolate-profile" {
-    let path = match outcome {
-      Some(outcome) => str_field(outcome, "path")
-      None => ""
+    let (from, to) = match outcome {
+      Some(outcome) => (str_field(outcome, "movedFrom"), str_field(outcome, "movedTo"))
+      None => ("", "")
     }
-    let text = if path == "" {
-      name + " 已隔离到独立 home。"
+    let text = if to == "" {
+      name + " 已经移到独立 home。"
     } else {
-      name + " 已隔离，以后它的实例在 " + path + " 里跑。"
+      name + " 已经移到独立 home：" + to + "（原来那份不再留在共用 home 里）。"
     }
-    return (text, backend_hint(note))
+    let hint = match outcome {
+      Some(outcome) =>
+        backend_hint(note) + (if from == "" { "" } else { "\n移动：" + from + " -> " + to }) +
+        (if str_field(outcome, "deviceNote") == "" {
+          ""
+        } else {
+          "\n" + str_field(outcome, "deviceNote")
+        })
+      None => backend_hint(note)
+    }
+    return (text, hint)
   }
   if action == "deisolate-profile" {
-    let path = match outcome {
-      Some(outcome) => str_field(outcome, "path")
+    let to = match outcome {
+      Some(outcome) => str_field(outcome, "movedTo")
+      None => ""
+    }
+    let trash = match outcome {
+      Some(outcome) => str_field(outcome, "trashPath")
       None => ""
     }
     let size = match outcome {
       Some(outcome) => outcome_size_text(outcome)
       None => ""
     }
-    let text = if path == "" {
-      name + " 的隔离已取消。"
+    let head = if to == "" {
+      name + " 的目录已经移回共用 home。"
     } else {
-      name + " 的隔离已取消，" + path + " 已删掉" + (if size == "" { "" } else { "（" + size + "）" })
+      name + " 的目录已经移回共用 home：" + to + "。"
     }
-    return (text, backend_hint(note))
+    let tail = if trash == "" {
+      ""
+    } else {
+      "这份额外 home 里剩下的会话与插件状态移到了回收站" +
+      (if size == "" { "" } else { "（" + size + "）" }) + "，可以捞回来。"
+    }
+    return (head + tail, backend_hint(note))
   }
   if action == "restore-from-trash" || action == "purge-trash-item" {
     let (text, hint) = trash_receipt(action, name, outcome)
@@ -2532,15 +2581,16 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         CopyTokenUrl => copy_url_action(model, id, "带令牌的地址", true, emit)
         // 复制开发指令：一段给「另一个会话」的任务说明（粘到别的 profile 的会话里用）
         CopyDev => copy_dev_action(model, id, emit)
-        // 配置 home：共用 → 直接发隔离；独立 → 先开确认框（取消隔离会删掉整份 home）。
-        // 两个都会把抽屉收掉：确认框盖在抽屉之上，成功之后这一行的读数也会变。
+        // 配置 home：共用 → 直接发「移到独立 home」；独立 → 先开确认框（移回会把剩下的东西送进回收站）。
+        // 移进独立 home 这一条**抽屉不收**：按钮上要能看见「正在移动…」这一刻
+        //（真实的目录移动，跨盘退回复制时尤其不是瞬时的）。
         IsolateHome => {
           let (next, cmd) = send_action(
-            { ..model, drawer_id: "" },
+            { ..model, home_move_id: id },
             id,
             "isolate-profile",
             row_name(model, id),
-            "隔离到独立 home",
+            "移到独立 home",
             match find_row(model.rows, id) {
               Some(row) => params_of(profile_name_pairs(row))
               None => ""
@@ -2572,11 +2622,13 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           (model, @cmd.none)
         }
       }
-    DeleteOpen(id, return_id) => (
-      { ..model, confirm_id: id, confirm_return: return_id },
+    // 点开确认框：把那一刻的模式记进 model（hard = true 就是彻底删除）。
+    // 确认框的标题 / 正文 / 确认键颜色与确认时发的请求都照这一格走，不事后重读设置。
+    DeleteOpen(id, return_id, hard) => (
+      { ..model, confirm_id: id, confirm_return: return_id, confirm_hard: hard },
       focus_after_render("dsh-confirm-ok"),
     )
-    // 取消隔离的确认：确认之后真发 deisolate-profile（confirm 走 body 顶层），
+    // 移回共用 home 的确认：确认之后真发 deisolate-profile（confirm 走 body 顶层），
     // 关框与焦点回触发元素与删除确认框同一套。
     HomeDeisolateOpen(id, return_id) => (
       {
@@ -2596,12 +2648,18 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         Some(row) => {
           let params = params_of(profile_name_pairs(row))
           let return_id = model.home_confirm_return
+          let confirm_id = model.home_confirm_id
           let (next, cmd) = send_action(
-            { ..model, home_confirm_id: "", home_confirm_return: "" },
-            model.home_confirm_id,
+            {
+              ..model,
+              home_confirm_id: "",
+              home_confirm_return: "",
+              home_move_id: confirm_id,
+            },
+            confirm_id,
             "deisolate-profile",
             row.name,
-            "取消隔离",
+            "移回共用 home",
             params,
             emit,
             confirm="DELETE",
@@ -3042,12 +3100,14 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     DeleteConfirm => {
       let target = model.confirm_id
       let return_id = model.confirm_return
+      // 动词照记下来的模式说：彻底删除与进回收站是两件事，回执里说错就是骗人
+      let verb = if model.confirm_hard { "彻底删除" } else { "删除" }
       let (next, cmd) = send_action(
         { ..model, confirm_id: "" },
         target,
         "delete-profile",
         row_name(model, target),
-        "删除",
+        verb,
         params_of(delete_pairs(model, target)),
         emit,
         confirm=delete_confirm_of(model),
@@ -3306,7 +3366,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       } else if action == "start-instance" && model.act_pending == row_id {
         finish_start({ ..model, act_response: true, act_ok: ok, act_note: note }, emit)
       } else {
-        let cleared = map_rows(model, row_id, fn(row) { { ..row, busy: false } })
+        let mut cleared = map_rows(model, row_id, fn(row) { { ..row, busy: false } })
+        // 移动这一枪的回执到了：抽屉里那颗按钮的「正在移动…」随之收掉（成没成都收）。
+        if action == "isolate-profile" || action == "deisolate-profile" {
+          cleared = { ..cleared, home_move_id: "" }
+        }
         if ok {
           // 回执说人话：谁 + 做了什么 + 结果（见 action_receipt）。
           // 后端回执原文与里面的数字、路径收进悬停，不摊在正文上。

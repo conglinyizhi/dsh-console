@@ -238,11 +238,11 @@ fn require_order_ids(params : Json) -> Array[String] raise ActionError {
 }
 
 ///|
-/// 建 / 删隔离 home 之前的那道守卫：同一个 profile 不许有实例在跑。
+/// 移动这份 profile 之前的那道守卫：同一个 profile 不许有实例在跑。
 ///
-/// 理由（规格第 3 节）：复制到一半配置被改，建出来的就是一份半新半旧的 home；
-/// 删掉一份正在被用的 home，实例会在下一次读配置时炸掉。两个 home 都查 ——
-/// 隔离前实例跑在控制台的 home 里，取消隔离前则可能跑在隔离 home 里。
+/// 理由（规格 9.2 第 2 条）：移动是把目录从进程脚下搬走，在跑的那只实例下一次读配置、
+/// 读会话、写日志就会落空。两个 home 都查 —— 移进独立 home 前实例跑在控制台的 home 里，
+/// 移回共用 home 前则跑在隔离 home 里。
 async fn isolated_home_guard(profile : String) -> Unit raise ActionError {
   let (console_home, _) = @runtime.resolve_dsh_home()
   let homes : Array[String] = [console_home]
@@ -263,7 +263,7 @@ async fn isolated_home_guard(profile : String) -> Unit raise ActionError {
         fail(
           "conflict",
           "profile " + profile + " 有实例在跑（PID " + hit.pid.to_string() + "，" + port_text +
-          "，home " + home + "）；先停掉它再动隔离 home",
+          "，home " + home + "）；移动会把这份目录从它脚下搬走，先停掉它再移",
         )
       }
       None => ()
@@ -604,11 +604,12 @@ pub async fn run_action(
         ])),
       ])
     }
-    // ── 隔离 home（design/deep-home-isolation.md 第 3 节）──────────
-    // 建 / 删都只碰 homes root 下的 <root>/<名字>（路径核对在 profiles/homes.mbt），
-    // 不碰 <DSH_HOME>：那是使用者自己的稳定环境（规格第 8 节）。
+    // ── 配置 home（design/deep-home-isolation.md 第 3、9 节）──────────
+    // 隔离 = 把 <DSH_HOME>/profiles/<名字> **移**进 <root>/<名字>/profiles/<名字>；
+    // 取消隔离 = 移回，剩下的东西进回收站。两条都只碰 homes root 下的 <root>/<名字>
+    // 与 DSH_HOME 下那一条（路径核对在 profiles/homes.mbt），不碰别处。
     "isolate-profile" => {
-      ensure_action_params(params, "隔离到独立 home：", ["profile"])
+      ensure_action_params(params, "移到独立 home：", ["profile"])
       let profile = require_string(params, "profile")
       validate_profile_name(profile)
       isolated_home_guard(profile)
@@ -625,7 +626,11 @@ pub async fn run_action(
           ("profile", @json.JStr(outcome.profile)),
           ("path", @json.JStr(outcome.path)),
           ("profileDir", @json.JStr(outcome.profile_dir)),
-          ("filesCopied", @json.jint(outcome.files_copied)),
+          // 移动是真的：从哪儿移到哪儿，两段路径都进回执（核对时不用自己拼）
+          ("movedFrom", @json.JStr(outcome.from)),
+          ("movedTo", @json.JStr(outcome.profile_dir)),
+          ("verified", @json.JBool(outcome.verified)),
+          ("deviceNote", @json.JStr(outcome.device_note)),
           ("nodeModulesTarget", @json.JStr(outcome.node_modules_target)),
           ("skillsLinked", @json.JBool(outcome.skills_linked)),
           // 凭证只写路径：键与值都进回执，核对时不用猜用的是哪一个键
@@ -636,7 +641,9 @@ pub async fn run_action(
         (
           "note",
           @json.JStr(
-            "隔离 home 建在 " + outcome.path + "；凭证只在 cordis.patch.yml 里写了路径（" +
+            "已把 " + outcome.from + " 移到 " + outcome.profile_dir + "（移动前核对：" +
+            outcome.device_note + "；移动后核对过三条：目录在、package.json 读得出、" +
+            "node_modules 有就指得通）；凭证只在 cordis.patch.yml 里写了路径（" +
             outcome.credentials_key + " -> " + outcome.credentials_path +
             "），密钥本身没有复制、也没有软链过来",
           ),
@@ -644,7 +651,7 @@ pub async fn run_action(
       ])
     }
     "deisolate-profile" => {
-      ensure_action_params(params, "取消隔离：", ["profile"])
+      ensure_action_params(params, "移回共用 home：", ["profile"])
       let profile = require_string(params, "profile")
       validate_profile_name(profile)
       let given = match confirm {
@@ -654,7 +661,7 @@ pub async fn run_action(
       if given != "DELETE" {
         fail(
           "bad-params",
-          "取消隔离会删掉整份 home（里面的会话、插件状态、日志一起没）；" +
+          "移回共用 home 会把这份额外 home 里剩下的会话与插件状态移到回收站；" +
           "这是破坏性动作，body 顶层必须带 confirm 字段，值是 DELETE",
         )
       }
@@ -674,7 +681,11 @@ pub async fn run_action(
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj([
           ("profile", @json.JStr(outcome.profile)),
-          ("path", @json.JStr(outcome.path)),
+          ("path", @json.JStr(outcome.home)),
+          // 移回哪儿、剩下的东西进了回收站哪一条：两件事分开报
+          ("movedTo", @json.JStr(outcome.to)),
+          ("trashPath", @json.JStr(outcome.trash_path)),
+          ("trashNote", @json.JStr(outcome.trash_note)),
           ("files", @json.int_or_null(outcome.files)),
           ("bytes", @json.int64_or_null(outcome.bytes)),
           ("sizeSource", @json.JStr(outcome.size_source)),
@@ -682,7 +693,8 @@ pub async fn run_action(
         (
           "note",
           @json.JStr(
-            "已删掉 " + outcome.path + "（" + size + "）；" + "接下来用这只 profile 起的实例回到控制台的 DSH_HOME",
+            "已把 " + outcome.to + " 移回共用 home；这份额外 home 里剩下的东西（会话、插件状态、日志）" +
+            "移到回收站 " + outcome.trash_path + "（" + size + "，可以捞回来）。" + outcome.trash_note,
           ),
         ),
       ])
@@ -716,11 +728,18 @@ pub async fn run_action(
           files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
         _ => "文件数读不到（" + outcome.size_source + "）"
       }
-      // 「回到 profile 列表里」这句话只有在这一份回到**本控制台这个** home 时才成立：
-      // 回到别的 home 的那一份，本控制台的列表根本不列它 —— 照旧说那句话就是一句谎。
+      // 「回到 profile 列表里」这句话只有在这一份回到**本控制台看得见的地方**时才成立：
+      //   · 控制台自己的 home → 列表里就有它；
+      //   · 它自己的隔离 home（<homes root>/<名字>/profiles/<名字>）→ 也列得出来
+      //     （真移动之后总览会把隔离的那几只一起列上，见 profiles 的 read_profiles）；
+      //   · 别的 home → 本控制台的列表根本不列它，照旧说「回到列表里」就是一句谎。
       let (console_home, _) = @runtime.resolve_dsh_home()
       let landed = if outcome.home == console_home {
         "「" + outcome.profile + "」已经回到 profile 列表里（" + outcome.to + "）"
+      } else if @profiles.isolated_home_of(outcome.profile) is Some(iso) &&
+        iso == outcome.home {
+        "「" + outcome.profile + "」已经回到它自己那个隔离 home（" + outcome.to +
+        "），总览里照样看得见它"
       } else {
         "「" + outcome.profile + "」已经回到它自己那个 home（" + outcome.to +
         "）。那不是本控制台的 home，列表里不会出现它"

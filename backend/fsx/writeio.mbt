@@ -22,6 +22,12 @@ extern "c" fn pid_alive_raw(pid : Int) -> Int = "dsh_console_pid_alive"
 extern "c" fn getpid_raw() -> Int = "dsh_console_getpid"
 
 ///|
+/// stat(2) 的 st_dev：移动目录之前判「两边在不在同一个文件系统」。
+/// 失败返回负 errno（见 dev_id.c 的边界说明）。
+#borrow(path)
+extern "c" fn dev_raw(path : Bytes) -> Int64 = "dsh_console_dev"
+
+///|
 /// SIGTERM：先礼。
 pub let sigterm : Int = 15
 
@@ -73,6 +79,20 @@ pub fn send_signal(pid : Int, sig : Int) -> Result[Unit, String] {
 /// 进程还在不在（权限不足按「在」算，不误报成退出）。
 pub fn pid_alive(pid : Int) -> Bool {
   pid > 0 && pid_alive_raw(pid) == 1
+}
+
+///|
+/// 一条路径所在的文件系统（stat 的 st_dev）。读不到给 Err（带 errno 名）。
+///
+/// 移动目录之前必须过这一道：rename(2) 跨文件系统会给 EXDEV，退化成「复制再删」之后
+/// 体积一大就不是瞬时的，而使用者要的是「移动」这件事本身。
+pub fn dev_of(path : String) -> Result[Int64, String] {
+  let code = dev_raw(@utf8.encode(path))
+  if code < 0 {
+    Err("读不到 " + path + " 所在文件系统的设备号：" + errno_name(-code.to_int()))
+  } else {
+    Ok(code)
+  }
 }
 
 ///|

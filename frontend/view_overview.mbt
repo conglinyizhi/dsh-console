@@ -108,6 +108,9 @@ fn card_attrs(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Attrs {
     .data_set("row", row.id)
     .data_set("status", status_name(row.status))
     .data_set("light", light_key(row.light))
+    // 「这一行有没有地址可复制」（design/ops-maintenance-jobs.md §13.1）。
+    // 抽屉里那颗按钮的置灰、以及复制动作自己那一道，都从同一格走。
+    .data_set("copy-url", if row.url_copyable { "true" } else { "false" })
     .role("button")
     // 正被拖的那一条：从 Tab 序列里摘掉。它在原地只剩一个空位（画成了占位块），
     // 焦点落在一个看不见的节点上，键盘用户就找不着自己在哪儿了。
@@ -221,6 +224,11 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       card_name_text(row),
     ),
   ]
+  // 小金标紧跟在名字后面（隔离那一档才有节点）：它是金边之外的第二信号
+  match row.home_kind {
+    "isolated" => head.push(card_home_badge(row))
+    _ => ()
+  }
   match row.port_value {
     Some(port) => head.push(card_port(row, port))
     None => ()
@@ -451,11 +459,40 @@ fn row_group(
 /// （见 dom.mbt 的 js_drop_freeze）。原来那两档（dragging / drop-before / drop-after）
 /// 随插入线一起去掉了：落点现在由占位块自己说，不再画在这条卡上。
 fn card_class(row : Row, model : Model) -> String {
+  // 被隔离的 profile 多一档：金色描边（样式在 app.scss 的「独立 home」那一段，
+  // 它排在状态色相关规则之后、且选择器更重，状态怎么变都盖不掉它）。
+  // 描边不是唯一信号：卡上还有一个「独立 home」小金标（见 card_home_badge）。
+  let isolated = if row.home_kind == "isolated" { " dsh-case-home-isolated" } else { "" }
   if model.drag_active && model.drag_id == row.id {
-    "dsh-case drag-image"
+    "dsh-case drag-image" + isolated
   } else {
-    "dsh-case"
+    "dsh-case" + isolated
   }
+}
+
+///|
+/// 卡上的「独立 home」小金标：金色描边之外的那一个信号（颜色不许当唯一信息）。
+///
+/// 只在 isolated 那一档产出节点（共用的卡 DOM 与从前逐节点一致）；悬停里说清这份 home
+/// 在哪儿、为什么这一只被单独放在一个 home 里。
+fn card_home_badge(row : Row) -> @html.Html {
+  if row.home_kind != "isolated" {
+    return @html.nothing
+  }
+  let where_text = if row.home_path == "" { "这只 profile 的独立 home" } else { row.home_path }
+  @html.span(
+    class="dsh-home-badge",
+    attrs=mark("card-home-badge", ["overview", "card", row.id, "home"])
+      .data_set("home-kind", row.home_kind)
+      .role("img")
+      .aria_label("独立 home")
+      .title(
+        "独立 home：这只 profile 的目录在 " + where_text +
+        " 里，它起的实例用自己的 sessions / storages / logs，炸也炸不到别的 profile。" +
+        "状态灯的颜色照旧只看运行状态，与这一道金边无关",
+      ),
+    [@html.text("独立 home")],
+  )
 }
 
 ///|
@@ -578,17 +615,75 @@ fn drawer_button(
   disabled : Bool,
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
+  drawer_button_hint(row, key, icon_name, label, danger, disabled, "", emit)
+}
+
+///|
+/// 同上，另外挂一句悬停（「为什么这颗是灰的 / 悬停说清那件事」用）。
+fn drawer_button_hint(
+  row : Row,
+  key : ActionKey,
+  icon_name : String,
+  label : String,
+  danger : Bool,
+  disabled : Bool,
+  hint : String,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let name = action_name(key)
+  let mut attrs = mark(
+    "drawer-" + name,
+    ["overview", "drawer", row.id, "action", name],
+  ).data_set("action", name)
+  if hint != "" {
+    attrs = attrs.title(hint)
+  }
   @html.button(
     class=if danger { "dsh-btn danger" } else { "dsh-btn" },
     type_="button",
     disabled=disabled,
-    attrs=mark(
-      "drawer-" + name,
-      ["overview", "drawer", row.id, "action", name],
-    ).data_set("action", name),
+    attrs~,
     on_click=emit(RowAction(row.id, key)),
     [icon(icon_name), @html.span(label)],
+  )
+}
+
+///|
+/// 抽屉里那颗「删除」：Shift 语义（design/ops-maintenance-jobs.md §13.2）。
+///
+/// 三件事凑在一起，缺一条就不成立：
+///   1. 两个标签都进 DOM（「删除」/「彻底删除」），CSS 按 [data-mode] 与 body[data-shift] 换字；
+///   2. data-mode 由**后端读数**定：回收站关着（deleteToTrash=false）时始终 hard，
+///      不管按没按 Shift；读不到设置也按 hard（那时删除就是要彻底删）；
+///   3. 点下去那一刻把模式读出来一起发（DeleteOpen 的第三格）—— 确认框与请求都照它走。
+///
+/// 悬停两句：回收站开着时说「按住 Shift 是彻底删除」，关着时说「回收站没开，删除就是彻底删除」。
+fn drawer_delete_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let hard_default = delete_to_trash_of(model) != Some(true)
+  let hint = if hard_default {
+    "回收站没开，删除就是彻底删除（删完无法恢复）"
+  } else {
+    "按住 Shift 是彻底删除，不进回收站"
+  }
+  @html.button(
+    class="dsh-btn danger dsh-delete",
+    type_="button",
+    disabled=row.busy,
+    // 模式在**这一拍**读（Attrs.on_click 挂的是 DOM 监听器，同步调用）：
+    // Shift 是文档级标记，不进 model，也没法在渲染期读到一个「此刻」的值。
+    attrs=mark("drawer-delete", ["overview", "drawer", row.id, "action", "delete"])
+      .data_set("action", "delete")
+      .data_set("mode", if hard_default { "hard" } else { "soft" })
+      .title(hint)
+      .on_click(fn(_event) {
+        emit(DeleteOpen(row.id, card_id(row.id), delete_mode_now(model)))
+      }),
+    [
+      icon("delete-outline"),
+      // 两段标签都在 DOM 里，显示哪一段由 CSS 按标记决定（不走状态回环）
+      @html.span(class="dsh-delete-soft", "删除"),
+      @html.span(class="dsh-delete-hard", "彻底删除"),
+    ],
   )
 }
 
@@ -743,7 +838,25 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       drawer_button(row, Tab, "open-in-new", "在新标签页打开", false, false, emit),
     )
   }
-  take.push(drawer_button(row, CopyUrl, "link-variant", "复制访问地址", false, false, emit))
+  // 「复制访问地址」：只有**真在跑、地址不是占位串**的行才是可点的（§13.1）。
+  // 停用行的 url 是「已停用，无法访问」，点下去就是把一句占位话写进剪贴板。
+  // 置灰 + 悬停说清；复制动作自己也拦一道（见 app.mbt 的 copy_url_action）。
+  take.push(
+    drawer_button_hint(
+      row,
+      CopyUrl,
+      "link-variant",
+      "复制访问地址",
+      false,
+      !row.url_copyable,
+      if row.url_copyable {
+        "复制这一行读数里的访问地址（" + row.url + "）"
+      } else {
+        "这只没在跑，没有可复制的访问地址"
+      },
+      emit,
+    ),
+  )
   // 带令牌的地址只有真读到时才有这一项：读不到令牌就不摆一个「复制空串」出来
   if row.web_url is Some(_) {
     take.push(
@@ -771,24 +884,31 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     mutate.push(drawer_button(row, Unarchive, "archive-arrow-up-outline", "取消归档", false, busy, emit))
   }
   if row.deletable {
-    mutate.push(drawer_button(row, Delete, "delete-outline", "删除", true, busy, emit))
+    mutate.push(drawer_delete_button(row, model, emit))
   }
-  // 配置 home：共用 → 隔离到独立 home；独立 → 取消隔离（先开确认框）。
-  // 读数里没有这一项（home_kind 空串）时给一句「读不到」，不发一个不知道会建到哪儿的动作。
+  // 配置 home：共用 → 移到独立 home；独立 → 移回共用 home（先开确认框）。
+  // 读数里没有这一项（home_kind 空串）时给一句「读不到」，不发一个不知道会把目录挪到哪儿的动作。
+  // 正在移的那一行：按钮换成「正在移动…」并禁用（真实的目录移动，按下去没反应最容易被再点一次）。
+  let moving = model.home_move_id == row.id
   let home_items : Array[@html.Html] = []
   if row.home_kind == "isolated" {
     home_items.push(
       @html.button(
         class="dsh-btn danger",
         type_="button",
-        disabled=busy,
+        disabled=busy || moving,
         attrs=mark("drawer-deisolate-home", ["overview", "drawer", row.id, "action", "deisolate-home"])
           .data_set("action", "deisolate-home")
+          .data_set("state", if moving { "moving" } else { "idle" })
           .title(
-            "删掉 " + row.home_path + "，里面的会话与插件状态一起没了；控制台的 DSH_HOME 里那份不动",
+            "把这份 profile 的目录移回共用 home（" + row.home_path +
+            "/profiles），这份额外 home 里剩下的会话与插件状态移到回收站，可以捞回来",
           ),
         on_click=emit(RowAction(row.id, DeisolateHome)),
-        [icon("close"), @html.span("取消隔离")],
+        [
+          icon("close"),
+          @html.span(if moving { "正在移动…" } else { "移回共用 home" }),
+        ],
       ),
     )
   } else if row.home_kind == "trial" {
@@ -806,15 +926,19 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       @html.button(
         class="dsh-btn",
         type_="button",
-        disabled=busy,
+        disabled=busy || moving,
         attrs=mark("drawer-isolate-home", ["overview", "drawer", row.id, "action", "isolate-home"])
           .data_set("action", "isolate-home")
+          .data_set("state", if moving { "moving" } else { "idle" })
           .title(
-            "把这支 profile 的配置复制一份到控制台的 homes 根下（目录名就是 profile 名，缺省 ~/.dsh-homes），" +
-            "以后用这支 profile 起的实例都在里面跑，现在这份不动",
+            "把这份 profile 的目录移到控制台的 homes 根下（目录名就是 profile 名，缺省 ~/.dsh-homes），" +
+            "以后用这只 profile 起的实例都在里面跑；共用 home 里那一份跟着搬走，不再留副本",
           ),
         on_click=emit(RowAction(row.id, IsolateHome)),
-        [icon("link-variant"), @html.span("隔离到独立 home")],
+        [
+          icon("link-variant"),
+          @html.span(if moving { "正在移动…" } else { "移到独立 home" }),
+        ],
       ),
     )
   } else {
@@ -822,7 +946,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       @html.span(
         class="dsh-foot",
         attrs=mark("drawer-home-missing", ["overview", "drawer", row.id, "action", "home-missing"]),
-        "这一版读数里没有「配置 home」，隔离 / 取消隔离都不发",
+        "这一版读数里没有「配置 home」，移进 / 移回都不发",
       ),
     )
   }
@@ -1041,7 +1165,7 @@ fn detail_drawer(
 // ── 归档区 ─────────────────────────────────────────────────
 
 ///|
-fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn archived_row(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let parts : Array[@html.Html] = [
     @html.span(
       class="dsh-archive-name",
@@ -1091,7 +1215,14 @@ fn archived_row(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
         class="dsh-archive-btn danger",
         type_="button",
         attrs=mark("archive-delete", ["overview", "archive", row.id, "delete"]),
-        on_click=emit(DeleteOpen(row.id, archive_trigger_id(row.id))),
+        // 归档区这颗没有 Shift 语义（§13.2 说的是抽屉里那颗）：模式只按「回收站开没开」定
+        on_click=emit(
+          DeleteOpen(
+            row.id,
+            archive_trigger_id(row.id),
+            delete_to_trash_of(model) != Some(true),
+          ),
+        ),
         [icon("delete-outline"), @html.span("删除")],
       ),
     )
@@ -1115,7 +1246,7 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.archived_open {
     body.push(source_badge(model.tag_archived, ["overview", "section", "archived", "source-badge"]))
     for row in items {
-      body.push(archived_row(row, emit))
+      body.push(archived_row(row, model, emit))
     }
   }
   @html.fragment([
@@ -1179,11 +1310,11 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Some(row) => row.name
     None => model.confirm_id
   }
-  let mode = match delete_to_trash_of(model) {
-    Some(true) => "删除后移入回收站，可以捞回来。"
-    Some(false) => "删除后无法恢复。"
-    None => "暂时读不到删除方式。"
-  }
+  // 三处文案都照**点开那一刻记下来的模式**（§13.2）：确认框开着的时候设置被改了，
+  // 这个框说的仍然是对那一次点击的判断。
+  let hard = model.confirm_hard
+  let title = (if hard { "彻底删除 " } else { "删除实例 " }) + name + "？"
+  let mode = if hard { "删除后无法恢复。" } else { "删除后移入回收站，可以捞回来。" }
   let note = match find_row(model.rows, model.confirm_id) {
     Some(row) => row.user_note
     None => ""
@@ -1200,8 +1331,9 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
-      attrs=mark("dialog-title", ["dialog", "confirm-dialog", "title"]),
-      "删除实例 " + name + "？",
+      attrs=mark("dialog-title", ["dialog", "confirm-dialog", "title"])
+        .data_set("mode", if hard { "hard" } else { "soft" }),
+      title,
     ),
     note_block,
     @html.p(
@@ -1212,11 +1344,14 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.div(class="dsh-dialog-foot", [
       @html.button(
         id="dsh-confirm-ok",
-        class="dsh-dialog-btn primary",
+        // 彻底删除时确认键用红色（.danger）：与「删除后无法恢复」那句一致，
+        // 也让两个模式在按键上就分得开 —— 颜色之外还有文案与标题两处文字。
+        class=if hard { "dsh-dialog-btn danger" } else { "dsh-dialog-btn primary" },
         type_="button",
-        attrs=mark("dialog-ok", ["dialog", "confirm-dialog", "ok"]),
+        attrs=mark("dialog-ok", ["dialog", "confirm-dialog", "ok"])
+          .data_set("mode", if hard { "hard" } else { "soft" }),
         on_click=emit(DeleteConfirm),
-        [@html.text("删除")],
+        [@html.text(if hard { "彻底删除" } else { "删除" })],
       ),
       @html.button(
         class="dsh-dialog-btn",
@@ -1229,7 +1364,7 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "confirm-dialog",
-    "删除实例 " + name + "？",
+    title,
     emit(DeleteCancel),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {
@@ -1252,13 +1387,15 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Some(row) => (row.name, row.home_path)
     None => (model.home_confirm_id, "")
   }
-  let where_text = if path == "" { "这份隔离 home" } else { path }
-  let message = "取消隔离会删掉 " + where_text + " 里的全部内容（会话、插件状态、日志）。确定？"
+  // 文案照 design/deep-home-isolation.md §9.4 第 3 条 / §9.5：
+  // 移回本身不动内容，进回收站的是「剩下那份 home 里的会话与插件状态」，而且能捞回来。
+  let where_text = if path == "" { "这份额外 home" } else { path }
+  let message = "移回共用 home 会把这份额外 home 里剩下的会话与插件状态移到回收站，可以捞回来。"
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("home-dialog-title", ["dialog", "home-confirm-dialog", "title"]),
-      "取消隔离 " + name + "？",
+      "移回共用 home？",
     ),
     @html.p(
       class="dsh-dialog-message",
@@ -1273,7 +1410,7 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         type_="button",
         attrs=mark("home-dialog-ok", ["dialog", "home-confirm-dialog", "ok"]),
         on_click=emit(HomeDeisolateConfirm),
-        [@html.text("取消隔离")],
+        [@html.text("移回共用 home")],
       ),
       @html.button(
         class="dsh-dialog-btn",
@@ -1286,7 +1423,7 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "home-confirm-dialog",
-    "取消隔离 " + name + "？",
+    "移回共用 home " + name + "？",
     emit(HomeDeisolateCancel),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {

@@ -238,8 +238,14 @@ async fn package_json_ok(dir : String) -> Bool noraise {
 ///   2. dsh.profile.bundles 里有 @deepseek-ai/dsh-web-app（没有就起不了网页实例）。
 /// 缺包（bundles.missing 非空）**不算**不通过：那只影响「可能起不来」，由界面另行注明。
 pub async fn trial_profile_blocker(dsh_home : String, name : String) -> String? noraise {
+  // 目录按这只 profile **现在在哪儿**取：隔离的那一只在自己的 home 里（真移动之后
+  // 共用 home 的 profiles/ 下没有它，按 dsh_home 拼就会把一个好好的配置报成「读不到」）。
+  // profile_dir_of 那一道仍先过：名字不合法的直接拒，不往下走。
   let dir = match profile_dir_of(dsh_home, name) {
-    Some(d) => d
+    Some(_) => {
+      let (resolved, _home) = profile_location(name)
+      resolved
+    }
     None => return Some("这只配置读不到，没法试跑（profile 名认不出来：" + name + "）")
   }
   if !@json.is_dir(dir) {
@@ -414,13 +420,23 @@ pub async fn read_profiles() -> @json.JsonVal raise @localapi.ReadError {
       names.push(entry.0)
     }
   }
+  // 隔离的那几只：目录已经搬进各自的 home（真移动，不是复制），共用 home 的 profiles/ 下
+  // 不再有它们。名册从 homes root 读 —— 不把它们列上，总览里就少了几只 profile，
+  // 「金色描边 + 移回共用 home」也就无处可点（design/deep-home-isolation.md §9.6）。
+  for name in isolated_profile_names() {
+    if !names.contains(name) {
+      names.push(name)
+    }
+  }
   names.sort_by(compare_code_units)
   let profiles : Array[@json.JsonVal] = []
   for name in names {
+    // 目录按**它自己现在在哪儿**取：隔离的那一个在 <homes root>/<名字>/profiles/<名字>。
+    let (dir, _home) = profile_location(name)
     profiles.push(
       describe_profile(
         name,
-        @json.join_path(root, name),
+        dir,
         shared_dir,
         current_profile,
         dsh_home,

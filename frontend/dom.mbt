@@ -31,6 +31,42 @@ extern "js" fn js_focus_end_id(id : String) -> Unit =
   #| }
 
 ///|
+/// 装一次文档级的 Shift 监视：按住 / 松开 Shift 时在 <body> 上打一个标记
+/// （data-shift="1" / 移除）。
+///
+/// 为什么挂在 DOM 上、而不是进 model（design/ops-maintenance-jobs.md §13.2）：
+/// 按下 Shift 要**即时**变红换字，走「事件 → update → 重渲染 → 属性」这一圈会慢一拍，
+/// 而且每一拍都要重画整张抽屉。CSS 按同一个标记直接换色换字，零回环。
+///
+/// 标记挂在 <body> 上而不是按钮上：按钮会被重渲染换掉节点（抽屉开合、读数刷新），
+/// 换掉之后它身上就没有标记了；<body> 不在 rabbita 的渲染范围里，标记活得比按钮长。
+/// 顺手挂 blur：按住 Shift 切走窗口，回来时 keyup 早就丢了，标记会一直亮着。
+extern "js" fn js_shift_watch() -> Unit =
+  #| () => {
+  #|   if (globalThis.__dshShiftWatch) return
+  #|   globalThis.__dshShiftWatch = true
+  #|   const mark = (on) => {
+  #|     if (on) document.body.setAttribute('data-shift', '1')
+  #|     else document.body.removeAttribute('data-shift')
+  #|   }
+  #|   document.addEventListener('keydown', (e) => {
+  #|     if (e.key === 'Shift' || e.shiftKey) mark(true)
+  #|   }, true)
+  #|   document.addEventListener('keyup', (e) => {
+  #|     if (e.key === 'Shift' || !e.shiftKey) mark(false)
+  #|   }, true)
+  #|   window.addEventListener('blur', () => mark(false))
+  #| }
+
+///|
+/// 此刻 Shift 按着没有：读的正是上面那个文档级标记。
+///
+/// 点删除按钮那一刻由 DOM 监听器同步调一次，把「现在是哪种删法」记进 model ——
+/// 确认框的三处文案与请求都照记下来的那一格走，不事后重读设置。
+extern "js" fn js_shift_held() -> Bool =
+  #| () => document.body.getAttribute('data-shift') === '1'
+
+///|
 /// 滚到底：日志区打开与切来源都要看到最新的一行。
 extern "js" fn js_scroll_bottom_id(id : String) -> Unit =
   #| id => { const el = document.getElementById(id); if (el) el.scrollTop = el.scrollHeight; }

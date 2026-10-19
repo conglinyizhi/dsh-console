@@ -78,8 +78,10 @@ pub async fn fork_profile(
 ) -> ForkOutcome raise ActionError {
   let source_name = @json.trim_both(profile)
   validate_profile_name(source_name)
+  // 派生的源按**它自己现在在哪儿**取（隔离的那一只在自己 home 里）；
+  // 新副本一律落在共用 home 的 profiles/ 下，随后照旧"派生即隔离"。
+  let (source_dir, _source_home) = @profiles.profile_location(source_name)
   let root = profiles_root()
-  let source_dir = @json.join_path(root, source_name)
   if !@json.is_dir(source_dir) {
     fail("not-found", "profile 目录不存在：" + source_dir)
   }
@@ -195,6 +197,17 @@ pub async fn rename_profile(profile : String, new_name : String) -> RenameOutcom
   if from_name == to_name {
     fail("bad-params", "新旧名字一样：" + from_name)
   }
+  // 移进独立 home 的那一只不许直接改名：它的目录名与 home 目录名是一对（<root>/<名字>/
+  // profiles/<名字>），只改一半会让这份 home 谁也对不上。先移回共用 home 再改名。
+  match @profiles.isolated_home_of(from_name) {
+    Some(home) =>
+      fail(
+        "conflict",
+        from_name + " 移到了独立 home（" + home + "），先移回共用 home 再改名（" +
+        "home 目录名与 profile 名是一对，只改一半会对不上）",
+      )
+    None => ()
+  }
   let root = profiles_root()
   // 守卫比的是 (home, 名字)：home 就是 profiles 根的父目录，与下面要动的那个目录同源算一次。
   // 不让守卫自己再解析一遍 —— 分叉出来正好是「判的是这一处、动的是另一处」。
@@ -254,9 +267,13 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
   validate_profile_name(name)
   // home 与 root 同源算一次：分开各算一遍迟早会分叉，而分叉出来正好是
   // 「删的是这一处、记下的来源却是另一处」—— 那比不记还坏。
-  let (home, _) = @runtime.resolve_dsh_home()
+  // 目录与 home 一起取：真移动之后隔离的那一只在自己的 home 里，
+  // 按 DSH_HOME 拼会指到一个已经不存在的目录（或者更坏：同名的另一份）。
+  let (dir, home) = @profiles.profile_location(name)
   let root = @json.join_path(home, "profiles")
-  let dir = @json.join_path(root, name)
+  if !dir.has_prefix(root + "/") || dir == root {
+    fail("bad-params", "profile 名解析到了 " + root + " 之外：" + dir)
+  }
   if !@json.is_dir(dir) {
     fail("not-found", "profile 目录不存在：" + dir)
   }
@@ -350,8 +367,9 @@ pub struct NoteOutcome {
 pub async fn set_profile_note(profile : String, text : String) -> NoteOutcome raise ActionError {
   let name = @json.trim_both(profile)
   validate_profile_name(name)
-  let root = profiles_root()
-  let dir = @json.join_path(root, name)
+  // 隔离的那一只：备注写在它自己那份目录里（备注跟着目录走，这也是它一直的口径）
+  let (dir, home) = @profiles.profile_location(name)
+  let root = @json.join_path(home, "profiles")
   // 防目录穿越的第二道：白名单已经保证 name 是单段（无斜杠、不是 . / ..），
   // 这里再确认拼出来的路径确实在 profilesRoot 里面，两道都留着。
   if !dir.has_prefix(root + "/") || dir == root {
