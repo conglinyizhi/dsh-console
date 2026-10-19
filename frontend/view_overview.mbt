@@ -737,6 +737,74 @@ fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
 }
 
 ///|
+/// 抽屉里「硬开裸地址」那一颗（design/ops-maintenance-jobs.md §15.2）。
+///
+/// **这一枪要在 DOM 监听器里同步打**：window.open 只有在用户手势的同一个同步栈里
+/// 才不会被弹窗拦截器吃掉（与「启动」的占位标页同一条理由，见 start_click）——
+/// update 走的是 queueMicrotask，等它去调就已经晚了一拍。结局随 HardOpenDone 进 model，
+/// 成没成照那个回执说，不报一句空的「已打开」。
+///
+/// 它不依赖任何修饰键：手机上没有 Alt，点它就是硬开。
+fn hard_open_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
+  mark("drawer-hard-open", ["overview", "drawer", row.id, "action", "hard-open"])
+    .data_set("action", "hard-open")
+    .title("不管有没有 key，直接在新标签页打开裸地址；服务端没握手，可能用不了")
+    .on_click(fn(_event) { emit(HardOpenDone(row.id, row.url, js_open_url(row.url))) })
+}
+
+///|
+/// 抽屉「打开与复制」分组末尾那一行小开关（§15.2）：切换即一次 PUT 设置，
+/// 回执走全局提示（SettingToggle → commit_setting_value，与设置页那颗开关同一条路）。
+///
+/// 设置还没读到（或读失败）时开关是禁用的，标签与那行小字照常摆：
+/// 手机那一侧除了这里没有别的入口，「不摆」比「摆一颗点不动的」更让人无从下手。
+fn drawer_advanced_toggle(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let on = advanced_actions_on(model)
+  let known = setting_bool_of(model, "ui.advancedActions") is Some(_)
+  let saving = model.settings_saving == "ui.advancedActions"
+  @html.div(
+    class="dsh-drawer-advanced",
+    attrs=mark("drawer-advanced", ["overview", "drawer", "advanced"]).data_set(
+      "state",
+      if on {
+        "on"
+      } else {
+        "off"
+      },
+    ),
+    [
+      @html.div(class="dsh-drawer-advanced-line", [
+        @html.span(
+          class="dsh-drawer-advanced-label",
+          attrs=mark("drawer-advanced-label", ["overview", "drawer", "advanced", "label"]),
+          "高级操作",
+        ),
+        @html.button(
+          class=if on { "dsh-switch small on" } else { "dsh-switch small" },
+          type_="button",
+          disabled=!known || saving,
+          attrs=mark("drawer-advanced-switch", ["overview", "drawer", "advanced", "switch"])
+            .role("switch")
+            .aria_checked(if on { "true" } else { "false" })
+            .aria_label("高级操作")
+            .title("打开之后，抽屉里会多出「硬开裸地址」这类按钮；手机上没有修饰键，用这个开关"),
+          on_click=emit(SettingToggle("ui.advancedActions", !on)),
+          [
+            @html.span(class="dsh-switch-knob", @html.nothing),
+            @html.span(class="dsh-switch-text", if on { "开" } else { "关" }),
+          ],
+        ),
+      ]),
+      @html.p(
+        class="dsh-drawer-advanced-hint",
+        attrs=mark("drawer-advanced-hint", ["overview", "drawer", "advanced", "hint"]),
+        "显示有风险的按钮（硬开裸地址）",
+      ),
+    ],
+  )
+}
+
+///|
 /// 「配置 home」那一格的三档文字（design/deep-home-isolation.md 第 5 节、
 /// design/ops-maintenance-jobs.md §11.1）。
 fn home_kind_text(kind : String) -> String {
@@ -805,6 +873,19 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         [icon("open-in-new"), @html.span("打开 Web UI")],
       ),
     )
+    // 「高级操作」开着的时候，「打开 Web UI」旁边多一颗硬开的（§15.2）：
+    // 手机上没有修饰键，这颗按钮是那一侧唯一的入口。关掉就一个节点都不产出。
+    if advanced_actions_on(model) {
+      main.push(
+        @html.button(
+          class="dsh-btn danger dsh-hard-open",
+          type_="button",
+          disabled=busy,
+          attrs=hard_open_click(row, emit),
+          [icon("open-in-new"), @html.span("硬开裸地址")],
+        ),
+      )
+    }
     main.push(
       @html.button(
         class="dsh-btn",
@@ -872,6 +953,9 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       }
     None => ()
   }
+  // 「打开与复制」分组**末尾**那一行小开关（§15.2）：切换即 PUT 设置。
+  // 摆在这一组最后 —— 它是「这一组要不要多摆一颗」的开关，不是复制动作本身。
+  take.push(drawer_advanced_toggle(model, emit))
   let mutate : Array[@html.Html] = [
     drawer_button(row, Rename, "rename-outline", "重命名", false, busy, emit),
     drawer_button(row, Note, "note-text-outline", "备注", false, busy, emit),

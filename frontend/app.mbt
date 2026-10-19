@@ -45,6 +45,22 @@ fn default_log_source(model : Model) -> String {
 }
 
 ///|
+/// 设置读数的懒加载入口（唯一的一处）：还没读到、也没在读，才发这一枪。
+///
+/// 两个地方要它：进设置页（那一页整页靠这份读数），以及**开抽屉**时
+/// （抽屉按 ui.advancedActions 决定摆不摆「硬开裸地址」，见 ops-maintenance-jobs.md §15.2）。
+/// 启动时不预拉：后端没提供这个接口时，每次打开总览都会在控制台里留一条 404，
+/// 而「控制台零问题」是验收项。读过一次（成功或失败）就不再自动重发，
+/// 失败之后要重试走设置页那颗「重新读取」。
+fn ensure_settings_read(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  if model.settings_loaded || model.settings_loading {
+    (model, @cmd.none)
+  } else {
+    ({ ..model, settings_loading: true, settings_error: "" }, settings_get_cmd(emit))
+  }
+}
+
+///|
 /// 按一条路由进入对应的页面：地址里写着的页面状态进 model，该页自己要拉起的那份读数在这里发。
 ///
 /// 启动（init）与前进 / 后退（RouteChanged）都只走这一条 —— 两边各写一遍「进日志页要读一次
@@ -74,14 +90,8 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
       }
     }
     Settings =>
-      // 设置是懒加载：只在真进设置页时发 GET。
-      // 别在应用启动时顺手读它 —— 后端还没提供这个接口时，
-      // 每次打开总览都会在控制台里留一条 404，而「控制台零问题」是验收项。
-      if model.settings_loaded || model.settings_loading {
-        (base, @cmd.none)
-      } else {
-        ({ ..base, settings_loading: true, settings_error: "" }, settings_get_cmd(emit))
-      }
+      // 设置是懒加载：只在真进设置页（或开抽屉）时发 GET，见 ensure_settings_read。
+      ensure_settings_read(base, emit)
     Trash =>
       // 回收站是会变的（另一个标签页里删了东西、别处恢复了）：进来就重读一次控制台读数。
       // 只重发这一份，别的读数不动 —— 它读不到时的样子由这一页自己分档说清。
@@ -430,6 +440,32 @@ fn open_web_ui(
     None => return (model, @cmd.none)
     Some(row) => row
   }
+  // 按住 Alt = 按那颗「硬开裸地址」（§15.2），**有没有 key 都一样**：
+  // 抽屉里那颗按钮与这条快捷键是同一件事，两边给出的回执也不许长得不一样。
+  // 用 Alt 不用 Shift：Shift+点击会被浏览器当成「开新窗口」，那是它自己的手势。
+  if js_alt_held() {
+    let hint = if row.web_url_source == "" {
+      "读不到带令牌的地址，也没有说明原因；裸地址 " + row.url
+    } else {
+      row.web_url_source + "；裸地址 " + row.url
+    }
+    let outcome = js_open_url(row.url)
+    let (ok, text) = if outcome == "ok" {
+      (
+        true,
+        match row.web_url {
+          // 这一支不说「带令牌的地址」：开的本来就是裸地址，拿另一套话会自相矛盾
+          Some(_) => row.name + " 已硬开裸地址（没带 key），打开后可能无法正常使用"
+          None => row.name + " 不是启动器拉起的，没有 key，已硬开裸地址，打开后可能无法正常使用"
+        },
+      )
+    } else if outcome == "blocked" {
+      (false, row.name + " 的裸地址被浏览器拦掉了（弹窗拦截），可以自己去开 " + row.url)
+    } else {
+      (false, row.name + " 的裸地址没能打开（" + outcome + "）")
+    }
+    return (notice_put(model, ok, text, hint), @cmd.none)
+  }
   match row.web_url {
     Some(url) => {
       let (ok, tail) = open_outcome_text(js_open_url(url))
@@ -439,37 +475,44 @@ fn open_web_ui(
     }
     None => {
       // 正文只留一句人话，细节（地址、令牌从哪来、为什么没有）全进悬停。
-      // Shift 按住 = 「我知道没有 key，照样开」：直接开裸地址，成没成仍按弹窗拦截那句话回。
       let hint = if row.web_url_source == "" {
         "读不到带令牌的地址，也没有说明原因；裸地址 " + row.url
       } else {
         row.web_url_source + "；裸地址 " + row.url
       }
-      if js_alt_held() {
-        // 这一支不说「带令牌的地址」：开的本来就是裸地址，拿另一套话会自相矛盾
-        // 用 Alt 不用 Shift：Shift+点击会被浏览器当成「开新窗口」，那是它自己的手势
-        let outcome = js_open_url(row.url)
-        let (ok, text) = if outcome == "ok" {
-          (true, row.name + " 不是启动器拉起的，没有 key，已硬开裸地址，打开后可能无法正常使用")
-        } else if outcome == "blocked" {
-          (false, row.name + " 的裸地址被浏览器拦掉了（弹窗拦截），可以自己去开 " + row.url)
-        } else {
-          (false, row.name + " 的裸地址没能打开（" + outcome + "）")
-        }
-        (notice_put(model, ok, text, hint), @cmd.none)
-      } else {
-        (
-          notice_put(
-            model,
-            false,
-            row.name + " 不是启动器拉起的，没有 key，没有打开（按住 Alt 可以硬开裸地址）",
-            hint,
-          ),
-          @cmd.none,
-        )
-      }
+      (
+        notice_put(
+          model,
+          false,
+          row.name + " 不是启动器拉起的，没有 key，没有打开（按住 Alt 可以硬开裸地址）",
+          hint,
+        ),
+        @cmd.none,
+      )
     }
   }
+}
+
+///|
+/// 抽屉里「硬开裸地址」那一枪的回执落地（§15.2）。
+///
+/// 这一枪本身在 DOM 监听器里同步打完（见 view_overview 的 hard_open_click），
+/// 这里只按结局说话：开成了、被弹窗拦了、还是报错 —— 三档分开说，不报一句空的「已打开」。
+fn hard_open_done(
+  model : Model,
+  row_id : String,
+  url : String,
+  outcome : String,
+) -> (Model, @cmd.Cmd) {
+  let name = row_name(model, row_id)
+  let (ok, text) = if outcome == "ok" {
+    (true, name + " 已硬开裸地址，打开后可能无法正常使用")
+  } else if outcome == "blocked" {
+    (false, name + " 的裸地址被浏览器拦掉了（弹窗拦截），可以自己去开 " + url)
+  } else {
+    (false, name + " 的裸地址没能打开（" + outcome + "）")
+  }
+  (notice_put(model, ok, text, "裸地址 " + url + "；这一颗不管有没有 key，直接开裸地址"), @cmd.none)
 }
 
 ///|
@@ -2559,6 +2602,10 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         Config => open_path_action(model, id, "config", "打开配置", emit)
         // 没有兜底分支了：ActionKey 的每一项上面都接上了（以前那行兜底会把这个事实藏起来）
       }
+    // 抽屉里「硬开裸地址」那一枪的回执（§15.2）：结局只有一句话要说，走全局提示。
+    // 这一枪在 DOM 监听器里同步打完（见 view_overview 的 hard_open_click），
+    // 这里只管把结局说成一句人话。
+    HardOpenDone(id, url, outcome) => hard_open_done(model, id, url, outcome)
     // 启动按钮的点击：占位标页已经在 DOM 监听器里同步开好（见 view_overview 的
     // start_click），tab 是那一枪的回执。这里只按状态放行 —— 不是「已停止」就什么都不做，
     // 但占下的标页要收掉：状态在这一栈与下一次渲染之间翻了的话，它就没有下文了。
@@ -2635,10 +2682,14 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       } else {
         // 又把抽屉打开了：正在收的那一只当场作废（同一行会撞出两个 #dsh-drawer-close），
         // 它那条计时回来时号对不上，自己会是空枪
-        (
+        //
+        // 顺手把这页要用的设置读一次（只读一次，读过就不再发）：抽屉里的
+        // 「高级操作」开关与「硬开裸地址」都按 ui.advancedActions 摆（§15.2）。
+        let (next, read) = ensure_settings_read(
           { ..model, drawer_id: id, drawer_closing: "" },
-          focus_after_render(drawer_close_id()),
+          emit,
         )
+        (next, @cmd.batch([read, focus_after_render(drawer_close_id())]))
       }
     // 关抽屉：点外部 / Esc / 关闭键三条路都走这里，焦点一律回触发它的那张卡 ——
     // 焦点落在被卸载的节点上会掉到 body，键盘用户于是从页首重新 Tab。

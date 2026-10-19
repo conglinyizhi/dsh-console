@@ -10,6 +10,7 @@
 //   process.stopGraceMs      5000    SIGTERM 到 SIGKILL 的宽限
 //   logs.defaultTail         200     日志页默认尾部行数
 //   ui.archiveOpenByDefault  false   归档区默认是否展开
+//   ui.advancedActions       false   抽屉里是否摆「硬开裸地址」这类有风险的按钮
 //   safety.deleteToTrash     true    删除进回收站还是硬删
 //
 // 这个文件只做三件事：列键（顺序、分组、控件、说明）、从 GET 的响应里取值、
@@ -94,7 +95,7 @@ let settings_groups : Array[SettingGroup] = [
 ]
 
 ///|
-/// 九个键（顺序即条目顺序）。
+/// 十个键（顺序即条目顺序）。
 let settings_table : Array[SettingDef] = [
   {
     key: "instance.basePort",
@@ -157,6 +158,14 @@ let settings_table : Array[SettingDef] = [
     group: "ui",
     label: "归档区默认展开",
     desc: "打开实例总览时，「已归档」分组是否直接展开。",
+    kind: CBool,
+    fallback: VBool(false),
+  },
+  {
+    key: "ui.advancedActions",
+    group: "ui",
+    label: "高级操作",
+    desc: "在抽屉里显示「硬开裸地址」这类有风险的按钮。手机上没有修饰键，只能用这个开关",
     kind: CBool,
     fallback: VBool(false),
   },
@@ -375,6 +384,16 @@ fn setting_bool_of(model : Model, key : String) -> Bool? {
         _ => None
       }
   }
+}
+
+///|
+/// 抽屉里要不要摆「硬开裸地址」这类有风险的按钮（design/ops-maintenance-jobs.md §15.2）。
+///
+/// 设置读到、键返回了、而且开着，三条齐了才是 true：读不到一律当关 ——
+/// 不拿「可能是开的」去摆一颗点了会 401 的按钮。手机上没有修饰键，
+/// 所以这个开关是那一侧唯一的入口：它关着的时候，抽屉里一颗多余的按钮都不摆。
+fn advanced_actions_on(model : Model) -> Bool {
+  setting_bool_of(model, "ui.advancedActions") == Some(true)
 }
 
 ///|

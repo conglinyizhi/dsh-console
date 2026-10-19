@@ -740,6 +740,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `process.stopGraceMs` | 5000 | 停止时 SIGTERM 到 SIGKILL 的宽限（实测 grace=0 → 直接 SIGKILL，`sigkillSent:true`；grace=5000 → 只发 SIGTERM） |
 | `logs.defaultTail` | 200 | 日志接口不带 tail 参数时的缺省（实测 50 → 回 50 行，500 → 回 500 行；显式 tail 不受影响） |
 | `ui.archiveOpenByDefault` | false | 前端读 `GET /api/local/settings` 决定归档区默认展开（后端负责存取与回显） |
+| `ui.advancedActions` | false | 前端读它决定抽屉里摆不摆「硬开裸地址」这类有风险的按钮（后端负责存取与回显） |
 | `safety.deleteToTrash` | true | 删除进回收站还是硬删（见上表） |
 
 取值范围（越界即 `bad-params`，不静默夹取）：`probe.timeoutMs` 50..60000、`probe.concurrency` 1..64、
@@ -958,7 +959,7 @@ backend/
 │   └── proc_signal.c           # 唯一另一处 C：kill(2) / kill(pid,0) / getpid(2)
 ├── store/                      # 状态文件（$XDG_STATE_HOME/dsh-console）
 │   ├── state.mbt               # 状态目录与 JSON 文件读取（坏文件给原因）
-│   ├── settings.mbt            # 九项设置的键、缺省、取值范围、原子落盘
+│   ├── settings.mbt            # 十项设置的键、缺省、取值范围、原子落盘
 │   ├── registry.mbt            # runtime.json：控制台起过的实例
 │   ├── archive.mbt             # archive.json：归档记录（(home, 名字) 为身份）
 │   ├── trash_origins.mbt       # trash-origins.json：回收站条目各自从哪个 home 删的

@@ -624,6 +624,10 @@ priv enum Msg {
   /// 浏览器前进 / 后退（或手改了 path）：按当前地址复原页面，不写历史
   RouteChanged
   RowAction(String, ActionKey)
+  /// 抽屉里「硬开裸地址」那一枪的回执：js_open_url 在 DOM 监听器里同步打完，
+  /// 结局（'ok' / 'blocked' / 'error: …'）与那一刻的裸地址随这条消息进 model
+  /// （design/ops-maintenance-jobs.md §15.2）
+  HardOpenDone(String, String, String)
   /// 启动按钮的点击：行 id / profile 目录名 / 占位标页的结局。
   /// 占位标页是在 DOM 监听器里**同步**开好的（见 view_overview 的 start_click），
   /// 回执随这条消息进来 —— update 走 queueMicrotask，等不到用户手势那一栈。

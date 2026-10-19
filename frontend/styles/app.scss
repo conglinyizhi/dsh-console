@@ -1054,6 +1054,24 @@ $drawer-ms: 220ms;
 .dsh-drawer-group + .dsh-drawer-group { margin-top: 10px; }
 .dsh-drawer-group-title { font-size: 11px; color: $text-dim; }
 .dsh-drawer-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 「打开与复制」分组末尾那一行小开关（design/ops-maintenance-jobs.md §15.2）：
+   标签 + 小开关，下面一行小字。它和按钮一起躺在 flex-wrap 的 .dsh-drawer-btns 里，
+   所以自己占满一整行，不跟按钮挤在同一排。 */
+.dsh-drawer-advanced {
+  flex: 0 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+.dsh-drawer-advanced-line { display: flex; align-items: center; gap: 8px; }
+.dsh-drawer-advanced-label { font-size: 12.5px; color: $text; }
+.dsh-drawer-advanced-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: $text-dim;
+}
 
 // ── 控制按钮（抽屉里那一排；形状与原来的行内按钮组逐条一致） ──
 .dsh-btn {
@@ -1756,6 +1774,30 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   border-top: 0;
   padding-top: 2px;
 }
+// 窄屏（手机）：设置页从「左索引 + 右面板」的两列改成一条竖排。
+// 两列在 390 宽下只剩 156px 可用，176px 的索引吃掉全部，面板被压到 0 宽 ——
+// 那不是「挤」，是那一条设置整块看不见（实测 [data-setting=…] 落在视口外、宽度 0）。
+@media (max-width: 820px) {
+  .dsh-settings-page {
+    padding: 12px 14px 18px;
+  }
+  .dsh-settings-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .dsh-settings-index {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 4px;
+  }
+  .dsh-settings-tab {
+    flex: 0 0 auto;
+  }
+  .dsh-setting {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}
 .dsh-setting-main {
   min-width: 0;
   display: flex;
@@ -1873,6 +1915,18 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   min-width: 1.2em;
   text-align: center;
 }
+/* 抽屉里那一颗（§15.2）：同一副开关皮，矮一档 —— 它旁边是 30px 高的按钮，
+   一样高会抢走半行的注意力。 */
+.dsh-switch.small {
+  height: 24px;
+  padding: 0 9px 0 7px;
+  font-size: 11px;
+  gap: 6px;
+}
+.dsh-switch.small .dsh-switch-knob { width: 10px; height: 10px; }
+/* 硬开裸地址（§15.2）：「有风险」这件事用红色说，与删除同一档脸色，
+   但它是普通按钮大小，位置在「打开 Web UI」旁边。 */
+.dsh-btn.dsh-hard-open { flex: none; }
 .dsh-settings-hint {
   padding: 14px 15px;
   border: 1px dashed $line-strong;
