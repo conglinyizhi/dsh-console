@@ -699,15 +699,11 @@ fn profile_pick_card(
   picked : (String) -> Msg,
   emit : @cmd.Emit[Msg],
   chosen? : Bool = false,
-  // 这一刻整张卡被拦住（不是读数说它不可用）：新建实例框勾上「从基础实例开始」时用这一档
-  // （design/design-fixes.md §21）—— 卡照样是「可用」的，只是这一刻不参与选源。
-  locked? : Bool = false,
-  locked_label? : String = "",
 ) -> @html.Html {
-  // usable 说的是读数；ok 说的是「这一刻点得动」。两者分开：锁上的卡不是坏卡，
-  // data-usable 照旧照读数写，data-selectable 才是这一刻能不能点。
+  // 卡上只写读数带来的 data-usable。「这一刻整组不可选」那一档已经挪到容器上
+  // （inert + 遮罩，design/design-fixes.md §22）：卡片自己不再知道时刻，
+  // 也就不再写 data-selectable / data-locked —— 同一张卡在两处是同一张卡。
   let usable = pick.usable
-  let ok = usable && !locked
   let why = pick.why
   let head : Array[@html.Html] = [
     @html.span(
@@ -803,31 +799,33 @@ fn profile_pick_card(
       ),
     )
   }
-  let click = if ok {
+  let click = if usable {
     emit(picked(pick.name))
   } else {
     @cmd.none
   }
   // 选中那一条整张卡再亮一层（底色 + 左侧一道主色竖条）：卡上那枚「已选 / 当前配置」
   // 是文字通道，这里补的是色块通道 —— 不是只靠颜色，也不是只靠一个字。
-  let base_class = if ok { "dsh-case dsh-profile-card" } else { "dsh-case dsh-profile-card disabled" }
-  let card_class = if chosen && ok { base_class + " chosen" } else { base_class }
+  let base_class = if usable {
+    "dsh-case dsh-profile-card"
+  } else {
+    "dsh-case dsh-profile-card disabled"
+  }
+  let card_class = if chosen && usable { base_class + " chosen" } else { base_class }
   @html.article(
     id=card_id,
     class=card_class,
     attrs=mark(mark_prefix + "-card", mark_path(marks, [pick.name]))
       .data_set("usable", if usable { "true" } else { "false" })
-      .data_set("selectable", if ok { "true" } else { "false" })
-      .data_set("locked", if locked { "true" } else { "false" })
       .data_set("group", if pick.running { "running" } else { "stopped" })
       .data_set("chosen", if chosen { "true" } else { "false" })
       .role("button")
-      .tabindex(if ok { 0 } else { -1 })
-      .aria_disabled(if ok { "false" } else { "true" })
-      .aria_label(if locked { locked_label } else if usable { aria_ok } else { aria_bad })
+      .tabindex(if usable { 0 } else { -1 })
+      .aria_disabled(if usable { "false" } else { "true" })
+      .aria_label(if usable { aria_ok } else { aria_bad })
       .on_click(fn(_event) { click })
       .on_keydown(fn(event) {
-        if ok && (event.key() == "Enter" || event.key() == " ") {
+        if usable && (event.key() == "Enter" || event.key() == " ") {
           emit(picked(pick.name))
         } else {
           @cmd.none

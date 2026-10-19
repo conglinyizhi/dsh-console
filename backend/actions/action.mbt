@@ -460,7 +460,7 @@ pub async fn run_action(
       let note_text = "用 dsh " + outcome.dsh_version + "（" + outcome.package_dir +
         "）自带的基础模板 " + base_template_profile + " 新建；核对过三条：package.json 读得出、" +
         "bundles 里有 " + @profiles.web_app_bundle + "、cordis.patch.yml 在；" +
-        "dsh 那一步用了 " + outcome.ms.to_string() + " 毫秒，退出码 0，没有留下进程。" + home_text
+        "dsh 那一步用了 " + outcome.ms.to_string() + " 毫秒。" + home_text
       @json.JObj([
         ("action", @json.JStr(action)),
         ("outcome", @json.JObj([

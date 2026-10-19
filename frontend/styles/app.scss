@@ -1577,6 +1577,31 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   overflow-y: auto;
   padding-right: 2px;
 }
+// 源卡区外面那层（§22）：只负责给遮罩一个定位容器。列表的高度上限与滚动还在
+// .dsh-new-pick 上 —— 锁上、解锁都是这套 DOM，滚动位置因此一个像素都不动。
+.dsh-new-pick-wrap {
+  position: relative;
+}
+// 勾上「从基础实例开始」时盖在整组源卡上的那一层（§22）：容器已经是 inert 的
+// （键盘进不去、点也没有反应），这一层是给眼睛的那一半 —— 挡指针 + 把话说出来。
+// 铺满容器（inset: 0），所以列表滚到哪儿它都盖着；列表自己不隐藏、不搬动。
+.dsh-new-pick-veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: $radius-sm;
+  background: rgba(0, 0, 0, 0.42);
+}
+.dsh-new-pick-veil-text {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  text-align: center;
+}
 .dsh-new-name {
   display: flex;
   flex-direction: column;
@@ -1633,7 +1658,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   outline: 2px solid $text;
   outline-offset: 1px;
 }
-// 源卡区上面那一句（勾上之后源卡不可选 / 一只可用的都没有）：一行说明，不占按钮的位置
+// 源卡区上面那一句（有卡而一只可用的都没有）：一行说明，不占按钮的位置。
+// 「勾上之后整组不可选」那一句不在这里 —— 它跟着遮罩走（.dsh-new-pick-veil-text）。
 .dsh-new-note {
   margin: 0;
   font-size: 11.5px;

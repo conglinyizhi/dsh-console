@@ -2475,8 +2475,8 @@ fn new_instance_base_name(model : Model) -> String {
 /// 框里的一张源卡：与「选择配置」是**同一份画法**（profile_pick_card），
 /// 只是换一套 data-name 与消息。选中那一张挂一枚「已选」—— 文字标记，不只靠高亮色。
 ///
-/// 勾上「从基础实例开始」（§21）时整张卡被锁住：置灰、aria-disabled、点击与回车都没有反应、
-/// 从 Tab 序列里摘掉。它**不是坏卡** —— 读数那一格照旧写可用，只是这一刻不参与选源。
+/// 勾上「从基础实例开始」时整组不可选，但那一档不写在卡上（§22）：容器 inert + 遮罩，
+/// 卡片照旧只写读数带来的 data-usable —— 同一张卡在维护页与这里长得一模一样。
 fn new_instance_source_card(
   model : Model,
   pick : ProfilePick,
@@ -2496,8 +2496,6 @@ fn new_instance_source_card(
     fn(name) { NewInstanceStatePicked(name) },
     emit,
     chosen=selected,
-    locked=model.new_base,
-    locked_label=pick.name + " 这一刻不可选：已勾上「从基础实例开始」",
   )
 }
 
@@ -2534,16 +2532,37 @@ fn new_instance_group(
 }
 
 ///|
-/// 源卡区上面那一句说明（§21）：两种时刻各一句，同一副样式，靠 data-kind 分开。
+/// 源卡区上面那一句说明（§21）：一只可用的都没有时写出路，data-kind 标明是哪一档。
 ///
-/// 为什么要有这一句：勾上复选框之后卡片置了灰，而**灰不是一句话**（硬约束：颜色不能是
-/// 唯一信号）；「一只可用的都没有」也需要一个说清出路的句子，不是让几行「不可用：…」
-/// 自己躺着。
+/// 为什么要有这一句：几行「不可用：…」自己躺着时，读者得自己推出「那我还能怎么办」；
+/// 这一句把出路说出来。刻度只有一档了 —— 勾上之后的「这一刻不可选」跟着遮罩走
+/// （new_instance_veil），不在这里。
 fn new_instance_note(kind : String, text : String) -> @html.Html {
   @html.p(
     class="dsh-new-note",
     attrs=mark("new-instance-note", ["dialog", "new-instance", "note"]).data_set("kind", kind),
     text,
+  )
+}
+
+///|
+/// 整组源卡上盖的那一层（§22）：勾上「从基础实例开始」时，不可选这件事由**容器**说 ——
+/// 容器挂 inert（键盘与指针都进不去），这一层挡在眼睛前面把话说出来。
+///
+/// 为什么不是「每张卡置灰 + 每张卡写一句 aria」：卡上的话说的是「这只配置怎么样」，
+/// 而这一刻要说的是「这一组这一刻不参与选源」，是对整组说的。挂在卡上就得在每张卡上
+/// 重复一遍同一件事，还把维护页那一套读数说明挤掉（同一份画法）。
+fn new_instance_veil() -> @html.Html {
+  @html.div(
+    class="dsh-new-pick-veil",
+    attrs=mark("new-instance-veil", ["dialog", "new-instance", "veil"]),
+    [
+      @html.p(
+        class="dsh-new-pick-veil-text",
+        attrs=mark("new-instance-veil-text", ["dialog", "new-instance", "veil", "text"]),
+        "已勾上「从基础实例开始」，这些源配置这一刻不可选",
+      ),
+    ],
   )
 }
 
@@ -2561,6 +2580,17 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 「一只可用的都没有」。空态那一句按这两档分开写。
   let landed = model.built
   let no_usable = new_instance_no_usable_source(model)
+  // 勾上复选框、框里又有源卡时，整组锁住（§22）：锁挂在容器上，不挂在卡上。
+  // 一只卡都没有时不盖遮罩 —— 那时没有可锁的东西，底下一句空态才是该看的。
+  let lock_sources = model.new_base && (running.length() > 0 || stopped.length() > 0)
+  // 有卡而一只可用的都没有：出路写在卡上面，不让几行「不可用」自己猜。
+  // 这一句摆在遮罩**外面**（下面 pick_area 之前）：勾上之后它照样读得到 —— 遮罩上那句说的是
+  // 「这一刻不可选」，这一句说的是「本来就没有可用的」，两件事各说各的。
+  let none_usable_note = if no_usable && (running.length() > 0 || stopped.length() > 0) {
+    new_instance_note("none-usable", "现在一只可用的都没有，可以勾上「从基础实例开始」新建一份。")
+  } else {
+    @html.nothing
+  }
   let picks : Array[@html.Html] = []
   if running.length() == 0 && stopped.length() == 0 {
     picks.push(
@@ -2576,15 +2606,6 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       ),
     )
   } else {
-    // 有卡但一张都点不动：出路写在卡上面，不让几行「不可用」自己猜
-    if no_usable {
-      picks.push(
-        new_instance_note("none-usable", "现在一只可用的都没有，可以勾上「从基础实例开始」新建一份。"),
-      )
-    } else if model.new_base {
-      // 卡片这一刻被锁住（不是坏）：置灰之外再给一句文字，颜色不作唯一信号
-      picks.push(new_instance_note("locked", "已勾上「从基础实例开始」，这些源配置这一刻不可选。"))
-    }
     if running.length() > 0 {
       picks.push(new_instance_group("running", "当前运行的实例", running, model, emit))
     }
@@ -2658,6 +2679,25 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       on_input=emit.map(fn(text) { NewInstanceNameInput(text) }),
     ),
   )
+  // 源卡区：外面这层只做两件事 —— 给遮罩当定位容器、勾上时挂 inert 与 aria-disabled。
+  // 列表自己的高度上限与滚动位置留在 .dsh-new-pick 上（那一层一个像素都不动）。
+  let pick_targets : Array[@html.Html] = [
+    @html.div(
+      class="dsh-new-pick",
+      attrs=mark("new-instance-pick", ["dialog", "new-instance", "pick"]),
+      picks,
+    ),
+  ]
+  if lock_sources {
+    pick_targets.push(new_instance_veil())
+  }
+  let pick_area = @html.div(
+    class="dsh-new-pick-wrap",
+    attrs=mark("new-instance-pick-wrap", ["dialog", "new-instance", "pick-wrap"])
+      .inert(lock_sources)
+      .aria_disabled(if lock_sources { "true" } else { "false" }),
+    pick_targets,
+  )
   let card = @html.div(class="dsh-dialog-card dsh-new-card", [
     @html.h2(
       class="dsh-dialog-title",
@@ -2670,11 +2710,8 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         .data_set("source", if model.new_base { "base" } else { "profile" }),
       message_text,
     ),
-    @html.div(
-      class="dsh-new-pick",
-      attrs=mark("new-instance-pick", ["dialog", "new-instance", "pick"]),
-      picks,
-    ),
+    none_usable_note,
+    pick_area,
     @html.div(class="dsh-new-name", name_lines),
     error_block,
     // 左下角「从基础实例开始」复选框（§21，原来那颗文本按钮）：勾上 = 换一种模式，
