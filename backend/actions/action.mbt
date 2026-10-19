@@ -857,6 +857,23 @@ pub async fn run_action(
         ("note", @json.JStr(note)),
       ])
     }
+    // ── 版本列表手动重拉（§11.3）────────────
+    // 只排一趟后台刷新，回的是**现在**的缓存（通常 state=loading）；不 await 三个源，
+    // 否则这个动作会被网络拖住。刷新结果照旧靠前端的轮询接上。
+    "refresh-releases" => {
+      ensure_action_params(params, "重新拉取版本列表", [])
+      let snapshot = @releases.refresh_releases()
+      @json.JObj([
+        ("action", @json.JStr(action)),
+        ("outcome", @json.JObj([("releases", snapshot)])),
+        (
+          "note",
+          @json.JStr(
+            "已经在后台重新拉取版本列表；这里回的是当前缓存那一份，拉完由页面轮询接上新读数",
+          ),
+        ),
+      ])
+    }
     // ── 维护作业（design/ops-maintenance-jobs.md §4）────────────
     // 一条作业的五个步骤各有一个动作；install / cleanup 先预演、再带确认执行。
     // 这些动作的 outcome 形状由 job.mbt 的 job_outcome_json 统一套（里面带整份作业，

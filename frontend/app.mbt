@@ -3104,28 +3104,54 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       focus_after_render(model.trash_purge_return),
     )
     // ── 维护页（作业台） ──
-    // 打开版本弹层：清空搜索框、焦点进搜索框，并再读一次缓存。
+    // 打开版本侧栏（§12.1）：清空搜索框、焦点进搜索框，并再读一次缓存。
     // 那一条接口现在只读后端进程内的缓存（秒回），所以「每次打开都读」不再是一笔等待。
-    VersionDialogOpen => (
+    // 过滤与排序**不重置**：它们是使用者上一次挑的读法，关掉再开回来还该是那一套。
+    VersionSidebarOpen => (
       {
         ..model,
-        version_dialog: true,
+        version_sidebar: true,
         version_query: "",
         releases_ticks: 0,
         releases_poll_pending: false,
+        releases_refresh_error: "",
       },
       @cmd.batch([load_releases(emit), focus_after_render(version_search_id())]),
     )
-    VersionDialogClose =>
-      if !model.version_dialog {
+    VersionSidebarClose =>
+      if !model.version_sidebar {
         (model, @cmd.none)
       } else {
-        ({ ..model, version_dialog: false, version_query: "" }, focus_after_render(version_choose_id()))
+        ({ ..model, version_sidebar: false, version_query: "" }, focus_after_render(version_choose_id()))
       }
     VersionQueryInput(text) => ({ ..model, version_query: text }, @cmd.none)
-    // 选中：回填表单并关闭弹层，焦点回「选择版本」那颗按钮
+    // 过滤 chip：all = 全部（清空选择）；其余是开关，多选之间「或」。
+    // 不认识的值一律不动模型 —— 界面只发那四个键，多一个也不该把过滤状态弄成空的。
+    VersionFilterToggle(key) => {
+      let current = model.version_filters
+      let next = if key == "all" {
+        []
+      } else if !version_filter_known(key) {
+        current
+      } else if current.contains(key) {
+        current.filter(fn(item) { item != key })
+      } else {
+        let out = current.copy()
+        out.push(key)
+        out
+      }
+      ({ ..model, version_filters: next }, @cmd.none)
+    }
+    // 排序档：只认三档，认不出的保持原样
+    VersionSortPicked(key) =>
+      if version_sort_known(key) {
+        ({ ..model, version_sort: key }, @cmd.none)
+      } else {
+        (model, @cmd.none)
+      }
+    // 选中：回填表单并关闭侧栏，焦点回「选择版本」那颗按钮
     JobVersionPicked(version) => (
-      { ..model, job_version: version, version_dialog: false, version_query: "" },
+      { ..model, job_version: version, version_sidebar: false, version_query: "" },
       focus_after_render(version_choose_id()),
     )
     // 打开配置侧栏：焦点落在第一张可点的卡上（一张都没有时落在关闭键上）
@@ -3169,7 +3195,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           }
       }
       // 后端那条 GET 只回缓存：读到「还在拉」就隔一拍再问一次，结果才能落到页面上。
-      // **同一时刻只排一个定时器**（releases_poll_pending）：进页面与打开弹层会各发一次
+      // **同一时刻只排一个定时器**（releases_poll_pending）：进页面与打开侧栏会各发一次
       // GET，两个回执各排一个的话补问会翻倍，几拍就把上限吃完。
       // 上限 releases_poll_cap 拍（≈8 秒，长过三个源最坏 6 秒），不会变成永动机。
       if releases_still_loading(next) && !next.releases_poll_pending &&
@@ -3194,6 +3220,31 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       } else {
         ({ ..model, releases_poll_pending: false }, @cmd.none)
       }
+    // 手动重拉（§11.3）：立刻把按钮按成「正在重新拉取」（loading），排一趟后台刷新。
+    // 补问计数清零：这是使用者亲手要的一次刷新，轮询预算该从头算。
+    ReleasesRefresh => (
+      {
+        ..model,
+        releases_loading: true,
+        releases_refresh_error: "",
+        releases_ticks: 0,
+        releases_poll_pending: false,
+      },
+      refresh_releases_cmd(emit),
+    )
+    // 刷新那一枪的回执：排上了就读回当前缓存（state 应当是 loading），
+    // 之后照旧由 ReleasesText / ReleasesTick 的轮询接上新读数；没排上就写进侧栏底部。
+    ReleasesRefreshDone(res) => {
+      let (ok, note) = interpret_http(res)
+      if !ok {
+        (
+          { ..model, releases_loading: false, releases_refresh_error: note },
+          @cmd.none,
+        )
+      } else {
+        (model, load_releases(emit))
+      }
+    }
     JobStart => job_start_command(model, emit)
     JobAction(id, step) => job_step_command(model, id, step, emit)
     JobToggle(id) => {

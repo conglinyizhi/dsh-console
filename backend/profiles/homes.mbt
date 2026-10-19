@@ -138,6 +138,45 @@ pub async fn default_home_of(name : String) -> (String, String) noraise {
 }
 
 ///|
+/// 一条 home 路径是不是试跑用的一次性 home：在 homes root 下，且目录名以 trial- 开头。
+///
+/// 判据只看路径本身，不读目录里的记录文件：读数要回答的是「这一只跑在哪份 home 里」，
+/// 而记录文件可能还没写、也可能已经被删。
+pub async fn is_trial_home(path_in : String) -> Bool noraise {
+  let path = trim_tail_slash(@json.trim_both(path_in))
+  if path == "" {
+    return false
+  }
+  let (root, _) = homes_root()
+  let prefix = root + "/"
+  if !path.has_prefix(prefix) {
+    return false
+  }
+  let name = @json.slice_from(path, prefix.length())
+  single_segment(name) && name.has_prefix(trial_home_prefix)
+}
+
+///|
+/// 按实际用的 home 路径判归属：trial / isolated / shared。
+///
+/// trial 先判（homes root 下 trial- 前缀）；其余与 default_home_of 同一把尺子：
+/// 正好是这只 profile 的隔离 home 就是 isolated，别的（含控制台的 DSH_HOME）是 shared。
+pub async fn home_kind_of(home_in : String, profile : String) -> String noraise {
+  if is_trial_home(home_in) {
+    return home_kind_trial
+  }
+  match isolated_home_of(profile) {
+    Some(isolated) =>
+      if trim_tail_slash(@json.trim_both(home_in)) == isolated {
+        home_kind_isolated
+      } else {
+        home_kind_shared
+      }
+    None => home_kind_shared
+  }
+}
+
+///|
 /// 一只 profile 的 home 读数（GET /api/local/profiles 里每只一项）。
 ///
 ///   kind         isolated / shared

@@ -536,11 +536,12 @@ pub async fn job_start(
   validate_profile_name(profile)
   let (home, home_source) = @runtime.resolve_dsh_home()
   let profile_dir = @json.join_all([home, "profiles", profile])
-  if !@json.is_dir(profile_dir) {
-    fail(
-      "not-found",
-      "这份 DSH_HOME 里没有 profile「" + profile + "」：" + profile_dir,
-    )
+  // 第二道（§11.2）：界面已经把不可用的置灰了，后端仍要自己拒一次 ——
+  // 目录读不到、配置读不到、或 bundles 里没有网页型入口的 profile，试跑注定起不来，
+  // 一律 bad-params（这几种都是请求本身不该发出来，不是「哪一步跑失败了」）。
+  match @profiles.trial_profile_blocker(home, profile) {
+    Some(reason) => fail("bad-params", reason)
+    None => ()
   }
   let (jobs, _bad, _notes) = @store.load_jobs()
   match @store.unfinished_of_kind(jobs, kind) {
@@ -930,20 +931,13 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
   }
   validate_profile_name(profile)
   let (source_home, source_home_source) = @runtime.resolve_dsh_home()
-  let source_profile_dir = @json.join_all([source_home, "profiles", profile])
-  if !@json.is_dir(source_profile_dir) {
-    return trial_failed(
-      job,
-      "这份 DSH_HOME 里没有 profile「" + profile + "」，起不了实例",
-      [
-        ("profile", profile),
-        ("sourceHome", source_home),
-        ("sourceHomeSource", source_home_source),
-        ("sourceProfileDir", source_profile_dir),
-      ],
-      now,
-    )
+  // 第二道（§11.2）：配置读不到、或不是网页型 profile，一律 bad-params 拒掉 ——
+  // 这不是「这一步跑失败了」，是请求本身不该发出来（作业留在 trial 步，修好再点）。
+  match @profiles.trial_profile_blocker(source_home, profile) {
+    Some(reason) => fail("bad-params", reason)
+    None => ()
   }
+  let source_profile_dir = @json.join_all([source_home, "profiles", profile])
   let settings = @store.load_settings().values
   let port = match pick_free_port(settings.instance_base_port) {
     Some(p) => p

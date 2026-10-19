@@ -441,24 +441,33 @@ struct Model {
   // 在维护页做完动作再切回总览会看到一条与那一页无关的话。
   /// 新作业表单里的目标版本（空串 = 没选）。**不在本地补一个「最新版」**：
   /// §4 说得很清楚，版本由使用者选，后端不猜。
-  /// 第十版起这一格只由版本弹层回填：弹层里点一版、或按自定义版本那一行。
+  /// 第六版起这一格只由版本侧栏回填：表里点一版、或按自定义版本那一行。
   job_version : String
-  /// 版本弹层开着没有（§10.2）。开着的时候焦点在搜索框里。
-  version_dialog : Bool
-  /// 弹层搜索框里的原文：输入即过滤，列表里没有就是自定义版本。
+  /// 版本侧栏开着没有（§12.1：从居中弹层改成右侧栏，与配置侧栏同一套外壳）。
+  /// 开着的时候焦点在搜索框里。
+  version_sidebar : Bool
+  /// 侧栏搜索框里的原文：输入即过滤，列表里没有就是自定义版本。
   version_query : String
+  /// 版本表上的过滤 chip（§12.3）。**空数组 = 「全部」**：一个都不选就是不过滤。
+  /// 元素只认 "installed" / "stable" / "prerelease" 三个键，多个之间是「或」。
+  version_filters : Array[String]
+  /// 版本表的排序档（§12.3）：new（从新到旧，缺省）/ old（从旧到新）/ published（按发布时间）。
+  version_sort : String
   /// 版本来源读数（GET /api/local/dsh-releases）。后端只读进程内缓存、秒回，
   /// 所以「慢」不再是这一页的问题：读到的 state 说的是后台那一趟拉取的状态。
   /// None + 还在问 = 读取中；None + 问完了 = 没读到（releases_error 里有原因）
   releases : ReleasesFacts?
   releases_error : String
   releases_loading : Bool
-  /// 已经为「还在拉」补问了几次（进维护页 / 打开弹层时清零）。
+  /// 上一次「重新拉取」那一枪没排上的原因（空串 = 没失败 / 已重试）。
+  /// 与 releases_error 分开：那条说的是「读数读不到」，这条说的是「手动刷新没发出去」。
+  releases_refresh_error : String
+  /// 已经为「还在拉」补问了几次（进维护页 / 打开侧栏时清零）。
   /// 后端那条 GET 只回缓存，所以读到 loading 之后要隔一会儿再问一次才拿得到结果；
   /// 上限见 state.mbt 的 releases_poll_cap，免得某次真挂了把定时器挂成永动机。
   releases_ticks : Int
   /// 已经有一个补问的定时器排着了。**同一时刻只许排一个**：
-  /// 进页面与打开弹层会各发一次 GET，两个回执各排一个定时器的话，补问会翻倍
+  /// 进页面与打开侧栏会各发一次 GET，两个回执各排一个定时器的话，补问会翻倍
   /// （2、4、8…几拍就把上限吃完），列表还没落地就已经不再问了。
   releases_poll_pending : Bool
   /// 试跑用配置的右侧侧栏开着没有（§10.3）。开着的时候焦点在第一张可点的卡上。
@@ -657,12 +666,16 @@ priv enum Msg {
   TrashPurgeConfirm
   TrashPurgeCancel
   // 维护页（作业台）：开始表单 / 展开步骤表 / 某条作业的一步 / 回执
-  /// 打开版本弹层：清空搜索框，焦点进搜索框，顺手再读一次后端缓存
-  VersionDialogOpen
-  VersionDialogClose
-  /// 弹层搜索框里的文本（输入即过滤）
+  /// 打开版本侧栏：清空搜索框，焦点进搜索框，顺手再读一次后端缓存
+  VersionSidebarOpen
+  VersionSidebarClose
+  /// 侧栏搜索框里的文本（输入即过滤）
   VersionQueryInput(String)
-  /// 从弹层里选中一版（写进 job_version）并关闭弹层
+  /// 点一枚过滤 chip：带上那一枚的键（installed / stable / prerelease / all）
+  VersionFilterToggle(String)
+  /// 换排序档：new / old / published
+  VersionSortPicked(String)
+  /// 从侧栏里选中一版（写进 job_version）并关掉侧栏
   JobVersionPicked(String)
   /// 打开 / 关闭试跑用配置的右侧侧栏
   ProfileSidebarOpen
@@ -671,6 +684,10 @@ priv enum Msg {
   ReleasesText(Result[String, Error])
   /// 「还在拉」时补问一次的定时器到点了（上限见 state.mbt 的 releases_poll_cap）
   ReleasesTick
+  /// 版本侧栏底部「重新拉取」：排一趟后台刷新，结果照旧靠轮询接上
+  ReleasesRefresh
+  /// 上面那一枪的回执（POST refresh-releases；成没排上都在这里判）
+  ReleasesRefreshDone(Result[String, Error])
   JobProfilePicked(String)
   JobStart
   /// 作业 id + 这一步的动作（install-preview / install-confirm / test /
@@ -763,11 +780,14 @@ fn initial_model() -> Model {
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
-    version_dialog: false,
+    version_sidebar: false,
     version_query: "",
+    version_filters: [],
+    version_sort: "new",
     releases: None,
     releases_error: "",
     releases_loading: false,
+    releases_refresh_error: "",
     releases_ticks: 0,
     releases_poll_pending: false,
     profile_sidebar: false,
@@ -888,7 +908,7 @@ fn load_runtime(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 ///
 /// 后端那条 GET 只回进程内缓存、秒回，所以第一趟可能还没落地：读到 loading 就隔一拍
 /// 再问一次。上限 10 拍约 8 秒，长过三个源各自 6 秒的硬超时，也够网络慢的那一档回来；
-/// 再读不到就停手，把「正在拉版本列表」留在页面上，等下一次打开弹层或进这一页再问。
+/// 再读不到就停手，把「正在拉版本列表」留在页面上，等下一次打开侧栏或进这一页再问。
 let releases_poll_ms : Int = 800
 
 ///|
@@ -908,11 +928,25 @@ fn releases_still_loading(model : Model) -> Bool {
 /// GET /api/local/dsh-releases：能装哪一版 dsh。
 ///
 /// 后端起来时就在后台拉一次，这条接口只读进程内缓存、秒回；缓存空时也立刻回
-/// state=loading（同时确保后台在拉）。所以这一条请求不会拖住首屏或弹层 ——
+/// state=loading（同时确保后台在拉）。所以这一条请求不会拖住首屏或侧栏 ——
 /// 「还在拉」由上面的补问接上（见 app.mbt 的 ReleasesText / ReleasesTick）。
 /// 三个源全没答上来也算读到了（回执里 sources 全是 ok=false，state=failed 带原因）。
 fn load_releases(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   @http.get("/api/local/dsh-releases").expect_text(emit.map(fn(res) { ReleasesText(res) }))
+}
+
+///|
+/// 版本表过滤 chip 的键（§12.3）：installed / stable / prerelease。
+/// 「全部」不在这里 —— 它是**清空选择**，不是一个与另外三个并列的过滤条件
+/// （并列的话「全部 + 已安装」会互相打架）。
+fn version_filter_known(key : String) -> Bool {
+  key == "installed" || key == "stable" || key == "prerelease"
+}
+
+///|
+/// 排序三档（§12.3）：new 从新到旧 / old 从旧到新 / published 按发布时间。
+fn version_sort_known(key : String) -> Bool {
+  key == "new" || key == "old" || key == "published"
 }
 
 ///|
@@ -1017,13 +1051,19 @@ fn drawer_close_id() -> String {
 }
 
 ///|
-/// 版本弹层的搜索框：「选择版本」打开后焦点落在这儿（§10.2）。
+/// 版本侧栏的搜索框：「选择版本」打开后焦点落在这儿（§12.1，与配置侧栏同一套焦点规则）。
 fn version_search_id() -> String {
   "dsh-job-version-search"
 }
 
 ///|
-/// 表单里「选择版本」那颗按钮的 id：弹层关掉之后焦点回它身上。
+/// 版本侧栏的关闭键：搜索框落不到（不该发生）时的兜底落点，与配置侧栏同一套。
+fn version_sidebar_close_id() -> String {
+  "dsh-job-version-sidebar-close"
+}
+
+///|
+/// 表单里「选择版本」那颗按钮的 id：侧栏关掉之后焦点回它身上。
 fn version_choose_id() -> String {
   "dsh-job-version-choose"
 }
@@ -2111,19 +2151,33 @@ fn running_rows(
         Some(item) => item.note_source
         None => ""
       },
-      // 配置 home：这一只实例的 profile 解析得出就照它的读数（与已停止那张卡同一个口径）；
-      // 解析不出就三格空着（界面那一格写「读不到」，不按实例的 dshHome 反推归属）
-      home_kind: match profile_fact {
-        Some(item) => item.home_kind
-        None => ""
+      // 配置 home：试跑的一次性 home 由实例读数自己说（§11.1）——
+      // 那份 home 不属于任何一只 profile 的隔离 home，按 profile 读数配只能配成「读不到」。
+      // 其余两档照 profile 读数（与已停止那张卡同一个口径）；解析不出就三格空着
+      // （界面那一格写「读不到」，不按实例的 dshHome 反推归属）。
+      home_kind: if fact.home_kind == "trial" {
+        fact.home_kind
+      } else {
+        match profile_fact {
+          Some(item) => item.home_kind
+          None => ""
+        }
       },
-      home_path: match profile_fact {
-        Some(item) => item.home_path
-        None => ""
+      home_path: if fact.home_kind == "trial" {
+        instance_home
+      } else {
+        match profile_fact {
+          Some(item) => item.home_path
+          None => ""
+        }
       },
-      home_kind_source: match profile_fact {
-        Some(item) => item.home_kind_source
-        None => ""
+      home_kind_source: if fact.home_kind == "trial" {
+        fact.home_kind_source
+      } else {
+        match profile_fact {
+          Some(item) => item.home_kind_source
+          None => ""
+        }
       },
       // 第六格：这只实例用的 profile 目录的最近改动。profile 解析得出就用它的 mtime；
       // 解析不出就写「—」（不是「读不到」）—— 没有可读的对象与读了拿不到，不是一件事。

@@ -87,8 +87,8 @@ pub struct SpawnOutcome {
   port : Int
   profile : String
   home : String
-  /// 这一只用的 home 归属：isolated（这只 profile 自己的隔离 home）/ shared（控制台的 DSH_HOME）。
-  /// 判据是实际用的路径与隔离 home 是否同一条，不靠名字猜。
+  /// 这一只用的 home 归属：trial（homes root 下的 trial- 一次性 home）/ isolated（这只 profile
+  /// 自己的隔离 home）/ shared（控制台的 DSH_HOME）。判据是实际用的那条路径，不靠名字猜。
   home_kind : String
   log_path : String
   detached : Bool
@@ -626,16 +626,9 @@ pub async fn start_instance_with(
       }
     None => default_home
   }
-  // 归属按实际用的那条路径判：是这只 profile 的隔离 home 就是 isolated，否则共用
-  let home_kind = match @profiles.isolated_home_of(name) {
-    Some(isolated) =>
-      if target_home == isolated {
-        @profiles.home_kind_isolated
-      } else {
-        @profiles.home_kind_shared
-      }
-    None => @profiles.home_kind_shared
-  }
+  // 归属按实际用的那条路径判（§11.1）：homes root 下的 trial- 目录是试跑的一次性 home；
+  // 是这只 profile 的隔离 home 就是 isolated；其余（含控制台的 DSH_HOME）是共用。
+  let home_kind = @profiles.home_kind_of(target_home, name)
   let profile_dir = @json.join_all([target_home, "profiles", name])
   if !@json.is_dir(profile_dir) {
     fail("not-found", "profile 目录不存在：" + profile_dir)

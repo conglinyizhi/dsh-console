@@ -230,6 +230,33 @@ async fn package_json_ok(dir : String) -> Bool noraise {
 }
 
 ///|
+/// 试跑 / 开工前的硬校验（design/ops-maintenance-jobs.md §11.2）：
+/// 这只 profile 的配置读得到吗、是不是网页型。
+///
+/// 返回 None = 通过；Some(一句人话) = 拒掉的原因。两条判据都只看读到的事实：
+///   1. 目录在、package.json 读得动且是合法 JSON（缺一样都算「读不到配置」）；
+///   2. dsh.profile.bundles 里有 @deepseek-ai/dsh-web-app（没有就起不了网页实例）。
+/// 缺包（bundles.missing 非空）**不算**不通过：那只影响「可能起不来」，由界面另行注明。
+pub async fn trial_profile_blocker(dsh_home : String, name : String) -> String? noraise {
+  let dir = match profile_dir_of(dsh_home, name) {
+    Some(d) => d
+    None => return Some("这只配置读不到，没法试跑（profile 名认不出来：" + name + "）")
+  }
+  if !@json.is_dir(dir) {
+    return Some("这只配置读不到，没法试跑（" + dir + " 不存在）")
+  }
+  if !package_json_ok(dir) {
+    return Some(
+      "这只配置读不到，没法试跑（" + dir + "/package.json 读不出来或不是合法 JSON）",
+    )
+  }
+  if !declared_bundles(dir).contains(web_app_bundle) {
+    return Some("这只配置起不了网页实例：没有 " + web_app_bundle)
+  }
+  None
+}
+
+///|
 /// package.json 里的 name 字段；读不到给 None（Node 侧给 null）。
 async fn package_name(dir : String) -> String? noraise {
   let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {

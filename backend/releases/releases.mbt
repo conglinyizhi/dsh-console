@@ -40,6 +40,17 @@ let sources : Array[Source] = [
 let source_timeout_ms : Int = 6000
 
 ///|
+/// 一个源给出来的一版：版本号 / 预发布标记 / 发布时间（ISO 8601），三样都是这个源自己说的。
+///
+/// published_at 空串 = **这个源没给这一版的发布时间**（§12.2）。
+/// 不拿「拉取时刻」顶替：那会把「不知道」写成「刚发的」。
+priv struct VersionItem {
+  version : String
+  prerelease : Bool
+  published_at : String
+}
+
+///|
 /// 一个源问下来的结果。
 ///
 /// versions 已经按版本号从新到旧排好；latest / next 只有 registry 形状的源才有
@@ -49,7 +60,7 @@ priv struct Answer {
   ok : Bool
   ms : Int
   error : String
-  versions : Array[(String, Bool)]
+  versions : Array[VersionItem]
   latest : String
   next : String
 }
@@ -237,8 +248,8 @@ fn compare_version(a : String, b : String) -> Int {
 ///|
 /// 版本列表按版本号从新到旧排。n 最多几十条（GitHub 一次 30 条、registry 37 个键），
 /// 每轮挑最大的那条就够，不引排序库也不自己写快排。
-fn sorted_desc(items : Array[(String, Bool)]) -> Array[(String, Bool)] {
-  let out : Array[(String, Bool)] = []
+fn sorted_desc(items : Array[VersionItem]) -> Array[VersionItem] {
+  let out : Array[VersionItem] = []
   let taken : Array[Bool] = []
   for i = 0; i < items.length(); i = i + 1 {
     taken.push(false)
@@ -249,7 +260,7 @@ fn sorted_desc(items : Array[(String, Bool)]) -> Array[(String, Bool)] {
       if taken[j] {
         continue
       }
-      if best < 0 || compare_version(item.0, items[best].0) > 0 {
+      if best < 0 || compare_version(item.version, items[best].version) > 0 {
         best = j
       }
     }
@@ -264,13 +275,13 @@ fn sorted_desc(items : Array[(String, Bool)]) -> Array[(String, Bool)] {
 ///|
 /// 一串版本号从新到旧排（installed 那一格用）。
 fn sorted_versions_desc(items : Array[String]) -> Array[String] {
-  let pairs : Array[(String, Bool)] = []
+  let pairs : Array[VersionItem] = []
   for v in items {
-    pairs.push((v, false))
+    pairs.push({ version: v, prerelease: false, published_at: "" })
   }
   let out : Array[String] = []
   for pair in sorted_desc(pairs) {
-    out.push(pair.0)
+    out.push(pair.version)
   }
   out
 }
@@ -280,7 +291,10 @@ fn sorted_versions_desc(items : Array[String]) -> Array[String] {
 ///
 /// prerelease 标记**用 GitHub 自己给的那个**，不从版本号里的 "-" 推：
 /// 两者今天一致，但那是仓库的约定，不是标签的语义。
-fn parse_github(body : String) -> Result[Array[(String, Bool)], String] {
+///
+/// 发布时间取 release 的 published_at（§12.2）。draft 的 published_at 是 null，
+/// 那一档给空串 —— 没发布就是没有发布时间，不编一个。
+fn parse_github(body : String) -> Result[Array[VersionItem], String] {
   let root = match @json.json_parse(body) {
     Some(j) => j
     None => return Err("回来的不是能认的 JSON")
@@ -289,7 +303,7 @@ fn parse_github(body : String) -> Result[Array[(String, Bool)], String] {
     Array(list) => list
     _ => return Err("回来的不是 release 列表（顶层不是数组）")
   }
-  let out : Array[(String, Bool)] = []
+  let out : Array[VersionItem] = []
   for item in items {
     let tag = match @json.json_field(item, "tag_name") {
       Some(v) =>
@@ -310,7 +324,15 @@ fn parse_github(body : String) -> Result[Array[(String, Bool)], String] {
       Some(True) => true
       _ => false
     }
-    out.push((version, pre))
+    let published_at = match @json.json_field(item, "published_at") {
+      Some(v) =>
+        match @json.json_string(v) {
+          Some(s) => s
+          None => ""
+        }
+      None => ""
+    }
+    out.push({ version, prerelease: pre, published_at })
   }
   Ok(out)
 }
@@ -321,9 +343,13 @@ fn parse_github(body : String) -> Result[Array[(String, Bool)], String] {
 ///
 /// 预发布按 semver 口径判：版本号里带 "-" 就是。registry 没有 prerelease 这样的独立字段，
 /// 而版本号的形状本身就是它的定义。
+///
+/// 发布时间取 registry 的 time[版本]（§12.2）：那是一版落进 registry 的时刻。
+/// 同一个 time 对象里还有 created / modified 两条，它们不是「某个版本」的发布时间，
+/// 只按版本号精确取 —— 取不到就是空串，不拿 created 或者拉取时刻顶替。
 fn parse_registry(
   body : String
-) -> Result[(Array[(String, Bool)], String, String), String] {
+) -> Result[(Array[VersionItem], String, String), String] {
   let root = match @json.json_parse(body) {
     Some(j) => j
     None => return Err("回来的不是能认的 JSON")
@@ -332,7 +358,21 @@ fn parse_registry(
     Some(Object(map)) => map
     _ => return Err("回来的 JSON 里没有 versions（不像 registry 的包元数据）")
   }
-  let out : Array[(String, Bool)] = []
+  // 版本号 → 发布时间。registry 的 time 是「版本号 / created / modified」三类的混装对象，
+  // 这里整份收下来，取的时候按版本号精确对。
+  let times : Map[String, String] = Map([])
+  match @json.json_field(root, "time") {
+    Some(Object(map)) =>
+      for key, value in map {
+        let name = @json.owned(key)
+        match @json.json_string(value) {
+          Some(s) => times[name] = s
+          None => ()
+        }
+      }
+    _ => ()
+  }
+  let out : Array[VersionItem] = []
   for key, _ in versions_map {
     let version = @json.owned(key)
     if version == "" {
@@ -342,7 +382,11 @@ fn parse_registry(
       Some(_) => true
       None => false
     }
-    out.push((version, pre))
+    let published_at = match times.get(version) {
+      Some(s) => s
+      None => ""
+    }
+    out.push({ version, prerelease: pre, published_at })
   }
   let mut latest = ""
   let mut next = ""
@@ -491,7 +535,7 @@ pub async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
   let installed = installed_versions()
   // 采用顺序：第一个 ok 的当准，其余照实列出来但不覆盖它
   let mut chosen = ""
-  let mut chosen_versions : Array[(String, Bool)] = []
+  let mut chosen_versions : Array[VersionItem] = []
   for answer in answers {
     if answer.ok && chosen == "" {
       chosen = answer.id
@@ -515,14 +559,17 @@ pub async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
     }
   }
   let listed : Array[@json.JsonVal] = []
-  for pair in chosen_versions {
+  for item in chosen_versions {
     listed.push(
       @json.JObj([
-        ("version", @json.JStr(pair.0)),
-        ("prerelease", @json.JBool(pair.1)),
-        ("latest", @json.JBool(pair.0 == latest)),
-        ("next", @json.JBool(pair.0 == next)),
-        ("installed", @json.JBool(installed.contains(pair.0))),
+        ("version", @json.JStr(item.version)),
+        ("prerelease", @json.JBool(item.prerelease)),
+        ("latest", @json.JBool(item.version == latest)),
+        ("next", @json.JBool(item.version == next)),
+        ("installed", @json.JBool(installed.contains(item.version))),
+        // 发布时间（§12.2）：GitHub 用 release 的 published_at，registry 用 time[版本]。
+        // 这个源没给就是空串，前端写「不知道」—— 不拿 readAt 顶替。
+        ("publishedAt", @json.JStr(item.published_at)),
       ]),
     )
   }
@@ -707,6 +754,17 @@ fn ensure_fetch() -> Unit {
 pub fn start_prewarm(group : @async.TaskGroup[Unit]) -> Unit {
   bg_group.val = Some(group)
   ensure_fetch()
+}
+
+///|
+/// 排一趟后台刷新，并立刻返回当前缓存（design/ops-maintenance-jobs.md §11.3）。
+///
+/// 与 GET 的差别只有一处：**不看缓存新不新、也不看有没有数据**，只要没有一趟在路上就排。
+/// 缓存里现有的列表照样原样返回（这时 state 是 loading）—— 前端据此把按钮写成
+/// 「正在重新拉取」，再靠轮询把这一趟的结果接上。缓存为空时返回的仍是空壳 + loading。
+pub fn refresh_releases() -> @json.JsonVal {
+  ensure_fetch()
+  cached_releases()
 }
 
 ///|

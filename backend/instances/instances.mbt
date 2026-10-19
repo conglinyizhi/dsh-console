@@ -112,6 +112,11 @@ pub struct InstanceSummary {
   version_source : String
   profile_source : String
   dsh_home_source : String
+  /// 这只实例用的 home 的归属：trial / isolated / shared。
+  /// 空串 = DSH_HOME 读不到，归属不判（§11.1：第三档 trial 是 homes root 下的 trial- 目录）。
+  home_kind : String
+  /// 上面那一档凭什么判的（一句人话，进悬停）
+  home_kind_source : String
   /// 进程级原因码：port-join / port-arg / process-gone / fd-unreadable / cmdline-unreadable / unscanned
   process_reason_code : String
   process_reason : String
@@ -638,6 +643,26 @@ async fn summarize(
     None => ("", "签名探测不通过：" + probe_verdict(probe), "")
   }
   let (health, health_source) = lookup_profile_health(facts.profile, facts.dsh_home)
+  // 这一只跑在哪份 home 里（§11.1）：判据与起实例那一侧同一条（profiles/homes.mbt），
+  // 不按 profile 名字猜。DSH_HOME 读不到时两格都空着，界面据此写「读不到」，不编归属。
+  let (home_kind, home_kind_source) = match facts.dsh_home {
+    Some(h) => {
+      let kind = @profiles.home_kind_of(
+        h,
+        match facts.profile {
+          Some(p) => p
+          None => ""
+        },
+      )
+      let source = if kind == @profiles.home_kind_trial {
+        "home 在 homes root 下且目录名以 " + @profiles.trial_home_prefix + " 开头：" + h
+      } else {
+        "按这只实例的 DSH_HOME 与它的隔离 home 比出来的：" + h
+      }
+      (kind, source)
+    }
+    None => ("", "这只实例的 DSH_HOME 读不到，home 归属不判")
+  }
   let has_signature = signature is Some(_)
   let (state, state_reason) = judge_state(
     has_signature,
@@ -670,6 +695,8 @@ async fn summarize(
     version_source: facts.version_source,
     profile_source: facts.profile_source,
     dsh_home_source: facts.dsh_home_source,
+    home_kind,
+    home_kind_source,
     process_reason_code: facts.reason_code,
     process_reason: facts.reason,
     state,
@@ -1032,6 +1059,9 @@ pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
       ("versionSource", @json.JStr(item.version_source)),
       ("profileSource", @json.JStr(item.profile_source)),
       ("dshHomeSource", @json.JStr(item.dsh_home_source)),
+      // 这一只跑在哪种 home 里（§11.1）：trial / isolated / shared；读不到 DSH_HOME 是空串
+      ("homeKind", @json.JStr(item.home_kind)),
+      ("homeKindSource", @json.JStr(item.home_kind_source)),
       ("processReason", @json.JObj([
         ("code", @json.JStr(item.process_reason_code)),
         ("message", @json.JStr(item.process_reason)),

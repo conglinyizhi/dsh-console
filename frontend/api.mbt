@@ -185,6 +185,26 @@ fn action_cmd(
 }
 
 ///|
+/// POST /api/local/action 的 **refresh-releases**（design/ops-maintenance-jobs.md §11.3）。
+///
+/// 单开一条而不是复用 action_cmd：这条的回执只用来判「排上没有」，
+/// 成功与否都不进总览那条动作提示 —— 它属于版本弹层，话说在弹层底部。
+fn refresh_releases_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(ReleasesRefreshDone(res)) },
+    async fn() {
+      let text : String = js_http_call(
+        "POST",
+        "/api/local/action",
+        action_body("refresh-releases", "{}"),
+        write_headers(),
+      ).wait().cast()
+      text
+    },
+  )
+}
+
+///|
 /// POST /api/local/action 的 **set-row-order**：body 是 { action, params: { order: [...] } }。
 ///
 /// 为什么单开一条而不是复用 action_cmd：这条回执要做一件别处不做的事 ——

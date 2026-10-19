@@ -642,9 +642,11 @@ fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
 }
 
 ///|
-/// 「配置 home」那一格的两档文字（design/deep-home-isolation.md 第 5 节）。
+/// 「配置 home」那一格的三档文字（design/deep-home-isolation.md 第 5 节、
+/// design/ops-maintenance-jobs.md §11.1）。
 fn home_kind_text(kind : String) -> String {
   match kind {
+    "trial" => "试跑"
     "isolated" => "独立"
     "shared" => "共用"
     _ => "读不到"
@@ -787,6 +789,16 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
           ),
         on_click=emit(RowAction(row.id, DeisolateHome)),
         [icon("close"), @html.span("取消隔离")],
+      ),
+    )
+  } else if row.home_kind == "trial" {
+    // 试跑的一次性 home 归维护作业管：收尾（好用 / 不好用 / 停掉试跑 / 中止）时整份删掉。
+    // 这里不给隔离 / 取消隔离 —— 那两条动作会把这份临时目录当成一只 profile 的固定家。
+    home_items.push(
+      @html.span(
+        class="dsh-foot",
+        attrs=mark("drawer-home-trial", ["overview", "drawer", row.id, "action", "home-trial"]),
+        "试跑的一次性 home：作业收尾时删掉，这里不提供隔离与取消隔离",
       ),
     )
   } else if row.home_kind == "shared" {

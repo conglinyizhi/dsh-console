@@ -233,17 +233,20 @@ pub fn parse_runtime(text : String) -> Result[RuntimeFacts, String] {
 ///|
 /// 一个候选版本（读数里的 versions 一项）。
 ///
-/// 五个字段都是后端的判定，前端不自己再推：
-///   prerelease  GitHub 的 release 标记 / registry 上版本号带 "-"（后端按各自的形状判）
-///   latest      registry 的 dist-tags.latest 是不是它
-///   next        registry 的 dist-tags.next 是不是它
-///   installed   这台机器上装着这一版（与 dshCandidates 同一条链）
+/// 六个字段都是后端的判定，前端不自己再推：
+///   prerelease    GitHub 的 release 标记 / registry 上版本号带 "-"（后端按各自的形状判）
+///   latest        registry 的 dist-tags.latest 是不是它
+///   next          registry 的 dist-tags.next 是不是它
+///   installed     这台机器上装着这一版（与 dshCandidates 同一条链）
+///   published_at  这一版的发布时间（ISO）：GitHub 的 published_at / registry 的 time[版本]。
+///                 空串 = 这个源没给 —— 界面写「不知道」，**不拿拉取时刻顶替**
 pub(all) struct ReleaseVersion {
   version : String
   prerelease : Bool
   latest : Bool
   next : Bool
   installed : Bool
+  published_at : String
 } derive(Eq)
 
 pub extend ReleaseVersion with Eq::{ not_equal, equal }
@@ -309,6 +312,8 @@ pub fn parse_releases(text : String) -> Result[ReleasesFacts, String] {
       latest: bool_field(v, "latest"),
       next: bool_field(v, "next"),
       installed: bool_field(v, "installed"),
+      // 字段不在（这一版后端还没给）就是空串 = 不知道，与「后端读了但没这版的时间」同一副样子
+      published_at: str_field(v, "publishedAt"),
     })
   }
   let sources : Array[ReleaseSource] = []
@@ -532,6 +537,11 @@ pub(all) struct InstanceFact {
   version_source : String
   profile_source : String
   dsh_home_source : String
+  /// 这只实例用的 home 的归属：trial / isolated / shared（§11.1）。
+  /// 空串 = 这一版后端没给，或 DSH_HOME 读不到 —— 抽屉那一格退回 profile 读数，不猜。
+  home_kind : String
+  /// 上面那一档凭什么判的（后端原样给，直接进悬停）
+  home_kind_source : String
   /// 进程级原因码：port-join / port-arg / process-gone / fd-unreadable / cmdline-unreadable / unscanned
   process_reason_code : String
   process_reason : String
@@ -612,6 +622,8 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
       version_source: str_field(fact, "versionSource"),
       profile_source: str_field(fact, "profileSource"),
       dsh_home_source: str_field(fact, "dshHomeSource"),
+      home_kind: str_field(fact, "homeKind"),
+      home_kind_source: str_field(fact, "homeKindSource"),
       process_reason_code: str_field(reason, "code"),
       process_reason: str_field(reason, "message"),
       console_started: bool_field(fact, "consoleStarted") ||
