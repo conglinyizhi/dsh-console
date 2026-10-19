@@ -1632,6 +1632,13 @@ body[data-shift="1"] .dsh-btn.dsh-delete {
 }
 // 覆盖层（抽屉 / 版本侧栏 / 配置侧栏）不改变提示的位置：它固定在视口底部正中。
 // 抽屉会盖住提示的一部分，这是有意的取舍 —— 提示说的是「刚刚发生了什么」，抽屉才是正在做的事。
+// 「打开 Web UI」按住 Shift：换成琥珀色，表示「忽略没有 key 这件事，直接开裸地址」。
+// 与删除那颗同一套机制（body[data-shift] 由 dom.mbt 的 js_shift_watch 打标记），按下即变。
+body[data-shift="1"] .dsh-btn.dsh-open-ui {
+  background: linear-gradient(rgba($gold-rgb, 0.85), rgba($gold-rgb, 0.7));
+  border-color: $gold;
+  color: #1b1508;
+}
 .dsh-toast .dsh-btn, .dsh-global-notice .dsh-btn {
   flex: 0 0 auto;
   // toast 本来就是给「刚发生了什么」看的，按钮不抢视线：跟文字一样高就够了

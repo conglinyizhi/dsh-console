@@ -438,20 +438,35 @@ fn open_web_ui(
       (notice_put(model, ok, text, ""), @cmd.none)
     }
     None => {
-      let reason = if row.web_url_source == "" {
-        "读不到带令牌的地址，也没有说明原因"
+      // 正文只留一句人话，细节（地址、令牌从哪来、为什么没有）全进悬停。
+      // Shift 按住 = 「我知道没有 key，照样开」：直接开裸地址，成没成仍按弹窗拦截那句话回。
+      let hint = if row.web_url_source == "" {
+        "读不到带令牌的地址，也没有说明原因；裸地址 " + row.url
       } else {
-        row.web_url_source
+        row.web_url_source + "；裸地址 " + row.url
       }
-      (
-        notice_err(
-          model,
-          row.name + " 的 Web UI 没有打开：读不到握手令牌，一个标签页都没开。" + reason +
-          "。裸地址 " + row.url +
-          " 直接打开会被挡在门外；可以从启动它的那个终端里，把启动横幅里带令牌的完整地址抄过来。",
-        ),
-        @cmd.none,
-      )
+      if js_shift_held() {
+        // 这一支不说「带令牌的地址」：开的本来就是裸地址，拿另一套话会自相矛盾
+        let outcome = js_open_url(row.url)
+        let (ok, text) = if outcome == "ok" {
+          (true, row.name + " 不是启动器拉起的，没有 key，已硬开裸地址，打开后可能无法正常使用")
+        } else if outcome == "blocked" {
+          (false, row.name + " 的裸地址被浏览器拦掉了（弹窗拦截），可以自己去开 " + row.url)
+        } else {
+          (false, row.name + " 的裸地址没能打开（" + outcome + "）")
+        }
+        (notice_put(model, ok, text, hint), @cmd.none)
+      } else {
+        (
+          notice_put(
+            model,
+            false,
+            row.name + " 不是启动器拉起的，没有 key，没有打开（按住 Shift 可以硬开裸地址）",
+            hint,
+          ),
+          @cmd.none,
+        )
+      }
     }
   }
 }

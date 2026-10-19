@@ -794,12 +794,13 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
   if running {
     main.push(
       @html.button(
-        class="dsh-btn primary" + tone,
+        // dsh-open-ui：按住 Shift 换一套颜色（CSS 认 body[data-shift]），意思是「硬开裸地址」
+        class="dsh-btn primary dsh-open-ui" + tone,
         type_="button",
         // 令牌读不到时按钮**照样可点**：点下去先把原因说清，不给一个点了 401 的链接
         attrs=mark("drawer-open-web-ui", ["overview", "drawer", row.id, "action", "open-ui"])
           .data_set("action", "open-ui")
-          .title(open_ui_hint(row)),
+          .title(open_ui_hint(row) + "；按住 Shift：不管有没有 key，直接开裸地址（可能用不了）"),
         on_click=emit(RowAction(row.id, OpenUi)),
         [icon("open-in-new"), @html.span("打开 Web UI")],
       ),
