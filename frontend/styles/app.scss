@@ -1100,6 +1100,91 @@ $drawer-ms: 220ms;
 }
 .dsh-snapshot-restore:hover:not(:disabled) { background: $panel; }
 .dsh-snapshot-restore:disabled { opacity: 0.6; cursor: default; }
+/* ── 整体替换（design/ops-maintenance-jobs.md §17.3）────────────────
+   右侧栏里先选源、再摆四段差异。覆盖项那一对**并排**摆（同 id 两边的原文），
+   源那一条在左、带一枚「会盖掉目标这条」；blocks 非空时底部按钮禁用并写明原因。 */
+.dsh-promote-launcher { display: flex; flex: 0 0 100%; }
+.dsh-promote-target {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: $text;
+  word-break: break-all;
+}
+.dsh-promote-pick { display: flex; flex-direction: column; gap: 10px; }
+.dsh-promote-preview { display: flex; flex-direction: column; gap: 14px; }
+.dsh-promote-section { display: flex; flex-direction: column; gap: 6px; }
+.dsh-promote-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-mid;
+}
+.dsh-promote-lines { display: flex; flex-direction: column; gap: 6px; }
+.dsh-promote-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.dsh-promote-name {
+  color: $text;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+.dsh-promote-tag { color: $text-dim; }
+.dsh-promote-tag.danger { color: $danger; }
+.dsh-promote-same { margin: 0; font-size: 11.5px; color: $text-dim; }
+.dsh-promote-note { margin: 0; font-size: 11px; line-height: 1.55; color: $text-dim; }
+.dsh-promote-error { margin: 0; font-size: 11.5px; line-height: 1.6; color: $danger; }
+.dsh-promote-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+.dsh-promote-side,
+.dsh-promote-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+  min-width: 0;
+}
+.dsh-promote-side.source { border-color: $accent; }
+.dsh-promote-side-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.dsh-promote-code {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: $text-mid;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 160px;
+  overflow: auto;
+}
+.dsh-promote-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid $danger;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+}
+.dsh-promote-blockers-title { margin: 0; font-size: 12px; font-weight: 600; color: $danger; }
+.dsh-promote-blocker { margin: 0; font-size: 11.5px; line-height: 1.55; color: $text; }
+.dsh-promote-foot { display: flex; gap: 8px; flex-wrap: wrap; }
 
 // ── 控制按钮（抽屉里那一排；形状与原来的行内按钮组逐条一致） ──
 .dsh-btn {

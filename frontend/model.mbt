@@ -532,6 +532,191 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
   })
 }
 
+// ── 整体替换的预览（design/ops-maintenance-jobs.md §17.1）──────────
+//
+// 预览是后端算好的一整份事实（promote-preview 的 outcome），前端只负责摆：
+// 文件 / 插件清单 / 覆盖项 / 本地包 / blockers。**不在前端自己比一遍** ——
+// 两边各算一次迟早会与真正会写到磁盘上的那一份对不上。
+
+///|
+/// 预览里的一边（源或目标）：名字、现在所在的目录、home 归属、配置读不读得到。
+pub(all) struct PromoteSide {
+  name : String
+  dir : String
+  home_kind : String
+  home_path : String
+  profile_dir : String
+  config_ok : Bool
+} derive(Eq)
+
+pub extend PromoteSide with Eq::{ not_equal, equal }
+
+///|
+/// 覆盖项里的一条（新增或移除的那一条）：id 与原文。
+pub(all) struct PromotePatchEntry {
+  id : String
+  text : String
+} derive(Eq)
+
+pub extend PromotePatchEntry with Eq::{ not_equal, equal }
+
+///|
+/// 同 id 两边原文不一样的那一条：两边全文都在，界面并排摆。
+pub(all) struct PromotePatchChange {
+  id : String
+  source_text : String
+  target_text : String
+} derive(Eq)
+
+pub extend PromotePatchChange with Eq::{ not_equal, equal }
+
+///|
+/// 同名不同版本的一个本地包。
+pub(all) struct PromotePackageVersion {
+  name : String
+  source_version : String
+  target_version : String
+} derive(Eq)
+
+pub extend PromotePackageVersion with Eq::{ not_equal, equal }
+
+///|
+/// 一次预览的全部读数。
+pub(all) struct PromotePreview {
+  source : PromoteSide
+  target : PromoteSide
+  /// 源里有、目标里没有的文件名
+  files : Array[String]
+  /// 源里有、会被写过去的文件名
+  files_written : Array[String]
+  /// 目标有、源里没有（不删）
+  files_target_only : Array[String]
+  bundles_added : Array[String]
+  bundles_removed : Array[String]
+  bundles_reordered : Bool
+  bundles_from : Array[String]
+  bundles_to : Array[String]
+  patches_added : Array[PromotePatchEntry]
+  patches_changed : Array[PromotePatchChange]
+  patches_removed : Array[PromotePatchEntry]
+  /// 没有 id 的覆盖项条数（那几条只能按整段原文比）
+  patches_anonymous : Int
+  packages_added : Array[String]
+  packages_mismatch : Array[PromotePackageVersion]
+  /// 非空就不许应用（后端给的原话）
+  blockers : Array[String]
+  /// 算的时候读不到的地方（后端给的原话）
+  notes : Array[String]
+} derive(Eq)
+
+pub extend PromotePreview with Eq::{ not_equal, equal }
+
+///|
+/// 取一个字符串数组字段（不是数组 / 元素不是字符串都按空处理）。
+fn json_str_array(obj : Map[String, Json], key : String) -> Array[String] {
+  let out : Array[String] = []
+  for item in arr_field(obj, key) {
+    match item {
+      Json::String(text) => out.push(text)
+      _ => ()
+    }
+  }
+  out
+}
+
+///|
+/// 预览里的一边。
+fn parse_promote_side(obj : Map[String, Json]) -> PromoteSide {
+  {
+    name: str_field(obj, "name"),
+    dir: str_field(obj, "dir"),
+    home_kind: str_field(obj, "homeKind"),
+    home_path: str_field(obj, "homePath"),
+    profile_dir: str_field(obj, "profileDir"),
+    config_ok: bool_field(obj, "configOk"),
+  }
+}
+
+///|
+/// 覆盖项里的两种行（新增 / 移除 / 改写）。
+fn parse_patch_entries(obj : Map[String, Json], key : String) -> Array[PromotePatchEntry] {
+  let out : Array[PromotePatchEntry] = []
+  for item in arr_field(obj, key) {
+    guard item is Json::Object(entry) else { continue }
+    out.push({ id: str_field(entry, "id"), text: str_field(entry, "text") })
+  }
+  out
+}
+
+fn parse_patch_changes(obj : Map[String, Json], key : String) -> Array[PromotePatchChange] {
+  let out : Array[PromotePatchChange] = []
+  for item in arr_field(obj, key) {
+    guard item is Json::Object(entry) else { continue }
+    out.push({
+      id: str_field(entry, "id"),
+      source_text: str_field(entry, "sourceText"),
+      target_text: str_field(entry, "targetText"),
+    })
+  }
+  out
+}
+
+fn parse_package_versions(obj : Map[String, Json], key : String) -> Array[PromotePackageVersion] {
+  let out : Array[PromotePackageVersion] = []
+  for item in arr_field(obj, key) {
+    guard item is Json::Object(entry) else { continue }
+    out.push({
+      name: str_field(entry, "name"),
+      source_version: str_field(entry, "sourceVersion"),
+      target_version: str_field(entry, "targetVersion"),
+    })
+  }
+  out
+}
+
+///|
+/// promote-preview 的回执 → 预览读数。
+///
+/// 输的是传输层原样带回来的那段 JSON（{status,statusText,body,transportError}）：
+/// 非 2xx 时把后端错误壳里的 code 与 message 原样交回去（blockers 那句话就在这里）。
+pub fn parse_promote_preview(raw : String) -> Result[PromotePreview, String] {
+  let got = parse_http_result(raw)
+  if got.status == 0 {
+    return Err("这一步没发出去（" + got.transport_error + "）")
+  }
+  if got.status < 200 || got.status >= 300 {
+    return Err(failure_note(got))
+  }
+  let data = match open_envelope(got.body) {
+    Ok(data) => data
+    Err(reason) => return Err(reason)
+  }
+  let outcome = obj_field(data, "outcome")
+  let bundles = obj_field(outcome, "bundles")
+  let patches = obj_field(outcome, "patches")
+  let packages = obj_field(outcome, "packages")
+  Ok({
+    source: parse_promote_side(obj_field(outcome, "from")),
+    target: parse_promote_side(obj_field(outcome, "to")),
+    files: json_str_array(outcome, "files"),
+    files_written: json_str_array(outcome, "filesWritten"),
+    files_target_only: json_str_array(outcome, "filesTargetOnly"),
+    bundles_added: json_str_array(bundles, "added"),
+    bundles_removed: json_str_array(bundles, "removed"),
+    bundles_reordered: bool_field(bundles, "reordered"),
+    bundles_from: json_str_array(bundles, "fromOrder"),
+    bundles_to: json_str_array(bundles, "toOrder"),
+    patches_added: parse_patch_entries(patches, "added"),
+    patches_changed: parse_patch_changes(patches, "changed"),
+    patches_removed: parse_patch_entries(patches, "removed"),
+    patches_anonymous: int_or(patches, "anonymous", 0),
+    packages_added: json_str_array(packages, "added"),
+    packages_mismatch: parse_package_versions(packages, "versionMismatch"),
+    blockers: json_str_array(outcome, "blockers"),
+    notes: json_str_array(outcome, "notes"),
+  })
+}
+
 // ── GET /api/local/instances ────────────────────────────────
 
 ///|

@@ -483,6 +483,22 @@ struct Model {
   snapshot_confirm_snap : String
   /// 触发元素 id（关框之后焦点回到它）
   snapshot_confirm_return : String
+  // 整体替换（design/ops-maintenance-jobs.md §17.3）：右侧栏里先选源，再出差异预览。
+  // 三个状态分开存：目标那一行（侧栏关着时为空串）、选中的源、那份预览读数。
+  /// 要替换的是哪一行（空串 = 侧栏关着）
+  promote_row : String
+  /// 打开侧栏的那颗按钮的 id（关掉之后焦点回它）
+  promote_return : String
+  /// 选中的源 profile 名（空串 = 还没选）
+  promote_source : String
+  /// 选中那只的预览读数。None + 正在读 = 读取中；None + 读完了 = 读失败（原因在 promote_preview_error）
+  promote_preview : PromotePreview?
+  /// 预览读不出来的原因（后端原话）；空串 = 没有要报的
+  promote_preview_error : String
+  /// 正在读预览
+  promote_loading : Bool
+  /// 确认框开着没有（§17.4 那颗「确认替换」之后的框）
+  promote_confirm : Bool
   // 回收站「彻底删除」的确认框：目标目录名（空串 = 框关着）与触发元素 id
   trash_purge_dir : String
   trash_purge_return : String
@@ -711,6 +727,17 @@ priv enum Msg {
   SnapshotRestoreOpen(String, String, String)
   SnapshotRestoreConfirm
   SnapshotRestoreCancel
+  // 整体替换（design/ops-maintenance-jobs.md §17.3）：打开侧栏（带目标行 id）/
+  // 选中一只源 / 预览回执 / 开确认框 / 确认替换 / 取消 / 关侧栏
+  PromoteOpen(String)
+  PromoteSourcePicked(String)
+  PromotePreviewDone(Result[String, Error])
+  PromoteConfirmOpen
+  PromoteConfirm
+  PromoteConfirmCancel
+  /// 预览之后回去重新选源（同一侧栏，切回卡片那一屏）
+  PromoteBack
+  PromoteClose
   // 回收站（第六轮）：恢复某一条 / 点「彻底删除」先开确认框 / 框里的确定与取消
   TrashRestore(String)
   TrashPurgeOpen(String, String)
@@ -834,6 +861,13 @@ fn initial_model() -> Model {
     snapshot_confirm_id: "",
     snapshot_confirm_snap: "",
     snapshot_confirm_return: "",
+    promote_row: "",
+    promote_return: "",
+    promote_source: "",
+    promote_preview: None,
+    promote_preview_error: "",
+    promote_loading: false,
+    promote_confirm: false,
     trash_purge_dir: "",
     trash_purge_return: "",
     job_version: "",
@@ -1132,6 +1166,30 @@ fn profile_sidebar_close_id() -> String {
 /// 按 profile 名算（与语义路径同一口径），列表顺序变了也指得回同一只。
 fn job_profile_card_id(name : String) -> String {
   "dsh-job-profile-card-" + dom_key(name)
+}
+
+///|
+/// 整体替换侧栏的关闭键 id：一只可选的源都没有时，焦点落在这儿（总得有处可去）。
+fn promote_close_id() -> String {
+  "dsh-promote-close"
+}
+
+///|
+/// 整体替换侧栏里一颗源卡的 DOM id（按 profile 名算，焦点打开时落在第一张）。
+fn promote_card_id(name : String) -> String {
+  "dsh-promote-card-" + dom_key(name)
+}
+
+///|
+/// 抽屉里「用另一只配置替换这一只」那颗按钮的 id：关掉侧栏之后焦点回它身上。
+fn promote_open_id(row_id : String) -> String {
+  "dsh-promote-open-" + dom_key(row_id)
+}
+
+///|
+/// 确认框里「确认替换」那颗键的 id（打开时焦点落在它上面）。
+fn promote_confirm_ok_id() -> String {
+  "dsh-promote-confirm-ok"
 }
 
 ///|

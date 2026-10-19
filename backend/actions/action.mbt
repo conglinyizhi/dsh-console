@@ -485,6 +485,10 @@ pub async fn run_action(
     // 两条都先过「这只 profile 有实例在跑就拒」的守卫（见 actions/snapshots.mbt）。
     "snapshot-profile" => snapshot_profile_action(params)
     "restore-snapshot" => restore_snapshot_action(params, confirm)
+    // ── 整体替换（design/ops-maintenance-jobs.md 第 17 节）────────────
+    // 预览只读；应用要先重跑一遍 blockers 再动磁盘（见 actions/promote.mbt）。
+    "promote-preview" => promote_preview_action(params)
+    "promote-profile" => promote_profile_action(params, confirm)
     "open-path" => {
       // 这个动作的参数只有 profile 与 kind：多一个键就拒，免得有人塞个 path 还以为它生效了
       ensure_only_keys(params, ["profile", "kind"])

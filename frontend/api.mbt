@@ -205,6 +205,27 @@ fn refresh_releases_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 }
 
 ///|
+/// POST /api/local/action 的 **promote-preview**（design/ops-maintenance-jobs.md §17.1）。
+///
+/// 单开一条而不是复用 action_cmd：预览是**只读**的，它的回执不该碰那一行的忙碌态，
+/// 也不该写进总览那条动作提示（那一条说的是「改了什么」）。预览读失败的原因摆在侧栏里原位。
+fn promote_preview_cmd(from : String, to : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  let params = "{\"from\":" + json_text_literal(from) + ",\"to\":" + json_text_literal(to) + "}"
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(PromotePreviewDone(res)) },
+    async fn() {
+      let text : String = js_http_call(
+        "POST",
+        "/api/local/action",
+        action_body("promote-preview", params),
+        write_headers(),
+      ).wait().cast()
+      text
+    },
+  )
+}
+
+///|
 /// POST /api/local/action 的 **set-row-order**：body 是 { action, params: { order: [...] } }。
 ///
 /// 为什么单开一条而不是复用 action_cmd：这条回执要做一件别处不做的事 ——

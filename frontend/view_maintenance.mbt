@@ -663,22 +663,48 @@ fn job_profile_current(
 }
 
 ///|
-/// 侧栏里的一颗 profile 卡：**复用总览卡片那一套样式**（.dsh-case，含图标位与三行）。
+/// 一条 data-name 路径：前缀 + 这一格的尾巴。
+/// 两张卡（选择配置 / 替换用源）共用一份画法，差别之一就是前缀，所以路径得拼。
+fn mark_path(marks : Array[String], tail : Array[String]) -> Array[String] {
+  let out : Array[String] = []
+  for m in marks {
+    out.push(m)
+  }
+  for t in tail {
+    out.push(t)
+  }
+  out
+}
+
+///|
+/// 一张 profile 卡（**复用总览卡片那一套样式**：.dsh-case，含图标位与三行）。
+///
+/// 两处共用这一份画法：「选择配置」（维护页的试跑用配置）与
+/// 「用另一只配置替换这一只」（总览抽屉里的整体替换）。差别只在四件事：
+/// 点下去发哪条消息、data-name 前缀、挂不挂「当前配置」那枚标记、aria 那句话。
 ///
 /// 卡上五样（§12.4）：名字、备注（没有就写「没有备注」）、状态灯 + 状态词、缺包数、
 /// home 归属；不可用的卡另写一行原因，并整张置灰、不可点、从 Tab 序列里摘掉。
-/// 运行中的卡带「在跑」，当前选中的带「当前配置」—— 两枚标记都是文字，不只靠颜色。
+/// 运行中的卡带「在跑」—— 标记都是文字，不只靠颜色。
 ///
 /// 缺包**不算不可用**（§9.3）：卡照旧能点，「缺 N 个包」只是如实摆着的读数。
-fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn profile_pick_card(
+  pick : ProfilePick,
+  card_id : String,
+  mark_prefix : String,
+  marks : Array[String],
+  selected_text : String,
+  aria_ok : String,
+  aria_bad : String,
+  picked : (String) -> Msg,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let ok = pick.usable
   let why = pick.why
-  let choice = job_profile_choice(model)
-  let selected = pick.name == choice
   let head : Array[@html.Html] = [
     @html.span(
       class="dsh-name",
-      attrs=mark("job-profile-card-name", ["maintenance", "profile-sidebar", pick.name, "name"]),
+      attrs=mark(mark_prefix + "-card-name", mark_path(marks, [pick.name, "name"])),
       pick.name,
     ),
   ]
@@ -686,26 +712,26 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
     head.push(
       @html.span(
         class="dsh-profile-card-mark running",
-        attrs=mark("job-profile-card-running", ["maintenance", "profile-sidebar", pick.name, "running"]),
+        attrs=mark(mark_prefix + "-card-running", mark_path(marks, [pick.name, "running"])),
         "在跑",
       ),
     )
   }
-  if selected {
+  if selected_text != "" {
     head.push(
       @html.span(
         class="dsh-profile-card-mark selected",
-        attrs=mark("job-profile-card-mark", ["maintenance", "profile-sidebar", pick.name, "mark"]),
-        "当前配置",
+        attrs=mark(mark_prefix + "-card-mark", mark_path(marks, [pick.name, "mark"])),
+        selected_text,
       ),
     )
   }
   // 备注那一行：有就写备注（人写的，带左侧细线，与总览同一副样子）；
-  // 没有就写「没有备注」—— 空着与「没有」在这里是两件事，而这一行是卡上的固定一格。
+  // 没有就写「没有备注」。空着与「没有」在这里是两件事，而这一行是卡上的固定一格。
   let note_line = if pick.note != "" {
     @html.span(
       class="dsh-card-note",
-      attrs=mark("job-profile-card-note", ["maintenance", "profile-sidebar", pick.name, "note"]).title(
+      attrs=mark(mark_prefix + "-card-note", mark_path(marks, [pick.name, "note"])).title(
         if pick.note_source == "" { pick.note } else { pick.note + "\n（" + pick.note_source + "）" },
       ),
       [@html.span(class="dsh-card-note-text", pick.note)],
@@ -713,15 +739,13 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
   } else {
     @html.span(
       class="dsh-profile-card-sub dsh-profile-card-nonote",
-      attrs=mark("job-profile-card-nonote", ["maintenance", "profile-sidebar", pick.name, "nonote"]),
+      attrs=mark(mark_prefix + "-card-nonote", mark_path(marks, [pick.name, "nonote"])),
       "没有备注",
     )
   }
   // 读数那一行：状态灯 + 状态词 + 缺包数 + home 归属。灯与词永远并排，颜色不作唯一信号。
-  let light_attrs = mark(
-    "job-profile-card-light",
-    ["maintenance", "profile-sidebar", pick.name, "light"],
-  ).data_set("state", light_key(pick.light))
+  let light_attrs = mark(mark_prefix + "-card-light", mark_path(marks, [pick.name, "light"]))
+    .data_set("state", light_key(pick.light))
     .role("img")
     .aria_label(light_label(pick.light))
   let light_attrs = if pick.light_basis == "" {
@@ -730,16 +754,13 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
     light_attrs.title(pick.light_reason + "\n" + pick.light_basis)
   }
   let missing_text = "缺 " + pick.missing.to_string() + " 个包"
-  let missing_attrs = mark(
-    "job-profile-card-missing",
-    ["maintenance", "profile-sidebar", pick.name, "missing"],
-  )
+  let missing_attrs = mark(mark_prefix + "-card-missing", mark_path(marks, [pick.name, "missing"]))
   let missing_attrs = if pick.missing_names == "" {
     missing_attrs
   } else {
     missing_attrs.title("缺的包：" + pick.missing_names)
   }
-  let home_attrs = mark("job-profile-card-home", ["maintenance", "profile-sidebar", pick.name, "home"])
+  let home_attrs = mark(mark_prefix + "-card-home", mark_path(marks, [pick.name, "home"]))
   let home_attrs = if pick.home_path == "" {
     home_attrs
   } else {
@@ -749,12 +770,16 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
     @html.span(class="dsh-dot " + light_class(pick.light), attrs=light_attrs, @html.nothing),
     @html.span(
       class="dsh-profile-card-state",
-      attrs=mark("job-profile-card-state", ["maintenance", "profile-sidebar", pick.name, "state"])
+      attrs=mark(mark_prefix + "-card-state", mark_path(marks, [pick.name, "state"]))
         .data_set("state", light_key(pick.light)),
       light_label(pick.light),
     ),
     @html.span(class="dsh-profile-card-missing", attrs=missing_attrs, missing_text),
-    @html.span(class="dsh-profile-card-home", attrs=home_attrs, job_pick_home_text(pick)),
+    @html.span(
+      class="dsh-profile-card-home",
+      attrs=home_attrs,
+      job_pick_home_text(pick),
+    ),
   ]
   let lines : Array[@html.Html] = [
     @html.div(class="dsh-case-head", head),
@@ -765,36 +790,30 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
     lines.push(
       @html.span(
         class="dsh-profile-card-sub unusable",
-        attrs=mark("job-profile-card-why", ["maintenance", "profile-sidebar", pick.name, "why"]),
+        attrs=mark(mark_prefix + "-card-why", mark_path(marks, [pick.name, "why"])),
         why,
       ),
     )
   }
   let click = if ok {
-    emit(JobProfilePicked(pick.name))
+    emit(picked(pick.name))
   } else {
     @cmd.none
   }
   @html.article(
-    id=job_profile_card_id(pick.name),
+    id=card_id,
     class=if ok { "dsh-case dsh-profile-card" } else { "dsh-case dsh-profile-card disabled" },
-    attrs=mark("job-profile-card", ["maintenance", "profile-sidebar", pick.name])
+    attrs=mark(mark_prefix + "-card", mark_path(marks, [pick.name]))
       .data_set("usable", if ok { "true" } else { "false" })
       .data_set("group", if pick.running { "running" } else { "stopped" })
       .role("button")
       .tabindex(if ok { 0 } else { -1 })
       .aria_disabled(if ok { "false" } else { "true" })
-      .aria_label(
-        if ok {
-          "试跑用 " + pick.name
-        } else {
-          pick.name + " 不可用：" + why
-        },
-      )
+      .aria_label(if ok { aria_ok } else { aria_bad })
       .on_click(fn(_event) { click })
       .on_keydown(fn(event) {
         if ok && (event.key() == "Enter" || event.key() == " ") {
-          emit(JobProfilePicked(pick.name))
+          emit(picked(pick.name))
         } else {
           @cmd.none
         }
@@ -808,6 +827,45 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
       ]),
       @html.div(class="dsh-case-body", lines),
     ],
+  )
+}
+
+///|
+/// 「选择配置」那一栏里的一张卡：点下去回填试跑用配置。
+fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let choice = job_profile_choice(model)
+  let selected = pick.name == choice
+  let ok = pick.usable
+  let aria = if ok { "试跑用 " + pick.name } else { pick.name + " 不可用：" + pick.why }
+  profile_pick_card(
+    pick,
+    job_profile_card_id(pick.name),
+    "job-profile",
+    ["maintenance", "profile-sidebar"],
+    if selected { "当前配置" } else { "" },
+    aria,
+    aria,
+    fn(name) { JobProfilePicked(name) },
+    emit,
+  )
+}
+
+///|
+/// 整体替换那一栏里的一张源卡：点下去选它当源（点完在同一侧栏里出差异预览）。
+/// 与「选择配置」是**同一份画法**（profile_pick_card），只是换一套 data-name 与消息。
+fn promote_source_card(pick : ProfilePick, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let ok = pick.usable
+  let aria = if ok { "用 " + pick.name + " 的配置替换" } else { pick.name + " 不可用：" + pick.why }
+  profile_pick_card(
+    pick,
+    promote_card_id(pick.name),
+    "promote",
+    ["overview", "promote-sidebar"],
+    "",
+    aria,
+    aria,
+    fn(name) { PromoteSourcePicked(name) },
+    emit,
   )
 }
 

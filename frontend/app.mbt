@@ -1404,6 +1404,50 @@ fn action_receipt(
       (if dir == "" { "" } else { "\n这一份快照在：" + dir })
     return (text, hint)
   }
+  // 整体替换（design/ops-maintenance-jobs.md §17.4）：正文照那一句原话，
+  // 写了哪几份 / 搬了哪几个 / 跳过了哪些收进悬停（数字都在正文里，清单在悬停里）。
+  if action == "promote-profile" {
+    let (from, to, written, moved, skipped, snap_id) = match outcome {
+      Some(o) =>
+        (
+          str_field(o, "from"),
+          str_field(o, "to"),
+          str_array_field(o, "written"),
+          str_array_field(o, "packagesMoved"),
+          str_array_field(o, "packagesSkipped"),
+          str_field(obj_field(o, "snapshot"), "id"),
+        )
+      None => ("", "", [], [], [], "")
+    }
+    if to != "" && from != "" {
+      let text = to + " 的配置已用 " + from + " 替换（写了 " + written.length().to_string() +
+        " 份文件，搬了 " + moved.length().to_string() + " 个包，跳过 " +
+        skipped.length().to_string() + " 个已存在的包）；替换前快照 " + snap_id
+      let mut hint = backend_hint(note)
+      match outcome {
+        Some(o) => {
+          let snap_dir = str_field(obj_field(o, "snapshot"), "dir")
+          if snap_dir != "" {
+            hint = hint + "\n替换前快照在：" + snap_dir
+          }
+          for item in str_array_field(o, "packageNotes") {
+            hint = hint + "\n" + item
+          }
+        }
+        None => ()
+      }
+      if written.length() > 0 {
+        hint = hint + "\n写过去的文件：" + written.join("、")
+      }
+      if moved.length() > 0 {
+        hint = hint + "\n搬过去的包：" + moved.join("、")
+      }
+      if skipped.length() > 0 {
+        hint = hint + "\n同名已存在、没有覆盖的包：" + skipped.join("、")
+      }
+      return (text, hint)
+    }
+  }
   if action == "restore-from-trash" || action == "purge-trash-item" {
     let (text, hint) = trash_receipt(action, name, outcome)
     if text != "" {
@@ -2798,6 +2842,166 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       { ..model, snapshot_confirm_id: "", snapshot_confirm_snap: "" },
       focus_after_render(model.snapshot_confirm_return),
     )
+    // ── 整体替换（design/ops-maintenance-jobs.md §17.3）────────────
+    // 打开侧栏：先收抽屉（两个都是右侧浮层，叠着摆会互相挡），焦点进侧栏的关闭键。
+    PromoteOpen(id) =>
+      match find_row(model.rows, id) {
+        None => (model, @cmd.none)
+        Some(row) =>
+          match row.profile_name {
+            None => (notice_err(model, row.name + " 的目录名读不到，没法替换配置"), @cmd.none)
+            Some(_) =>
+              (
+                {
+                  ..model,
+                  drawer_id: "",
+                  promote_row: id,
+                  // 关掉侧栏之后焦点回这张卡（抽屉已经收了，那颗按钮不在页面上了）
+                  promote_return: card_id(id),
+                  promote_source: "",
+                  promote_preview: None,
+                  promote_preview_error: "",
+                  promote_loading: false,
+                  promote_confirm: false,
+                },
+                focus_after_render(promote_close_id()),
+              )
+          }
+      }
+    // 选一只源：就地发 promote-preview（只读），回执之前先摆「正在读差异…」
+    PromoteSourcePicked(name) =>
+      match find_row(model.rows, model.promote_row) {
+        None => (model, @cmd.none)
+        Some(row) =>
+          match row.profile_name {
+            None => (notice_err(model, row.name + " 的目录名读不到，没法替换配置"), @cmd.none)
+            Some(target) =>
+              (
+                {
+                  ..model,
+                  promote_source: name,
+                  promote_preview: None,
+                  promote_preview_error: "",
+                  promote_loading: true,
+                  promote_confirm: false,
+                },
+                promote_preview_cmd(name, target, emit),
+              )
+          }
+      }
+    // 预览回执：成功就把四段差异摆出来，失败把原因留在侧栏里原位（不发全局提示）
+    PromotePreviewDone(res) => {
+      let next = match res {
+        Err(err) =>
+          {
+            ..model,
+            promote_loading: false,
+            promote_preview: None,
+            promote_preview_error: "这一步没发出去（" + describe(err) + "）",
+          }
+        Ok(text) =>
+          match parse_promote_preview(text) {
+            Ok(preview) =>
+              {
+                ..model,
+                promote_loading: false,
+                promote_preview: Some(preview),
+                promote_preview_error: "",
+              }
+            Err(reason) =>
+              {
+                ..model,
+                promote_loading: false,
+                promote_preview: None,
+                promote_preview_error: reason,
+              }
+          }
+      }
+      // 焦点跟着这一屏走：能应用就落在「确认替换」上，不能就落在关闭键上
+      let focus = match next.promote_preview {
+        Some(preview) =>
+          if preview.blockers.length() == 0 && model.promote_row != "" {
+            "dsh-promote-apply"
+          } else {
+            promote_close_id()
+          }
+        None => promote_close_id()
+      }
+      (next, focus_after_render(focus))
+    }
+    // 「确认替换」：只开框，不发请求（破坏性动作要先看一眼标题与正文）
+    PromoteConfirmOpen =>
+      match model.promote_preview {
+        Some(preview) =>
+          if preview.blockers.length() > 0 {
+            (model, @cmd.none)
+          } else {
+            ({ ..model, promote_confirm: true }, focus_after_render(promote_confirm_ok_id()))
+          }
+        None => (model, @cmd.none)
+      }
+    PromoteConfirmCancel => (
+      { ..model, promote_confirm: false },
+      focus_after_render("dsh-promote-apply"),
+    )
+    // 真的替换：body 顶层带 confirm: PROMOTE；回执走 HttpDone（成功后重读读数）
+    PromoteConfirm =>
+      match find_row(model.rows, model.promote_row) {
+        None => (model, @cmd.none)
+        Some(row) =>
+          match row.profile_name {
+            None => (notice_err(model, row.name + " 的目录名读不到，没法替换配置"), @cmd.none)
+            Some(target) =>
+              if model.promote_source == "" {
+                (notice_err(model, "还没选源，替换没发出去"), @cmd.none)
+              } else {
+                let pairs : Array[(String, String)] = [
+                  ("from", json_text_literal(model.promote_source)),
+                  ("to", json_text_literal(target)),
+                ]
+                let (next, cmd) = send_action(
+                  { ..model, promote_confirm: false },
+                  model.promote_row,
+                  "promote-profile",
+                  target,
+                  "替换配置",
+                  params_of(pairs),
+                  emit,
+                  confirm="PROMOTE",
+                )
+                (next, cmd)
+              }
+          }
+      }
+    // 回去重新选源：清掉预览，卡片那一屏重新摆出来
+    PromoteBack => (
+      {
+        ..model,
+        promote_preview: None,
+        promote_preview_error: "",
+        promote_loading: false,
+        promote_source: "",
+      },
+      focus_after_render(promote_close_id()),
+    )
+    PromoteClose =>
+      if model.promote_row == "" {
+        (model, @cmd.none)
+      } else {
+        (
+          {
+            ..model,
+            promote_row: "",
+            promote_return: "",
+            promote_source: "",
+            promote_preview: None,
+            promote_preview_error: "",
+            promote_loading: false,
+            promote_confirm: false,
+          },
+          focus_after_render(model.promote_return),
+        )
+      }
     // 点整张卡：开抽屉，焦点进抽屉里的关闭键。
     // 卡是 role=button + tabindex=0，键盘也能开（Enter / 空格，见 view_overview 的 card_attrs）。
     DrawerOpen(id) =>
@@ -3498,7 +3702,26 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           let (shown, hint) = action_receipt(action, name, verb, note, res)
           // 本地不猜结果：归档记录、运行时登记、回收站条目都在后端的读数里，
           // 重读 console / profiles / instances 之后界面自己会变
-          refresh_readings(notice_put(cleared, true, shown, hint), emit)
+          let (next, cmd) = refresh_readings(notice_put(cleared, true, shown, hint), emit)
+          if action == "promote-profile" {
+            // 替换落地了：侧栏收掉（它的预览已经过期），焦点回那张卡
+            let return_id = model.promote_return
+            (
+              {
+                ..next,
+                promote_row: "",
+                promote_return: "",
+                promote_source: "",
+                promote_preview: None,
+                promote_preview_error: "",
+                promote_loading: false,
+                promote_confirm: false,
+              },
+              @cmd.batch([cmd, focus_after_render(return_id)]),
+            )
+          } else {
+            (next, cmd)
+          }
         } else {
           (notice_err(cleared, name + " " + verb + "失败：" + note), @cmd.none)
         }
