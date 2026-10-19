@@ -49,13 +49,19 @@ extern "js" fn js_shift_watch() -> Unit =
   #|     if (on) document.body.setAttribute('data-shift', '1')
   #|     else document.body.removeAttribute('data-shift')
   #|   }
+  #|   const markAlt = (on) => {
+  #|     if (on) document.body.setAttribute('data-alt', '1')
+  #|     else document.body.removeAttribute('data-alt')
+  #|   }
   #|   document.addEventListener('keydown', (e) => {
   #|     if (e.key === 'Shift' || e.shiftKey) mark(true)
+  #|     if (e.key === 'Alt' || e.altKey) markAlt(true)
   #|   }, true)
   #|   document.addEventListener('keyup', (e) => {
   #|     if (e.key === 'Shift' || !e.shiftKey) mark(false)
+  #|     if (e.key === 'Alt' || !e.altKey) markAlt(false)
   #|   }, true)
-  #|   window.addEventListener('blur', () => mark(false))
+  #|   window.addEventListener('blur', () => { mark(false); markAlt(false) })
   #| }
 
 ///|
@@ -65,6 +71,15 @@ extern "js" fn js_shift_watch() -> Unit =
 /// 确认框的三处文案与请求都照记下来的那一格走，不事后重读设置。
 extern "js" fn js_shift_held() -> Bool =
   #| () => document.body.getAttribute('data-shift') === '1'
+
+///|
+/// 此刻 Alt 按着没有。
+///
+/// 为什么不用 Shift：「打开 Web UI」用 Shift 会撞上浏览器自己的手势 —— Shift+点击在 Chrome 里
+/// 被当成「新窗口」而不是「新标签页」，脚本里的 window.open 拿不回这个修饰键。
+/// Alt 没有这个绑定，按住时 window.open 照常开标签页。
+extern "js" fn js_alt_held() -> Bool =
+  #| () => document.body.getAttribute('data-alt') === '1'
 
 ///|
 /// 滚到底：日志区打开与切来源都要看到最新的一行。

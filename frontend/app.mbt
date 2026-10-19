@@ -445,8 +445,9 @@ fn open_web_ui(
       } else {
         row.web_url_source + "；裸地址 " + row.url
       }
-      if js_shift_held() {
+      if js_alt_held() {
         // 这一支不说「带令牌的地址」：开的本来就是裸地址，拿另一套话会自相矛盾
+        // 用 Alt 不用 Shift：Shift+点击会被浏览器当成「开新窗口」，那是它自己的手势
         let outcome = js_open_url(row.url)
         let (ok, text) = if outcome == "ok" {
           (true, row.name + " 不是启动器拉起的，没有 key，已硬开裸地址，打开后可能无法正常使用")
@@ -461,7 +462,7 @@ fn open_web_ui(
           notice_put(
             model,
             false,
-            row.name + " 不是启动器拉起的，没有 key，没有打开（按住 Shift 可以硬开裸地址）",
+            row.name + " 不是启动器拉起的，没有 key，没有打开（按住 Alt 可以硬开裸地址）",
             hint,
           ),
           @cmd.none,

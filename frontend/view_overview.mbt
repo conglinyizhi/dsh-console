@@ -800,7 +800,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         // 令牌读不到时按钮**照样可点**：点下去先把原因说清，不给一个点了 401 的链接
         attrs=mark("drawer-open-web-ui", ["overview", "drawer", row.id, "action", "open-ui"])
           .data_set("action", "open-ui")
-          .title(open_ui_hint(row) + "；按住 Shift：不管有没有 key，直接开裸地址（可能用不了）"),
+          .title(open_ui_hint(row) + "；按住 Alt：不管有没有 key，直接开裸地址（可能用不了）"),
         on_click=emit(RowAction(row.id, OpenUi)),
         [icon("open-in-new"), @html.span("打开 Web UI")],
       ),
