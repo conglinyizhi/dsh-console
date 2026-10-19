@@ -170,14 +170,9 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   //      落位线随之收掉 —— 在空白处松手就是作废，与画面上看到的一致。
   // 只在**正在按下 / 拖动**时才挂（drag_id 非空）：一直挂着的话，每一次鼠标划过
   // 页面都会送一条消息进来重渲染一遍 —— 而那一拍什么都没发生。
-  // 右侧覆盖层（详情抽屉 / 版本侧栏 / 配置侧栏）开着时，提示往左让出那 520px ——
-  // 它照旧盖在抽屉之上（z-index 55 > 51），但不遮住抽屉底部那颗「重新拉取」。
-  let overlay = if model.drawer_id != "" || model.version_sidebar || model.profile_sidebar {
-    "drawer"
-  } else {
-    ""
-  }
-  let mut shell_attrs = @html.Attrs::build().data_set("overlay", overlay)
+  // 提示的位置与右侧覆盖层无关：它固定贴在视口底部居中，抽屉 / 侧栏开关时不动。
+  // 让位那套（覆盖层开着就往左挪）实测下来是「提示会跟着抽屉滑」—— 那是病不是特性。
+  let mut shell_attrs = @html.Attrs::build()
   if model.drag_id != "" {
     shell_attrs = shell_attrs
       .on_pointermove(fn(event) {

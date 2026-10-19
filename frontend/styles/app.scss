@@ -1597,18 +1597,18 @@ body[data-shift="1"] .dsh-btn.dsh-delete {
 
 // ── 全局提示（外壳层：六个页面同一个位置，§14） ────────────
 // 动作结果只有这一条出口：成功画成 toast（3.5 秒后自己淡出），失败画成常驻提示条。
-// 位置在内容区底部居中 —— 左侧导航宽 190，所以圆心往右挪 95（50% + 95px）。
+// 位置固定贴在视口底部正中：只由视口决定，抽屉 / 侧栏 / 页面内容怎么变都不动。
 // 层级 55：盖在抽屉与版本 / 配置侧栏之上（50 / 51），在确认框之下（60 / 61）。
 // 淡出用 transition 而不是 animation：验收的动效探针数的是 animationName，
 // 这里多一条动画会让「点击前无可见动效」凭空多出一个要解释的元素。
 .dsh-toast,
 .dsh-global-notice {
   position: fixed;
-  left: calc(50% + 95px);
+  left: 50%;
   bottom: 22px;
   transform: translateX(-50%);
   z-index: 55;
-  max-width: min(560px, calc(100vw - 234px));
+  max-width: min(560px, calc(100vw - 44px));
 }
 .dsh-toast {
   display: flex; align-items: flex-start; gap: 10px;
@@ -1630,17 +1630,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete {
 .dsh-notice.err.dsh-global-notice {
   background: linear-gradient(rgba($danger-rgb, 0.12), rgba($danger-rgb, 0.12)), $panel;
 }
-// 右侧覆盖层开着（抽屉 / 版本侧栏 / 配置侧栏，520px）：提示让到左边剩下的那块内容区里，
-// 居中位置与最大宽度一起收 —— 「盖在抽屉之上」与「不挡住抽屉里的按钮」两条同时成立。
-// 断点取 1024：再窄，剩下那块会被压到 300px 以下（长句挤成一条竖条），
-// 而抽屉本身在窄屏上已经接近整幅 —— 那时保持默认位置，提示仍旧压在抽屉之上。
-@media (min-width: 1024px) {
-  .dsh-shell[data-overlay="drawer"] .dsh-toast,
-  .dsh-shell[data-overlay="drawer"] .dsh-global-notice {
-    left: calc(190px + (100vw - 190px - 520px) / 2);
-    max-width: min(560px, calc(100vw - 190px - 520px - 44px));
-  }
-}
+// 覆盖层（抽屉 / 版本侧栏 / 配置侧栏）不改变提示的位置：它固定在视口底部正中。
+// 抽屉会盖住提示的一部分，这是有意的取舍 —— 提示说的是「刚刚发生了什么」，抽屉才是正在做的事。
 .dsh-toast .dsh-btn, .dsh-global-notice .dsh-btn {
   flex: 0 0 auto;
   // toast 本来就是给「刚发生了什么」看的，按钮不抢视线：跟文字一样高就够了
