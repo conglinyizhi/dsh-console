@@ -192,6 +192,14 @@ extern "js" fn js_tab_close(profile : String) -> String =
 /// 先 navigator.clipboard（唯一「知道成没成」的正路：它 reject 就说得出原因），
 /// 它不在或拒了就退到 execCommand 那条老路 —— 两条都失败时如实回 ok:false，
 /// **不假装复制成功**（提示条上那句「已复制」必须对应真写进去的东西）。
+///|
+/// 去掉一段提示文字末尾的空白与句号。
+///
+/// 提示条与 toast 是**一句话的结论**，末尾那个句号在这里只是噪声（用户看的是结果，不是段落）。
+/// 中文句号与英文句点都算，末尾空白一并吃掉。
+extern "js" fn js_trim_tail_period(text : String) -> String =
+  #| (s) => String(s).replace(/[\s。.]+$/u, '')
+
 extern "js" fn js_copy_text(text : String) -> @js.Promise =
   #| text => (async () => {
   #|   let clipboardError = ''

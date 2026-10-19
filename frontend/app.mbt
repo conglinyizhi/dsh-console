@@ -576,22 +576,24 @@ fn copy_url_action(
 /// 剪贴板回执 → (成功?, 给用户看的一句话)。
 /// 传输层给的是 { ok, how, error }：ok=true 时写出走的是哪条路，
 /// ok=false 时把两个失败原因都带上（clipboard 的 reject 原因 + execCommand 的结果）。
-fn parse_copy_result(text : String) -> (Bool, String) {
+///|
+/// 剪贴板回执 → (成没成, 正文, 悬停补充)。
+///
+/// 正文只说结局，**不提是哪条浏览器接口写进去的**（navigator.clipboard / execCommand
+/// 对用户没有意义，而且换个环境就变）。技术原因进悬停，正文保持一句话。
+fn parse_copy_result(text : String) -> (Bool, String, String) {
   let root = try @json.parse(text) catch {
-    _ => return (false, "剪贴板调用返回的不是合法 JSON")
+    _ => return (false, "没能复制到剪贴板", "剪贴板调用返回的不是合法 JSON")
   }
   guard root is Json::Object(obj) else {
-    return (false, "剪贴板调用返回的不是 JSON 对象")
+    return (false, "没能复制到剪贴板", "剪贴板调用返回的不是 JSON 对象")
   }
   if bool_field(obj, "ok") {
     let how = str_field(obj, "how")
-    (true, if how == "" { "已写入剪贴板。" } else { "已写入剪贴板（" + how + "）。" })
+    (true, "已复制到剪贴板", if how == "" { "" } else { "写入方式：" + how })
   } else {
     let why = str_field(obj, "error")
-    (
-      false,
-      if why == "" { "没能写进剪贴板，也没给出原因。" } else { "没能写进剪贴板：" + why + "。" },
-    )
+    (false, "没能复制到剪贴板", if why == "" { "" } else { why })
   }
 }
 
@@ -2107,10 +2109,12 @@ fn notice_err(model : Model, text : String) -> Model {
 /// 换掉当前这条提示：序号 +1，外壳与到期计时都按序号认人。
 fn notice_put(model : Model, ok : Bool, text : String, hint : String) -> Model {
   let seq = model.notice_serial + 1
+  // 末尾句号在这里统一去掉：提示条说的是一句结论，不是一段话
+  let body = js_trim_tail_period(text)
   {
     ..model,
     notice_serial: seq,
-    notice: Some({ seq, ok, text, hint, at: local_time_now() }),
+    notice: Some({ seq, ok, text: body, hint, at: local_time_now() }),
     flash_fading: false,
     flash_hover: false,
   }
@@ -3372,11 +3376,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     // 剪贴板回执：只说这一枪的真实结局（写进去了 / 两条路都失败），
     // 复制成功不改任何读数，所以这里不刷新列表。
     CopyDone(subject, res) => {
-      let (ok, note) = match res {
+      let (ok, note, detail) = match res {
         Ok(text) => parse_copy_result(text)
-        Err(err) => (false, "剪贴板调用没发出去（" + describe(err) + "）")
+        Err(err) => (false, "没能复制到剪贴板", "剪贴板调用没发出去：" + describe(err))
       }
-      (notice_put(model, ok, subject + note, ""), @cmd.none)
+      (notice_put(model, ok, subject + note, detail), @cmd.none)
     }
     // toast 到期：序号对不上说明这一条已经被换掉了（或已经收掉了），那一枪作废
     FlashExpire(serial) =>
