@@ -3746,10 +3746,27 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
       { ..model, settings_loading: true, settings_error: "", settings_loaded: false },
       settings_get_cmd(emit),
     )
-    // 设置分组也是页面状态：切分组就换地址，刷新 / 后退都回到同一组
+    // 设置分组也是页面状态：切分组就换地址，刷新 / 后退都回到同一组。
+    // 窄屏上这一步是「进第二级」：焦点落到返回键上，键盘接下来直接能退出去。
+    // 宽屏两列同屏，点索引只是换右边的内容 —— 焦点留在点过的那一行才顺手，不挪。
     SettingsGroupPicked(id) => (
       { ..model, settings_group: id, route_notice: "" },
-      push_route(route_url(Settings, id, model.log_source)),
+      @cmd.batch([
+        push_route(route_url(Settings, id, model.log_source)),
+        if narrow_settings_page() {
+          focus_after_render(settings_back_dom_id())
+        } else {
+          @cmd.none
+        },
+      ]),
+    )
+    // 窄屏第二级的返回键：回第一级，焦点还给刚进来的那一行
+    SettingsBack => (
+      { ..model, settings_group: "", route_notice: "" },
+      @cmd.batch([
+        push_route(route_url(Settings, "", model.log_source)),
+        focus_after_render(settings_row_dom_id(setting_group_of(model.settings_group).id)),
+      ]),
     )
     SettingDraft(key, text) => (
       { ..model, settings_draft: put_draft(model.settings_draft, key, text) },

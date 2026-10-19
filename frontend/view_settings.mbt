@@ -10,6 +10,35 @@
 //   2. 后端没提供这个接口时，整页只剩一句「后端还没提供 /api/local/settings」
 //      与具体状态行 —— 不拿契约缺省冒充当前值，也不给一排点不动的控件充数。
 //   3. 控件里的文本（草稿）与已保存的值分开存：保存失败要把草稿退回去。
+//
+// 窄屏（< 820px）是两级（design/design-fixes.md §18）：
+//   第一级 分区列表（竖排，每行：图标 / 名字 / 条数 / 右箭头），地址 /settings；
+//   第二级 返回键 + 该分组的条目，地址 /settings/<分组>。
+// 一级二级由地址决定（model.settings_group 是空串还是具体 id），刷新与直达因此落回原处；
+// 宽屏两列同屏摆着，这一格只写在 data-level 上，样式表里那一段才用它。
+
+///|
+/// 分区列表里某一行的 DOM id：窄屏第二级返回时焦点要还给刚进来的那一行。
+fn settings_row_dom_id(group_id : String) -> String {
+  "dsh-settings-row-" + group_id
+}
+
+///|
+/// 窄屏第二级那个返回键的 DOM id：进去之后焦点落在它身上。
+fn settings_back_dom_id() -> String {
+  "dsh-settings-back"
+}
+
+///|
+/// 设置页现在是不是窄屏那一档（< 820px）。
+///
+/// 断点与样式表里那条 media query 是同一个数（styles/app.scss 的
+/// .dsh-settings-page 那一节），两处必须一起改。
+/// 问它只为一件事：进第二级之后要不要把焦点挪到返回键上 ——
+/// 宽屏两列同屏，点索引只是换右边的内容，焦点留在点过的那一行才顺手。
+fn narrow_settings_page() -> Bool {
+  js_viewport_width() < 820
+}
 
 ///|
 /// 控件里正在编辑的文本。没有草稿就用已保存的值渲染。
@@ -274,15 +303,20 @@ fn setting_reset_button(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) 
 }
 
 ///|
-/// 左侧索引：五个分组。当前选中的那个带 .active 与 aria-current。
+/// 分区索引：五个分组。当前选中的那个带 .active 与 aria-current。
+///
+/// 宽屏是一列索引（点它就是换右边那一栏），窄屏是第一级的分区列表（点它是进第二级）。
+/// 同一份节点，差别全在样式表里：右箭头只在窄屏显示。
 fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let current = setting_group_of(model.settings_group)
   let items : Array[@html.Html] = []
   for group in settings_groups {
-    let active = group.id == model.settings_group
+    let active = group.id == current.id
     items.push(
       @html.button(
         class=if active { "dsh-settings-tab active" } else { "dsh-settings-tab" },
         type_="button",
+        id=settings_row_dom_id(group.id),
         attrs=mark("settings-tab", ["settings", "tab", group.id])
           .data_set("group", group.id)
           .aria_current(if active { "true" } else { "false" }),
@@ -292,11 +326,10 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.span(class="dsh-settings-tab-label", group.label),
           @html.span(
             class="dsh-settings-tab-count",
-            settings_table
-            .filter(fn(def) { def.group == group.id })
-            .length()
-            .to_string(),
+            settings_group_count(group.id).to_string(),
           ),
+          // 「这一行后面还有内容」的提示：窄屏靠它说清「点进去」是下一步
+          @html.span(class="dsh-settings-tab-arrow", [icon("chevron-right", size=16)]),
         ],
       ),
     )
@@ -382,6 +415,26 @@ fn settings_error_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+/// 窄屏第二级顶部那个返回键。
+///
+/// 宽屏整行不摆（样式表里 display: none）：两列那一档没有一级二级，
+/// 索引一直在左边，多一颗「返回列表」的键反而是噪音。
+/// 分区名不写在这颗键里 —— 它是紧跟着的面板标题那一行，不重复两遍。
+fn settings_back_row(emit : @cmd.Emit[Msg]) -> @html.Html {
+  @html.div(class="dsh-settings-back-row", [
+    @html.button(
+      class="dsh-settings-back",
+      type_="button",
+      id=settings_back_dom_id(),
+      attrs=mark("settings-back", ["settings", "back"])
+        .aria_label("返回设置分区列表"),
+      on_click=emit(SettingsBack),
+      [@html.span("‹ 设置")],
+    ),
+  ])
+}
+
+///|
 /// 设置页。
 fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let body = if model.settings_loading && !model.settings_loaded {
@@ -403,9 +456,12 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         )
     }
   }
+  // 一级二级只由地址决定：settings_group 是空串 = 没有指定分组 = 第一级。
+  // 宽屏两列同屏，这一个标记在那一档不起作用（样式表只在窄屏那一段读它）。
+  let level = if model.settings_group == "" { "list" } else { "panel" }
   @html.section(
     class="dsh-settings-page",
-    attrs=mark("settings-page", ["settings", "page"]),
+    attrs=mark("settings-page", ["settings", "page"]).data_set("level", level),
     [
       @html.header(class="dsh-settings-head", [
         @html.h1(class="dsh-page-title", "设置"),
@@ -419,6 +475,8 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         ),
         "改动即保存。",
       ),
+      // 窄屏第二级的返回键（宽屏不显示）
+      settings_back_row(emit),
       // 保存成功 / 失败从 §14 起走外壳那一条全局提示：本页不留第二份（§14.4）
       body,
     ],

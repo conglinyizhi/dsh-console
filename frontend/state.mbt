@@ -582,6 +582,8 @@ struct Model {
   settings_status : Int
   settings_status_text : String
   settings_endpoint_missing : Bool
+  /// 设置页的分组。**空串 = 没有指定分组**：窄屏按它画第一级（分区列表），
+  /// 宽屏回落第一组。进第二级（/settings/<分组>）才写成具体 id。
   settings_group : String
   /// 控件里正在编辑的文本（键 → 草稿）：保存失败要把草稿退回已保存的值
   settings_draft : Array[SettingDraft]
@@ -806,6 +808,8 @@ priv enum Msg {
   SettingsSaved(String, Result[String, Error])
   SettingsRetry
   SettingsGroupPicked(String)
+  /// 窄屏第二级的返回键：回第一级（/settings），焦点回刚才那一行
+  SettingsBack
   SettingDraft(String, String)
   SettingCommit(String, String)
   SettingToggle(String, Bool)
@@ -927,7 +931,8 @@ fn initial_model() -> Model {
     settings_status: 0,
     settings_status_text: "",
     settings_endpoint_missing: false,
-    settings_group: "instance",
+    // 首帧是「没有指定分组」：窄屏落第一级（分区列表），宽屏回落第一组。
+    settings_group: "",
     settings_draft: [],
     settings_saving: "",
     settings_pending: None,

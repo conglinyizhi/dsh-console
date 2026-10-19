@@ -189,6 +189,12 @@ let settings_table : Array[SettingDef] = [
 ]
 
 ///|
+/// 一个分组里有几条（索引行右侧那个数）。
+fn settings_group_count(group_id : String) -> Int {
+  settings_table.filter(fn(def) { def.group == group_id }).length()
+}
+
+///|
 /// 一个键的取值。
 struct SettingVal {
   key : String

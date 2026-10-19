@@ -9,7 +9,7 @@
 //   /                     实例总览
 //   /maintenance          维护（作业台）
 //   /logs[?source=…]      日志（来源是页面状态的一部分，跟着进 URL）
-//   /settings             设置（第一个分组）
+//   /settings             设置（分区列表；宽屏回落第一组）
 //   /settings/<分组 id>   设置（某个分组）
 //   /trash                回收站
 //   /about                关于
@@ -61,6 +61,9 @@ priv struct Route {
   /// 设置页的分组 id（**只在 page 是 Settings 时有值**）。
   /// 别的页面上它是空串，不是「默认分组」—— 切到别的页面不该把用户记住的那个分组抹掉，
   /// 抹掉之后从「关于」再点回「设置」就跳回第一组了。
+  ///
+  /// **设置页上它也可能是空串**：地址只写了 /settings 的时候。那是「没有指定分组」，
+  /// 窄屏按它画第一级（分区列表），宽屏拿第一组顶上（两列那一档没有一级二级）。
   group : String
   /// 日志来源；None = 地址里没写，按默认来源推导（用户没自己挑过就跟着读数走）
   source : String?
@@ -187,7 +190,6 @@ fn logs_route(query : String) -> Route {
 fn parse_route(url : String) -> Route {
   let (raw_path, query) = split_once(url, '?')
   let segs = path_segments(raw_path)
-  let home = settings_groups[0].id
   if segs.length() == 0 {
     return { page: Overview, group: "", source: None, notice: "" }
   }
@@ -206,13 +208,15 @@ fn parse_route(url : String) -> Route {
       }
     "settings" =>
       if segs.length() == 1 {
-        { page: Settings, group: home, source: None, notice: "" }
+        // 只写了 /settings：没指定分组。窄屏这一档画的是分区列表（第一级），
+        // 宽屏回落第一组（setting_group_of 兜底），与改之前那一版看起来一模一样。
+        { page: Settings, group: "", source: None, notice: "" }
       } else if segs.length() == 2 && settings_group_exists(segs[1]) {
         { page: Settings, group: segs[1], source: None, notice: "" }
       } else {
         {
           page: Settings,
-          group: home,
+          group: "",
           source: None,
           notice: "地址里的 /" + join_with(segs, "/") + " 对不上任何一个设置分组（现有分组：" +
             settings_group_ids() + "），已回到设置首页。",
