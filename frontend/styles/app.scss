@@ -1587,12 +1587,44 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 // 遮罩盖的是整片 .dsh-new-pick-wrap（见 .dsh-new-pick-veil），空轨也在里面。
 // 单卡最小 260px：再窄，名字那一行与读数那两行就挤成一团。
 // 自动折行按 260 算列数，用 min(260px, 100%) 兜住比 260 还窄的容器（不横向溢出）。
-// align-items: start —— 每张卡保持自己的高度，横排不互相拉齐（§23「卡片高度保持现状」）。
+// **等高**（§24.2）：align-items: stretch，每张卡再钉死一档高度（见下一条）。同一行里
+// 有备注的、没备注的、不可用的，四边一样齐；高度不随内容长短变。
 .dsh-new-pick .dsh-profile-sidebar-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   gap: 8px;
-  align-items: start;
+  align-items: stretch;
+}
+// 框里的源卡钉死 96px（§24.2）。上下内边距收成 10：内容盒 76px，
+// 名字 22 + 备注 16 + 读数 18 + 原因 16 = 72，四行都摆得下，还不留一条空轨。
+// 内容真超出就裁（overflow: clip，带 8px 余量，见下一条）—— 卡片高度只由这一条决定，
+// 不许被内容撑开。
+// 这一段只带 .dsh-new-pick 祖先：维护页「选择配置」与总览「整体替换」两处的卡
+// 仍是原来的内容高，行为一个字不动。
+.dsh-new-pick .dsh-profile-card {
+  height: 96px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  /* 卡片本身裁掉超出的内容，但留 8px 的余量：状态灯挂在卡的角上（top/right: -3px，
+     灯外还有 2px 光晕），硬裁会把那颗灯削成一道斜口。clip 不带滚动容器，
+     余量之外的多余内容照样看不见。 */
+  overflow: clip;
+  overflow-clip-margin: 8px;
+}
+// 四行之间不留缝：96 是算出来的（10 + 72 + 10 + 剩 4 由居中摊平），
+// 再挂 gap 就会把原因那一行挤出去。读数那一行不折行，折一行就多 18px。
+// 这里**不能**再挂 overflow: hidden —— 状态灯是这个 body 的后代，祖先一裁，
+// 灯就只剩卡角上那一道斜口。裁剪统一交给上面的卡片。
+.dsh-new-pick .dsh-profile-card .dsh-case-body {
+  gap: 0;
+}
+.dsh-new-pick .dsh-profile-card .dsh-profile-card-meta {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+// 「没有备注」与「不可用原因」这两行与备注同一档：16px 一行。
+.dsh-new-pick .dsh-profile-card-sub {
+  line-height: 16px;
 }
 // 源卡区外面那层（§22）：只负责给遮罩一个定位容器。列表的高度上限与滚动还在
 // .dsh-new-pick 上 —— 锁上、解锁都是这套 DOM，滚动位置因此一个像素都不动。
@@ -1619,6 +1651,19 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   color: rgba(255, 255, 255, 0.82);
   text-align: center;
 }
+// 框顶那句说明（§24.3）：勾上复选框会换一句，两句就叠在同一格里 ——
+// 没生效的那句 visibility: hidden，行高按高的一句算，勾上勾下不会差一行。
+// 与名字格下面那句引导同一套做法，只是这里两句正文不同。
+.dsh-new-message {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.dsh-new-message-text {
+  grid-area: 1 / 1;
+}
+.dsh-new-message-text[data-active="false"] {
+  visibility: hidden;
+}
 .dsh-new-name {
   display: flex;
   flex-direction: column;
@@ -1627,6 +1672,15 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 .dsh-new-name-label {
   font-size: 11.5px;
   color: $text-dim;
+  // 一行封住（§24.3）：源配置名字长短不一，标签一旦折行，勾上勾下高度就会差一行。
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+// 必填星号（§24.1）：颜色走 danger，读屏不报它（输入框上有 aria-required）。
+.dsh-req {
+  margin-right: 3px;
+  color: $danger;
 }
 // 左下角「从基础实例开始」复选框（§21，原来那颗文本按钮）：位置不抢戏 ——
 // 字号比正文小一档、低对比；但勾选框本身用主色（accent-color），勾没勾上一眼分得出。
@@ -1683,11 +1737,16 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   line-height: 1.6;
   color: $text-dim;
 }
-// 勾上复选框时名字格下面那句引导：填名字是下一刻唯一要做的事，字色比标签亮一档
+// 勾上复选框时名字格下面那句引导：填名字是下一刻唯一要做的事，字色比标签亮一档。
+// 没勾时它仍在文档里、只把文字藏起来（§24.3）：visibility 不占读屏，却占布局 ——
+// 勾上勾下对话框总高度与列表、名字格的顶端因此一个像素都不动。
 .dsh-new-name-guide {
   font-size: 11.5px;
   line-height: 1.5;
   color: $text-mid;
+}
+.dsh-new-name-guide[data-active="false"] {
+  visibility: hidden;
 }
 /* 窄屏：对话框贴满宽，栅格收成一列（§23「窄屏仍是一行一张」）。
    宽度够凑两列时也不凑，钉一列 —— 窄屏上源卡是拿来逐张读完再点的，

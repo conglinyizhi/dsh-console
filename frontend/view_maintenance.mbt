@@ -699,6 +699,7 @@ fn profile_pick_card(
   picked : (String) -> Msg,
   emit : @cmd.Emit[Msg],
   chosen? : Bool = false,
+  why_title? : Bool = false,
 ) -> @html.Html {
   // 卡上只写读数带来的 data-usable。「这一刻整组不可选」那一档已经挪到容器上
   // （inert + 遮罩，design/design-fixes.md §22）：卡片自己不再知道时刻，
@@ -791,10 +792,15 @@ fn profile_pick_card(
     @html.div(class="dsh-profile-card-meta", meta),
   ]
   if !usable {
+    // 原因这一行本来就只占一行（.dsh-profile-card-sub 带省略号）。完整句挂不挂悬停
+    // 由调用点决定：新建实例框里的卡钉死高度（§24.2），被截掉的那半句得能读回来；
+    // 维护页与整体替换两处不传，那两处的行为一个字不动。
+    let why_attrs = mark(mark_prefix + "-card-why", mark_path(marks, [pick.name, "why"]))
+    let why_attrs = if why_title { why_attrs.title(why) } else { why_attrs }
     lines.push(
       @html.span(
         class="dsh-profile-card-sub unusable",
-        attrs=mark(mark_prefix + "-card-why", mark_path(marks, [pick.name, "why"])),
+        attrs=why_attrs,
         why,
       ),
     )

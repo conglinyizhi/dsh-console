@@ -2496,6 +2496,9 @@ fn new_instance_source_card(
     fn(name) { NewInstanceStatePicked(name) },
     emit,
     chosen=selected,
+    // 这个框里的卡钉死高度（§24.2），原因那一行会被省略号截；完整句进悬停。
+    // 维护页与整体替换两处不传，行为一个字不动。
+    why_title=true,
   )
 }
 
@@ -2624,12 +2627,10 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let has_source = model.new_base || model.new_source != ""
   let can_create = has_source && model.new_name_draft.trim() != "" && !model.new_busy
   // 说明那一句随源走：从基础模板开始时不派生、也不读现有配置，照旧的「从一只现有的配置派生」
-  // 在那一刻就是一句错话。
-  let message_text = if model.new_base {
-    "用 dsh 自带的基础模板新建一份，不依赖现有配置。新实例默认隔离到自己的 home。"
-  } else {
-    "从一只现有的配置派生一份新副本。新副本默认隔离到自己的 home，源配置一份都不动。"
-  }
+  // 在那一刻就是一句错话。两句**都常驻**（§24.3）：同一格里叠着，只把没生效那句
+  // visibility: hidden —— 行高按两句里高的那一句算，勾上勾下因此不会差一行。
+  let message_profile = "从一只现有的配置派生一份新副本。新副本默认隔离到自己的 home，源配置一份都不动。"
+  let message_base = "用 dsh 自带的基础模板新建一份，不依赖现有配置。新实例默认隔离到自己的 home。"
   let error_block = if model.new_error.length() > 0 {
     @html.p(
       class="dsh-dialog-error",
@@ -2639,25 +2640,32 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   } else {
     @html.nothing
   }
-  // 名字这一格：标签 + 输入框；勾上复选框时在标签下面补一句引导（§21.1）——
+  // 名字这一格：标签 + 输入框；标签下面是那句引导（§21.1）——
   // 那一刻源卡全锁着，能做的只有填名字，「填一个名字，它会用基础模板新建」就是下一步。
+  // 这一句**常驻占位**（§24.3）：没勾时只是 visibility: hidden，行还在，勾上勾下对话框
+  // 高度与下半截的位置一个像素都不动。读屏那边由 visibility 自己摘掉，不另挂 aria。
   let name_lines : Array[@html.Html] = [
     @html.label(
       class="dsh-new-name-label",
       for_=new_instance_name_id(),
       attrs=mark("new-instance-name-label", ["dialog", "new-instance", "name-label"]),
-      "新实例名字（源配置：" + source_text + "）",
+      [
+        // 必填星号（§24.1）：颜色是 danger，读屏不报它（靠输入框上的 aria-required）。
+        @html.span(
+          class="dsh-req",
+          attrs=@html.Attrs::build().aria_hidden("true"),
+          "*",
+        ),
+        @html.text("新实例名字（源配置：" + source_text + "）"),
+      ],
+    ),
+    @html.span(
+      class="dsh-new-name-guide",
+      attrs=mark("new-instance-name-guide", ["dialog", "new-instance", "name-guide"])
+        .data_set("active", if model.new_base { "true" } else { "false" }),
+      "填一个名字，它会用基础模板新建",
     ),
   ]
-  if model.new_base {
-    name_lines.push(
-      @html.span(
-        class="dsh-new-name-guide",
-        attrs=mark("new-instance-name-guide", ["dialog", "new-instance", "name-guide"]),
-        "填一个名字，它会用基础模板新建",
-      ),
-    )
-  }
   name_lines.push(
     @html.input(
       input_type=Text,
@@ -2666,6 +2674,9 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       value=model.new_name_draft,
       attrs=mark("new-instance-name", ["dialog", "new-instance", "name"])
         .aria_label("新实例名字")
+        // 必填（§24.1）：读屏靠这一条，悬停里写人话，星号只是眼睛那一路。
+        .aria_required("true")
+        .title("必填")
         .spellcheck(false)
         // Enter 只挂在名字这一格上，不挂整个框：源卡自己也吃 Enter（选中），
         // 挂在框上会让「回车选源」同一次按键里顺手把实例也建了。
@@ -2705,10 +2716,25 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       "新建实例",
     ),
     @html.p(
-      class="dsh-dialog-message",
+      class="dsh-dialog-message dsh-new-message",
       attrs=mark("new-instance-message", ["dialog", "new-instance", "message"])
         .data_set("source", if model.new_base { "base" } else { "profile" }),
-      message_text,
+      [
+        @html.span(
+          class="dsh-new-message-text",
+          attrs=@html.Attrs::build()
+            .data_set("mode", "profile")
+            .data_set("active", if model.new_base { "false" } else { "true" }),
+          message_profile,
+        ),
+        @html.span(
+          class="dsh-new-message-text",
+          attrs=@html.Attrs::build()
+            .data_set("mode", "base")
+            .data_set("active", if model.new_base { "true" } else { "false" }),
+          message_base,
+        ),
+      ],
     ),
     none_usable_note,
     pick_area,
