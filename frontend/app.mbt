@@ -772,8 +772,9 @@ fn dev_instruction_text(row : Row, name : String) -> String {
     return ""
   }
   let dir = home + "/profiles/" + name
-  let head = "【给另一个会话的插件开发任务】针对下面这一只 profile 做开发。" +
-    "这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n"
+  // 不再带「【给另一个会话的插件开发任务】」那一行头部（§47）：
+  // 粘过去的那一端不需要被分类，它要的是事实 —— 目标、目录、home、状态、能不能动进程。
+  let head = ""
   let facts = "目标 profile：" + name + "\n" +
     "目录：" + dir + "\n" +
     "DSH_HOME：" + home + "\n"
