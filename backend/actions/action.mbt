@@ -457,6 +457,10 @@ pub async fn run_action(
         ("filesCopied", @json.jint(outcome.files)),
         ("dirsCreated", @json.jint(outcome.dirs)),
         ("skipped", @json.jstr_array(outcome.skipped)),
+        // 派生的软链处理（§48）：带过来几条、跳过几条（目标不在）、配置里换掉几处旧目录前缀
+        ("linksFixed", @json.jint(outcome.links_fixed)),
+        ("linksBroken", @json.jint(outcome.links_broken)),
+        ("refsRewritten", @json.jint(outcome.refs_rewritten)),
         (
           "noteFile",
           @json.JObj([
@@ -738,6 +742,10 @@ pub async fn run_action(
           ("credentialsKey", @json.JStr(outcome.credentials_key)),
           ("credentialsPath", @json.JStr(outcome.credentials_path)),
           ("createdAt", @json.str_or_null(outcome.created_at)),
+          // 搬家后的 relink（§48）：重算了几条相对链接、跳过几条、换掉几处旧目录前缀
+          ("linksFixed", @json.jint(outcome.links_fixed)),
+          ("linksBroken", @json.jint(outcome.links_broken)),
+          ("refsRewritten", @json.jint(outcome.refs_rewritten)),
         ])),
         (
           "note",
@@ -790,6 +798,9 @@ pub async fn run_action(
           ("files", @json.int_or_null(outcome.files)),
           ("bytes", @json.int64_or_null(outcome.bytes)),
           ("sizeSource", @json.JStr(outcome.size_source)),
+          ("linksFixed", @json.jint(outcome.links_fixed)),
+          ("linksBroken", @json.jint(outcome.links_broken)),
+          ("refsRewritten", @json.jint(outcome.refs_rewritten)),
         ])),
         (
           "note",

@@ -62,6 +62,10 @@ pub struct ForkOutcome {
   dir_mtime_ms : Int64?
   /// mtime 的来源或读不到的原因
   dir_mtime_source : String
+  /// 派生时带过来的软链接条数 / 跳过的（目标不在）/ 配置里换掉的旧目录前缀条数（§48）
+  links_fixed : Int
+  links_broken : Int
+  refs_rewritten : Int
   /// 派生之后顺手建好的隔离 home 路径（规格第 8 节：派生的 profile 默认隔离）。
   /// None = 没建成，原因在 home_error —— 建失败**不影响派生本身**。
   home_path : String?
@@ -108,6 +112,32 @@ pub async fn fork_profile(
       abort("unreachable: fail 一定抛错")
     }
   }
+  // 软链（§48.1）：copy_tree 只复制普通文件与目录，软链一律跳过 —— 而那些链接是相对路径，
+  // 「相对」是按链接自己所在目录算的；副本换了目录，原样抄过去会指到别处。这一趟按
+  // 「源目录解析出的绝对目标」在副本里重新摆一条（相对路径按副本位置算），顺手把
+  // package.json / cordis.patch.yml 里写着源目录的绝对路径换成本次的目标目录（§48.2）。
+  let relink = @profiles.carry_symlinks(
+    source_dir,
+    target_dir,
+    ["node_modules", @profiles.snapshots_dir_name],
+  )
+  // copy_tree 把软链记进 skipped（「非普通文件」）—— 这一趟已经把它们带过来了，
+  // 回执再报「跳过」就是假话。只摘掉确实已经在副本里落地的那些，其余照旧留着。
+  let carried : Array[String] = []
+  for link in @profiles.collect_links(target_dir, []) {
+    carried.push(@json.basename(link))
+  }
+  let skipped_names : Array[String] = []
+  for entry in stats.skipped {
+    let bare = match @json.index_of(entry, "（") {
+      Some(i) => @json.slice(entry, 0, i)
+      None => entry
+    }
+    if bare.has_suffix("node_modules") || !carried.contains(bare) {
+      skipped_names.push(entry)
+    }
+  }
+  let skipped = skipped_names
   let note_path = @json.join_path(target_dir, @profiles.note_file_name)
   let stamp = match @json.local_stamp_from_epoch_ms(@async.now()) {
     Some(s) =>
@@ -151,12 +181,15 @@ pub async fn fork_profile(
     dir: target_dir,
     files: stats.files,
     dirs: stats.dirs,
-    skipped: stats.skipped,
+    skipped,
     started,
     note_text,
     note_path,
     note_error,
     dir_mtime_ms,
+    links_fixed: relink.links_fixed,
+    links_broken: relink.links_broken,
+    refs_rewritten: relink.refs_rewritten,
     dir_mtime_source,
     home_path,
     home_error,

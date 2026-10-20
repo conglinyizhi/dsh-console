@@ -586,6 +586,28 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 | `unpin-dsh` | 撤掉指定，回到自动挑：删掉 `<状态目录>/dsh-pin.json` | **不收参数**（多一个键 `bad-params`）；文件本来就不在也算成功，`outcome.removed=false` 如实说「不是刚删掉的」。`outcome` 是 `{ removed, previousVersion, pinPath }` |
 | `repair-packages` | 在 profile 目录里跑包管理器补 node_modules：有 `pnpm-lock.yaml` → `pnpm install --prefer-offline`，有 `package-lock.json` → `npm install --prefer-offline`，都没有按 pnpm。stdout/stderr 追加进 `<状态目录>/logs/repair-<名>-<毫秒>.log`；跑完重读 bundles 算剩余缺包 | 120 秒上限（到点 SIGTERM，2 秒后 SIGKILL）；**同一只 profile 同时只允许一个**（第二个 `busy`）；目录不在 / 没有 package.json → `not-found`；命令退出码非 0 或超时 → `install-failed`；装完仍缺 → `install-incomplete`。`outcome` 带 `command / exitCode / durationMs / logPath / missingBefore / missingAfter / remaining`（**失败那笔审计也带**，见下面的 failure_outcome） |
 
+### 搬家之后重算软链接（relink，第九轮 §48）
+
+profile 里的软链（典型是 `node_modules/@local/*`）是**相对路径**：`dsh-annotate -> ../../../../../x`。
+相对路径按「链接自己所在目录」算 —— profile 从 `<DSH_HOME>/profiles/<名>` 搬到
+`<homes root>/<名>/profiles/<名>`（多两层）之后，同一段就指到别处，插件列表于是全报「包不可用」。
+所以 isolate / deisolate / fork 三条搬家路径**搬完都跑一遍重算**（`profiles/relink.mbt`）：
+
+- 相对链接：用「旧链接所在目录 + 链接文本」算出它原本指向的绝对目标，再用「新链接所在目录」重算相对
+  路径写回；
+- 绝对链接原样保留（它们不随目录变）；
+- 目标不存在就跳过并记一条（原本就坏的不修、也不弄得更坏）；
+- `.pnpm` 整棵不进去（pnpm 自己的链接农场，装一次会重建），遍历有条数上限；
+- fork 的复制本身不拷软链（`copy_tree` 只复制普通文件与目录），所以它那一步是「按源目录解析出的绝对
+  目标，在副本里重新摆一条」；回执的 `skipped` 里不再出现已经带过来的那些。
+
+配置文件：`cordis.patch.yml` / `package.json` 里以旧 profile 目录开头的绝对路径换成新目录前缀，
+只换「后面跟 `/` 或正好等于旧目录」的出现。三个数都进回执与审计的 outcome：
+`linksFixed` / `linksBroken` / `refsRewritten`（§48.2 要的 `refsRewritten` 就是第三个）。
+
+**已经断掉的那份不修**：不做「猜目标」的修复动作，也不给 UI 入口 —— 搬家当时才有旧路径可用，
+事后没有可靠依据；坏链接在搬家时只会被跳过。
+
 ### 派生出的新 profile 怎么认得出（第五轮）
 
 使用者报过一次："刚才从外部配置文件分出来一个，看不出来是我分出来的……它竟然来到了最下面"。

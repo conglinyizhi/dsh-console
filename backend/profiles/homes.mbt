@@ -355,6 +355,12 @@ pub(all) struct IsolateOutcome {
   /// 用的配置键（证据里要说清是哪一个键）
   credentials_key : String
   created_at : String?
+  /// 搬家后重算的相对软链接条数（§48.1）
+  links_fixed : Int
+  /// 跳过的链接条数：目标找不到（原本就坏），不猜（§48.1）
+  links_broken : Int
+  /// cordis.patch.yml / package.json 里换掉的旧目录前缀条数（§48.2）
+  refs_rewritten : Int
 }
 
 ///|
@@ -376,6 +382,12 @@ pub(all) struct DeisolateOutcome {
   files : Int?
   bytes : Int64?
   size_source : String
+  /// 搬回来之后重算的相对软链接条数（§48.1）
+  links_fixed : Int
+  /// 跳过的链接条数：目标找不到（原本就坏）
+  links_broken : Int
+  /// cordis.patch.yml / package.json 里换掉的旧目录前缀条数（§48.2）
+  refs_rewritten : Int
 }
 
 ///|
@@ -764,6 +776,9 @@ pub async fn isolate_profile(
     }
     Ok(_) => ()
   }
+  // 搬家之后先重算相对软链接（§48.1）：多两层深度，同一段 ../../ 会指到别处。
+  // 必须在核对之前做 —— 坏链接会让 node_modules 那一项核对不过，然后一路回滚。
+  let relink = relink_after_move(src_dir, profile_dir)
   // 移动之后那三条核对（9.2 第 4 条）。移过来的 node_modules 是这一份自己带着的，
   // 所以只核对「指得通」，不比对目标。
   match verify_isolated(profile_dir, "") {
@@ -821,6 +836,9 @@ pub async fn isolate_profile(
     credentials_path: cred,
     credentials_key: "credentials.config.path",
     created_at: Some(created),
+    links_fixed: relink.links_fixed,
+    links_broken: relink.links_broken,
+    refs_rewritten: relink.refs_rewritten,
   })
 }
 
@@ -885,6 +903,8 @@ pub async fn deisolate_profile(
     Err((code, message)) => return Err((code, message + "；" + src_dir + " 还在原处"))
     Ok(_) => ()
   }
+  // 搬回来也要重算（方向反了，深度变了同样会断，§48.1）
+  let relink = relink_after_move(src_dir, dst)
   match verify_isolated(dst, "") {
     Some(problem) => {
       let note = match @fsx.rename_path(dst, src_dir) {
@@ -920,6 +940,9 @@ pub async fn deisolate_profile(
       files,
       bytes,
       size_source,
+      links_fixed: relink.links_fixed,
+      links_broken: relink.links_broken,
+      refs_rewritten: relink.refs_rewritten,
     })
   }
 }
