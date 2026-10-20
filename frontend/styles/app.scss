@@ -164,6 +164,8 @@ select { appearance: none; -webkit-appearance: none; }
   background: linear-gradient(140deg, $accent, $violet);
 }
 .dsh-brand-title {
+  white-space: nowrap;
+  overflow: hidden;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.2px;
@@ -204,6 +206,11 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-nav-label {
   font-size: 13px;
+  // 折叠宽度是 190 ↔ 56 的 transition：展开那一瞬间宽度还只有 56px，
+  // 名字若允许换行就会在这 200ms 里竖排下去（用户看到「字竖着」）。
+  // 所以一律不换行、超出裁掉：中间态是被裁的横向文字，不是竖排。
+  white-space: nowrap;
+  overflow: hidden;
 }
 /* 页脚那颗「服务端在线」灯（design/design-fixes.md §31.1）。
    灯 + 一句状态词，两通道：颜色说快慢，词说结论（看不出颜色也读得出来）。
