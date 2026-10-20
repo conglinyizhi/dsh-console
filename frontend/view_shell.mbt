@@ -283,6 +283,20 @@ fn global_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           Some(_) => model.notice_url_notice == n.text
           None => false
         }
+        // 动作失败那一类：右边挂一颗低调的「查看日志」（§32.1）。
+        // 完整原文在这一次动作写的审计行里（audit.jsonl 的 message），这里只负责把人送过去。
+        if !n.ok && n.audit {
+          children.push(
+            @html.button(
+              class="dsh-btn",
+              type_="button",
+              attrs=mark("notice-open-logs", ["shell", "notice", "open-logs"])
+                .title("在审计日志里看这次失败的完整原因"),
+              on_click=emit(NoticeOpenLogs),
+              [icon("text-box-outline"), @html.span("查看日志")],
+            ),
+          )
+        }
         let has_button = n.ok && has_url
         if has_button {
           children.push(

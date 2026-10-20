@@ -418,6 +418,10 @@ struct Notice {
   hint : String
   /// 发出去的时刻（HH:MM:SS，浏览器本地时钟）。只作记录，不上屏
   at : String
+  /// 这一条失败**有一条审计线**可看（design/design-fixes.md §32.1）：
+  /// 只有走 POST /api/local/action 的那类动作失败才为 true（它们一定写 audit.jsonl）；
+  /// 剪贴板、读数、设置校验之类的失败不写审计，也就不摆那颗「查看日志」。
+  audit : Bool
 } derive(Eq)
 
 pub extend Notice with Eq::{ not_equal, equal }
@@ -754,6 +758,9 @@ struct Model {
   /// 现在 logs 里那份内容是哪个来源读回来的（空串 = 还没读到过）。
   /// 换了来源之后旧内容不能顶着新来源显示，要不要重读就看它。
   log_source_read : String
+  /// 从失败提示条跳过来（§32.1）：日志落地之后要把焦点送进日志区。
+  /// 打开那一刻日志区还不存在（先渲染加载态），所以这件事只能等读数回来再做。
+  log_focus_pending : Bool
   logs : LogsFacts?
   log_error : String
   log_time : String
@@ -792,6 +799,8 @@ priv enum Msg {
   StartTabRetry
   /// 提示条里那颗「打开 Web UI」被点了（方案 B 的兜底入口）
   NoticeOpenUi
+  /// 失败提示条里那颗「查看日志」被点了：跳 /logs/audit，选中审计来源、滚到底、焦点进日志区
+  NoticeOpenLogs
   /// 成功提示（toast）到点了：序号对得上才收
   FlashExpire(Int)
   /// 淡出那一小段走完，节点可以撤了
@@ -1110,6 +1119,7 @@ fn initial_model() -> Model {
     log_user_picked: false,
     log_loading: false,
     log_source_read: "",
+    log_focus_pending: false,
     logs: None,
     log_error: "",
     log_time: "",

@@ -255,12 +255,13 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
 
 对应已退役的 Node 版 `server/readLogs.mjs`（git 0448ba4 可取回）。
 
-**来源白名单**（只此三类，不接受任意路径）：
+**来源白名单**（不接受任意路径）：
 
 | source | 文件 |
 | --- | --- |
 | `host` | `~/.dsh/logs/retry-control/host.log` |
-| `audit` | `~/.dsh/linxi-guard-audit.jsonl` |
+| `audit` | `~/.dsh/linxi-guard-audit.jsonl`（linxi-guard 的守卫审计） |
+| `actions` | `$XDG_STATE_HOME/dsh-console/audit.jsonl`（控制台自己的动作审计；主文件读不到时退回最近一份归档）。与 `audit` 是两个文件：失败提示条那颗「查看日志」落在这里，失败那行的 `message` 是完整原文 |
 | `instance:<实例 id>` | 该实例 DSH_HOME 下 `logs/` 里挑出来的一个可读日志文件（挑法见下） |
 
 `tail` 口径（与 Node 版 `parseTail` 逐条对齐）：

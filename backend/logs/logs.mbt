@@ -60,8 +60,17 @@ pub async fn fixed_sources() -> Array[LogSource] noraise {
     },
     {
       id: "audit",
-      label: "审计日志",
+      label: "守卫审计",
       file: @json.join_all([home, ".dsh", "linxi-guard-audit.jsonl"]),
+    },
+    // 控制台自己的动作审计（design/design-fixes.md §32.2）：失败提示条那颗
+    // 「查看日志」跳到的是这一份 —— 它每一行就是一次动作，失败那行的 message
+    // 正是提示条里被截掉的那段完整原文。与上面那个「审计日志」（linxi-guard 的
+    // 守卫审计）是两个文件，各指的是两件事。
+    {
+      id: "actions",
+      label: "控制台审计",
+      file: @store.state_paths().audit,
     },
   ]
 }
@@ -288,6 +297,54 @@ pub fn parse_audit_line(raw : String) -> ParsedLine {
     text: join_parts(parts),
     verdict,
     outcome,
+  }
+}
+
+///|
+/// 控制台动作审计（$XDG_STATE_HOME/dsh-console/audit.jsonl）：
+/// 一行 = { at, action, params, ok, code, message, outcome }，压成「动作 · 结局 · 原因」。
+///
+/// 失败那一行的 message 就是提示条里被截断掉的**完整原文**（pid、argv、日志路径、错误行）；
+/// 这条来源存在的理由只有一句：让「查看日志」点得开、看得见那句话。
+pub fn parse_action_line(raw : String) -> ParsedLine {
+  let fallback : ParsedLine = {
+    time: None,
+    level: None,
+    text: @json.trim_both(raw),
+    verdict: None,
+    outcome: None,
+  }
+  let json = match @json.json_parse(raw) {
+    Some(j) =>
+      match j {
+        Object(_) => j
+        _ => return fallback
+      }
+    None => return fallback
+  }
+  let action = or_empty(field_string(json, "action"))
+  let ok = match @json.json_field(json, "ok") {
+    Some(True) => true
+    _ => false
+  }
+  let code = or_empty(field_string(json, "code"))
+  let message = or_empty(field_string(json, "message"))
+  let parts : Array[String] = [
+    if action == "" { "（没写动作名）" } else { action },
+    if ok { "ok" } else { "失败" },
+  ]
+  if !ok && code != "" {
+    parts.push(code)
+  }
+  if message != "" {
+    parts.push(message)
+  }
+  {
+    time: @json.iso_time_part(or_empty(field_string(json, "at"))),
+    level: if ok { None } else { Some("error") },
+    text: join_parts(parts),
+    verdict: if ok { None } else { Some(code) },
+    outcome: Some(if ok { "ok" } else { "fail" }),
   }
 }
 
@@ -553,7 +610,7 @@ pub async fn read_logs(
   }
   // 审计文件会滚动：主文件被滚走（或一时读不到）时退回最近一份归档，
   // 别让「滚动」变成「审计页突然空了」。path 如实体现实读的那份文件。
-  let file = if source.id == "audit" {
+  let file = if source.id == "audit" || source.id == "actions" {
     @store.audit_read_path(listed)
   } else {
     listed
@@ -585,7 +642,13 @@ pub async fn read_logs(
       return @json.JObj(fields)
     }
   }
-  let parse = if source.id == "audit" { parse_audit_line } else { parse_host_line }
+  let parse = if source.id == "audit" {
+    parse_audit_line
+  } else if source.id == "actions" {
+    parse_action_line
+  } else {
+    parse_host_line
+  }
   let lines : Array[@json.JsonVal] = []
   for raw in read.raw_lines {
     lines.push(entry(raw, parse(raw)))

@@ -151,7 +151,7 @@ fn query_value(query : String, key : String) -> String? {
 /// 形如实例来源就先收下 —— 实例列表这会儿可能还没读回来，真不在了由日志接口
 /// 回一句错误、界面照实显示，不在这里猜一个「它不在了」出来。
 fn known_log_source(source : String) -> Bool {
-  if source == "host" || source == "audit" {
+  if source == "host" || source == "audit" || source == "actions" {
     return true
   }
   let prefix = "instance:"
@@ -165,23 +165,35 @@ fn settings_group_ids() -> String {
 }
 
 ///|
-/// /logs：来源写在 query 上。写了个认不出来的来源就走默认来源，
-/// 但要把原因说清 —— 悄悄换一个来源比说一句更糟。
-fn logs_route(query : String) -> Route {
+/// 日志页的一个来源值 → 路由。认不出来的走默认来源，但要把原因说清 ——
+/// 悄悄换一个来源比说一句更糟。
+fn logs_route_source(raw : String) -> Route {
+  if known_log_source(raw) {
+    { page: Logs, group: "", source: Some(raw), notice: "" }
+  } else {
+    {
+      page: Logs,
+      group: "",
+      source: None,
+      notice: "地址里的日志来源「" + raw +
+        "」认不出来（只认 host / audit / instance:<实例 id>），已按默认来源读。",
+    }
+  }
+}
+
+///|
+/// /logs：来源可以写在 query 上（?source=audit），也可以写在路径上（/logs/audit）。
+///
+/// 两种都收：query 是既有写法（切来源时写的就是它），路径是失败提示条那颗
+/// 「查看日志」写的（design/design-fixes.md §32.2 要求 /logs/audit 能直接打开）。
+/// 两条说法落到同一个来源白名单上，认不出来的那种照同一套话回落。
+fn logs_route(query : String, path_source : String) -> Route {
+  if path_source != "" {
+    return logs_route_source(path_source)
+  }
   match query_value(query, "source") {
     None => { page: Logs, group: "", source: None, notice: "" }
-    Some(raw) =>
-      if known_log_source(raw) {
-        { page: Logs, group: "", source: Some(raw), notice: "" }
-      } else {
-        {
-          page: Logs,
-          group: "",
-          source: None,
-          notice: "地址里的日志来源「" + raw +
-            "」认不出来（只认 host / audit / instance:<实例 id>），已按默认来源读。",
-        }
-      }
+    Some(raw) => logs_route_source(raw)
   }
 }
 
@@ -202,7 +214,9 @@ fn parse_route(url : String) -> Route {
       }
     "logs" =>
       if segs.length() == 1 {
-        logs_route(query)
+        logs_route(query, "")
+      } else if segs.length() == 2 {
+        logs_route("", segs[1])
       } else {
         unknown_route(segs)
       }
@@ -246,7 +260,7 @@ fn unknown_route(segs : Array[String]) -> Route {
     group: "",
     source: None,
     notice: "地址里的 /" + join_with(segs, "/") +
-      " 不是本控制台的路由，已回到实例总览。现有路由：/ | /maintenance | /logs | /settings/<分组> | /trash | /about",
+      " 不是本控制台的路由，已回到实例总览。现有路由：/ | /maintenance | /logs 或 /logs/<来源> | /settings/<分组> | /trash | /about",
   }
 }
 
@@ -260,7 +274,10 @@ fn route_url(page : Page, group : String, source : String) -> String {
       if source == "" {
         "/logs"
       } else {
-        "/logs?source=" + js_encode_uri_component(source)
+        // 路径写法（design/design-fixes.md §32.2）：/logs/audit、/logs/instance:proc-3080。
+        // 来源走白名单（host / audit / instance:<id>），字符只有字母数字与 : - _，
+        // 不需要再转义；query 写法（?source=）仍然认，老链接与书签不会断。
+        "/logs/" + source
       }
     Settings =>
       if settings_group_exists(group) {

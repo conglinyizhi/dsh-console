@@ -1364,9 +1364,11 @@ fn job_settled(
   let outcome = job_outcome_of(res)
   if !ok {
     return (
-      // 失败不往作业卡里写细节：原因在常驻提示条上（看得见），历史在后端写的步骤表里。
-      notice_err({ ..model, job_busy: "", job_detail: "", job_detail_for: "" },
-        job_action_label(action) + "没成功：" + note),
+      // 失败不往作业卡里写细节：原因在常驻提示条上（一句话，§32.1），历史在后端写的步骤表里。
+      notice_failed_action(
+        { ..model, job_busy: "", job_detail: "", job_detail_for: "" },
+        job_action_label(action) + "没成功：" + note,
+      ),
       // 失败也可能改过作业记录（例如清理没删掉时那一步被记成 failed）：
       // 重读一次 console，让步骤表与后端那份记录对上，而不是停在动作前的样子。
       load_console(emit),
@@ -1732,8 +1734,11 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     } else {
       ""
     }
+    // 启动失败也走「一句结论 + 查看日志」（§32.1）：这一枪同样写了审计行，
+    // 完整原文（pid / argv / 日志路径 / 错误行）在 audit.jsonl 里，悬停里也留着全文。
+    // 占位标页那半句（tail）从正文里让出去：它进悬停，正文只留结论。
     (
-      notice_err(
+      notice_failed_action(
         { ..cleared, start_tab: "", start_tab_profile: "", start_tab_waiting: false, start_tab_tries: 0 },
         name + " " + verb + "失败：" + note + tail,
       ),
@@ -2489,15 +2494,68 @@ fn notice_err(model : Model, text : String) -> Model {
 }
 
 ///|
+/// 动作失败的正文最多几个字（design/design-fixes.md §32.1）。
+pub let failure_text_max : Int = 56
+
+///|
+/// 失败提示的正文：**只留第一句**（§32.1）。
+///
+/// 按「。」或「；」切第一刀，取前段；切完还超过 56 个字再截断并补「…」。
+/// 被砍掉的不是丢掉：完整原文挂在悬停里，也留在 audit.jsonl 的 message 里
+/// （走动作的那一类失败一定有一条审计线，「查看日志」就是去那儿看）。
+fn failure_headline(text : String) -> String {
+  let buf = StringBuilder()
+  let mut n = 0
+  let mut truncated = false
+  for c in text {
+    if c == '。' || c == '；' {
+      break
+    }
+    if n >= failure_text_max {
+      truncated = true
+      break
+    }
+    buf.write_char(c)
+    n = n + 1
+  }
+  let head = buf.to_string()
+  // 开头就是句号这种（形状坏了）不交一个空正文出去
+  if head == "" {
+    return text
+  }
+  if truncated {
+    head + "…"
+  } else {
+    head
+  }
+}
+
+///|
+/// 一条**动作失败**的提示：一句结论 + 一颗「查看日志」（§32.1）。
+///
+/// 只有这一路带 audit=true：它走的是 POST /api/local/action，后端一定往 audit.jsonl
+/// 追了一行（ok=false + code + message）。剪贴板、读数、设置校验那些失败没有审计线，
+/// 也就别摆一颗点了看不到东西的按钮。
+fn notice_failed_action(model : Model, full : String) -> Model {
+  notice_put(model, false, failure_headline(full), full, audit=true)
+}
+
+///|
 /// 换掉当前这条提示：序号 +1，外壳与到期计时都按序号认人。
-fn notice_put(model : Model, ok : Bool, text : String, hint : String) -> Model {
+fn notice_put(
+  model : Model,
+  ok : Bool,
+  text : String,
+  hint : String,
+  audit? : Bool = false,
+) -> Model {
   let seq = model.notice_serial + 1
   // 末尾句号在这里统一去掉：提示条说的是一句结论，不是一段话
   let body = js_trim_tail_period(text)
   {
     ..model,
     notice_serial: seq,
-    notice: Some({ seq, ok, text: body, hint, at: local_time_now() }),
+    notice: Some({ seq, ok, text: body, hint, at: local_time_now(), audit }),
     flash_fading: false,
     flash_hover: false,
   }
@@ -2792,7 +2850,17 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           }
         }
       }
-      (next, scroll_bottom_after_render("dsh-log-box"))
+      // 从失败提示条跳过来的那一次：日志区此刻才真的在 DOM 里，焦点与滚底一起做。
+      let pending = next.log_focus_pending
+      let tail = if pending {
+        @cmd.batch([
+          scroll_bottom_after_render("dsh-log-box"),
+          focus_after_render("dsh-log-box"),
+        ])
+      } else {
+        scroll_bottom_after_render("dsh-log-box")
+      }
+      ({ ..next, log_focus_pending: false }, tail)
     }
     // 侧栏切页：状态与地址一起走。同一页连点两次不会攒出两条一样的历史（见 route.mbt）。
     SidebarToggle => toggle_sidebar(model, emit)
@@ -3659,6 +3727,32 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     // 带令牌的地址还没到手：再重读一轮读数（有界，见 start_tab_max_tries）。
     // 地址到了就填、到不了就认输关标页 —— 两条路都在 fill_start_tab 里。
     StartTabRetry => refresh_readings(model, emit)
+    // 失败提示条里那颗「查看日志」（§32.1）：跳到「控制台审计」那一份日志、读一次、
+    // 落到底部，焦点送进日志区。那里最后一条就是这次失败，message 是完整原文。
+    //
+    // 注意来源是 actions 不是 audit：日志页原来那个「审计日志」指的是 linxi-guard 的
+    // 守卫审计（~/.dsh/linxi-guard-audit.jsonl），与控制台自己的 audit.jsonl 是两个文件。
+    // 失败原文在后者的 message 里，所以为它单开了一条来源（后端 logs 的 actions）。
+    // 顺带把抽屉收掉：跳到别的页还挂着一个详情抽屉，那属于「上一步没走完」。
+    NoticeOpenLogs => {
+      let (next, read) = start_logs(
+        {
+          ..model,
+          page: Logs,
+          drawer_id: "",
+          log_user_picked: true,
+          // 日志区要等读数回来才存在：焦点那一步只能等落地再做（见 LogsText）
+          log_focus_pending: true,
+        },
+        "actions",
+        emit,
+      )
+      (
+        next,
+        // 地址写路径写法 /logs/actions（§32.2）：刷新、分享、后退回来都落回同一个来源。
+        @cmd.batch([read, push_route("/logs/actions")]),
+      )
+    }
     // 提示条里那颗「打开 Web UI」：用户再点一下 = 新手势，一定不被弹窗拦截器吃掉。
     // 这是自动开标页被拦时的兜底入口（方案 B），地址是启动时读到的同一条 webUrl。
     NoticeOpenUi =>
@@ -4292,7 +4386,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             (next, cmd)
           }
         } else {
-          (notice_err(cleared, name + " " + verb + "失败：" + note), @cmd.none)
+          // 失败只留一句结论（§32.1）：完整原文进悬停，也留在这次动作写的审计行里。
+          (notice_failed_action(cleared, name + " " + verb + "失败：" + note), @cmd.none)
         }
       }
     }

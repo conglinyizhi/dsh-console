@@ -253,7 +253,7 @@ dsh web 的首次握手是 URL 里的 `?token=…`，不带就是一个 401 页�
 | 地址 | 页面 |
 | --- | --- |
 | `/` | 实例总览 |
-| `/logs?source=…` | 日志（**来源是页面状态的一部分**：不带它，刷新就回默认来源） |
+| `/logs?source=…` 或 `/logs/<来源>` | 日志（**来源是页面状态的一部分**：不带它，刷新就回默认来源）。两种写法都认：切来源写 query，失败提示条的「查看日志」写路径形式 `/logs/actions` |
 | `/settings` | 设置（第一个分组） |
 | `/settings/<分组 id>` | 设置（某个分组，如 `/settings/safety`） |
 | `/about` | 关于 |
@@ -868,6 +868,34 @@ cd ../../design && ACC_NO_START=1 node run-acceptance.mjs http://127.0.0.1:5390/
 悬停里都是完整句（`title` 与正文一致）：`这只配置起的是命令行型，没有网页入口`。
 这一条在 `profile_card` 里一直是开着的（第三行那一段就挂着 `.title(why)`），
 本轮只把它写成验收项。
+
+## 失败提示轻量化 + 控制台审计来源（第三十二轮追加）
+
+动作失败原来把后端整段技术话（pid、argv、日志路径、错误行、建议）原样塞进提示条，
+一句几百字。现在（`design/design-fixes.md` §32.1）：
+
+- 正文**只留第一句**：按「。」或「；」切第一刀取前段，超过 56 个字再截断补「…」。
+  完整原文挂在提示条的悬停里（`title`），也在这次动作写下的审计行里。
+- 右侧一颗低调的「查看日志」：点了跳 `/logs/actions`，选中「控制台审计」来源、滚到底、
+  焦点进日志区（`#dsh-log-box`，`tabindex=-1`；日志落地之后才送焦点，
+  因为打开那一刻日志区还不存在）。
+- **只有动作失败带这颗按钮**：它走 `POST /api/local/action`，后端一定写了审计行
+  （`ok:false` + `code` + `message`）。剪贴板、读数、设置校验那些失败不写审计，
+  也就不摆一颗点了看不到东西的按钮（`Notice.audit` 这一格就是这条界线）。
+- 日志页多了一条来源 `actions`「控制台审计」（后端 `logs` 的 `fixed_sources`）：
+  读的是 `$XDG_STATE_HOME/dsh-console/audit.jsonl`，每行压成
+  「动作 · 结局 · 错误码 · message」，失败行按 error 上色。它与原来那条 `audit`
+  「审计日志」（linxi-guard 的守卫审计）**是两个文件**。
+- 路由多认一种写法：`/logs/<来源>`。`?source=` 照旧认，老链接与书签不会断；
+  切来源写 query，提示条那颗按钮写路径形式。
+
+实测（1280×900，隔离 5392；headless profile `headless-bad`，bundle 缺一个包，起实例必然失败）：
+提示条正文 57 字（56 + 省略号）「headless-bad 启动失败：HTTP 500 Internal Server Error | spawn…」，
+悬停里是 501 字的完整原文；点「查看日志」落到 `/logs/actions`，来源「控制台审计」，
+14 行、最后一行 `03:35:01.562 error start-instance · 失败 · spawn-failed · 实例没起来（pid 193120，
+日志 …/console-headless-bad-8401.log）：…`，滚到底（scrollTop 3359 + clientHeight 735 = scrollHeight 4094），
+焦点在 `#dsh-log-box`。剪贴板失败（把 `navigator.clipboard.writeText` 换成 reject）那条提示
+没有「查看日志」；390 宽下提示条 195×133、文档 scrollWidth 390 = clientWidth 390，不溢出。
 
 ## 这一版没做的
 

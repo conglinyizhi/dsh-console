@@ -6,7 +6,10 @@
 ///|
 pub let fixed_sources : Array[(String, String)] = [
   ("host", "宿主日志"),
-  ("audit", "审计日志"),
+  ("audit", "守卫审计"),
+  // 控制台自己的动作审计（§32.2）：失败提示条那颗「查看日志」落在这里。
+  // 与上面那个「审计日志」（linxi-guard 的守卫审计）是两个文件、两件事。
+  ("actions", "控制台审计"),
 ]
 
 ///|
@@ -207,7 +210,9 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.div(
       id="dsh-log-box",
       class="dsh-log-box",
-      attrs=mark("log-box", ["logs", "box"]),
+      // tabindex=-1：只有程序化能落焦（从失败提示跳过来时把焦点送进日志区，
+      // 键盘接下来 PageDown / 方向键就滚在这一块里）。不把它塞进 Tab 序列。
+      attrs=mark("log-box", ["logs", "box"]).tabindex(-1),
       lines,
     )
   } else {

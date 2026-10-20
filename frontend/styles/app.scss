@@ -1998,6 +1998,9 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   border-radius: $radius;
   background: $panel;
 }
+// 从失败提示条跳过来时焦点落在这块上（tabindex=-1，见 view_logs）。
+// 一整块日志的默认焦点环是一圈很吵的框，这里只留一条淡边 —— 位置由滚到底说明。
+.dsh-log-box:focus { outline: none; border-color: rgba($accent-rgb, 0.55); }
 .dsh-log-line {
   display: flex;
   align-items: baseline;
