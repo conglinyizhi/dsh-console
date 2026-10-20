@@ -95,23 +95,9 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-icon { display: block; flex: none; fill: currentColor; }
 
 // ── 外壳（App.vue） ──
-.dsh-shell {
-  height: 100%;
-  display: flex;
-  overflow: hidden;
-}
-.dsh-workbench {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.dsh-main {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
+.dsh-shell { height: 100%; display: flex; overflow: hidden; }
+.dsh-workbench { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dsh-main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 // 地址回落提示条：只在地址认不出来时出现（落在 .dsh-main 之上，不随内容滚动）。
 // 复用告警那副脸色 —— 它不是错误，但也不是一次正常的进入。
 .dsh-route-notice {
@@ -127,12 +113,7 @@ select { appearance: none; -webkit-appearance: none; }
   font-size: 12px;
   line-height: 1.6;
 }
-.dsh-route-notice-tag {
-  flex: none;
-  font-weight: 600;
-  color: $warn;
-  white-space: nowrap;
-}
+.dsh-route-notice-tag { flex: none; font-weight: 600; color: $warn; white-space: nowrap; }
 
 // ── 左侧导航（SideNav.vue） ──
 .dsh-side {
@@ -144,15 +125,10 @@ select { appearance: none; -webkit-appearance: none; }
   flex-direction: column;
   padding: 12px 11px 10px;
   /* 收起 / 展开那一下走宽度：这一列在文档流里，宽度一变主区就跟着让位，
-     transition 让那一下是滑过去的，不是跳过去的（减少动效那一档关掉它）。 */
+  transition 让那一下是滑过去的，不是跳过去的（减少动效那一档关掉它）。 */
   transition: width 200ms ease;
 }
-.dsh-brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 0 4px 12px;
-}
+.dsh-brand { display: flex; align-items: center; gap: 9px; padding: 0 4px 12px; }
 .dsh-brand-icon {
   width: 26px;
   height: 26px;
@@ -163,18 +139,8 @@ select { appearance: none; -webkit-appearance: none; }
   color: #fff;
   background: linear-gradient(140deg, $accent, $violet);
 }
-.dsh-brand-title {
-  white-space: nowrap;
-  overflow: hidden;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
-.dsh-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.dsh-brand-title { white-space: nowrap; overflow: hidden; font-size: 13px; font-weight: 600; letter-spacing: 0.2px; }
+.dsh-nav { display: flex; flex-direction: column; gap: 2px; }
 .dsh-nav-item {
   display: flex;
   align-items: center;
@@ -188,22 +154,11 @@ select { appearance: none; -webkit-appearance: none; }
   color: $text-mid;
   cursor: pointer;
   text-align: left;
+  &:hover { background: $panel-soft; color: $text; }
+  &.active { background: $accent-soft; color: $text; }
 }
-.dsh-nav-item:hover {
-  background: $panel-soft;
-  color: $text;
-}
-.dsh-nav-item.active {
-  background: $accent-soft;
-  color: $text;
-}
-.dsh-nav-icon {
-  color: $text-dim;
-  display: flex;
-}
-.dsh-nav-item.active .dsh-nav-icon {
-  color: $accent;
-}
+.dsh-nav-icon { color: $text-dim; display: flex; }
+.dsh-nav-item.active .dsh-nav-icon { color: $accent; }
 .dsh-nav-label {
   font-size: 13px;
   // 折叠宽度是 190 ↔ 56 的 transition：展开那一瞬间宽度还只有 56px，
@@ -228,10 +183,7 @@ select { appearance: none; -webkit-appearance: none; }
 }
 // 与导航名同一个理由：展开那一瞬间宽度还只有 56px，这句「服务端在线」
 // 若允许换行就会在过渡里竖排下去。不换行、超出裁掉。
-.dsh-side-foot-text {
-  white-space: nowrap;
-  overflow: hidden;
-}
+.dsh-side-foot-text { white-space: nowrap; overflow: hidden; }
 /* 灯的三档：还没查过是灰的（实心，不是空环 —— 空环留给「读不到状态」那一档），
    在线绿、离线红。离线那一档连字一起红：那是这一格里唯一的坏消息。 */
 .dsh-side-dot {
@@ -240,9 +192,9 @@ select { appearance: none; -webkit-appearance: none; }
   flex: none;
   border-radius: 50%;
   background: $text-dim;
+  &.online { background: $ok; }
+  &.offline { background: $danger; }
 }
-.dsh-side-dot.online { background: $ok; }
-.dsh-side-dot.offline { background: $danger; }
 .dsh-side-foot[data-state="offline"] { color: $danger; }
 
 // ── 顶栏 ──
@@ -251,8 +203,7 @@ select { appearance: none; -webkit-appearance: none; }
 // 并且带上当前页名 —— 只有一颗按钮的空带子正是上一轮删掉的东西，不再造一遍。
 //
 // 两套顶栏按宽度分：宽屏是折叠按钮，窄屏是汉堡；两者只显示一套（display 由断点切）。
-.dsh-topbar,
-.dsh-narrowbar {
+.dsh-topbar, .dsh-narrowbar {
   flex: none;
   display: flex;
   align-items: center;
@@ -263,8 +214,7 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-topbar { height: 44px; }
 .dsh-narrowbar { display: none; height: 48px; }
-.dsh-topbar-title,
-.dsh-narrowbar-title {
+.dsh-topbar-title, .dsh-narrowbar-title {
   min-width: 0;
   font-size: 13px;
   font-weight: 600;
@@ -287,14 +237,8 @@ select { appearance: none; -webkit-appearance: none; }
   border-radius: 8px;
   background: transparent;
   color: $text-mid;
-}
-.dsh-icon-btn:hover {
-  background: $panel-soft;
-  color: $text;
-}
-.dsh-icon-btn:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: 1px;
+  &:hover { background: $panel-soft; color: $text; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 }
 
 // ── 侧栏的图标栏形态（宽屏） ──
@@ -356,13 +300,7 @@ select { appearance: none; -webkit-appearance: none; }
 // 收起来用 transform 移出视口，**再用 visibility: hidden** 把它从 Tab 序列与
 // 无障碍树里摘掉（只位移的话，键盘还能 Tab 到屏幕外面去）。
 // visibility 的 transition 延迟到滑完再藏，滑出那一段因此看得见。
-.dsh-side-scrim {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 41;
-  background: rgba(8, 9, 11, 0.55);
-}
+.dsh-side-scrim { display: none; position: fixed; inset: 0; z-index: 41; background: rgba(8, 9, 11, 0.55); }
 @media (max-width: 1023.98px) {
   .dsh-topbar { display: none; }
   .dsh-narrowbar { display: flex; }
@@ -423,38 +361,15 @@ select { appearance: none; -webkit-appearance: none; }
   font-size: 10.5px;
   line-height: 1;
   white-space: nowrap;
-}
-.dsh-badge.fallback {
-  color: $warn;
-  border-color: rgba($warn-rgb, 0.42);
-  background: rgba($warn-rgb, 0.1);
-}
-/* 读取中：不是「没有数据」，只是请求还在路上 */
-.dsh-badge.pending {
-  color: $text-dim;
-  border-color: $line;
-  background: $panel-soft;
+  &.fallback { color: $warn; border-color: rgba($warn-rgb, 0.42); background: rgba($warn-rgb, 0.1); }
+  /* 读取中：不是「没有数据」，只是请求还在路上 */
+  &.pending { color: $text-dim; border-color: $line; background: $panel-soft; }
 }
 
 // ── 分组头（InstanceGroup.vue，ArchivedSection.vue 同款） ──
-.dsh-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 4px;
-}
-.dsh-section-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: $text-mid;
-}
-.dsh-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.dsh-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.dsh-section-title { margin: 0; font-size: 13px; font-weight: 600; color: $text-mid; }
+.dsh-rows { display: flex; flex-direction: column; gap: 12px; }
 /* 实例卡的栅格（两个卡片列表才有这个类，归档行那一组照旧是一列）。
    第七轮：卡片从「卡头 + 副标题五轨 + 按钮组 + 六格读数」瘦成**一行**
    （图标 + 状态灯 / profile 名 / 备注），最小可用宽度跟着重推过一次 ——
@@ -481,12 +396,7 @@ select { appearance: none; -webkit-appearance: none; }
 /* .dsh-skeleton-row 与卡片栅格**同一套列轨**（下面五条断点两边一起给）：
    骨架屏里那几块占位块因此落在真卡片将来落的那几条轨上，读数回来不横向跳。
    写在一个选择器列表里而不是各写一遍 —— 抄一份出去，早晚会跟这边分叉。 */
-.dsh-rows.dsh-card-grid,
-.dsh-skeleton-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-}
+.dsh-rows.dsh-card-grid, .dsh-skeleton-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 /* 空态是整幅的一块，不许被切进某一列（它说的是「扫完了确实没有」，形状与卡片无关）。 */
 .dsh-rows.dsh-card-grid > .dsh-empty { grid-column: 1 / -1; }
 /* 加载态不是一块，是一组与真条目同形的占位块（第八轮）：外层不生成盒子，
@@ -499,11 +409,7 @@ select { appearance: none; -webkit-appearance: none; }
    骨架屏都会把下面的分组一路顶下去，读数回来再弹回来。
    **不能比一行矮**（会切掉第一行的下沿），也不能高一档（第二行会从缝隙里露出一条边）——
    所以窄视口那一档（条目收成 60）在 620 的断点里跟着改，两处一起动。 */
-.dsh-skeleton-row {
-  grid-column: 1 / -1;
-  max-height: 70px;
-  overflow: hidden;
-}
+.dsh-skeleton-row { grid-column: 1 / -1; max-height: 70px; overflow: hidden; }
 @media (min-width: 726px) {
   .dsh-rows.dsh-card-grid, .dsh-skeleton-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -550,24 +456,12 @@ select { appearance: none; -webkit-appearance: none; }
   color: $text;
   font-size: 12.5px;
   cursor: pointer;
+  &:hover { background: $panel-soft; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 }
-.dsh-empty-cta:hover { background: $panel-soft; }
-.dsh-empty-cta:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
-.dsh-empty-icon {
-  color: $text-dim;
-  margin-bottom: 8px;
-}
-.dsh-empty-line {
-  margin: 0;
-  font-size: 12.5px;
-  color: $text-mid;
-}
-.dsh-empty-sub {
-  margin: 0;
-  font-size: 11px;
-  color: $text-dim;
-  max-width: 60ch;
-}
+.dsh-empty-icon { color: $text-dim; margin-bottom: 8px; }
+.dsh-empty-line { margin: 0; font-size: 12.5px; color: $text-mid; }
+.dsh-empty-sub { margin: 0; font-size: 11px; color: $text-dim; max-width: 60ch; }
 
 // ── 加载态（读数还没回来的那一格） ──
 // **与空态刻意长得不一样**：空态是虚线框（「扫完了，确实没有」），
@@ -593,22 +487,9 @@ select { appearance: none; -webkit-appearance: none; }
   background: $panel;
   text-align: center;
 }
-.dsh-loading-icon {
-  color: $text-dim;
-  margin-bottom: 8px;
-  opacity: 0.65;
-}
-.dsh-loading-line {
-  margin: 0;
-  font-size: 12.5px;
-  color: $text-mid;
-}
-.dsh-loading-sub {
-  margin: 0;
-  font-size: 11px;
-  color: $text-dim;
-  max-width: 60ch;
-}
+.dsh-loading-icon { color: $text-dim; margin-bottom: 8px; opacity: 0.65; }
+.dsh-loading-line { margin: 0; font-size: 12.5px; color: $text-mid; }
+.dsh-loading-sub { margin: 0; font-size: 11px; color: $text-dim; max-width: 60ch; }
 
 // ── 卡片栅格里的加载骨架（第八轮） ──
 // 一块占位 = 一个条目形状：图标位 + 一行名字位。**几何与 .dsh-case 逐项对齐**
@@ -620,48 +501,29 @@ select { appearance: none; -webkit-appearance: none; }
   /* min-width: 0 与 .dsh-case 同因：它是栅格项，默认的 min-width: auto 会顶穿所在的那条轨 */
   min-width: 0;
   /* 第十轮跟着条目一起改成「左图标 + 右两行」：条目现在是两行，占位块还是
-     一行的话，读数回来那一刻形状对不上，那正是这一块存在的理由。 */
+  一行的话，读数回来那一刻形状对不上，那正是这一块存在的理由。 */
   display: flex; flex-direction: row; align-items: center; gap: 10px;
   padding: 14px 16px;
   background: $panel;
   border: 1px solid $line;
   border-radius: $radius;
 }
-.dsh-skeleton-body {
-  flex: 1 1 auto; min-width: 0;
-  display: flex; flex-direction: column; justify-content: center; gap: 6px;
-}
+.dsh-skeleton-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
 /* 图标位：真卡片那一块 40×40 的底板，这里只是一块灰 */
-.dsh-skeleton-tile {
-  width: 40px; height: 40px; flex: none;
-  border-radius: 10px;
-  background: $panel-soft;
-}
+.dsh-skeleton-tile { width: 40px; height: 40px; flex: none; border-radius: 10px; background: $panel-soft; }
 /* 名字位：占满余下的宽度、最宽 120px，窄到放不下就自己缩 ——
    与 .dsh-name 的 flex: 1 1 auto + min-width: 0 同一套（那边靠省略号，这边靠变窄），
    所以任何宽度都不横向溢出（360 下卡只有 126px 宽，名字那一段剩不下多少） */
-.dsh-skeleton-name {
-  flex: 1 1 auto; min-width: 0; max-width: 120px;
-  height: 12px; border-radius: 6px;
-  background: $gray-4;
-}
+.dsh-skeleton-name { flex: 1 1 auto; min-width: 0; max-width: 120px; height: 12px; border-radius: 6px; background: $gray-4; }
 /* 第二行那一格：条目第二行可能是一条备注、也可能是一个时刻、也可能没有。
    占位块取中间那一档（有内容但更短更淡），高度 8 < 真条目的 16 ——
    它比真条目矮，所以**永远不会把占位块撑得比真条目高**：
    读数回来时只可能往上收，不会往下跳。 */
-.dsh-skeleton-sub {
-  width: 64px; max-width: 60%;
-  height: 8px; border-radius: 4px;
-  background: $panel-soft;
-}
+.dsh-skeleton-sub { width: 64px; max-width: 60%; height: 8px; border-radius: 4px; background: $panel-soft; }
 /* 说明那一行：占满整行（它是栅格项，不跟占位块挤一列）。
    text-align 显式写 left：.dsh-loading 的居中会沿继承传下来，而这一行是
    段落文字不是居中图标，跟页面其它说明一样左对齐。 */
-.dsh-loading-note {
-  grid-column: 1 / -1;
-  min-width: 0;
-  text-align: left;
-}
+.dsh-loading-note { grid-column: 1 / -1; min-width: 0; text-align: left; }
 /* 视觉隐藏（sr-only）：屏幕上一个像素都不占，读屏照读。
    绝对定位 + 1px + clip 三件套 —— 只写 overflow: hidden 不够：那样元素仍然占着
    文档流里那一行的高度，而这一条存在的理由恰恰是**不占高度**。
@@ -701,10 +563,7 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-archive-stamp { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .dsh-archive-stamp-label { font-size: 11.5px; color: $text-dim; }
-.dsh-archive-stamp-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11.5px; color: $text-mid;
-}
+.dsh-archive-stamp-value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; color: $text-mid; }
 .dsh-archive-spacer { flex: 1; }
 .dsh-archive-btn {
   flex: none; height: 28px; padding: 0 9px;
@@ -712,25 +571,16 @@ select { appearance: none; -webkit-appearance: none; }
   border: 1px solid $line-strong; border-radius: $radius-sm;
   background: transparent; color: $text;
   font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  &:hover { background: $panel-soft; }
+  &.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
+  &.danger:hover { background: rgba($danger-rgb, 0.12); }
 }
-.dsh-archive-btn:hover { background: $panel-soft; }
-.dsh-archive-btn.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
-.dsh-archive-btn.danger:hover { background: rgba($danger-rgb, 0.12); }
 
 // ── 回收站页（第六轮） ──
 // 行照归档行那一套做：一行里放得下「谁 / 什么时候删的 / 多大 / 两个动作」，
 // 名字与体积用等宽字，时间与文件数是次级灰 —— 与归档区同一套视觉层级。
-.dsh-trash {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 22px 24px;
-}
-.dsh-trash-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.dsh-trash { display: flex; flex-direction: column; gap: 12px; padding: 16px 22px 24px; }
+.dsh-trash-rows { display: flex; flex-direction: column; gap: 10px; }
 .dsh-trash-row {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 14px;
@@ -745,10 +595,7 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-trash-stamp { display: flex; align-items: center; gap: 6px; flex: none; }
 .dsh-trash-stamp-label { font-size: 11.5px; color: $text-dim; }
-.dsh-trash-stamp-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11.5px; color: $text-mid;
-}
+.dsh-trash-stamp-value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; color: $text-mid; }
 .dsh-trash-size { flex: none; font-size: 11.5px; color: $text-dim; }
 .dsh-trash-spacer { flex: 1; }
 .dsh-trash-btn {
@@ -757,10 +604,10 @@ select { appearance: none; -webkit-appearance: none; }
   border: 1px solid $line-strong; border-radius: $radius-sm;
   background: transparent; color: $text;
   font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  &:hover { background: $panel-soft; }
+  &.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
+  &.danger:hover { background: rgba($danger-rgb, 0.12); }
 }
-.dsh-trash-btn:hover { background: $panel-soft; }
-.dsh-trash-btn.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
-.dsh-trash-btn.danger:hover { background: rgba($danger-rgb, 0.12); }
 
 // ── 实例条目（第七轮变条目，第十轮改两行） ──（@keyframes: dot-pulse）
 //
@@ -775,76 +622,66 @@ select { appearance: none; -webkit-appearance: none; }
 // 改这里的任何一条常量都要回头看那一段的算式。
 .dsh-case {
   /* min-width: 0 —— 条目是栅格项，默认的 min-width: auto 会让它顶着自己的
-     min-content 不肯变窄，直接顶穿所在的那条轨（轨道是 minmax(0,1fr)）。
-     名字、备注、时刻都带省略号，所以它一路缩得下去，任何宽度都不横向溢出。
-     整张卡是一个 role=button 的 article：鼠标点、Enter、空格都能开抽屉，
-     所以这里要有 :hover / :focus-visible 的可点样子（不是靠里面藏一颗按钮）。 */
+  min-content 不肯变窄，直接顶穿所在的那条轨（轨道是 minmax(0,1fr)）。
+  名字、备注、时刻都带省略号，所以它一路缩得下去，任何宽度都不横向溢出。
+  整张卡是一个 role=button 的 article：鼠标点、Enter、空格都能开抽屉，
+  所以这里要有 :hover / :focus-visible 的可点样子（不是靠里面藏一颗按钮）。 */
   min-width: 0;
   position: relative;
   display: flex; flex-direction: row; align-items: center; gap: 10px;
   /* 第 5 条：卡片与页面底之间不再画线，靠色差分（$card 与 $bg 差 13 级）。
-     边框那 1px 加进内边距里（14 + 1 = 15），**条目高度仍是 70px**
-     （15 + 40 + 15 = 70），列数那套算式与「同列状态点对齐」都不受影响。 */
+  边框那 1px 加进内边距里（14 + 1 = 15），**条目高度仍是 70px**
+  （15 + 40 + 15 = 70），列数那套算式与「同列状态点对齐」都不受影响。 */
   padding: 15px 17px;
   background: $card;
   border-radius: $radius;
   color: $text;
   text-align: left;
   cursor: pointer;
-}
-/* 悬停那一档（§26.4）：**不只是换底色** —— 底色之外再给一圈可见的描边。
-   描边画在盒内（inset 阴影），不新增 1px 边框、也不改卡片尺寸：条目高度与列数
-   那套算式一个数都不动。颜色用主色、透明度 0.8：比选中态淡一档（选中是 2px 实色），
-   两者同时在场时一眼分得出「只是划过」与「这一个选上了」。 */
-.dsh-case:hover {
-  background: $panel-soft;
-  box-shadow: inset 0 0 0 1px rgba($accent-rgb, 0.8);
-}
-.dsh-case:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
-
-/* ── 独立 home 的卡：一道金边（design/deep-home-isolation.md §9.6）────────────────
-   三条口径，缺一条就不成立：
-     1. 描边挂在**卡片本身**上（.dsh-case），不挂在状态灯上：灯的颜色照旧只看运行状态
-        （绿 / 红 / 灰），两件事各说各的；
-     2. 这一条要压过任何按状态给卡片上色的规则。写法上故意把选择器加重
-        （两个类 + 一个属性选择器 = 0,3,0，比 .dsh-case[data-status="…"] 那种 0,2,0 重），
-        并且排在 .dsh-case:hover 之后 —— 以后再加状态色规则也盖不掉它；
-     3. 金色不作唯一信号：卡上还有一个「独立 home」小金标（.dsh-home-badge，文字 + 金边）。 */
-.dsh-case.dsh-case-home-isolated[data-status] {
-  /* 金边改画在盒内（inset 阴影），不再占 1px 边框：卡片高度与别的卡一模一样，
-     其它页的 1px 线条数也不会因为这一只多出四条。 */
-  box-shadow: inset 0 0 0 1px $gold, inset 0 0 0 3px rgba($gold-rgb, 0.16);
-}
-.dsh-case.dsh-case-home-isolated[data-status]:hover {
-  background: $panel-soft;
-  /* 金边那一档的悬停（§26.4、design-fixes §28.2）：金边是这一只的身份，不能被主色盖掉；
-     所以主色那圈往里收一档（2px），金边仍在外缘 1px，里圈再留一圈淡金。
-     三条的叠放顺序就是书写顺序（第一条画在最上层）：金 1px、主色 2px、淡金 3px。
-     主色这一条写成**实色** rgb(66, 109, 191)，不写 rgba($accent-rgb, 0.7)：
-       前者是后者叠在悬停底色 #23262b 上的合成值（0.7*79+0.3*35 = 66，0.7*140+0.3*38 = 109，
-       0.7*255+0.3*43 = 191）。写成半透明的话，它下面还压着那圈 3px 的淡金（0.16），
-       1..2px 会合成成 rgb(75, 116, 194)，主色被淡金糊了一层（§27.2 量的旧样子是更糊的
-       rgb(89,120,174)）。要的就是 1..2px 那 1px 是纯主色，所以这里给合成值。
-       precss 不求值颜色函数，写 rgb() 字面量正好与这套口径相容。
-     实测（1280 宽无头 chromium、1 倍缩放、卡片上缘逐像素）：
-       静息 0..1px #d8b25a（纯金）；1..3px #3a372c（淡金 0.16 叠卡片底 #1c1f24）
-       悬停 0..1px #d8b25a（纯金）；1..2px rgb(66,109,191)（纯主色）；
-            2..3px rgb(64,60,50)（淡金 0.16 叠悬停底 #23262b）；3px 起 #23262b
-     金边那条必须留在第一位（最上层）：挪到主色后面，外缘那 1px 就会被主色盖掉。 */
-  box-shadow:
+  /* 悬停那一档（§26.4）：**不只是换底色** —— 底色之外再给一圈可见的描边。
+     描边画在盒内（inset 阴影），不新增 1px 边框、也不改卡片尺寸：条目高度与列数
+     那套算式一个数都不动。颜色用主色、透明度 0.8：比选中态淡一档（选中是 2px 实色），
+     两者同时在场时一眼分得出「只是划过」与「这一个选上了」。 */
+  &:hover { background: $panel-soft; box-shadow: inset 0 0 0 1px rgba($accent-rgb, 0.8); }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+  /* ── 独立 home 的卡：一道金边（design/deep-home-isolation.md §9.6）────────────────
+     三条口径，缺一条就不成立：
+       1. 描边挂在**卡片本身**上（.dsh-case），不挂在状态灯上：灯的颜色照旧只看运行状态
+          （绿 / 红 / 灰），两件事各说各的；
+       2. 这一条要压过任何按状态给卡片上色的规则。写法上故意把选择器加重
+          （两个类 + 一个属性选择器 = 0,3,0，比 .dsh-case[data-status="…"] 那种 0,2,0 重），
+          并且排在 .dsh-case:hover 之后 —— 以后再加状态色规则也盖不掉它；
+       3. 金色不作唯一信号：卡上还有一个「独立 home」小金标（.dsh-home-badge，文字 + 金边）。 */
+  &.dsh-case-home-isolated[data-status] {
+    /* 金边改画在盒内（inset 阴影），不再占 1px 边框：卡片高度与别的卡一模一样，
+    其它页的 1px 线条数也不会因为这一只多出四条。 */
+    box-shadow: inset 0 0 0 1px $gold, inset 0 0 0 3px rgba($gold-rgb, 0.16);
+  }
+  &.dsh-case-home-isolated[data-status]:hover {
+    background: $panel-soft;
+    /* 金边那一档的悬停（§26.4、design-fixes §28.2）：金边是这一只的身份，不能被主色盖掉；
+    所以主色那圈往里收一档（2px），金边仍在外缘 1px，里圈再留一圈淡金。
+    三条的叠放顺序就是书写顺序（第一条画在最上层）：金 1px、主色 2px、淡金 3px。
+    主色这一条写成**实色** rgb(66, 109, 191)，不写 rgba($accent-rgb, 0.7)：
+    前者是后者叠在悬停底色 #23262b 上的合成值（0.7*79+0.3*35 = 66，0.7*140+0.3*38 = 109，
+    0.7*255+0.3*43 = 191）。写成半透明的话，它下面还压着那圈 3px 的淡金（0.16），
+    1..2px 会合成成 rgb(75, 116, 194)，主色被淡金糊了一层（§27.2 量的旧样子是更糊的
+    rgb(89,120,174)）。要的就是 1..2px 那 1px 是纯主色，所以这里给合成值。
+    precss 不求值颜色函数，写 rgb() 字面量正好与这套口径相容。
+    实测（1280 宽无头 chromium、1 倍缩放、卡片上缘逐像素）：
+    静息 0..1px #d8b25a（纯金）；1..3px #3a372c（淡金 0.16 叠卡片底 #1c1f24）
+    悬停 0..1px #d8b25a（纯金）；1..2px rgb(66,109,191)（纯主色）；
+    2..3px rgb(64,60,50)（淡金 0.16 叠悬停底 #23262b）；3px 起 #23262b
+    金边那条必须留在第一位（最上层）：挪到主色后面，外缘那 1px 就会被主色盖掉。 */
+    box-shadow:
     inset 0 0 0 1px $gold,
     inset 0 0 0 2px rgb(66, 109, 191),
     inset 0 0 0 3px rgba($gold-rgb, 0.16);
+  }
 }
 /* 卡上的标记组（§46）：吸在第一行最右端，一行并排、可加新的颜色。
    flex: none 让它不被名字挤掉；margin-left:auto 在名字不占满（没有端口）时也把它推到右边。 */
-.dsh-case-badges {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
+.dsh-case-badges { flex: none; display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 /* 蓝标：命令行型（§41）。尺寸与金标逐项一致 —— 带标与不带标的卡一样高（70px 不变式）。 */
 .dsh-cli-badge {
   flex: none;
@@ -883,15 +720,11 @@ select { appearance: none; -webkit-appearance: none; }
    与第七轮「名字在 40px 行里居中」的位置一模一样，条目因此逐像素不变。
    min-width: 0 与 .dsh-case 同因：它是 flex 项，默认的 min-width: auto
    会让长名字把条目顶宽。 */
-.dsh-case-body {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex; flex-direction: column; justify-content: center; gap: 2px;
-}
+.dsh-case-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
 .dsh-case-head {
   /* 两块：名字 | 端口号。
-     名字 flex: 1 1 auto + min-width: 0，卡窄到放不下时先省略名字 ——
-     图标、状态灯、端口一个像素都不动（端口 flex: none + nowrap，挤不掉也不换行）。 */
+  名字 flex: 1 1 auto + min-width: 0，卡窄到放不下时先省略名字 ——
+  图标、状态灯、端口一个像素都不动（端口 flex: none + nowrap，挤不掉也不换行）。 */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -899,9 +732,11 @@ select { appearance: none; -webkit-appearance: none; }
 }
 /* 状态灯的定位祖先：灯挂在图标右上角，略微出界一点点（-3px） */
 .dsh-tile-slot { position: relative; flex: none; display: flex; }
-.dsh-tile { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; }
-.dsh-tile.accent { background: rgba($ok-rgb, 0.14); color: $ok; }
-.dsh-tile.violet { background: $violet-soft; color: $violet; }
+.dsh-tile {
+  width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center;
+  &.accent { background: rgba($ok-rgb, 0.14); color: $ok; }
+  &.violet { background: $violet-soft; color: $violet; }
+}
 /* 名字不再吃掉余量（第 1 条加状态词时改的）：原来是 flex: 1 1 auto，靠它把端口顶到
    右缘；现在名字后面多了状态词，名字一撑开就会把那个词推到卡的右半边 —— 状态词
    是灯的第二通道，离灯越近越好。改成「名字按内容宽、状态词紧跟」，由端口那一格
@@ -971,22 +806,18 @@ select { appearance: none; -webkit-appearance: none; }
   border: 2px solid $panel;
   border-radius: 50%;
   background: $text-dim;
+  &.light-run { background: $ok; box-shadow: 0 0 0 2px rgba($ok-rgb, 0.2); }
+  /* 光晕是「它还活着」的信号 —— 只有运行中才发。警告与故障发光会把信号稀释掉 ✗ */
+  /* 黄：有警告（§26.1）。缺包、patch 不在、端口在听但不应答都落到这一档。 */
+  &.light-warn { background: $warn; }
+  /* 红：上一次启动失败，且之后没有成功启动过。判据来自审计流水（见 state.mbt 的 profile_light）。 */
+  &.light-fault { background: $danger; }
+  &.light-start { background: $warn; box-shadow: 0 0 0 2px rgba($warn-rgb, 0.2); animation: dot-pulse 900ms ease-in-out infinite; }
+  /* 已停止**不画灯**（§26.1）：这一档不产出节点（state.mbt 的 light_shown），
+     所以这里没有 .dsh-dot.light-stop 的规则 —— 留着一条会让人以为那颗灯还在。 */
+  /* 没读到 state：不上色。空心灰环 + 一圈底色描边，一眼看出「这一格没有读数」 */
+  &.light-unknown { background: transparent; border-color: $text-dim; box-shadow: none; }
 }
-.dsh-dot.light-run { background: $ok; box-shadow: 0 0 0 2px rgba($ok-rgb, 0.2); }
-/* 光晕是「它还活着」的信号 —— 只有运行中才发。警告与故障发光会把信号稀释掉 ✗ */
-/* 黄：有警告（§26.1）。缺包、patch 不在、端口在听但不应答都落到这一档。 */
-.dsh-dot.light-warn { background: $warn; }
-/* 红：上一次启动失败，且之后没有成功启动过。判据来自审计流水（见 state.mbt 的 profile_light）。 */
-.dsh-dot.light-fault { background: $danger; }
-.dsh-dot.light-start {
-  background: $warn;
-  box-shadow: 0 0 0 2px rgba($warn-rgb, 0.2);
-  animation: dot-pulse 900ms ease-in-out infinite;
-}
-/* 已停止**不画灯**（§26.1）：这一档不产出节点（state.mbt 的 light_shown），
-   所以这里没有 .dsh-dot.light-stop 的规则 —— 留着一条会让人以为那颗灯还在。 */
-/* 没读到 state：不上色。空心灰环 + 一圈底色描边，一眼看出「这一格没有读数」 */
-.dsh-dot.light-unknown { background: transparent; border-color: $text-dim; box-shadow: none; }
 /* 抽屉状态那一行里的那一颗：跟着标题走，不绝对定位。
    选择器的范围要窄 —— 试跑配置侧栏与整体替换侧栏也是 .dsh-drawer，里面卡片上的灯
    挂在图标右上角（§25），那条规则不能被这一条按下去。 */
@@ -1005,12 +836,12 @@ select { appearance: none; -webkit-appearance: none; }
   line-height: 16px;
   color: $text-mid;
   white-space: nowrap;
+  /* 运行中这一档保持中间灰（与正文同一档）：绿色留给那颗灯，词本身不染色。
+     这一条也把档位写全 —— 类名契约要求 DOM 里出现的每个 class 都有一条规则，
+     而「运行中」那一档原先只是靠「在跑」那枚标记的规则顺手带过（§25 把那枚标记去掉之后
+     这里就露出来了）。 */
+  &.running { color: $text-mid; }
 }
-/* 运行中这一档保持中间灰（与正文同一档）：绿色留给那颗灯，词本身不染色。
-   这一条也把档位写全 —— 类名契约要求 DOM 里出现的每个 class 都有一条规则，
-   而「运行中」那一档原先只是靠「在跑」那枚标记的规则顺手带过（§25 把那枚标记去掉之后
-   这里就露出来了）。 */
-.dsh-dot-state.running { color: $text-mid; }
 /* 有警告 / 上次启动失败 / 已停止这三档把词也压亮一档：黑白打印 / 灰度截图里，
    这三个词该和「运行中」一样读得出来，而不是靠那颗灯。已停止那一档没有灯，
    这个词就是它唯一的信号 —— 一个字都不许淡掉。 */
@@ -1033,24 +864,15 @@ select { appearance: none; -webkit-appearance: none; }
   border-left: 2px solid rgba($violet-rgb, 0.5);
   font-size: 11.5px; line-height: 16px;
 }
-.dsh-card-note-text {
-  min-width: 0; color: $text-mid;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.dsh-card-note-text { min-width: 0; color: $text-mid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 条目第二行的**机器**那一档：没有备注时写「上次启动 <短时刻>」。
    **没有左侧那道细线** —— 那道线是「这是人写的」的记号（见上面 .dsh-card-note），
    时间是机器的读数，给它挂上同一道线就是把两种东西说成一种。
    颜色再淡一档（$text-dim），与备注（$text-mid）分开一档层级。
    与备注同一处位置、同一套省略规则，所以两档互换时第二行的高度都是 16px，
    条目高度一个像素都不动。 */
-.dsh-card-stamp {
-  min-width: 0; display: flex; align-items: baseline;
-  font-size: 11.5px; line-height: 16px;
-}
-.dsh-card-stamp-text {
-  min-width: 0; color: $text-dim;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.dsh-card-stamp { min-width: 0; display: flex; align-items: baseline; font-size: 11.5px; line-height: 16px; }
+.dsh-card-stamp-text { min-width: 0; color: $text-dim; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 // ── 拖动排序的落点预览（第十二轮：预览就是结果） ──
 //
@@ -1091,7 +913,6 @@ select { appearance: none; -webkit-appearance: none; }
         稳稳待在最后一格。
    行内样式是这里唯一说了算的：它压得过属性选择器，也压得过栅格的自动排布。 */
 
-
 /* 虚影外面这一层：position: fixed 不占文档流，跟着指针走的是它自己的 transform
    （js_drag_ghost_move 每动一下改一次，不回状态）。尺寸由行内样式给 —— 照手上那一条量。
    对指针关掉：它压在指针下面，不关的话每逢指针落到它身上，事件就换了目标。 */
@@ -1101,18 +922,14 @@ select { appearance: none; -webkit-appearance: none; }
   z-index: 40;
   pointer-events: none;
   will-change: transform;
+  /* 里面那张卡：半透明 + 一圈投影 —— 一眼看出「这是拿在手上的、浮在页面上」，
+     与已经落到格子里的那些分得开。投影是「不在流里」的唯一记号（位置本身也会说话，
+     但虚影压在别的卡片上时，只有投影能说清谁在前）。
+     它没有 hover / focus 的样子（虚影不可交互）：那两档由 .dsh-case 身上带着，
+     这里显式压掉，免得鼠标扫过时虚影亮一下，看着像可以点。 */
+  & .ghost-card { opacity: 0.72; cursor: grabbing; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }
+  & .ghost-card:hover { background: $panel; border-color: $line; }
 }
-/* 里面那张卡：半透明 + 一圈投影 —— 一眼看出「这是拿在手上的、浮在页面上」，
-   与已经落到格子里的那些分得开。投影是「不在流里」的唯一记号（位置本身也会说话，
-   但虚影压在别的卡片上时，只有投影能说清谁在前）。
-   它没有 hover / focus 的样子（虚影不可交互）：那两档由 .dsh-case 身上带着，
-   这里显式压掉，免得鼠标扫过时虚影亮一下，看着像可以点。 */
-.dsh-drag-ghost .ghost-card {
-  opacity: 0.72;
-  cursor: grabbing;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
-}
-.dsh-drag-ghost .ghost-card:hover { background: $panel; border-color: $line; }
 
 /* 占位块：形状与真条目**同款**（宽高、圆角、内边距、图标位都照 .dsh-case 走），
    外观另起一副：虚线边 + 极淡的强调底 + 里面的内容再淡一档。
@@ -1127,7 +944,7 @@ select { appearance: none; -webkit-appearance: none; }
   background: $accent-soft;
   cursor: default;
   /* 悬停描边（§26.4）也一并压掉：占位块就在指针底下，:hover 一直成立，
-     它又不是可交互的东西 —— 给它一圈「可以点」的描边等于说谎。 */
+  它又不是可交互的东西 —— 给它一圈「可以点」的描边等于说谎。 */
   box-shadow: none;
 }
 .dsh-drop-slot .ghost-tile { opacity: 0.5; }
@@ -1140,12 +957,7 @@ select { appearance: none; -webkit-appearance: none; }
    （拖动期间栅格底会比最后一行低出一截），让「指针在最后一行下方 = 最后一格」
    有一块自己的命中区域。pointer-events 关掉：它是判定用的地标，不是可交互的东西。 */
 .dsh-card-grid { position: relative; }
-.dsh-drop-tail {
-  position: absolute;
-  left: 0; right: 0;
-  top: 100%;
-  pointer-events: none;
-}
+.dsh-drop-tail { position: absolute; left: 0; right: 0; top: 100%; pointer-events: none; }
 
 /* 读屏播报那一句：视觉上不占地方，但**不能 display: none** ——
    读屏会连同节点一起忽略。裁成一个点挪到看不见的地方，语义还在。 */
@@ -1161,35 +973,35 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-fields {
   /* 常态两列：6 个字段是 2 / 2 / 2，不随窗口宽度涨成四列。
-     只有卡宽 < 500 时才塌成一列 × 6 行（见本文件末尾的窄视口一段）——
-     那发生在单列区间里（卡宽 = 视口 − 234，即视口 < 734），
-     此时每列的值宽已经不到 110px，两列不如一行一个读得清。
-     第六格是「最近改动」（profile 目录的 mtime，本地短时刻）—— 它是**最近改动**，
-     不是「创建时间」：可靠的创建时间在多数文件系统上拿不到，别把标签改错。 */
+  只有卡宽 < 500 时才塌成一列 × 6 行（见本文件末尾的窄视口一段）——
+  那发生在单列区间里（卡宽 = 视口 − 234，即视口 < 734），
+  此时每列的值宽已经不到 110px，两列不如一行一个读得清。
+  第六格是「最近改动」（profile 目录的 mtime，本地短时刻）—— 它是**最近改动**，
+  不是「创建时间」：可靠的创建时间在多数文件系统上拿不到，别把标签改错。 */
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px 20px;
+  /* 只有一格的那一份（抽屉「配置」组里的配置 home）：强制一列。
+     两列格里只摆一格的话，那一格只占半幅，值会被挤成省略号。 */
+  &.is-single { grid-template-columns: minmax(0, 1fr); }
 }
-/* 只有一格的那一份（抽屉「配置」组里的配置 home）：强制一列。
-   两列格里只摆一格的话，那一格只占半幅，值会被挤成省略号。 */
-.dsh-fields.is-single { grid-template-columns: minmax(0, 1fr); }
 .dsh-field {
   /* z-index: 0 让它成为层叠上下文，下面的 ::before 才能安全地压到内容之下 */
   position: relative; z-index: 0;
   display: flex; align-items: center; gap: 7px; height: 28px; min-width: 0;
+  /* 悬停提示：高亮画在 ::before 上并向外扩 6px，
+     所以内容（图标 229 那条对齐）一个像素都不动 */
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0 -6px;
+    border-radius: $radius-sm;
+    background: transparent;
+    pointer-events: none;
+  }
+  &:hover::before { background: $panel-soft; }
 }
-/* 悬停提示：高亮画在 ::before 上并向外扩 6px，
-   所以内容（图标 229 那条对齐）一个像素都不动 */
-.dsh-field::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: 0 -6px;
-  border-radius: $radius-sm;
-  background: transparent;
-  pointer-events: none;
-}
-.dsh-field:hover::before { background: $panel-soft; }
 .dsh-field-icon { color: $text-dim; display: flex; }
 .dsh-field-label { flex: none; font-size: 11.5px; color: $text-dim; }
 .dsh-field-value {
@@ -1235,8 +1047,8 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 51;
   /* 宽屏固定宽度、窄屏占满整幅（见下面的 640 断点）。
-     520px 是六格读数摆两列还读得清的宽度：每列 240 - 面板内边距，
-     标签与值都放得下。 */
+  520px 是六格读数摆两列还读得清的宽度：每列 240 - 面板内边距，
+  标签与值都放得下。 */
   width: 520px;
   max-width: 100%;
   display: flex; flex-direction: column;
@@ -1281,14 +1093,8 @@ $drawer-ms: 220ms;
 @keyframes dsh-scrim-out { from { opacity: 1; } to { opacity: 0; } }
 .dsh-drawer { animation: dsh-drawer-in $drawer-ms ease-out; }
 .dsh-drawer-scrim { animation: dsh-scrim-in $drawer-ms ease-out; }
-.dsh-drawer[data-state="closing"] {
-  animation: dsh-drawer-out $drawer-ms ease-out forwards;
-  pointer-events: none;
-}
-.dsh-drawer-scrim[data-state="closing"] {
-  animation: dsh-scrim-out $drawer-ms ease-out forwards;
-  pointer-events: none;
-}
+.dsh-drawer[data-state="closing"] { animation: dsh-drawer-out $drawer-ms ease-out forwards; pointer-events: none; }
+.dsh-drawer-scrim[data-state="closing"] { animation: dsh-scrim-out $drawer-ms ease-out forwards; pointer-events: none; }
 /* 使用者把动效关了：进与出都**不做任何位移与淡入淡出**，直接出现、直接消失。
    出那一半还要求连节点都不留（留着的这段时间它盖着页面），那一半在前端判 ——
    这条 media query 与前端的 prefers_reduced_motion 是同一个查询。 */
@@ -1298,12 +1104,7 @@ $drawer-ms: 220ms;
     animation: none;
   }
 }
-.dsh-drawer-head {
-  flex: none;
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid $line;
-}
+.dsh-drawer-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid $line; }
 .dsh-drawer-name {
   min-width: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1324,33 +1125,22 @@ $drawer-ms: 220ms;
 }
 /* 一组 = 标题 + 若干行。组内只有行，没有二级小标题（§29.1）。 */
 .dsh-drawer-section { display: flex; flex-direction: column; gap: 8px; }
-.dsh-drawer-section-title {
-  margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
-  color: $text-dim;
-}
+.dsh-drawer-section-title { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: $text-dim; }
 /* 「为什么是这个颜色」那一块：档位标签 + 判据 + 后端给的原值 */
 .dsh-drawer-light-line { display: flex; align-items: center; gap: 8px; }
 .dsh-drawer-light-label { font-size: 13px; font-weight: 600; color: $text; }
 .dsh-drawer-why { margin: 0; font-size: 12px; line-height: 1.65; color: $text-mid; }
-.dsh-drawer-raw {
-  margin: 0; font-size: 11px; line-height: 1.6; color: $text-dim;
-  word-break: break-word;
-}
+.dsh-drawer-raw { margin: 0; font-size: 11px; line-height: 1.6; color: $text-dim; word-break: break-word; }
 /* 「profile 健康」那一块：一条**高度封顶**的问题提示（第十二轮）。
    正文只给结论，完整清单 / 原文在悬停里 —— 11 个包名摊在正文里会占掉大半屏。 */
 .dsh-drawer-health { margin: 0; font-size: 12.5px; line-height: 1.6; color: $text; }
-.dsh-problem {
-  padding: 7px 10px;
-  border: 1px solid $line;
-  border-radius: $radius-sm;
-  background: $panel-soft;
-}
+.dsh-problem { padding: 7px 10px; border: 1px solid $line; border-radius: $radius-sm; background: $panel-soft; }
 /* 裁剪的那一层**不带竖向内边距**：overflow 裁在 padding box 上，卡片那 7px 下内边距
    会把第 3 行的字头露出来（实测过）✗ 所以内边距归卡片、裁剪归这一层。 */
 .dsh-problem-text {
   display: block;
   /* 已知且可枚举的那一类：正文压成**一行**，再长也不换形状。
-     nowrap 是「一行」的保证：让文本自己折行的话，一行两行五行全看数据有多长 ✗ */
+  nowrap 是「一行」的保证：让文本自己折行的话，一行两行五行全看数据有多长 ✗ */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1373,8 +1163,10 @@ $drawer-ms: 220ms;
 .dsh-drawer-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 /* 「还缺 N 个包」+「安装」（design/design-fixes.md §40.2）：一行小字配一颗次要按钮。
    小字自己不带下边距（.dsh-foot 有 10px 的上边距，摆在这一行里会把它顶得比按钮低）。 */
-.dsh-missing-row { align-items: center; gap: 10px; }
-.dsh-missing-row .dsh-foot { margin: 0; }
+.dsh-missing-row {
+  align-items: center; gap: 10px;
+  & .dsh-foot { margin: 0; }
+}
 /* ── 配置历史（design/ops-maintenance-jobs.md §16.4）────────────────
    这一组给「改动这只 profile」兜底：一颗创建快照 + 一份快照列表。
    自己占满一整行（.dsh-drawer-btns 是 flex-wrap），列表行横向排：
@@ -1392,65 +1184,37 @@ $drawer-ms: 220ms;
   font-size: 11.5px; color: $text-dim;
 }
 .dsh-snapshot-time { color: $text; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dsh-snapshot-reason {
-  flex: 1 1 auto; min-width: 0;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+.dsh-snapshot-reason { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsh-snapshot-size { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dsh-snapshot-restore {
   height: 24px; padding: 0 8px;
   border: 1px solid $line-strong; border-radius: $radius-sm;
   background: transparent; color: $text;
   font-size: 11.5px; cursor: pointer; white-space: nowrap;
+  &:hover:not(:disabled) { background: $panel; }
+  &:disabled { opacity: 0.6; cursor: default; }
 }
-.dsh-snapshot-restore:hover:not(:disabled) { background: $panel; }
-.dsh-snapshot-restore:disabled { opacity: 0.6; cursor: default; }
 /* ── 整体替换（design/ops-maintenance-jobs.md §17.3）────────────────
    右侧栏里先选源、再摆四段差异。覆盖项那一对**并排**摆（同 id 两边的原文），
    源那一条在左、带一枚「会盖掉目标这条」；blocks 非空时底部按钮禁用并写明原因。 */
 .dsh-promote-launcher { display: flex; }
-.dsh-promote-target {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: $text;
-  word-break: break-all;
-}
+.dsh-promote-target { margin: 0; font-size: 12px; line-height: 1.6; color: $text; word-break: break-all; }
 .dsh-promote-pick { display: flex; flex-direction: column; gap: 10px; }
 .dsh-promote-preview { display: flex; flex-direction: column; gap: 14px; }
 .dsh-promote-section { display: flex; flex-direction: column; gap: 6px; }
-.dsh-promote-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: $text-mid;
-}
+.dsh-promote-title { margin: 0; font-size: 12px; font-weight: 600; color: $text-mid; }
 .dsh-promote-lines { display: flex; flex-direction: column; gap: 6px; }
-.dsh-promote-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 11.5px;
-  line-height: 1.5;
+.dsh-promote-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 11.5px; line-height: 1.5; }
+.dsh-promote-name { color: $text; font-variant-numeric: tabular-nums; word-break: break-all; }
+.dsh-promote-tag {
+  color: $text-dim;
+  &.danger { color: $danger; }
 }
-.dsh-promote-name {
-  color: $text;
-  font-variant-numeric: tabular-nums;
-  word-break: break-all;
-}
-.dsh-promote-tag { color: $text-dim; }
-.dsh-promote-tag.danger { color: $danger; }
 .dsh-promote-same { margin: 0; font-size: 11.5px; color: $text-dim; }
 .dsh-promote-note { margin: 0; font-size: 11px; line-height: 1.55; color: $text-dim; }
 .dsh-promote-error { margin: 0; font-size: 11.5px; line-height: 1.6; color: $danger; }
-.dsh-promote-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 6px;
-}
-.dsh-promote-side,
-.dsh-promote-entry {
+.dsh-promote-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.dsh-promote-side, .dsh-promote-entry {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1461,12 +1225,7 @@ $drawer-ms: 220ms;
   min-width: 0;
 }
 .dsh-promote-side.source { border-color: $accent; }
-.dsh-promote-side-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
-}
+.dsh-promote-side-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .dsh-promote-code {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1498,43 +1257,38 @@ $drawer-ms: 220ms;
   border: 1px solid $line-strong; border-radius: $radius-sm;
   background: transparent; color: $text;
   font-size: 12.5px; cursor: pointer; white-space: nowrap;
-}
-.dsh-btn:hover { background: $panel-soft; }
-.dsh-btn:disabled { opacity: 0.6; cursor: default; }
-/* 危险动作那一档（抽屉里的「删除」）。与 .dsh-archive-btn.danger / .dsh-trash-btn.danger
-   同一副脸色：平时只是红字红边 —— 「按住 Shift 变红」才需要一条比它更重的样子。 */
-.dsh-btn.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
-.dsh-btn.danger:hover:not(:disabled) { background: rgba($danger-rgb, 0.12); }
-
-/* ── 删除按钮的 Shift 语义（design/ops-maintenance-jobs.md §13.2）────────────────
-   两条路都指向同一副「彻底删除」的样子，而且都不走状态回环：
-     · data-mode="hard"：回收站关着（safety.deleteToTrash=false）—— **始终**红字红边 + 彻底删除，
-       不管按没按 Shift；这一格由后端读数在渲染时定。
-     · body[data-shift="1"]：文档级 keydown / keyup 打的标记（见 dom.mbt 的 js_shift_watch）。
-       按住的那一刻直接换色换字，没有「事件 → update → 重渲染」那一拍。
-   **实心红不在这里**：抽屉里它最多是次要档（军规 06），红底那一档只出现在删除确认框里。
-  标签两段都在 DOM 里（.dsh-delete-soft / .dsh-delete-hard），显示哪一段由这两条规则决定。 */
-.dsh-btn.dsh-delete .dsh-delete-hard { display: none; }
-.dsh-btn.dsh-delete[data-mode="hard"] .dsh-delete-soft { display: none; }
-.dsh-btn.dsh-delete[data-mode="hard"] .dsh-delete-hard { display: inline; }
-.dsh-btn.dsh-delete[data-mode="hard"] {
-  /* 第 4 条：这一颗原来是实心红。抽屉里已经有「启动 / 打开 Web UI」这一颗主操作，
-     再叠一颗实心红，一屏就有两个主操作（军规 06）。改成**红字红边**：
-     危险仍然一眼看得出，但重量降到次要档；真正升级成红底实心的是点开之后的确认框
-     （.dsh-dialog-btn.danger，那一屏只有它一个主操作）。 */
-  background: transparent; border-color: $danger; color: $danger;
-}
-.dsh-btn.dsh-delete[data-mode="hard"]:hover:not(:disabled) {
-  background: rgba($danger-rgb, 0.14);
+  &:hover { background: $panel-soft; }
+  &:disabled { opacity: 0.6; cursor: default; }
+  /* 危险动作那一档（抽屉里的「删除」）。与 .dsh-archive-btn.danger / .dsh-trash-btn.danger
+     同一副脸色：平时只是红字红边 —— 「按住 Shift 变红」才需要一条比它更重的样子。 */
+  &.danger { color: $danger; border-color: rgba($danger-rgb, 0.42); }
+  &.danger:hover:not(:disabled) { background: rgba($danger-rgb, 0.12); }
+  /* ── 删除按钮的 Shift 语义（design/ops-maintenance-jobs.md §13.2）────────────────
+     两条路都指向同一副「彻底删除」的样子，而且都不走状态回环：
+       · data-mode="hard"：回收站关着（safety.deleteToTrash=false）—— **始终**红字红边 + 彻底删除，
+         不管按没按 Shift；这一格由后端读数在渲染时定。
+       · body[data-shift="1"]：文档级 keydown / keyup 打的标记（见 dom.mbt 的 js_shift_watch）。
+         按住的那一刻直接换色换字，没有「事件 → update → 重渲染」那一拍。
+     **实心红不在这里**：抽屉里它最多是次要档（军规 06），红底那一档只出现在删除确认框里。
+    标签两段都在 DOM 里（.dsh-delete-soft / .dsh-delete-hard），显示哪一段由这两条规则决定。 */
+  &.dsh-delete .dsh-delete-hard { display: none; }
+  &.dsh-delete[data-mode="hard"] .dsh-delete-soft { display: none; }
+  &.dsh-delete[data-mode="hard"] .dsh-delete-hard { display: inline; }
+  &.dsh-delete[data-mode="hard"] {
+    /* 第 4 条：这一颗原来是实心红。抽屉里已经有「启动 / 打开 Web UI」这一颗主操作，
+    再叠一颗实心红，一屏就有两个主操作（军规 06）。改成**红字红边**：
+    危险仍然一眼看得出，但重量降到次要档；真正升级成红底实心的是点开之后的确认框
+    （.dsh-dialog-btn.danger，那一屏只有它一个主操作）。 */
+    background: transparent; border-color: $danger; color: $danger;
+  }
+  &.dsh-delete[data-mode="hard"]:hover:not(:disabled) { background: rgba($danger-rgb, 0.14); }
 }
 body[data-shift="1"] .dsh-btn.dsh-delete .dsh-delete-soft { display: none; }
 body[data-shift="1"] .dsh-btn.dsh-delete .dsh-delete-hard { display: inline; }
 body[data-shift="1"] .dsh-btn.dsh-delete {
   /* 按住 Shift 与「回收站关着」走同一副样子（见上一条）：红字红边，不是实心红 */
   background: transparent; border-color: $danger; color: $danger;
-}
-body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
-  background: rgba($danger-rgb, 0.14);
+  &:hover:not(:disabled) { background: rgba($danger-rgb, 0.14); }
 }
 /* 灰掉的那一颗（没在跑的行的「复制访问地址」）不跟着 Shift 变样：它的 disabled 状态
    由 .dsh-btn:disabled 那条给（透明度 + 不看指针），这里只补一句「不响应悬停高亮」。 */
@@ -1542,8 +1296,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 .dsh-btn.primary {
   border-color: transparent; color: #fff;
   background: var(--btn-bg, $accent);
+  &:hover { filter: brightness(1.08); }
 }
-.dsh-btn.primary:hover { filter: brightness(1.08); }
 .dsh-btn.icon-only { width: 30px; padding: 0; justify-content: center; }
 /* 主色底随实例色调：运行中卡蓝（accent）、已停止的 profile 卡紫（violet） */
 .dsh-btn.primary.accent { --btn-bg: $accent; }
@@ -1552,13 +1306,11 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
    主段 + 右段 chevron 共用一圈边框：主段只留左边两角、去掉右边框，chevron 补右边两角，
    两段之间那道细线由 chevron 的左边框给。高度跟 .dsh-btn 一样是 30，不新增一档。
    chevron 与主段同色（实心主色），只是压暗一档 —— 看起来是同一颗按钮的右半。 */
-.dsh-split { position: relative; display: inline-flex; align-items: stretch; }
-.dsh-split.accent { --btn-bg: $accent; }
-.dsh-split.violet { --btn-bg: $violet; }
-.dsh-split > .dsh-split-main {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-right: 0;
+.dsh-split {
+  position: relative; display: inline-flex; align-items: stretch;
+  &.accent { --btn-bg: $accent; }
+  &.violet { --btn-bg: $violet; }
+  & > .dsh-split-main { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: 0; }
 }
 .dsh-split-toggle {
   width: 28px; flex: none;
@@ -1567,9 +1319,9 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   border-left: 1px solid rgba(0, 0, 0, 0.22);
   background: var(--btn-bg, $accent); color: #fff;
   cursor: pointer;
+  &:hover { filter: brightness(1.08); }
+  &:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 }
-.dsh-split-toggle:hover { filter: brightness(1.08); }
-.dsh-split-toggle:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 /* 下拉：贴在拆分按钮下面，右缘对齐。宽度按内容给个下限，只有一项也不至于一小条。 */
 .dsh-split-menu {
   position: absolute; top: calc(100% + 4px); left: 0;
@@ -1593,11 +1345,7 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 .dsh-split-scrim { position: fixed; inset: 0; z-index: 1; background: transparent; }
 /* 「停止」键里那枚红色方块（原来的 .dsh-dot-danger 圆点已删：圆点在别处是状态灯，
    混用会读成「这里有个红点」）。方块由 stop 图标画，这里只给颜色与对齐。 */
-.dsh-stop-mark {
-  display: inline-flex;
-  align-items: center;
-  color: $danger;
-}
+.dsh-stop-mark { display: inline-flex; align-items: center; color: $danger; }
 
 /* 这里原来还有一整块右栏信息面板的规则（.dsh-side-info / .dsh-info-card /
    .dsh-flows / .dsh-flow* / .dsh-notes / .dsh-note*，260px 宽、贴右边、一条左分隔线）。
@@ -1610,15 +1358,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 // 而「只在点遮罩本身时关闭」需要事件对象判断 target，rabbita 的 div.on_click 收不到。
 // 所以居中必须由**独立的居中层**来做——它在遮罩之上（61 > 60），
 // 并且 pointer-events: none 让点击穿过去给遮罩，只有卡片自己重新打开。
-.dsh-scrim {
-  position: fixed; inset: 0; z-index: 60;
-  background: rgba(8, 9, 11, 0.62);
-}
-.dsh-dialog-wrap {
-  position: fixed; inset: 0; z-index: 61;
-  display: grid; place-items: center;
-  pointer-events: none;
-}
+.dsh-scrim { position: fixed; inset: 0; z-index: 60; background: rgba(8, 9, 11, 0.62); }
+.dsh-dialog-wrap { position: fixed; inset: 0; z-index: 61; display: grid; place-items: center; pointer-events: none; }
 .dsh-dialog-card {
   width: min(360px, calc(100vw - 48px));
   padding: 16px 16px 14px;
@@ -1651,10 +1392,7 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   background: transparent;
   color: $text-dim;
   cursor: help;
-}
-.dsh-btn.is-inert:hover {
-  background: $panel-soft;
-  color: $text-mid;
+  &:hover { background: $panel-soft; color: $text-mid; }
 }
 .dsh-dialog-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .dsh-dialog-btn {
@@ -1663,13 +1401,13 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   border: 1px solid $line-strong; border-radius: $radius-sm;
   background: transparent; color: $text;
   font-size: 12.5px; cursor: pointer;
+  &:hover { background: $panel; }
+  &.primary { border-color: transparent; background: $accent; color: #fff; }
+  &.primary:hover { filter: brightness(1.08); }
+  &.danger { border-color: transparent; background: $danger; color: #fff; }
+  &.danger:hover { filter: brightness(1.08); }
+  &:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 }
-.dsh-dialog-btn:hover { background: $panel; }
-.dsh-dialog-btn.primary { border-color: transparent; background: $accent; color: #fff; }
-.dsh-dialog-btn.primary:hover { filter: brightness(1.08); }
-.dsh-dialog-btn.danger { border-color: transparent; background: $danger; color: #fff; }
-.dsh-dialog-btn.danger:hover { filter: brightness(1.08); }
-.dsh-dialog-btn:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 
 // 重命名对话框独有的输入框（其余规则与删除确认共用上面那一份）
 .dsh-dialog-input {
@@ -1678,8 +1416,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   background: $panel; color: $text;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
+  &:focus-visible { outline: 2px solid $accent; outline-offset: -1px; }
 }
-.dsh-dialog-input:focus-visible { outline: 2px solid $accent; outline-offset: -1px; }
 
 // 编辑备注对话框：标题带图标、正文是多行输入框（其余与删除确认 / 重命名共用上面那一份）
 .dsh-dialog-title { display: flex; align-items: center; gap: 6px; }
@@ -1712,12 +1450,12 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   border: 1px solid $line-strong; border-radius: $radius-sm;
   background: transparent; color: $text;
   font-size: 12.5px; cursor: pointer;
+  &:hover:not(:disabled) { background: $panel; }
+  &.primary { border-color: transparent; background: $accent; color: #fff; }
+  &.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  &:disabled { opacity: 0.5; cursor: default; }
+  &:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 }
-.dsh-dialog-btn:hover:not(:disabled) { background: $panel; }
-.dsh-dialog-btn.primary { border-color: transparent; background: $accent; color: #fff; }
-.dsh-dialog-btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
-.dsh-dialog-btn:disabled { opacity: 0.5; cursor: default; }
-.dsh-dialog-btn:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 
 // ── 新建实例框（design/design-fixes.md §19.1、§23） ──
 // 比其它对话框宽：里面摆的是「选择配置」那一套卡（图标 + 名字 + 备注 + 读数），
@@ -1726,9 +1464,7 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 // 不把整个对话框撑到贴满上下边。
 // §26.3：桌面放到 min(1120px, 94vw)。1120 宽下栅格一行 3 张（单卡最小 300）：
 // 框内宽 = 1120 − 32（左右 padding）= 1088，三列各 357 左右，够 300 那条下限。
-.dsh-new-card {
-  width: min(1120px, 94vw);
-}
+.dsh-new-card { width: min(1120px, 94vw); }
 .dsh-new-pick {
   display: flex;
   flex-direction: column;
@@ -1736,35 +1472,28 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   // §26.3：列表高度上限同步放宽到 min(52vh, 520px)。
   max-height: min(52vh, 520px);
   /* 横向不滚（§25.3）：列表里的卡任何一张都不许把宽度顶出去。
-     纵向照旧自己滚 —— 一屏里先看见几只是几只。 */
+  纵向照旧自己滚 —— 一屏里先看见几只是几只。 */
   overflow-x: hidden;
   overflow-y: auto;
   padding-right: 2px;
-}
-// 源卡排栅格（§23）：**只挂在这个框里**那一份列表上。同一个类还有两处在用
-// （维护页「选择配置」侧栏、总览「整体替换」右侧栏），那两处仍是竖排一列 ——
-// .dsh-profile-sidebar-list 自己的规则不动，这里只是多一条带祖先的选择器。
-//
-// 为什么 auto-fill 而不是 auto-fit：卡片宽度只由容器宽度决定，不因为「这一组只剩
-// 两张」就摊开，2 张与 3 张两组里的卡一样宽。剩下那条空轨留在右边；
-// 遮罩盖的是整片 .dsh-new-pick-wrap（见 .dsh-new-pick-veil），空轨也在里面。
-// 单卡最小 300px（§26.3）：再窄，名字那一行与读数那两行就挤成一团。
-// 自动折行按 300 算列数，用 min(300px, 100%) 兜住比 300 还窄的容器（不横向溢出）。
-// **等高**（§24.2）：align-items: stretch，每张卡再钉死一档高度（见下一条）。同一行里
-// 有备注的、没备注的、不可用的，四边一样齐；高度不随内容长短变。
-.dsh-new-pick .dsh-profile-sidebar-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
-  gap: 8px;
-  align-items: stretch;
+  // 源卡排栅格（§23）：**只挂在这个框里**那一份列表上。同一个类还有两处在用
+  // （维护页「选择配置」侧栏、总览「整体替换」右侧栏），那两处仍是竖排一列 ——
+  // .dsh-profile-sidebar-list 自己的规则不动，这里只是多一条带祖先的选择器。
+  //
+  // 为什么 auto-fill 而不是 auto-fit：卡片宽度只由容器宽度决定，不因为「这一组只剩
+  // 两张」就摊开，2 张与 3 张两组里的卡一样宽。剩下那条空轨留在右边；
+  // 遮罩盖的是整片 .dsh-new-pick-wrap（见 .dsh-new-pick-veil），空轨也在里面。
+  // 单卡最小 300px（§26.3）：再窄，名字那一行与读数那两行就挤成一团。
+  // 自动折行按 300 算列数，用 min(300px, 100%) 兜住比 300 还窄的容器（不横向溢出）。
+  // **等高**（§24.2）：align-items: stretch，每张卡再钉死一档高度（见下一条）。同一行里
+  // 有备注的、没备注的、不可用的，四边一样齐；高度不随内容长短变。
+  & .dsh-profile-sidebar-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 8px; align-items: stretch; }
 }
 // 框里的源卡不再单独立一档高度（§25 / §26.2）：72px、三行、单行省略这一套是卡片自己的
 // 基线（见下面 .dsh-profile-card 一节），三个调用点共用。这里只留下栅格。
 // 源卡区外面那层（§22）：只负责给遮罩一个定位容器。列表的高度上限与滚动还在
 // .dsh-new-pick 上 —— 锁上、解锁都是这套 DOM，滚动位置因此一个像素都不动。
-.dsh-new-pick-wrap {
-  position: relative;
-}
+.dsh-new-pick-wrap { position: relative; }
 // 勾上「从基础实例开始」时盖在整组源卡上的那一层（§22）：容器已经是 inert 的
 // （键盘进不去、点也没有反应），这一层是给眼睛的那一半 —— 挡指针 + 把话说出来。
 // 铺满容器（inset: 0），所以列表滚到哪儿它都盖着；列表自己不隐藏、不搬动。
@@ -1778,21 +1507,11 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   border-radius: $radius-sm;
   background: rgba(0, 0, 0, 0.42);
 }
-.dsh-new-pick-veil-text {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.82);
-  text-align: center;
-}
+.dsh-new-pick-veil-text { margin: 0; font-size: 11.5px; line-height: 1.6; color: rgba(255, 255, 255, 0.82); text-align: center; }
 // 框顶那句说明（§25.4）：固定一句，勾不勾复选框都不改字 ——
 // 所以不必再叠两格、藏一格（§24.3 那套占位做法随两句一起删了）。
 // 复选框只管卡片区锁不锁、名字格引导要不要显示。
-.dsh-new-name {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.dsh-new-name { display: flex; flex-direction: column; gap: 4px; }
 .dsh-new-name-label {
   font-size: 11.5px;
   color: $text-dim;
@@ -1802,24 +1521,14 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   text-overflow: ellipsis;
 }
 // 必填星号（§24.1）：颜色走 danger，读屏不报它（输入框上有 aria-required）。
-.dsh-req {
-  margin-right: 3px;
-  color: $danger;
-}
+.dsh-req { margin-right: 3px; color: $danger; }
 // 左下角「从基础实例开始」复选框（§21，原来那颗文本按钮）：位置不抢戏 ——
 // 字号比正文小一档、低对比；但勾选框本身用主色（accent-color），勾没勾上一眼分得出。
 // 按下之后它换的是一种**模式**（源卡整组锁上），所以勾上时整行字也提一档 ——
 // 不能只靠那个小方块里的一个勾。
 // 一颗复选框 + 右下角的创建 / 取消，因此分成两端（.dsh-dialog-foot-split）。
-.dsh-dialog-foot-split {
-  justify-content: flex-start;
-  align-items: center;
-}
-.dsh-dialog-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-}
+.dsh-dialog-foot-split { justify-content: flex-start; align-items: center; }
+.dsh-dialog-actions { margin-left: auto; display: flex; gap: 8px; }
 .dsh-new-base-check {
   display: inline-flex;
   align-items: center;
@@ -1831,12 +1540,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   color: $text-dim;
   cursor: pointer;
   user-select: none;
-}
-.dsh-new-base-check:hover {
-  color: $text;
-}
-.dsh-new-base-check[data-checked="true"] {
-  color: $text;
+  &:hover { color: $text; }
+  &[data-checked="true"] { color: $text; }
 }
 .dsh-new-base-box {
   width: 13px;
@@ -1845,22 +1550,12 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   flex: none;
   accent-color: $accent;
   cursor: pointer;
-}
-.dsh-new-base-box:disabled {
-  cursor: default;
-}
-.dsh-new-base-box:focus-visible {
-  outline: 2px solid $text;
-  outline-offset: 1px;
+  &:disabled { cursor: default; }
+  &:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
 }
 // 源卡区上面那一句（有卡而一只可用的都没有）：一行说明，不占按钮的位置。
 // 「勾上之后整组不可选」那一句不在这里 —— 它跟着遮罩走（.dsh-new-pick-veil-text）。
-.dsh-new-note {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: $text-dim;
-}
+.dsh-new-note { margin: 0; font-size: 11.5px; line-height: 1.6; color: $text-dim; }
 // 勾上复选框时名字格下面那句引导：填名字是下一刻唯一要做的事，字色比标签亮一档。
 // 没勾时它仍在文档里、只把文字藏起来（§24.3）：visibility 不占读屏，却占布局 ——
 // 勾上勾下对话框总高度与列表、名字格的顶端因此一个像素都不动。
@@ -1868,9 +1563,7 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   font-size: 11.5px;
   line-height: 1.5;
   color: $text-mid;
-}
-.dsh-new-name-guide[data-active="false"] {
-  visibility: hidden;
+  &[data-active="false"] { visibility: hidden; }
 }
 /* 窄屏与中等宽度：§26.3 只放大了桌面那一档（≥1024），1023 以下保持原来的尺寸 ——
    820 到 1023 仍是 min(880px, 92vw)，819.98 以下贴满宽、一行一张。 */
@@ -1895,45 +1588,21 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 }
 
 // ── 实例总览页（OverviewView.vue） ──
-.dsh-overview {
-  display: flex;
-  align-items: stretch;
-  min-height: 100%;
-}
-.dsh-overview-page {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 22px 24px;
-}
+.dsh-overview { display: flex; align-items: stretch; min-height: 100%; }
+.dsh-overview-page { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 22px 24px; }
 .dsh-overview-head {
   /* 页头三块：标题 + 数据源徽标 + 一句说明，右侧「新建实例」。
-     窄视口下这一行放不下 —— 折行，说明那一句自己省略号。
-     以前它是 flex: none + nowrap 的长句，360px 下会顶穿 .dsh-main（实测抓到过），
-     「任何宽度都不横向溢出」是硬要求，所以两级都允许折行。 */
+  窄视口下这一行放不下 —— 折行，说明那一句自己省略号。
+  以前它是 flex: none + nowrap 的长句，360px 下会顶穿 .dsh-main（实测抓到过），
+  「任何宽度都不横向溢出」是硬要求，所以两级都允许折行。 */
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
 }
-.dsh-head-text {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  min-width: 0;
-}
-.dsh-page-title {
-  flex: none;
-  margin: 0;
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-}
+.dsh-head-text { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.dsh-page-title { flex: none; margin: 0; font-size: 21px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; }
 .dsh-head-note {
   flex: 0 1 auto;
   min-width: 0;
@@ -1956,52 +1625,17 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   color: #fff;
   font-size: 12.5px;
   cursor: pointer;
+  &:hover { filter: brightness(1.08); }
 }
-.dsh-new-btn:hover {
-  filter: brightness(1.08);
-}
-.dsh-plus {
-  font-size: 13px;
-}
+.dsh-plus { font-size: 13px; }
 
 // ── 日志页（LogsView.vue） ──
-.dsh-logs {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  height: 100%;
-  min-height: 0;
-  padding: 16px 22px 20px;
-}
-.dsh-logs-head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.dsh-page-title {
-  margin: 0;
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-}
-.dsh-toolbar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.dsh-tool-left {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex: none;
-}
-.dsh-log-label {
-  font-size: 11.5px;
-  color: $text-dim;
-}
+.dsh-logs { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; padding: 16px 22px 20px; }
+.dsh-logs-head { flex: none; display: flex; align-items: center; gap: 10px; }
+.dsh-page-title { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; }
+.dsh-toolbar { flex: none; display: flex; align-items: center; gap: 12px; }
+.dsh-tool-left { display: flex; align-items: center; gap: 7px; flex: none; }
+.dsh-log-label { font-size: 11.5px; color: $text-dim; }
 .dsh-select {
   height: 30px;
   padding: 0 8px;
@@ -2011,9 +1645,7 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   color: $text;
   font-size: 12.5px;
   cursor: pointer;
-}
-.dsh-select:hover {
-  border-color: $accent;
+  &:hover { border-color: $accent; }
 }
 .dsh-meta {
   flex: 1;
@@ -2024,15 +1656,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   font-size: 11px;
   color: $text-dim;
 }
-.dsh-inst-note {
-  flex: none;
-  margin: 0;
-  font-size: 11.5px;
-  color: $warn;
-}
-.dsh-select option.divider {
-  color: $text-dim;
-}
+.dsh-inst-note { flex: none; margin: 0; font-size: 11.5px; color: $warn; }
+.dsh-select option.divider { color: $text-dim; }
 .dsh-refresh {
   flex: none;
   display: inline-flex;
@@ -2046,10 +1671,7 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   color: $text-mid;
   font-size: 12.5px;
   cursor: pointer;
-}
-.dsh-refresh:hover {
-  background: $panel-soft;
-  color: $text;
+  &:hover { background: $panel-soft; color: $text; }
 }
 .dsh-log-box {
   flex: 1;
@@ -2059,10 +1681,10 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   border: 1px solid $line;
   border-radius: $radius;
   background: $panel;
+  // 从失败提示条跳过来时焦点落在这块上（tabindex=-1，见 view_logs）。
+  // 一整块日志的默认焦点环是一圈很吵的框，这里只留一条淡边 —— 位置由滚到底说明。
+  &:focus { outline: none; border-color: rgba($accent-rgb, 0.55); }
 }
-// 从失败提示条跳过来时焦点落在这块上（tabindex=-1，见 view_logs）。
-// 一整块日志的默认焦点环是一圈很吵的框，这里只留一条淡边 —— 位置由滚到底说明。
-.dsh-log-box:focus { outline: none; border-color: rgba($accent-rgb, 0.55); }
 .dsh-log-line {
   display: flex;
   align-items: baseline;
@@ -2073,28 +1695,12 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   line-height: 1.6;
   white-space: pre;
 }
-.dsh-log-t {
-  flex: none;
-  color: $text-dim;
-}
-.dsh-log-lv {
-  flex: none;
-  width: 30px;
-  text-align: center;
-}
-.dsh-lv-error {
-  color: $danger;
-}
-.dsh-lv-warn {
-  color: $warn;
-}
-.dsh-lv-none {
-  color: $text-dim;
-  opacity: 0.55;
-}
-.dsh-log-body {
-  color: $text;
-}
+.dsh-log-t { flex: none; color: $text-dim; }
+.dsh-log-lv { flex: none; width: 30px; text-align: center; }
+.dsh-lv-error { color: $danger; }
+.dsh-lv-warn { color: $warn; }
+.dsh-lv-none { color: $text-dim; opacity: 0.55; }
+.dsh-log-body { color: $text; }
 /* 窄屏日志（design/design-fixes.md §19.2）：一行 1152px 塞进 154px 的箱体，
    只剩时间戳加一个字母 —— 横向滚动在这里不是「看不全」，是没法读。
    这一档改成换行：时刻与级别留在行首，正文从它俩右边起、按箱体宽度折。
@@ -2128,128 +1734,60 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   border-radius: $radius;
   color: $text-dim;
 }
-.dsh-log-empty-title {
-  margin: 0;
-  font-size: 13px;
-  color: $text-mid;
-}
-.dsh-log-empty-detail {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-}
+.dsh-log-empty-title { margin: 0; font-size: 13px; color: $text-mid; }
+.dsh-log-empty-detail { margin: 0; font-size: 11.5px; line-height: 1.6; }
 
 // ── 关于页（AboutView.vue） ──
-.dsh-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 22px 24px;
-  max-width: 760px;
-}
-.dsh-page-head {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.dsh-page-title {
-  margin: 0;
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
+.dsh-page { display: flex; flex-direction: column; gap: 12px; padding: 16px 22px 24px; max-width: 760px; }
+.dsh-page-head { display: flex; flex-direction: column; gap: 5px; }
+.dsh-page-title { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: 0.2px; }
 /* 内容面板（关于页四块、日志页、设置页共用）：**没有 1px 边**（第 5 条）。
    面板与页面底之间靠 $card 与 $bg 的色差分开，留白本来就够（页头与面板之间 12px）。
    验收「三类页面 1px 线条数」时，这一条一次抵掉 4 条边。 */
-.dsh-panel {
-  padding: 14px 15px 15px;
-  border-radius: $radius;
-  background: $card;
-}
-.dsh-panel-title {
-  margin: 0 0 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: $text-mid;
-  letter-spacing: 0.2px;
-}
+.dsh-panel { padding: 14px 15px 15px; border-radius: $radius; background: $card; }
+.dsh-panel-title { margin: 0 0 10px; font-size: 12.5px; font-weight: 600; color: $text-mid; letter-spacing: 0.2px; }
 .dsh-para {
   margin: 0 0 6px;
   font-size: 12.5px;
   /* 第 6 条：正文行高 1.7 → 1.8。这一栏最宽 760px（约 60 个汉字），
-     按军规 11「行越宽行距越大」，1.8 才配得上这条行长。 */
+  按军规 11「行越宽行距越大」，1.8 才配得上这条行长。 */
   line-height: 1.8;
   color: $text-dim;
+  &:last-child { margin-bottom: 0; }
 }
-.dsh-para:last-child {
-  margin-bottom: 0;
-}
-.dsh-kv {
-  display: flex;
-  flex-direction: column;
-}
+.dsh-kv { display: flex; flex-direction: column; }
 .dsh-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
   padding: 6px 0;
   border-bottom: 1px solid $line;
+  &:last-child { border-bottom: 0; }
 }
-.dsh-row:last-child {
-  border-bottom: 0;
-}
-.dsh-label {
-  flex: none;
-  width: 88px;
-  font-size: 12px;
-  color: $text-dim;
-}
-.dsh-value {
-  min-width: 0;
-  font-size: 12.5px;
-  color: $text;
-  word-break: break-all;
-}
-.dsh-foot {
-  margin: 10px 0 0;
-  font-size: 11px;
-  color: $text-dim;
-}
+.dsh-label { flex: none; width: 88px; font-size: 12px; color: $text-dim; }
+.dsh-value { min-width: 0; font-size: 12.5px; color: $text; word-break: break-all; }
+.dsh-foot { margin: 10px 0 0; font-size: 11px; color: $text-dim; }
 // ── 关于页「这台的 dsh 版本」 ───────────────────────────────
 // 一行一份装着的 dsh：版本号在左，标记与按钮在右。沿用 .dsh-row 的排版
 // （同一张面板里的行），只把竖向对齐改成居中 —— 右边是按钮，baseline 对它没用。
 .dsh-version-item {
   align-items: center;
   gap: 10px;
-}
-// 版本号吃掉剩余宽度：长了就自己折行，按钮永远贴右边
-.dsh-version-item .dsh-value {
-  flex: 1 1 auto;
+  // 版本号吃掉剩余宽度：长了就自己折行，按钮永远贴右边
+  & .dsh-value { flex: 1 1 auto; }
 }
 // 「在用 / 在跑」两枚小标记。在用那一枚稍亮 —— 它答的是「起实例会用这一份」
-.dsh-dsh-marks {
-  display: inline-flex;
-  flex: none;
-  gap: 6px;
-}
+.dsh-dsh-marks { display: inline-flex; flex: none; gap: 6px; }
 .dsh-dsh-mark {
   font-size: 11px;
   color: $text-dim;
   white-space: nowrap;
-}
-.dsh-dsh-mark.is-active {
-  color: $text;
+  &.is-active { color: $text; }
 }
 // 一行里的按钮组：不折、不缩，位置固定在最右
-.dsh-dsh-actions {
-  display: inline-flex;
-  flex: none;
-  gap: 6px;
-}
+.dsh-dsh-actions { display: inline-flex; flex: none; gap: 6px; }
 // 「现在生效的是哪一版」那一句：贴在候选列表下面，与面板里别的说明文字同一档
-.dsh-dsh-pin-line {
-  margin: 10px 0 0;
-}
+.dsh-dsh-pin-line { margin: 10px 0 0; }
 // ── 手写的两条（不在 Vue 版样式块里，属于这一次新增的交互） ──
 // 归档区的折叠开关：清单要求「可折叠」，Vue 版没有这个交互，没有可搬的规则。
 // 外观跟着分组头走（字号字重色都从 .dsh-section-title 继承），只去掉按钮的默认皮。
@@ -2263,8 +1801,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   color: inherit;
   font: inherit;
   cursor: pointer;
+  &:hover { color: $text; }
 }
-.dsh-collapse:hover { color: $text; }
 
 // 徽标里的文字：Vue 版的 SourceBadge 没给 .label 单独写规则，补一条不换行的。
 .dsh-badge-label { white-space: nowrap; }
@@ -2310,15 +1848,8 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   align-items: flex-start;
   gap: 10px;
 }
-.dsh-notice-text {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.dsh-notice.err {
-  border-color: rgba($danger-rgb, 0.42);
-  background: rgba($danger-rgb, 0.12);
-  color: $text;
-}
+.dsh-notice-text { flex: 1 1 auto; min-width: 0; }
+.dsh-notice.err { border-color: rgba($danger-rgb, 0.42); background: rgba($danger-rgb, 0.12); color: $text; }
 
 // ── 全局提示（外壳层：六个页面同一个位置，§14） ────────────
 // 动作结果只有这一条出口：成功画成 toast（3.5 秒后自己淡出），失败画成常驻提示条。
@@ -2326,8 +1857,7 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 // 层级 55：盖在抽屉与版本 / 配置侧栏之上（50 / 51），在确认框之下（60 / 61）。
 // 淡出用 transition 而不是 animation：验收的动效探针数的是 animationName，
 // 这里多一条动画会让「点击前无可见动效」凭空多出一个要解释的元素。
-.dsh-toast,
-.dsh-global-notice {
+.dsh-toast, .dsh-global-notice {
   position: fixed;
   left: 50%;
   bottom: 22px;
@@ -2346,24 +1876,18 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   word-break: break-word;
   opacity: 1;
   transition: opacity 200ms ease;
+  &.fading { opacity: 0; }
 }
-.dsh-toast.fading { opacity: 0; }
 // 失败那一档：位置与层级跟 toast 共用上面那一段。
 // 它常驻在页面底部，底色必须是**不透明**的 —— .dsh-notice.err 那层 rgba 直接铺在
 // 页面内容上会透出底下的字；这里垫一层 $panel，投影再把它与内容分开。
 .dsh-global-notice { box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45); }
-.dsh-notice.err.dsh-global-notice {
-  background: linear-gradient(rgba($danger-rgb, 0.12), rgba($danger-rgb, 0.12)), $panel;
-}
+.dsh-notice.err.dsh-global-notice { background: linear-gradient(rgba($danger-rgb, 0.12), rgba($danger-rgb, 0.12)), $panel; }
 // 覆盖层（抽屉 / 版本侧栏 / 配置侧栏）不改变提示的位置：它固定在视口底部正中。
 // 抽屉会盖住提示的一部分，这是有意的取舍 —— 提示说的是「刚刚发生了什么」，抽屉才是正在做的事。
 // 「打开 Web UI」按住 Alt：换成琥珀色，表示「忽略没有 key 这件事，直接开裸地址」。
 // 用 Alt 不用 Shift：Shift+点击是浏览器自己的手势（开新窗口），抢不过来。
-body[data-alt="1"] .dsh-btn.dsh-open-ui {
-  background: linear-gradient(rgba($gold-rgb, 0.85), rgba($gold-rgb, 0.7));
-  border-color: $gold;
-  color: #1b1508;
-}
+body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold-rgb, 0.85), rgba($gold-rgb, 0.7)); border-color: $gold; color: #1b1508; }
 .dsh-toast .dsh-btn, .dsh-global-notice .dsh-btn {
   flex: 0 0 auto;
   // toast 本来就是给「刚发生了什么」看的，按钮不抢视线：跟文字一样高就够了
@@ -2394,12 +1918,7 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 }
 // 侧栏：右侧覆盖式，遮罩与面板是兄弟（与抽屉同一套做法）。
 // 层级 57/56：盖在抽屉（51）与提示条（55）之上，在确认框（60/61）之下。
-.dsh-notice-panel-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 56;
-  background: rgba(8, 9, 11, 0.5);
-}
+.dsh-notice-panel-scrim { position: fixed; inset: 0; z-index: 56; background: rgba(8, 9, 11, 0.5); }
 .dsh-notice-panel {
   position: fixed;
   top: 0;
@@ -2417,29 +1936,9 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 @media (max-width: 640px) {
   .dsh-notice-panel { width: 100%; }
 }
-.dsh-notice-panel-head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid $line;
-}
-.dsh-notice-panel-title {
-  margin: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: $text;
-}
-.dsh-notice-panel-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 8px 12px 16px;
-}
+.dsh-notice-panel-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid $line; }
+.dsh-notice-panel-title { margin: 0; flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 600; color: $text; }
+.dsh-notice-panel-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 12px 16px; }
 .dsh-notice-list { display: flex; flex-direction: column; }
 .dsh-notice-row {
   display: flex;
@@ -2447,8 +1946,8 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   gap: 3px;
   padding: 8px 6px;
   border-bottom: 1px solid $line;
+  &:last-child { border-bottom: 0; }
 }
-.dsh-notice-row:last-child { border-bottom: 0; }
 .dsh-notice-row-head { display: flex; align-items: center; gap: 8px; }
 .dsh-notice-row-time {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -2463,75 +1962,25 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   border: 1px solid $line-strong; border-radius: $radius-sm;
   background: transparent; color: $text-mid;
   font-size: 11.5px; cursor: pointer;
+  &:hover { background: $panel-soft; color: $text; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 }
-.dsh-notice-row-btn:hover { background: $panel-soft; color: $text; }
-.dsh-notice-row-btn:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 // 「成功 / 失败」是文字通道：灰度截图里也读得出这一条成没成。
-.dsh-notice-row-mark {
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  line-height: 15px;
-}
-.dsh-notice-row.ok .dsh-notice-row-mark {
-  background: rgba($ok-rgb, 0.16);
-  color: $ok;
-}
-.dsh-notice-row.err .dsh-notice-row-mark {
-  background: rgba($danger-rgb, 0.16);
-  color: $danger;
-}
+.dsh-notice-row-mark { padding: 0 6px; border-radius: 999px; font-size: 10.5px; line-height: 15px; }
+.dsh-notice-row.ok .dsh-notice-row-mark { background: rgba($ok-rgb, 0.16); color: $ok; }
+.dsh-notice-row.err .dsh-notice-row-mark { background: rgba($danger-rgb, 0.16); color: $danger; }
 // 正文最多两行：超了省略号，完整正文在那一行的悬停里（与卡片的做法一致）。
 /* 正文不再两行封顶（§45）：失败原文本来就该看全，截断之后再让人去复制没有意义。
    面板自己会滚，长句折行就是了。 */
-.dsh-notice-row-text {
-  display: block;
-  overflow-wrap: anywhere;
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: $text;
-  word-break: break-word;
-}
-.dsh-notice-empty {
-  margin: 0;
-  padding: 18px 6px;
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: $text-dim;
-}
+.dsh-notice-row-text { display: block; overflow-wrap: anywhere; font-size: 12.5px; line-height: 1.55; color: $text; word-break: break-word; }
+.dsh-notice-empty { margin: 0; padding: 18px 6px; font-size: 12.5px; line-height: 1.6; color: $text-dim; }
 
 // ── 设置页（左索引 + 右条目） ──────────────────────────────
-.dsh-settings-page {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 22px 24px;
-  min-height: 100%;
-}
-.dsh-settings-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.dsh-settings-note {
-  margin: 0;
-  font-size: 11.5px;
-  color: $text-dim;
-}
-.dsh-settings-body {
-  display: grid;
-  grid-template-columns: 176px minmax(0, 1fr);
-  align-items: start;
-  gap: 14px;
-}
-.dsh-settings-index {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 7px;
-  background: $card;
-  border-radius: $radius;
-}
+.dsh-settings-page { display: flex; flex-direction: column; gap: 10px; padding: 16px 22px 24px; min-height: 100%; }
+.dsh-settings-head { display: flex; align-items: center; gap: 10px; }
+.dsh-settings-note { margin: 0; font-size: 11.5px; color: $text-dim; }
+.dsh-settings-body { display: grid; grid-template-columns: 176px minmax(0, 1fr); align-items: start; gap: 14px; }
+.dsh-settings-index { display: flex; flex-direction: column; gap: 2px; padding: 7px; background: $card; border-radius: $radius; }
 .dsh-settings-tab {
   display: flex;
   align-items: center;
@@ -2546,50 +1995,19 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   font-size: 12.5px;
   text-align: left;
   cursor: pointer;
+  &:hover { background: $panel-soft; color: $text; }
+  &.active { background: $accent-soft; color: $text; }
 }
-.dsh-settings-tab:hover {
-  background: $panel-soft;
-  color: $text;
-}
-.dsh-settings-tab.active {
-  background: $accent-soft;
-  color: $text;
-}
-.dsh-settings-tab-icon {
-  display: flex;
-  flex: none;
-  color: $text-dim;
-}
-.dsh-settings-tab.active .dsh-settings-tab-icon {
-  color: $accent;
-}
-.dsh-settings-tab:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: 1px;
-}
-.dsh-settings-tab-label {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dsh-settings-tab-count {
-  flex: none;
-  font-size: 10.5px;
-  color: $text-dim;
-}
+.dsh-settings-tab-icon { display: flex; flex: none; color: $text-dim; }
+.dsh-settings-tab.active .dsh-settings-tab-icon { color: $accent; }
+.dsh-settings-tab:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+.dsh-settings-tab-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsh-settings-tab-count { flex: none; font-size: 10.5px; color: $text-dim; }
 /* 那一行「点进去」的提示：窄屏第一级的分区列表才有（宽屏这一列是索引，
    点它就是换右边那一栏，没有「进去」这回事）。 */
-.dsh-settings-tab-arrow {
-  display: none;
-  flex: none;
-  color: $text-dim;
-}
+.dsh-settings-tab-arrow { display: none; flex: none; color: $text-dim; }
 /* 第二级顶部的返回键那一行：只在窄屏出现（见下面那条 media query） */
-.dsh-settings-back-row {
-  display: none;
-}
+.dsh-settings-back-row { display: none; }
 .dsh-settings-back {
   display: inline-flex;
   align-items: center;
@@ -2601,50 +2019,31 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $text-mid;
   font-size: 12.5px;
   cursor: pointer;
-}
-.dsh-settings-back:hover {
-  color: $text;
-}
-.dsh-settings-back:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: 1px;
+  &:hover { color: $text; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 }
 .dsh-settings-panel {
   min-width: 0;
   /* 右边那颗开关的圆点会向外溢出 3px（MD2 的几何），15px 内边距时它离卡片边缘只剩 12px，
-     看着像贴边。20px 起，溢出之后仍留 17px。宽度也收一档：整行拉满 1270px 时，
-     文字在左、开关在右，中间一大片空，读起来散。 */
+  看着像贴边。20px 起，溢出之后仍留 17px。宽度也收一档：整行拉满 1270px 时，
+  文字在左、开关在右，中间一大片空，读起来散。 */
   max-width: 1040px;
   padding: 18px 22px 20px;
   background: $card;
   border-radius: $radius;
 }
-.dsh-settings-panel-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: $text;
-}
-.dsh-settings-panel-note {
-  margin: 4px 0 12px;
-  font-size: 11.5px;
-  color: $text-dim;
-}
-.dsh-settings-rows {
-  display: flex;
-  flex-direction: column;
-}
+.dsh-settings-panel-title { margin: 0; font-size: 13px; font-weight: 600; color: $text; }
+.dsh-settings-panel-note { margin: 4px 0 12px; font-size: 11.5px; color: $text-dim; }
+.dsh-settings-rows { display: flex; flex-direction: column; }
 .dsh-setting {
   /* 条目之间不再画分隔线（第 5 条）：改用留白。一行上下各 14px，
-     两行之间是 28px，比原来那条 1px 线给出的间隔宽得多。 */
+  两行之间是 28px，比原来那条 1px 线给出的间隔宽得多。 */
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 14px 0;
-}
-.dsh-setting:first-child {
-  padding-top: 2px;
+  &:first-child { padding-top: 2px; }
 }
 // 窄屏（手机，< 820）：设置页走两级（design/design-fixes.md §18）。
 //
@@ -2704,31 +2103,16 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
     gap: 6px;
   }
 }
-.dsh-setting-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.dsh-setting-title {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
+.dsh-setting-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.dsh-setting-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .dsh-setting-name {
   /* 12.5px 在深底上显得发虚（§52）：名字是这一行的主语，抬到 13px 并给 500 字重；
-     说明那行也跟着提一档，免得「名字虚、说明更虚」。 */
+  说明那行也跟着提一档，免得「名字虚、说明更虚」。 */
   font-size: 13px;
   font-weight: 500;
   color: $text;
 }
-.dsh-setting-desc {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: $text-mid;
-}
+.dsh-setting-desc { margin: 0; font-size: 12.5px; line-height: 1.65; color: $text-mid; }
 /* 「恢复默认」：**只在值不等于缺省值时才有节点**（见 view_settings 的 setting_reset_button），
    所以这里不必写「默认态长什么样」。摆在这一条自己的说明下面 —— 它不是常用动作，
    是「这一项被我改过、想退回去」时的出口；缺省值多少收在它的悬停里，正文不占。 */
@@ -2744,25 +2128,11 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $text-mid;
   font-size: 11px;
   cursor: pointer;
+  &:hover:not(:disabled) { color: $accent; text-decoration: underline; }
+  &:disabled { opacity: 0.5; cursor: default; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 }
-.dsh-setting-reset:hover:not(:disabled) {
-  color: $accent;
-  text-decoration: underline;
-}
-.dsh-setting-reset:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.dsh-setting-reset:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: 1px;
-}
-.dsh-setting-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-self: end;
-}
+.dsh-setting-control { display: flex; align-items: center; gap: 8px; justify-self: end; }
 .dsh-setting-input {
   width: 104px;
   height: 30px;
@@ -2770,24 +2140,15 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   border: 1px solid $line-strong;
   border-radius: $radius-sm;
   /* 输入框底是色阶的第 4 档，不跟悬停共用一档：改前它和「悬停」都是 $panel-soft，
-     而输入框是**常驻**的控件，一直亮着悬停那一档等于这一档在骗人。 */
+  而输入框是**常驻**的控件，一直亮着悬停那一档等于这一档在骗人。 */
   background: $gray-4;
   color: $text;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
+  &:hover { border-color: $accent; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: -1px; }
 }
-.dsh-setting-input:hover {
-  border-color: $accent;
-}
-.dsh-setting-input:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: -1px;
-}
-.dsh-setting-saving {
-  font-size: 11px;
-  color: $text-dim;
-  white-space: nowrap;
-}
+.dsh-setting-saving { font-size: 11px; color: $text-dim; white-space: nowrap; }
 /* 开关（MD2，design/design-fixes.md §51.2）：button[role=switch] 里一条轨道 + 一个圆点。
    **没有开/关文字** —— 状态由圆点停在哪一端 + 轨道颜色表达，读屏靠 aria-checked。
    几何：轨道 36×14（圆角 7），圆点 20；圆点默认左移 3px，让圆心落在左端点（半径 7）上，
@@ -2826,43 +2187,25 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
 }
-.dsh-switch.on .dsh-switch-thumb {
-  background: $accent;
-  transform: translateX(22px);
-}
+.dsh-switch.on .dsh-switch-thumb { background: $accent; transform: translateX(22px); }
 /* 悬停：圆点外一圈 8% 的淡影（不是描边，不改变圆点本身的尺寸） */
 .dsh-switch:hover .dsh-switch-thumb { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.08); }
 .dsh-switch.on:hover .dsh-switch-thumb { box-shadow: 0 0 0 8px rgba($accent-rgb, 0.08); }
 /* 键盘：只给 :focus-visible（鼠标点不给环，免得每次点都闪一圈） */
-.dsh-switch:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: 2px;
-  border-radius: 10px;
-}
-.dsh-switch:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
+.dsh-switch:focus-visible { outline: 2px solid $accent; outline-offset: 2px; border-radius: 10px; }
+.dsh-switch:disabled { opacity: 0.45; cursor: default; }
 /* 矮一档（抽屉里那档）：轨道 32×12、圆点 18，位移 20（32 − 18 + 3 + 3） */
-.dsh-switch.small { width: 32px; height: 18px; }
-.dsh-switch.small .dsh-switch-track { width: 32px; height: 12px; border-radius: 6px; }
-.dsh-switch.small .dsh-switch-thumb {
-  width: 18px;
-  height: 18px;
-  margin-top: -9px;
+.dsh-switch.small {
+  width: 32px; height: 18px;
+  & .dsh-switch-track { width: 32px; height: 12px; border-radius: 6px; }
+  & .dsh-switch-thumb { width: 18px; height: 18px; margin-top: -9px; }
+  &.on .dsh-switch-thumb { transform: translateX(20px); }
 }
-.dsh-switch.small.on .dsh-switch-thumb { transform: translateX(20px); }
 @media (prefers-reduced-motion: reduce) {
   .dsh-switch-track,
   .dsh-switch-thumb { transition: none; }
 }
-.dsh-settings-hint {
-  padding: 14px 15px;
-  border: 1px dashed $line-strong;
-  border-radius: $radius;
-  font-size: 12px;
-  color: $text-dim;
-}
+.dsh-settings-hint { padding: 14px 15px; border: 1px dashed $line-strong; border-radius: $radius; font-size: 12px; color: $text-dim; }
 /* 接口不在时的整块说明：不显示条目，也不拿缺省值冒充当前值 */
 .dsh-settings-error {
   display: flex;
@@ -2873,28 +2216,10 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   border-radius: $radius;
   background: rgba($warn-rgb, 0.08);
 }
-.dsh-settings-error-title {
-  margin: 0;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: $warn;
-}
-.dsh-settings-error-status {
-  margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  color: $text;
-}
-.dsh-settings-error-hint {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: $text-mid;
-}
-.dsh-settings-error-foot {
-  display: flex;
-  justify-content: flex-end;
-}
+.dsh-settings-error-title { margin: 0; font-size: 13.5px; font-weight: 600; color: $warn; }
+.dsh-settings-error-status { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: $text; }
+.dsh-settings-error-hint { margin: 0; font-size: 11.5px; line-height: 1.6; color: $text-mid; }
+.dsh-settings-error-foot { display: flex; justify-content: flex-end; }
 .dsh-settings-retry {
   display: inline-flex;
   align-items: center;
@@ -2907,14 +2232,8 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $text-mid;
   font-size: 12.5px;
   cursor: pointer;
-}
-.dsh-settings-retry:hover:not(:disabled) {
-  background: $panel-soft;
-  color: $text;
-}
-.dsh-settings-retry:disabled {
-  opacity: 0.5;
-  cursor: default;
+  &:hover:not(:disabled) { background: $panel-soft; color: $text; }
+  &:disabled { opacity: 0.5; cursor: default; }
 }
 // ── 维护页（作业台） ────────────────────────────────────────
 // 一条作业一张卡：标题 / 状态 / 第几步 / 开始于 / 一句话结果 / 步骤表 / 按钮。
@@ -2923,36 +2242,13 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 // 维护页用满内容区宽度（design/ops-maintenance-jobs.md §9.1）：
 // 不套 .dsh-page 的窄栏，只留内边距；作业卡、步骤表、试跑块跟着铺开。
 // 关于页与设置页仍是 .dsh-page 的窄栏（散文与表单，一行太长反而难读），不跟着改。
-.dsh-maintenance {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 22px 24px;
-  max-width: none;
-}
-.dsh-job-start-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 18px;
-}
+.dsh-maintenance { display: flex; flex-direction: column; gap: 12px; padding: 16px 22px 24px; max-width: none; }
+.dsh-job-start-row { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; }
 // 第十版（§10.2 / §10.3）：表单里两格都变成「一行当前值 + 一颗按钮」。
 // 标签、值、按钮同一行；窄屏整行折下去（见下面 620px 那一档）。
-.dsh-job-current-field {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-.dsh-job-current {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.dsh-job-current-label {
-  flex: none;
-  font-size: 12px;
-  color: $text-dim;
-}
+.dsh-job-current-field { flex: 0 1 auto; min-width: 0; }
+.dsh-job-current { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dsh-job-current-label { flex: none; font-size: 12px; color: $text-dim; }
 // 值这一段：版本号是等宽字；没选时写「未选择」，走淡一档、不用等宽（见 [data-state="empty"]）。
 // 太长就省略 —— 「当前是哪一版」不许把整行撑穿。
 .dsh-job-current-value {
@@ -2964,42 +2260,25 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.dsh-job-current-value[data-state="empty"] {
-  font-family: inherit;
-  font-size: 12.5px;
-  color: $text-dim;
+  &[data-state="empty"] { font-family: inherit; font-size: 12.5px; color: $text-dim; }
 }
 .dsh-job-choose {
   flex: none;
+  /* 维护页空态那颗「开始一条作业」把焦点送到这一格，用的是脚本 focus()。
+     Chromium 只在「上一次输入是键盘」时给 :focus-visible，鼠标点出来的焦点没有环 ——
+     那一格看起来就像什么都没发生，所以这里**显式**给 :focus 一圈主色环。
+     只针对这一颗：别的按钮仍按浏览器那套（键盘才显示环）。 */
+  &:focus { outline: 2px solid $accent; outline-offset: 2px; border-radius: $radius-sm; }
 }
-/* 维护页空态那颗「开始一条作业」把焦点送到这一格，用的是脚本 focus()。
-   Chromium 只在「上一次输入是键盘」时给 :focus-visible，鼠标点出来的焦点没有环 ——
-   那一格看起来就像什么都没发生，所以这里**显式**给 :focus 一圈主色环。
-   只针对这一颗：别的按钮仍按浏览器那套（键盘才显示环）。 */
-.dsh-job-choose:focus {
-  outline: 2px solid $accent;
-  outline-offset: 2px;
-  border-radius: $radius-sm;
-}
-.dsh-job-start-btn {
-  margin-left: auto;
-}
+.dsh-job-start-btn { margin-left: auto; }
 // ── 版本侧栏（§12.1 到 §12.3） ──
 //
 // 外壳与实例详情抽屉同一套（.dsh-drawer）；里面是搜索 + 过滤 chip + 排序 + 一张表。
 // 标记四档各一色，但每一枚都带文字（颜色不是唯一信号）；一版最多显示两枚，其余进悬停。
-.dsh-version-search {
-  width: 100%;
-  flex: none;
-}
+.dsh-version-search { width: 100%; flex: none; }
 // 过滤 chip 一排：全部 / 已安装 / 正式发布 / 预发布。多选，选中的除了底色还有
 // aria-pressed=true 与 data-on（颜色不是唯一信号）。
-.dsh-version-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+.dsh-version-filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .dsh-version-chip {
   padding: 2px 9px;
   border: 1px solid $line-strong;
@@ -3009,25 +2288,12 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   font-size: 11.5px;
   line-height: 18px;
   cursor: pointer;
-}
-.dsh-version-chip:hover {
-  background: $panel-soft;
-  color: $text;
-}
-.dsh-version-chip.on {
-  border-color: rgba($accent-rgb, 0.55);
-  background: rgba($accent-rgb, 0.16);
-  color: $text;
-}
-.dsh-version-chip:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: 1px;
+  &:hover { background: $panel-soft; color: $text; }
+  &.on { border-color: rgba($accent-rgb, 0.55); background: rgba($accent-rgb, 0.16); color: $text; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 }
 // 排序：一颗下拉。它选的是同一样东西的读法，不是三个并列的条件（那种用 chip）。
-.dsh-version-sort {
-  display: flex;
-  align-items: center;
-}
+.dsh-version-sort { display: flex; align-items: center; }
 .dsh-version-table-wrap {
   // flex: none 是必须的：抽屉体是 flex 列，默认可收缩；一收缩（而这里又带 overflow-x:auto，
   // 于是 overflow-y 也跟着变成 auto）表格就被裁成一块自己的小滚动区，
@@ -3045,55 +2311,34 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-}
-.dsh-version-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 6px 8px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  color: $text-dim;
-  background: $panel-soft;
-  border-bottom: 1px solid $line;
-  white-space: nowrap;
-}
-.dsh-version-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid $line;
-  vertical-align: middle;
-}
-.dsh-version-table tbody tr:last-child td {
-  border-bottom: 0;
+  & th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: $text-dim;
+    background: $panel-soft;
+    border-bottom: 1px solid $line;
+    white-space: nowrap;
+  }
+  & td { padding: 6px 8px; border-bottom: 1px solid $line; vertical-align: middle; }
+  & tbody tr:last-child td { border-bottom: 0; }
 }
 // 整行可点（鼠标 / Enter / 空格）
 .dsh-version-row {
   cursor: pointer;
+  &:hover { background: $panel-soft; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: -2px; }
+  // 选中的那一行：底色 + 第一格左侧竖线。**颜色不是唯一信号** ——
+  // data-selected 与 aria-label 里都写着它的标记，这一行只是「现在用的是这一版」的提示。
+  &.selected { background: rgba($accent-rgb, 0.12); }
+  &.selected .dsh-version-cell { box-shadow: inset 2px 0 0 rgba($accent-rgb, 0.8); }
 }
-.dsh-version-row:hover {
-  background: $panel-soft;
-}
-.dsh-version-row:focus-visible {
-  outline: 2px solid $accent;
-  outline-offset: -2px;
-}
-// 选中的那一行：底色 + 第一格左侧竖线。**颜色不是唯一信号** ——
-// data-selected 与 aria-label 里都写着它的标记，这一行只是「现在用的是这一版」的提示。
-.dsh-version-row.selected {
-  background: rgba($accent-rgb, 0.12);
-}
-.dsh-version-row.selected .dsh-version-cell {
-  box-shadow: inset 2px 0 0 rgba($accent-rgb, 0.8);
-}
-.dsh-version-cell {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: $text;
-  white-space: nowrap;
-}
-.dsh-version-marks {
-  white-space: nowrap;
-}
+.dsh-version-cell { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: $text; white-space: nowrap; }
+.dsh-version-marks { white-space: nowrap; }
 // 标记四档：当前在用（绿）/ 已安装（蓝）/ 正式发布（中性）/ 预发布（琥珀）。
 // 每一枚都带文字，颜色只是让四档一眼分得开。
 .dsh-version-mark {
@@ -3105,57 +2350,20 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   font-size: 10.5px;
   line-height: 16px;
   color: $text-mid;
+  &[data-kind="current"] { border-color: rgba($ok-rgb, 0.5); background: rgba($ok-rgb, 0.12); color: $ok; }
+  &[data-kind="installed"] { border-color: rgba($accent-rgb, 0.5); background: rgba($accent-rgb, 0.12); color: $accent; }
+  &[data-kind="prerelease"] { border-color: rgba($warn-rgb, 0.5); background: rgba($warn-rgb, 0.12); color: $warn; }
 }
-.dsh-version-mark[data-kind="current"] {
-  border-color: rgba($ok-rgb, 0.5);
-  background: rgba($ok-rgb, 0.12);
-  color: $ok;
-}
-.dsh-version-mark[data-kind="installed"] {
-  border-color: rgba($accent-rgb, 0.5);
-  background: rgba($accent-rgb, 0.12);
-  color: $accent;
-}
-.dsh-version-mark[data-kind="prerelease"] {
-  border-color: rgba($warn-rgb, 0.5);
-  background: rgba($warn-rgb, 0.12);
-  color: $warn;
-}
-.dsh-version-published {
-  color: $text-dim;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
+.dsh-version-published { color: $text-dim; white-space: nowrap; font-variant-numeric: tabular-nums; }
 // 过滤掉的那几条 / 「列表里没有 <输入>」这两行小字
-.dsh-job-version-more,
-.dsh-job-version-custom {
-  font-size: 11px;
-  line-height: 1.4;
-  color: $text-dim;
-  cursor: default;
-}
-.dsh-job-version-custom {
-  color: $text-mid;
-}
+.dsh-job-version-more, .dsh-job-version-custom { font-size: 11px; line-height: 1.4; color: $text-dim; cursor: default; }
+.dsh-job-version-custom { color: $text-mid; }
 // 没得选时的那句话（或「正在拉版本列表」/「没有符合条件的版本」）。颜色走警示档，
 // 但它不是错误 —— 搜索框照旧可用，所以不加边框、不摆成一块通知。
-.dsh-job-version-none {
-  font-size: 11.5px;
-  line-height: 1.4;
-  color: $warn;
-  cursor: default;
-}
+.dsh-job-version-none { font-size: 11.5px; line-height: 1.4; color: $warn; cursor: default; }
 // 自定义版本那一行：一句「列表里没有 X，」+ 一颗「用这个版本」
-.dsh-version-custom-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.dsh-version-dialog-note {
-  font-size: 12px;
-  line-height: 1.5;
-  color: $text-mid;
-}
+.dsh-version-custom-row { display: flex; align-items: center; gap: 8px; }
+.dsh-version-dialog-note { font-size: 12px; line-height: 1.5; color: $text-mid; }
 // 底部小字：来源、拉取时间、正在重新拉取 / 上次没拉到的原因，再跟一颗「重新拉取」。
 // 三样都是读数，不省略成一串。
 .dsh-version-dialog-foot {
@@ -3169,19 +2377,9 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   line-height: 1.5;
   color: $text-dim;
 }
-.dsh-version-dialog-meta {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dsh-version-dialog-status {
-  color: $warn;
-  overflow-wrap: anywhere;
-}
-.dsh-version-foot-btn {
-  display: flex;
-}
+.dsh-version-dialog-meta { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsh-version-dialog-status { color: $warn; overflow-wrap: anywhere; }
+.dsh-version-foot-btn { display: flex; }
 
 // ── 试跑用配置的右侧侧栏（§10.3） ──
 //
@@ -3192,23 +2390,22 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   flex-direction: column;
   gap: 8px;
   /* 横向不滚（§25.3）：维护页「选择配置」与总览「整体替换」两处都挂这个类。
-     卡片自己已经 overflow: hidden，列表这一条是第二道 —— 卡片边框的 1px 与
-     选中那条竖条都不该让列表长出横向滚动条。 */
+  卡片自己已经 overflow: hidden，列表这一条是第二道 —— 卡片边框的 1px 与
+  选中那条竖条都不该让列表长出横向滚动条。 */
   overflow-x: hidden;
 }
 .dsh-profile-card {
   // 卡片在侧栏里按列摆，不参与总览那一套栅格
   flex: none;
   /* §26.2：三个调用点共用同一张卡 —— 三行钉死 72px（96 收一档），内容超出就裁。
-     高度只由这一条决定，不许被名字、备注或缺包读数顶高。
-     上下 padding 收到 8（原来是 .dsh-case 的 15）：8 + 18 + 16 + 16 + 两个 2px 间隙 = 70，
-     余下 2px 由 .dsh-case-body 的居中分掉，卡片本身仍是 72。 */
+  高度只由这一条决定，不许被名字、备注或缺包读数顶高。
+  上下 padding 收到 8（原来是 .dsh-case 的 15）：8 + 18 + 16 + 16 + 两个 2px 间隙 = 70，
+  余下 2px 由 .dsh-case-body 的居中分掉，卡片本身仍是 72。 */
   height: 72px;
   padding: 8px;
   overflow: hidden;
 }
-.dsh-profile-card.disabled,
-.dsh-profile-card.disabled:hover {
+.dsh-profile-card.disabled, .dsh-profile-card.disabled:hover {
   opacity: 0.55;
   background: $panel;
   border-color: $line;
@@ -3222,7 +2419,7 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 .dsh-profile-card.chosen {
   background: rgba($accent-rgb, 0.1);
   /* 选中态（§26.4）比悬停那圈 1px 半透明再重一档：2px 实色整圈 + 左侧 2px 竖条。
-     两个类（0,2,0）压得过 .dsh-case:hover（0,1,1），所以划过与选不选得住同一个样子。 */
+  两个类（0,2,0）压得过 .dsh-case:hover（0,1,1），所以划过与选不选得住同一个样子。 */
   box-shadow: inset 2px 0 0 rgba($accent-rgb, 0.8), inset 0 0 0 2px rgba($accent-rgb, 0.9);
 }
 .dsh-profile-card-sub {
@@ -3233,31 +2430,20 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.dsh-profile-card-sub.unusable {
-  color: $warn;
+  &.unusable { color: $warn; }
 }
 // 组件卡的第三行不按 18 排：三行 18 / 16 / 16 是钉住 72px 的那一组数（§26.2）。
 // 不可用的卡第三行换成原因，它在别处（侧栏那几处）仍是 18 —— 这里只压组件卡里这一份。
-.dsh-profile-card .dsh-profile-card-sub {
-  line-height: 16px;
-}
+.dsh-profile-card .dsh-profile-card-sub { line-height: 16px; }
 
 // 分组头：与总览同一个说法（当前运行的实例 / 已停止的实例），组内顺序照 order.json。
 .dsh-profile-sidebar-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  & + .dsh-profile-sidebar-group { margin-top: 14px; }
 }
-.dsh-profile-sidebar-group + .dsh-profile-sidebar-group {
-  margin-top: 14px;
-}
-.dsh-profile-sidebar-group-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: $text-mid;
-}
+.dsh-profile-sidebar-group-title { margin: 0; font-size: 12px; font-weight: 600; color: $text-mid; }
 // 第 3 行（§26.2）：缺包数 + 配置 home 档，两个短标记同一行。
 // nowrap + 省略号：这一行永远只占 16px，卡片高度不随读数长短变。
 // 灯不在这里了 —— 它挂在图标右上角（见 .dsh-profile-card .dsh-tile-slot）。
@@ -3273,50 +2459,24 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $text-mid;
   white-space: nowrap;
 }
-.dsh-profile-card-missing,
-.dsh-profile-card-home {
-  min-width: 0;
-  color: $text-dim;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.dsh-profile-card-missing, .dsh-profile-card-home { min-width: 0; color: $text-dim; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 // 第 1 行（§25.2 / §26.2）：名字 + 状态词 + 标记，一行，行高钉 18。
 // 卡窄时名字先省略，状态词与标记 flex: none（见 .dsh-dot-state / .dsh-profile-card-mark），
 // 不折行、也不被挤掉。这一行自己是裁剪区，卡片的 scrollWidth 不会因为一个过长的名字变大。
-.dsh-profile-card .dsh-case-head {
-  min-width: 0;
-  height: 18px;
-  overflow: hidden;
-}
+.dsh-profile-card .dsh-case-head { min-width: 0; height: 18px; overflow: hidden; }
 // 名字在组件卡里按 18px 行高排（总览的条目卡仍是 22px，不动）：
 // 三行 18 / 16 / 16 加起来才钉得住 72 这一档。
-.dsh-profile-card .dsh-name {
-  line-height: 18px;
-}
+.dsh-profile-card .dsh-name { line-height: 18px; }
 // 第 2 行：备注。人写的那一档带左侧细线（.dsh-card-note），没有就写「没有备注」。
 // 两档都只占一行、都带省略号 —— 备注多长都不改变卡片高度。
-.dsh-profile-card .dsh-card-note {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.dsh-profile-card .dsh-card-note-text {
-  flex: 0 1 auto;
-}
+.dsh-profile-card .dsh-card-note { min-width: 0; overflow: hidden; white-space: nowrap; }
+.dsh-profile-card .dsh-card-note-text { flex: 0 1 auto; }
 // 「没有备注」：与人写的备注同一处位置，但不带左侧那道竖线 —— 那道线是「这是人写的」的记号，
 // 这一行说的是「没有」。行高与备注那一行一致（16px），三行加起来才钉得住。
-.dsh-profile-card-nonote {
-  color: $text-dim;
-  line-height: 16px;
-}
+.dsh-profile-card-nonote { color: $text-dim; line-height: 16px; }
 // 「当前配置 / 已选」那枚标记。文字永远在场，颜色只是让它一眼分得开。
 // 「在跑」不再单独挂一枚：状态词「运行中」就紧跟名字，同一件事说两遍只是挤掉名字的宽度。
-.dsh-profile-card-mark.selected {
-  border-color: rgba($accent-rgb, 0.5);
-  background: rgba($accent-rgb, 0.12);
-  color: $accent;
-}
+.dsh-profile-card-mark.selected { border-color: rgba($accent-rgb, 0.5); background: rgba($accent-rgb, 0.12); color: $accent; }
 .dsh-profile-card-mark {
   flex: none;
   padding: 0 6px;
@@ -3327,42 +2487,18 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $text-dim;
   white-space: nowrap;
 }
-.dsh-job-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.dsh-job-cards { display: flex; flex-direction: column; gap: 10px; }
 .dsh-job-card {
   padding: 13px 15px 14px;
   border: 1px solid $line;
   border-radius: $radius;
   background: $panel;
+  &.dsh-job-bad { border-color: rgba($danger-rgb, 0.42); }
 }
-.dsh-job-card.dsh-job-bad {
-  border-color: rgba($danger-rgb, 0.42);
-}
-.dsh-job-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px 12px;
-}
-.dsh-job-head-text {
-  min-width: 0;
-}
-.dsh-job-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: $text;
-}
-.dsh-job-subtitle {
-  margin: 3px 0 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: $text-dim;
-}
+.dsh-job-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; }
+.dsh-job-head-text { min-width: 0; }
+.dsh-job-title { margin: 0; font-size: 14px; font-weight: 600; color: $text; }
+.dsh-job-subtitle { margin: 3px 0 0; font-size: 11.5px; line-height: 1.6; color: $text-dim; }
 .dsh-job-status {
   flex: none;
   display: inline-flex;
@@ -3380,28 +2516,12 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   height: 8px;
   border-radius: 50%;
   background: rgba(232, 230, 225, 0.35);
+  &.ok { background: $ok; }
+  &.danger { background: $danger; }
+  &.warn { background: $warn; }
 }
-.dsh-job-dot.ok {
-  background: $ok;
-}
-.dsh-job-dot.danger {
-  background: $danger;
-}
-.dsh-job-dot.warn {
-  background: $warn;
-}
-.dsh-job-meta {
-  margin-top: 6px;
-  font-size: 11.5px;
-  color: $text-dim;
-}
-.dsh-job-result {
-  margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 1.65;
-  color: $text-mid;
-  word-break: break-word;
-}
+.dsh-job-meta { margin-top: 6px; font-size: 11.5px; color: $text-dim; }
+.dsh-job-result { margin: 8px 0 0; font-size: 12px; line-height: 1.65; color: $text-mid; word-break: break-word; }
 // 最近一次动作的细节（§14.3）：结论在全局提示上，这里放确切命令 / 输出尾部。
 .dsh-job-detail {
   display: flex;
@@ -3417,27 +2537,10 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $text-mid;
   word-break: break-word;
 }
-.dsh-job-detail-tag {
-  flex: none;
-  color: $text-dim;
-  white-space: nowrap;
-}
-.dsh-job-detail-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  white-space: pre-wrap;
-}
-.dsh-job-toggle {
-  margin-top: 10px;
-  font-size: 12px;
-  color: $text-dim;
-}
-.dsh-job-steps {
-  margin-top: 8px;
-  border: 1px solid $line;
-  border-radius: $radius-sm;
-  background: $panel-soft;
-}
+.dsh-job-detail-tag { flex: none; color: $text-dim; white-space: nowrap; }
+.dsh-job-detail-text { flex: 1 1 auto; min-width: 0; white-space: pre-wrap; }
+.dsh-job-toggle { margin-top: 10px; font-size: 12px; color: $text-dim; }
+.dsh-job-steps { margin-top: 8px; border: 1px solid $line; border-radius: $radius-sm; background: $panel-soft; }
 .dsh-job-step {
   display: flex;
   align-items: baseline;
@@ -3445,26 +2548,11 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   padding: 7px 10px;
   border-bottom: 1px solid $line;
   font-size: 12px;
+  &:last-child { border-bottom: 0; }
 }
-.dsh-job-step:last-child {
-  border-bottom: 0;
-}
-.dsh-job-step-name {
-  flex: none;
-  width: 96px;
-  color: $text;
-}
-.dsh-job-step-state {
-  flex: none;
-  width: 48px;
-  color: $text-mid;
-}
-.dsh-job-step-note {
-  flex: 1 1 auto;
-  min-width: 0;
-  color: $text-dim;
-  word-break: break-word;
-}
+.dsh-job-step-name { flex: none; width: 96px; color: $text; }
+.dsh-job-step-state { flex: none; width: 48px; color: $text-mid; }
+.dsh-job-step-note { flex: 1 1 auto; min-width: 0; color: $text-dim; word-break: break-word; }
 // 试跑那一块：地址是能点开的入口（新标签页），下面一行说清「试的是你平时那套」。
 // 它在 trial / verdict 两步都会出现，所以单独一块，不并进回执条。
 .dsh-job-trial {
@@ -3474,28 +2562,15 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   border-radius: $radius-sm;
   background: rgba($ok-rgb, 0.06);
 }
-.dsh-job-trial-line {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.7;
-  color: $text;
-  word-break: break-word;
-}
+.dsh-job-trial-line { margin: 0; font-size: 12px; line-height: 1.7; color: $text; word-break: break-word; }
 .dsh-job-trial-link {
   color: $accent;
   text-decoration: underline;
   text-underline-offset: 2px;
   word-break: break-all;
+  &:hover { color: $text; }
 }
-.dsh-job-trial-link:hover {
-  color: $text;
-}
-.dsh-job-trial-sub {
-  margin: 4px 0 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: $text-dim;
-}
+.dsh-job-trial-sub { margin: 4px 0 0; font-size: 11.5px; line-height: 1.6; color: $text-dim; }
 // 「试跑实例还在跑（端口 X）」：灯 + 字。灯只是辅助，端口与状态词在正文里。
 .dsh-job-trial-state {
   display: flex;
@@ -3504,21 +2579,10 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   margin: 6px 0 0;
   font-size: 11.5px;
   color: $text-dim;
+  &::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: rgba(232, 230, 225, 0.35); }
+  &.alive::before { background: $warn; }
 }
-.dsh-job-trial-state::before {
-  content: "";
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(232, 230, 225, 0.35);
-}
-.dsh-job-trial-state.alive::before {
-  background: $warn;
-}
-.dsh-job-trial-wrap:empty {
-  display: none;
-}
+.dsh-job-trial-wrap:empty { display: none; }
 // 切过去 / 回滚之后那句话：按作业记录渲染，刷新之后还在。
 .dsh-job-receipt {
   margin: 9px 0 0;
@@ -3530,28 +2594,16 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   line-height: 1.65;
   color: $text-mid;
   word-break: break-word;
+  &.rollback { border-left-color: $warn; }
 }
-.dsh-job-receipt.rollback {
-  border-left-color: $warn;
-}
-.dsh-job-profile {
-  flex: none;
-  min-width: 120px;
-}
-.dsh-job-boundary {
-  margin: 9px 0 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: $warn;
-}
+.dsh-job-profile { flex: none; min-width: 120px; }
+.dsh-job-boundary { margin: 9px 0 0; font-size: 11.5px; line-height: 1.6; color: $warn; }
 .dsh-job-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
-}
-.dsh-job-actions:empty {
-  display: none;
+  &:empty { display: none; }
 }
 @media (max-width: 620px) {
   // 窄屏：步骤行折成两行 —— 名字与状态词在上，结论整行在下
@@ -3573,24 +2625,12 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   }
 }
 
-
 // ── 关于页「手动启动」（这一轮） ──
 // 两条命令是给人抄的：等宽、可折行、选中即整行。样式只负责可读性，
 // 内容（名字 / home / 包目录）全部来自读数，见 view_about 的 manual_start_panel。
-.dsh-manual {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.dsh-manual-row {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.dsh-manual-label {
-  font-size: 11.5px;
-  color: $text-dim;
-}
+.dsh-manual { display: flex; flex-direction: column; gap: 12px; }
+.dsh-manual-row { display: flex; flex-direction: column; gap: 5px; }
+.dsh-manual-label { font-size: 11.5px; color: $text-dim; }
 .dsh-manual-cmd {
   display: block;
   padding: 8px 10px;
@@ -3605,11 +2645,7 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   word-break: break-all;
   user-select: all;
 }
-.dsh-manual-note {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: $text-dim;
-}
+.dsh-manual-note { font-size: 11.5px; line-height: 1.45; color: $text-dim; }
 
 // ── 关于页 1280×900 首屏装得下（design/design-fixes.md §19.3） ──
 // 现状是内容 979 > 一屏 856（顶栏 44 + 视口 900 里的可用高度），底部被切。
@@ -3620,34 +2656,14 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 .dsh-page {
   gap: 9px;
   padding: 14px 22px 18px;
-}
-.dsh-page .dsh-page-head {
-  gap: 4px;
-}
-.dsh-page .dsh-panel {
-  padding: 12px 15px 12px;
-}
-.dsh-page .dsh-panel-title {
-  margin: 0 0 7px;
-}
-.dsh-page .dsh-row {
-  padding: 4px 0;
-}
-.dsh-page .dsh-para {
-  margin-bottom: 4px;
-}
-.dsh-page .dsh-foot {
-  margin-top: 6px;
-}
-.dsh-page .dsh-dsh-pin-line {
-  margin-top: 6px;
-}
-.dsh-page .dsh-manual {
-  gap: 8px;
-}
-.dsh-page .dsh-manual-row {
-  gap: 4px;
-}
-.dsh-page .dsh-manual-cmd {
-  padding: 6px 10px;
+  & .dsh-page-head { gap: 4px; }
+  & .dsh-panel { padding: 12px 15px 12px; }
+  & .dsh-panel-title { margin: 0 0 7px; }
+  & .dsh-row { padding: 4px 0; }
+  & .dsh-para { margin-bottom: 4px; }
+  & .dsh-foot { margin-top: 6px; }
+  & .dsh-dsh-pin-line { margin-top: 6px; }
+  & .dsh-manual { gap: 8px; }
+  & .dsh-manual-row { gap: 4px; }
+  & .dsh-manual-cmd { padding: 6px 10px; }
 }
