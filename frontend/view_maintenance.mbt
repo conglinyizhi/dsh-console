@@ -1645,7 +1645,7 @@ fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) 
     class="dsh-panel dsh-job-start",
     attrs=mark("job-start-panel", ["maintenance", "start-panel"]),
     [
-      @html.h2(class="dsh-panel-title", "升级 dsh"),
+      @html.h2(class="dsh-panel-title", "升级 dsh 之前进行实验"),
       // 这里原来还有一句「先留下旧版本，新版本你自己试过再切」—— 与作业卡副标题一字不差。
       // §14.5 的文案扫描要求同一句话不出现两处，这一句的正式位置是作业卡副标题（§5）。
       @html.div(class="dsh-job-start-row", [
