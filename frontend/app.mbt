@@ -3916,6 +3916,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           ..model,
           page: Logs,
           drawer_id: "",
+          // 点了「查看日志」= 这条提示已经处理掉了：常驻的失败提示条不该跟着用户
+          // 跳到日志页、盖在他要读的那几行上。清掉当前这条，历史里仍留着（§36）。
+          notice: None,
+          notice_url: None,
+          notice_url_notice: "",
           log_user_picked: true,
           // 日志区要等读数回来才存在：焦点那一步只能等落地再做（见 LogsText）
           log_focus_pending: true,
