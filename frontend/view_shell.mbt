@@ -295,11 +295,36 @@ fn notice_bell(model : Model, emit : @cmd.Emit[Msg], slot : String) -> @html.Htm
 }
 
 ///|
-/// 通知历史里的一行（§36）：时刻、成功/失败标记（文字，不只是颜色）、正文两行封顶。
-fn notice_row(item : NoticeRecord, index : Int) -> @html.Html {
+/// 通知历史里的一行（§36 / §45）：时刻、成功或失败（文字，不只是颜色）、
+/// **完整正文**（不再两行封顶，失败原文本来就该看全），以及两颗动作：
+/// 「复制」把正文与悬停细节一起写进剪贴板，「查看日志」只在这一条有审计行时出现。
+fn notice_row(item : NoticeRecord, index : Int, emit : @cmd.Emit[Msg]) -> @html.Html {
   let mut attrs = mark("notice-row", ["shell", "notice", "panel", "row", index.to_string()])
   if item.hint != "" {
     attrs = attrs.title(item.hint)
+  }
+  let copy_text = if item.hint == "" { item.text } else { item.text + "\n" + item.hint }
+  let actions : Array[@html.Html] = [
+    @html.button(
+      class="dsh-notice-row-btn",
+      type_="button",
+      attrs=mark("notice-row-copy", ["shell", "notice", "panel", "row", index.to_string(), "copy"])
+        .title("复制这一条的正文与细节"),
+      on_click=copy_cmd("通知", copy_text, emit),
+      [@html.text("复制")],
+    ),
+  ]
+  if item.audit {
+    actions.push(
+      @html.button(
+        class="dsh-notice-row-btn",
+        type_="button",
+        attrs=mark("notice-row-logs", ["shell", "notice", "panel", "row", index.to_string(), "logs"])
+          .title("在控制台审计里看这一条的完整记录"),
+        on_click=emit(NoticeOpenLogs),
+        [@html.text("查看日志")],
+      ),
+    )
   }
   @html.div(
     class=if item.ok { "dsh-notice-row ok" } else { "dsh-notice-row err" },
@@ -313,6 +338,7 @@ fn notice_row(item : NoticeRecord, index : Int) -> @html.Html {
         ),
       ]),
       @html.span(class="dsh-notice-row-text", item.text),
+      @html.div(class="dsh-notice-row-actions", actions),
     ],
   )
 }
@@ -329,7 +355,7 @@ fn notice_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let rows : Array[@html.Html] = []
   let mut i = 0
   for item in model.notice_history {
-    rows.push(notice_row(item, i))
+    rows.push(notice_row(item, i, emit))
     i = i + 1
   }
   let body : Array[@html.Html] = if rows.length() == 0 {

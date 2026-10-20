@@ -434,6 +434,8 @@ pub(all) struct NoticeRecord {
   text : String
   /// 悬停补充（原样来自调用方）
   hint : String
+  /// 这一条有审计行可看（§32 那条规则）：侧栏里多一颗「查看日志」
+  audit : Bool
 } derive(Eq)
 
 pub extend NoticeRecord with Eq::{ not_equal, equal }

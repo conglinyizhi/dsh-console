@@ -2447,6 +2447,16 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $text-dim;
   font-variant-numeric: tabular-nums;
 }
+.dsh-notice-row-actions { display: flex; gap: 6px; margin-top: 2px; }
+.dsh-notice-row-btn {
+  height: 24px; padding: 0 8px;
+  display: inline-flex; align-items: center;
+  border: 1px solid $line-strong; border-radius: $radius-sm;
+  background: transparent; color: $text-mid;
+  font-size: 11.5px; cursor: pointer;
+}
+.dsh-notice-row-btn:hover { background: $panel-soft; color: $text; }
+.dsh-notice-row-btn:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 // 「成功 / 失败」是文字通道：灰度截图里也读得出这一条成没成。
 .dsh-notice-row-mark {
   padding: 0 6px;
@@ -2463,12 +2473,11 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   color: $danger;
 }
 // 正文最多两行：超了省略号，完整正文在那一行的悬停里（与卡片的做法一致）。
+/* 正文不再两行封顶（§45）：失败原文本来就该看全，截断之后再让人去复制没有意义。
+   面板自己会滚，长句折行就是了。 */
 .dsh-notice-row-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
+  display: block;
+  overflow-wrap: anywhere;
   font-size: 12.5px;
   line-height: 1.55;
   color: $text;

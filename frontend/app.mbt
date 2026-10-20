@@ -2655,7 +2655,7 @@ fn notice_put(
   let at = local_time_now()
   // 通知历史（§36）：新到旧留最近 notice_history_max 条。只在内存里，刷新就清空。
   // 顺序是「新的插在最前面」，侧栏直接照这个顺序摆，不再排一遍。
-  let history : Array[NoticeRecord] = [{ at, ok, text: safe_text, hint: safe_hint }]
+  let history : Array[NoticeRecord] = [{ at, ok, text: safe_text, hint: safe_hint, audit }]
   let mut kept = 1
   for item in model.notice_history {
     if kept < notice_history_max {
