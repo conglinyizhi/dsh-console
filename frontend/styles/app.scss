@@ -1351,7 +1351,9 @@ $drawer-ms: 220ms;
    自己占满一整行（.dsh-drawer-btns 是 flex-wrap），列表行横向排：
    时间 / 原因 / 体积 / 还原。原因过长时用省略号收尾，全文在那一行的悬停里。 */
 .dsh-drawer-history { display: flex; flex-direction: column; gap: 4px; }
-.dsh-snapshot-create-line { display: flex; }
+/* 这一行现在并排放两颗按钮（「移到独立 home」与「创建快照」），按抽屉里其它按钮行的口径给 6px，
+   并允许换行 —— 窄屏上两颗按钮加起来会超过一行。 */
+.dsh-snapshot-create-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .dsh-snapshot-empty { margin: 0; font-size: 11px; line-height: 1.5; color: $text-dim; }
 .dsh-snapshot-row {
   display: flex; align-items: center; gap: 8px;

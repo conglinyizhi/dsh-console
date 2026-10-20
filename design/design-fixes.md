@@ -576,3 +576,44 @@
 3. 两份并存：谁也不删谁
 4. root 里放一个不合规目录：一个字节都不动
 5. Windows 语义下同样成立（逻辑不依赖 /proc 以外的系统特性；pid 存活判定要有跨平台实现或降级）
+## 39 「缺 N 个包」给出自助修复
+
+现状：profile 缺 bundles 时状态永远是「有警告」，用户只能自己进目录装包，界面只负责一直摆在
+那儿报警 —— 报警不等于修复。
+
+### 39.1 入口
+
+抽屉「状态」组里，当警告的成因是缺包时，那句「缺 N 个包」下面多一行：
+
+- 按钮 `安装缺的包`（线框、次要样式）；标签带数量：`安装缺的包（6）`
+- 悬停：`在 <profile 目录> 里跑 <命令>；只动 node_modules，不改 package.json 与 cordis.patch.yml。输出写进 <日志路径>`
+- 点它先开确认框（写 node_modules 算真动作）：
+  - 标题 `给 <名> 安装缺的包`
+  - 正文：`将在 <目录> 里执行 <命令>，只补 node_modules。装完会重新读一次这只 profile。`
+  - 按钮 `安装` / `取消`
+
+### 39.2 后端动作 repair-packages
+
+参数：`{profile, home}`。步骤：
+
+1. 校验目录与 package.json；目录不在就 `not-found`。
+2. 选命令：有 `pnpm-lock.yaml` 用 `pnpm install --prefer-offline`；有 `package-lock.json` 用 `npm install --prefer-offline`；都没有用 `pnpm install --prefer-offline`。
+3. 在 profile 目录里跑，120 秒上限；stdout/stderr 写进 `<state>/logs/repair-<profile>-<ms>.log`。
+4. 跑完重新读这只 profile 的 bundles，算剩余缺包数。
+5. 写审计（action `repair-packages`，outcome 带 command / exitCode / durationMs / logPath / missingBefore / missingAfter）。
+6. 回执：成功且缺包为 0 → `<名> 的包已装齐`；仍有缺包 → `装了，但还缺 N 个（看日志）`，错误码 `install-incomplete`；命令失败 → 错误码 `install-failed`。
+7. 同一只 profile 同时只允许一个修复在跑（第二个请求 `busy`）。
+
+### 39.3 前端
+
+- 修复中：按钮换成 `正在安装…` 并禁用；其余写动作按钮一起禁用（避免同时改配置）。
+- 成功：提示条一句短的 + 读数自动刷新（灯应转绿或转回正常）；失败：提示条带「查看日志」按钮（§32 那条路），落到 `/logs/actions`。
+- 失败原因完整原文进悬停与审计，不整段塞进提示条。
+
+### 39.4 验收
+
+1. 造一只缺包的 profile（临时环境）：状态「有警告」下出现 `安装缺的包（N）`
+2. 点开确认框、确认：按钮变「正在安装…」，装完提示一句短的，读数重读后缺包为 0，灯不再是黄
+3. 造一次失败（把 registry 指到不可达地址）：错误码 install-failed，提示条带「查看日志」，审计里有 logPath
+4. 同时点两次只跑一个（第二次 busy）
+5. 390 下确认框与按钮不溢出

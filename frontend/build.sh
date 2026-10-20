@@ -31,6 +31,15 @@ mkdir -p dist/assets/licenses
 echo
 echo "== 1/4 编样式（precss）=="
 moon run cmd/build-styles --target native
+# precss 对「多写一个右花括号」这类结构错误不报错，会**安静地产出半份 CSS**：
+# 真踩过一次 —— app.scss 里一处注释末尾多写了个 "}"，产物从 63KB 掉到 22KB，
+# 页面看着「只是少了几条规则」，很难当场发现。这里按体量设一道下限（当前约 63KB），
+# 低于它就当这一版没编出来，直接失败。
+css_bytes=$(wc -c < dist/assets/app.css)
+if [ "$css_bytes" -lt 50000 ]; then
+  echo "app.css 只有 $css_bytes 字节，疑似 precss 半途截断（查 app.scss 里有没有多余的 }）" >&2
+  exit 1
+fi
 
 echo
 echo "== 2/4 编客户端应用（--target js --release）=="
