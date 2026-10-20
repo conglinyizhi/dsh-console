@@ -185,6 +185,8 @@ fn shell_topbar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         attrs=mark("topbar-title", ["shell", "topbar", "title"]),
         page_label(model.page),
       ),
+      // 顶栏右侧：通知（§36）。按钮 + 未读角标，点在右侧开历史侧栏。
+      notice_bell(model, emit, "topbar"),
     ],
   )
 }
@@ -213,6 +215,8 @@ fn shell_narrowbar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         attrs=mark("narrowbar-title", ["shell", "narrowbar", "title"]),
         page_label(model.page),
       ),
+      // 窄屏顶栏也摆一颗：那一档没有侧栏可挂，通知是全局的，落在顶栏右侧最顺。
+      notice_bell(model, emit, "narrowbar"),
     ],
   )
 }
@@ -246,6 +250,147 @@ fn route_notice_bar(model : Model) -> @html.Html {
       @html.span(model.route_notice),
     ],
   )
+}
+
+///|
+/// 顶栏那颗「通知」（design/design-fixes.md §36）：铃铛 + 未读条数角标。
+///
+/// 角标只是「上次打开侧栏之后又来了几条」：打开就算看过了，不另设已读操作。
+/// 颜色之外还有 aria-label 与悬停里的条数 —— 不靠颜色单独表达。
+fn notice_bell(model : Model, emit : @cmd.Emit[Msg], slot : String) -> @html.Html {
+  let unread = model.notice_unread
+  let count = if unread > notice_history_max { notice_history_max } else { unread }
+  let kids : Array[@html.Html] = [icon("bell-outline", size=16)]
+  if count > 0 {
+    kids.push(
+      @html.span(
+        class="dsh-bell-count",
+        attrs=mark("notice-bell-count", ["shell", slot, "notice", "bell", "count"]),
+        if count >= notice_history_max { "20+" } else { count.to_string() },
+      ),
+    )
+  }
+  @html.button(
+    id=notice_bell_id(),
+    class=if model.notice_panel { "dsh-icon-btn dsh-bell active" } else { "dsh-icon-btn dsh-bell" },
+    type_="button",
+    attrs=mark("notice-bell", ["shell", slot, "notice", "bell"])
+      .aria_label(
+        if count > 0 { "通知：还有 " + count.to_string() + " 条未读" } else { "通知" },
+      )
+      .aria_haspopup("dialog")
+      .aria_expanded(if model.notice_panel { "true" } else { "false" })
+      .aria_controls("dsh-notice-panel")
+      .data_set("unread", count.to_string())
+      .title(
+        if count > 0 {
+          count.to_string() + " 条未读通知"
+        } else {
+          "通知历史：这次打开页面以来的动作结果"
+        },
+      ),
+    on_click=emit(NoticePanelOpen),
+    kids,
+  )
+}
+
+///|
+/// 通知历史里的一行（§36）：时刻、成功/失败标记（文字，不只是颜色）、正文两行封顶。
+fn notice_row(item : NoticeRecord, index : Int) -> @html.Html {
+  let mut attrs = mark("notice-row", ["shell", "notice", "panel", "row", index.to_string()])
+  if item.hint != "" {
+    attrs = attrs.title(item.hint)
+  }
+  @html.div(
+    class=if item.ok { "dsh-notice-row ok" } else { "dsh-notice-row err" },
+    attrs~,
+    [
+      @html.div(class="dsh-notice-row-head", [
+        @html.span(class="dsh-notice-row-time", item.at),
+        @html.span(
+          class="dsh-notice-row-mark",
+          if item.ok { "成功" } else { "失败" },
+        ),
+      ]),
+      @html.span(class="dsh-notice-row-text", item.text),
+    ],
+  )
+}
+
+///|
+/// 通知历史侧栏（§36）：右侧覆盖式，遮罩与面板是兄弟（与抽屉同一套）。
+///
+/// 层级 57/56：盖在抽屉与侧栏（51/50）和提示条（55）之上，在确认框（60/61）之下 ——
+/// 通知是「刚刚发生了什么」的回看，不该被提示条自己挡住。
+fn notice_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  if !model.notice_panel {
+    return @html.nothing
+  }
+  let rows : Array[@html.Html] = []
+  let mut i = 0
+  for item in model.notice_history {
+    rows.push(notice_row(item, i))
+    i = i + 1
+  }
+  let body : Array[@html.Html] = if rows.length() == 0 {
+    [
+      @html.p(
+        class="dsh-notice-empty",
+        attrs=mark("notice-empty", ["shell", "notice", "panel", "empty"]),
+        "还没有通知。动作的结果会在这里留一条。",
+      ),
+    ]
+  } else {
+    [
+      @html.div(
+        class="dsh-notice-list",
+        attrs=mark("notice-list", ["shell", "notice", "panel", "list"]),
+        rows,
+      ),
+    ]
+  }
+  @html.fragment([
+    @html.div(
+      class="dsh-notice-panel-scrim",
+      attrs=mark("notice-panel-scrim", ["shell", "notice", "panel", "scrim"]),
+      on_click=emit(NoticePanelClose),
+      @html.nothing,
+    ),
+    @html.aside(
+      id="dsh-notice-panel",
+      class="dsh-notice-panel",
+      attrs=mark("notice-panel", ["shell", "notice", "panel"])
+        .role("dialog")
+        .aria_modal("true")
+        .aria_label("通知")
+        .on_keydown(fn(event) {
+          if event.key() == "Escape" {
+            emit(NoticePanelClose)
+          } else {
+            @cmd.none
+          }
+        }),
+      [
+        @html.div(class="dsh-notice-panel-head", [
+          @html.h2(
+            class="dsh-notice-panel-title",
+            attrs=mark("notice-panel-title", ["shell", "notice", "panel", "title"]),
+            "通知（" + model.notice_history.length().to_string() + "）",
+          ),
+          @html.button(
+            id=notice_panel_close_id(),
+            class="dsh-btn icon-only",
+            type_="button",
+            attrs=mark("notice-panel-close", ["shell", "notice", "panel", "close"])
+              .aria_label("关闭通知"),
+            on_click=emit(NoticePanelClose),
+            [icon("close", size=16)],
+          ),
+        ]),
+        @html.div(class="dsh-notice-panel-body", body),
+      ],
+    ),
+  ])
 }
 
 ///|
@@ -394,6 +539,8 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       // 全局提示挂在 shell 这一层、不在任何一页里面：位置与页面无关，
       // 切页也不会把它带走（§14.2）。六个页面共用这一个节点。
       global_notice(model, emit),
+      // 通知历史侧栏（§36）：也挂在 shell 这一层 —— 打开时切页不该把它带走。
+      notice_panel(model, emit),
     ],
   )
 }

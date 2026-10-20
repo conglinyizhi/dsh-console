@@ -1,4 +1,4 @@
-// 内联 SVG 图标：33 个图标的路径常量 + 一个 `icon` 助手。
+// 内联 SVG 图标：34 个图标的路径常量 + 一个 `icon` 助手。
 //
 // # 为什么是内联 SVG
 //
@@ -43,6 +43,7 @@
 // 图标各自的用处与尺寸（来自 Vue 版的逐处 AppIcon）：
 //   archive-arrow-up-outline   归档行「取消归档」14
 //   archive-outline            菜单「归档」14
+//   bell-outline               顶栏「通知」16
 //   chevron-down               归档区折叠开关（展开态）14
 //   chevron-double-left        顶栏「收起侧栏」16
 //   chevron-double-right       顶栏「展开侧栏」16
@@ -85,6 +86,8 @@ fn icon_path(name : String) -> String {
   match name {
     "archive-arrow-up-outline" => "M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M5 5V7H19V5M10.5 17V14H8L12 10L16 14H13.5V17"
     "archive-outline" => "M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M9.5 11H14.5C14.78 11 15 11.22 15 11.5V13H9V11.5C9 11.22 9.22 11 9.5 11M5 5V7H19V5H5Z"
+    // 顶栏「通知」（design/design-fixes.md §36）：铃铛 + 角标
+    "bell-outline" => "M10,21H14A2,2 0 0,1 12,23A2,2 0 0,1 10,21M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M19,18L17,16V11C17,8.24 14.76,6 12,6A5,5 0 0,0 7,11V16L5,18H19Z"
     "chevron-down" => "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"
     "chevron-double-left" => "M18.41,7.41L17,6L11,12L17,18L18.41,16.59L13.82,12L18.41,7.41M11.41,7.41L10,6L4,12L10,18L11.41,16.59L6.82,12L11.41,7.41Z"
     "chevron-double-right" => "M5.59,7.41L10.18,12L5.59,16.59L7,18L13,12L7,6L5.59,7.41M11.59,7.41L16.18,12L11.59,16.59L13,18L19,12L13,6L11.59,7.41Z"

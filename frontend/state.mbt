@@ -25,7 +25,6 @@ priv enum ActionKey {
   OpenUi
   Toggle
   Restart
-  Tab
   CopyUrl
   /// 复制带令牌的地址：只在真有 webUrl 时出现（读不到令牌就不摆这一项）
   CopyTokenUrl
@@ -406,6 +405,29 @@ struct SettingDraft {
 pub extend SettingDraft with Eq::{ not_equal, equal }
 
 ///|
+/// 通知历史上最多留几条（design/design-fixes.md §36）：新到旧，超了就丢最旧的。
+pub let notice_history_max : Int = 20
+
+///|
+/// 一条通知历史（§36）：提示条与 toast 都是「一条盖一条」，连点几次动作前面那条就没了，
+/// 这一份是给它留的回看窗口。**只在内存里**，刷新页面就清空 —— 它不是审计
+/// （审计在 /logs/actions），不落盘。
+///
+/// 正文与悬停在写进历史之前已经被 redact_tokens 洗过一遍：历史里不许出现带令牌的地址。
+pub(all) struct NoticeRecord {
+  /// 发生的时刻（HH:MM:SS，浏览器本地时钟）
+  at : String
+  /// 成功（toast）还是失败（常驻提示条）
+  ok : Bool
+  /// 正文：一句结论
+  text : String
+  /// 悬停补充（原样来自调用方）
+  hint : String
+} derive(Eq)
+
+pub extend NoticeRecord with Eq::{ not_equal, equal }
+
+///|
 /// 一条全局提示（design/ops-maintenance-jobs.md §14.1）。
 ///
 /// 成功与失败同住一条：ok 决定外壳把它画成底部 toast（3.5 秒后自己走）
@@ -745,6 +767,12 @@ struct Model {
   /// 上面那个地址属于哪一条提示条文字（Notice.text）。与当前那条不一致时按钮不出现 ——
   /// 提示条被别的动作改写之后，按钮自己失效，不留一个对不上号的入口。
   notice_url_notice : String
+  /// 最近的通知历史（§36）：新到旧，最多 notice_history_max 条。只在内存里，刷新就清空。
+  notice_history : Array[NoticeRecord]
+  /// 上一次打开通知侧栏之后又来了几条（铃铛上的角标）。打开侧栏就归零。
+  notice_unread : Int
+  /// 通知侧栏开着没有（右侧面板，盖在抽屉之上、确认框之下）
+  notice_panel : Bool
   // 成功 toast 的两格过程状态（外观见 view_shell 的 global_notice，计时见 app.mbt 的 update）
   /// 鼠标正停在提示上：这一拍不许它消失（悬停时别让它正好在眼皮底下走掉）
   flash_hover : Bool
@@ -805,6 +833,10 @@ priv enum Msg {
   NoticeOpenUi
   /// 失败提示条里那颗「查看日志」被点了：跳 /logs/audit，选中审计来源、滚到底、焦点进日志区
   NoticeOpenLogs
+  /// 顶栏「通知」：开侧栏看历史（顺手把未读角标清零，焦点进关闭键）
+  NoticePanelOpen
+  /// 关掉通知侧栏（关闭键 / 遮罩 / Esc 三条路），焦点回顶栏那颗铃铛
+  NoticePanelClose
   /// 成功提示（toast）到点了：序号对得上才收
   FlashExpire(Int)
   /// 淡出那一小段走完，节点可以撤了
@@ -1114,6 +1146,9 @@ fn initial_model() -> Model {
     start_tab_tries: 0,
     notice_url: None,
     notice_url_notice: "",
+    notice_history: [],
+    notice_unread: 0,
+    notice_panel: false,
     flash_hover: false,
     flash_fading: false,
     console: None,
@@ -1325,6 +1360,18 @@ fn drawer_panel_id() -> String {
 /// 焦点必须**真的进抽屉**（不然 Tab 还在背后的列表里走，Esc 也未必收得到）。
 fn drawer_close_id() -> String {
   "dsh-drawer-close"
+}
+
+///|
+/// 顶栏那颗铃铛的 DOM id（§36）：通知侧栏关掉之后焦点回它身上。
+fn notice_bell_id() -> String {
+  "dsh-notice-bell"
+}
+
+///|
+/// 通知侧栏里关闭键的 DOM id：打开时焦点落在它上面（与抽屉同一套）。
+fn notice_panel_close_id() -> String {
+  "dsh-notice-panel-close"
 }
 
 ///|

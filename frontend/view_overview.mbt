@@ -18,7 +18,6 @@ fn action_name(key : ActionKey) -> String {
     OpenUi => "open-ui"
     Toggle => "toggle"
     Restart => "restart"
-    Tab => "tab"
     CopyUrl => "copy-url"
     CopyTokenUrl => "copy-token-url"
     CopyDev => "copy-dev"

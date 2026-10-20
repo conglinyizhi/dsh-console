@@ -2309,6 +2309,126 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   margin-top: -1px;
 }
 
+// ── 顶栏「通知」与通知历史侧栏（design/design-fixes.md §36）─────────
+// 铃铛挂在顶栏右端（宽屏与窄屏各一颗）：未读角标的数字是第二通道，颜色之外还读得出条数。
+.dsh-bell { position: relative; margin-left: auto; }
+.dsh-bell-count {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: $accent;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+// 侧栏：右侧覆盖式，遮罩与面板是兄弟（与抽屉同一套做法）。
+// 层级 57/56：盖在抽屉（51）与提示条（55）之上，在确认框（60/61）之下。
+.dsh-notice-panel-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 56;
+  background: rgba(8, 9, 11, 0.5);
+}
+.dsh-notice-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 57;
+  width: 380px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: $panel;
+  border-left: 1px solid $line-strong;
+  box-shadow: -18px 0 44px rgba(0, 0, 0, 0.45);
+}
+@media (max-width: 640px) {
+  .dsh-notice-panel { width: 100%; }
+}
+.dsh-notice-panel-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid $line;
+}
+.dsh-notice-panel-title {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text;
+}
+.dsh-notice-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 12px 16px;
+}
+.dsh-notice-list { display: flex; flex-direction: column; }
+.dsh-notice-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 6px;
+  border-bottom: 1px solid $line;
+}
+.dsh-notice-row:last-child { border-bottom: 0; }
+.dsh-notice-row-head { display: flex; align-items: center; gap: 8px; }
+.dsh-notice-row-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: $text-dim;
+  font-variant-numeric: tabular-nums;
+}
+// 「成功 / 失败」是文字通道：灰度截图里也读得出这一条成没成。
+.dsh-notice-row-mark {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 15px;
+}
+.dsh-notice-row.ok .dsh-notice-row-mark {
+  background: rgba($ok-rgb, 0.16);
+  color: $ok;
+}
+.dsh-notice-row.err .dsh-notice-row-mark {
+  background: rgba($danger-rgb, 0.16);
+  color: $danger;
+}
+// 正文最多两行：超了省略号，完整正文在那一行的悬停里（与卡片的做法一致）。
+.dsh-notice-row-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: $text;
+  word-break: break-word;
+}
+.dsh-notice-empty {
+  margin: 0;
+  padding: 18px 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: $text-dim;
+}
+
 // ── 设置页（左索引 + 右条目） ──────────────────────────────
 .dsh-settings-page {
   display: flex;

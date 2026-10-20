@@ -2556,6 +2556,54 @@ fn notice_failed_action(model : Model, full : String) -> Model {
 }
 
 ///|
+/// 把正文 / 悬停里带令牌的地址洗掉（design/design-fixes.md §32、§36）：
+/// `token=xxxx` 整段换成 `…`（连参数名一起去掉），其余一个字不动。
+///
+/// 为什么在 notice_put 这一处洗：提示条会留在屏幕上、toast 会被回看、通知历史会整条存下来 ——
+/// 与其在每个拼文案的地方各记一遍，不如在唯一的出口上守一道。
+/// 令牌原值仍然在内存里（notice_url），也仍在实例日志里，只是不上屏。
+fn redact_tokens(text : String) -> String {
+  let chars : Array[Char] = []
+  for c in text {
+    chars.push(c)
+  }
+  let out = StringBuilder()
+  let n = chars.length()
+  let mut i = 0
+  while i < n {
+    let matched = i + 6 <= n &&
+      chars[i] == 't' &&
+      chars[i + 1] == 'o' &&
+      chars[i + 2] == 'k' &&
+      chars[i + 3] == 'e' &&
+      chars[i + 4] == 'n' &&
+      chars[i + 5] == '='
+    if matched {
+      // 整个 token=<值> 换成「…」：令牌原值不上屏，连参数名也不留 ——
+      // 正文与历史里因此连 "token=" 这个串都搜不到（§36.1 的验收就是这么查的）。
+      i = i + 6
+      while i < n && is_token_char(chars[i]) {
+        i = i + 1
+      }
+      out.write_string("…")
+      continue
+    }
+    out.write_char(chars[i])
+    i = i + 1
+  }
+  out.to_string()
+}
+
+///|
+/// 令牌值的字符集：base64url 那一套（字母数字与 - _ . ~ + / =）。
+/// 用「像令牌的字符」而不是「像终止符的字符」来划边界：边界写反了会把后面的中文一起吃掉。
+fn is_token_char(c : Char) -> Bool {
+  (c >= '0' && c <= '9') ||
+  (c >= 'a' && c <= 'z') ||
+  (c >= 'A' && c <= 'Z') ||
+  c == '-' || c == '_' || c == '.' || c == '~' || c == '+' || c == '/' || c == '='
+}
+///|
 /// 换掉当前这条提示：序号 +1，外壳与到期计时都按序号认人。
 fn notice_put(
   model : Model,
@@ -2567,10 +2615,26 @@ fn notice_put(
   let seq = model.notice_serial + 1
   // 末尾句号在这里统一去掉：提示条说的是一句结论，不是一段话
   let body = js_trim_tail_period(text)
+  // 带令牌的地址不上屏（§32 / §36）：正文与悬停都洗一遍，历史跟着同一份走
+  let safe_text = redact_tokens(body)
+  let safe_hint = redact_tokens(hint)
+  let at = local_time_now()
+  // 通知历史（§36）：新到旧留最近 notice_history_max 条。只在内存里，刷新就清空。
+  // 顺序是「新的插在最前面」，侧栏直接照这个顺序摆，不再排一遍。
+  let history : Array[NoticeRecord] = [{ at, ok, text: safe_text, hint: safe_hint }]
+  let mut kept = 1
+  for item in model.notice_history {
+    if kept < notice_history_max {
+      history.push(item)
+      kept = kept + 1
+    }
+  }
   {
     ..model,
     notice_serial: seq,
-    notice: Some({ seq, ok, text: body, hint, at: local_time_now(), audit }),
+    notice: Some({ seq, ok, text: safe_text, hint: safe_hint, at, audit }),
+    notice_history: history,
+    notice_unread: model.notice_unread + 1,
     flash_fading: false,
     flash_hover: false,
   }
@@ -3067,10 +3131,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
                 )
               }
           }
-        // 打开 Web UI（卡上的主按钮）与「在新标签页打开」（行菜单）是同一件事：
-        // 开带令牌的 webUrl。读不到令牌就不开标签页，把原因与裸地址说清（见 open_web_ui）。
+        // 打开 Web UI：开带令牌的 webUrl。读不到令牌就不开标签页，把原因与裸地址说清（见 open_web_ui）。
         OpenUi => open_web_ui(model, id)
-        Tab => open_web_ui(model, id)
         // 两条复制：裸地址（卡上「访问地址」那一行的原值）与带令牌的地址（webUrl）
         CopyUrl => copy_url_action(model, id, "访问地址", false, emit)
         CopyTokenUrl => copy_url_action(model, id, "带令牌的地址", true, emit)
@@ -3742,6 +3804,25 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     // 带令牌的地址还没到手：再重读一轮读数（有界，见 start_tab_max_tries）。
     // 地址到了就填、到不了就认输关标页 —— 两条路都在 fill_start_tab 里。
     StartTabRetry => refresh_readings(model, emit)
+    // 顶栏「通知」（§36）：开侧栏看历史。未读角标在这一拍清零 ——
+    // 「看过了」就是打开过，不另设已读按钮。焦点进侧栏的关闭键（与抽屉那一套一致）。
+    NoticePanelOpen =>
+      if model.notice_panel {
+        (model, @cmd.none)
+      } else {
+        (
+          { ..model, notice_panel: true, notice_unread: 0 },
+          focus_after_render(notice_panel_close_id()),
+        )
+      }
+    // 关闭键 / 遮罩 / Esc 三条路都走这里，焦点一律回顶栏那颗铃铛 ——
+    // 焦点落在被卸载的节点上会掉到 body，键盘用户于是从页首重新 Tab。
+    NoticePanelClose =>
+      if model.notice_panel {
+        ({ ..model, notice_panel: false }, focus_after_render(notice_bell_id()))
+      } else {
+        (model, @cmd.none)
+      }
     // 失败提示条里那颗「查看日志」（§32.1）：跳到「控制台审计」那一份日志、读一次、
     // 落到底部，焦点送进日志区。那里最后一条就是这次失败，message 是完整原文。
     //
