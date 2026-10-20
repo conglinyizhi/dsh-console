@@ -2808,22 +2808,30 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
               )
             }
           }
-        // 三个会开对话框的动作（重命名 / 删除 / 备注）都先把抽屉收掉：
-        // 对话框在抽屉之上（z-index 60/61 > 抽屉 50/51），抽屉留在地上没有意义 ——
-        // 而且取消之后焦点要回触发元素，那元素在抽屉里的话，焦点就落进一个盖在背后的面板。
-        // 关掉抽屉之后焦点回那张卡，与「打开对话框的是这张卡」这件事一致。
+        // 三个会开对话框的动作（重命名 / 删除 / 备注）**保留抽屉**，只在上面开对话框
+        // （§30.1）：抽屉是 z-index 50/51、对话框 60/61，框本来就在抽屉之上；
+        // 收掉抽屉会把用户正在读的读数一起撤走。关框之后焦点回抽屉里那一颗按钮，
+        // 那才是「按下它」的那颗元素（卡片在这种情况下根本没被点过）。
         Rename => (
           {
             ..model,
-            drawer_id: "",
             rename_id: id,
-            rename_draft: row_name(model, id),
-            rename_return: card_id(id),
+            // 预填的是**目录名**（改名改的就是它），不是卡片上那一串：
+            // 运行中的行 row.name 是「名字 :端口」，照它预填等于把一个带空格和冒号的名字塞进输入框。
+            rename_draft: match find_row(model.rows, id) {
+              Some(row) =>
+                match row.profile_name {
+                  Some(name) => name
+                  None => row_name(model, id)
+                }
+              None => row_name(model, id)
+            },
+            rename_return: drawer_rename_id(),
           },
           focus_select_after_render("dsh-rename-input"),
         )
         Delete => (
-          { ..model, drawer_id: "", confirm_id: id, confirm_return: card_id(id) },
+          { ..model, confirm_id: id, confirm_return: drawer_delete_id() },
           focus_after_render("dsh-confirm-ok"),
         )
         // 打开编辑框是纯前端的事，真正的写动作在保存那一步（NoteConfirm）
@@ -3598,15 +3606,13 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     )
     // 编辑备注：与重命名同一套（预填、Esc 取消、关闭后焦点回触发元素）。
     // 焦点落在备注框、光标推到文末 —— 这里是接着改，不是整段覆盖。
-    // 与重命名 / 删除同一条口径：开框就把抽屉收掉（框在抽屉之上，抽屉留着没有意义，
-    // 取消之后焦点还要回触发它的那张卡 —— 那元素在抽屉里的话焦点就落进背后的面板）
+    // 与重命名 / 删除同一条口径（§30.1）：抽屉留着，关框之后焦点回抽屉里那颗「备注」。
     NoteOpen(id) => (
       {
         ..model,
-        drawer_id: "",
         note_open: id,
         note_draft: row_note(model, id),
-        note_return: card_id(id),
+        note_return: drawer_note_id(),
         note_error: "",
       },
       focus_end_after_render("dsh-note-input"),
@@ -4125,6 +4131,31 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
           }
         }
         if ok {
+          // 改名落地：抽屉跟着这一行走（§30.2 要抽屉标题跟着变）。行 id 里带着 profile 名，
+          // 名字一换 id 就换了；不重算的话抽屉会挂在一个已经不存在的 id 上，等于被这次改名关掉。
+          // 行 id 里带着 profile 名，新 id 用新名字 + 这一格原来的 home 拼（与 build 那条同一把尺子）。
+          if action == "rename-profile" &&
+            cleared.drawer_id == row_id &&
+            row_id.has_prefix("profile:") {
+            let new_name = match outcome_of(res) {
+              Some(outcome) => str_field(outcome, "newName")
+              None => ""
+            }
+            if new_name != "" {
+              let home = match find_row(model.rows, row_id) {
+                Some(row) => row.home
+                None => ""
+              }
+              cleared = {
+                ..cleared,
+                drawer_id: profile_row_id(new_name, home),
+              }
+            }
+          }
+          // 删掉的那一行已经不在了：抽屉跟着收（没有可显示的行，留着只会挂一个空壳）。
+          if action == "delete-profile" && cleared.drawer_id == row_id {
+            cleared = { ..cleared, drawer_id: "" }
+          }
           // 回执说人话：谁 + 做了什么 + 结果（见 action_receipt）。
           // 后端回执原文与里面的数字、路径收进悬停，不摊在正文上。
           let (shown, hint) = action_receipt(action, name, verb, note, res)

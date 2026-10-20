@@ -1224,6 +1224,23 @@ fn drawer_close_id() -> String {
 }
 
 ///|
+/// 抽屉里「重命名 / 备注 / 删除」三颗按钮的 DOM id（§30.1）：抽屉不再因为开对话框而收起，
+/// 关框之后焦点要回到按下它的那一颗按钮，而不是回卡片。
+fn drawer_rename_id() -> String {
+  "dsh-drawer-rename"
+}
+
+///|
+fn drawer_note_id() -> String {
+  "dsh-drawer-note"
+}
+
+///|
+fn drawer_delete_id() -> String {
+  "dsh-drawer-delete"
+}
+
+///|
 /// 「打开 Web UI」右段 chevron 的 DOM id：菜单收起之后焦点回它身上。
 fn split_menu_btn_id(row_id : String) -> String {
   "dsh-split-menu-btn-" + dom_key(row_id)

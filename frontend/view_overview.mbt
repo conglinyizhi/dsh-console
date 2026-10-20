@@ -600,6 +600,25 @@ fn open_ui_hint(row : Row) -> String {
 }
 
 ///|
+/// 「宿主版本」那一格的值（§30.3）：**只放版本号**。
+/// 读数里的值带着一个括注（（入口包）/（本机已安装）/（本地源码）…），那是来源的说法，
+/// 摆进正文只会把这一格撑满、还要省略号；它和包目录一起进悬停（见 row.version_hint）。
+fn version_value(row : Row) -> String {
+  // 按「（」切一刀，取前一段：读数里的值都是「版本号（来源说法）」这个形状，
+  // 没有括注时切开就只有一段，原样返回。
+  let mut head = row.version
+  for part in row.version.split("（") {
+    head = part.to_owned()
+    break
+  }
+  if head == "" {
+    row.version
+  } else {
+    head
+  }
+}
+
+///|
 /// 字段区第六格「最近改动」的正文：有值就是本地短时刻（10-15 18:50），
 /// 没值就写 row.mtime_missing —— 停止卡是「读不到」，运行卡解析不出 profile 时是「—」。
 ///
@@ -630,8 +649,9 @@ fn drawer_button(
   danger : Bool,
   disabled : Bool,
   emit : @cmd.Emit[Msg],
+  elem_id? : String = "",
 ) -> @html.Html {
-  drawer_button_hint(row, key, icon_name, label, danger, disabled, "", emit)
+  drawer_button_hint(row, key, icon_name, label, danger, disabled, "", emit, elem_id~)
 }
 
 ///|
@@ -645,6 +665,7 @@ fn drawer_button_hint(
   disabled : Bool,
   hint : String,
   emit : @cmd.Emit[Msg],
+  elem_id? : String = "",
 ) -> @html.Html {
   let name = action_name(key)
   let mut attrs = mark(
@@ -653,6 +674,11 @@ fn drawer_button_hint(
   ).data_set("action", name)
   if hint != "" {
     attrs = attrs.title(hint)
+  }
+  // 有的按钮要能被 focus 点名（§30.1：关掉对话框之后焦点回这几颗）；
+  // 没给 elem_id 的按钮一个字节都不多
+  if elem_id != "" {
+    attrs = attrs.id(elem_id)
   }
   @html.button(
     class=if danger { "dsh-btn danger" } else { "dsh-btn" },
@@ -691,8 +717,10 @@ fn drawer_delete_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @htm
       .data_set("action", "delete")
       .data_set("mode", if hard_default { "hard" } else { "soft" })
       .title(hint)
+      .id(drawer_delete_id())
+      // 关框之后焦点回这一颗（§30.1）：抽屉不再因为开确认框而收起
       .on_click(fn(_event) {
-        emit(DeleteOpen(row.id, card_id(row.id), delete_mode_now(model)))
+        emit(DeleteOpen(row.id, drawer_delete_id(), delete_mode_now(model)))
       }),
     [
       icon("delete-outline"),
@@ -1564,16 +1592,65 @@ fn home_field_value(row : Row) -> String {
 }
 
 ///|
-/// 「配置 home」那一格的悬停：完整路径 + 后端给的判断依据。
+/// 「配置 home」那一格的悬停（§30.4）：先说清独立还是共用（各一句），再给完整路径与依据。
 /// 读数里没有这一项时如实说「没有这一项」，不按 DSH_HOME 猜一个归属出来。
 fn home_field_hint(row : Row) -> String {
-  if row.home_kind == "" {
-    "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
-  } else if row.home_kind_source == "" {
-    "路径：" + row.home_path + "（读数里没给判断依据）"
-  } else {
-    "路径：" + row.home_path + "｜依据：" + row.home_kind_source
+  let kind_line = match row.home_kind {
+    "isolated" => "独立：起实例用的是这份 home，与共用 DSH_HOME 分开"
+    "shared" => "共用：与控制台自己的 DSH_HOME 是同一份"
+    "trial" => "试跑：维护作业开的一次性 home，作业收尾时删掉"
+    _ => "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
   }
+  if row.home_kind == "" {
+    return kind_line
+  }
+  let tail = if row.home_kind_source == "" {
+    "（读数里没给判断依据）"
+  } else {
+    "｜依据：" + row.home_kind_source
+  }
+  kind_line + "\n路径：" + row.home_path + tail
+}
+
+///|
+/// 「运行 home」那一行（§30.4）：**只在在跑的实例自己的 home 与「配置 home」不同**时出现。
+///
+/// 两个 home 平时是同一份，并排摆两行只会让人以为它们不一样 —— 所以相同时一个节点都不产出。
+/// 不同则必须说：那只实例实际读写的 home 与这一份 profile 的归属分开了。
+fn run_home_field(row : Row) -> @html.Html? {
+  if !(row.status is Running) || !home_is_path(row.home) {
+    return None
+  }
+  if row.home_path != "" && same_home(row.home, row.home_path) {
+    return None
+  }
+  let hint = if row.home_hint == "" {
+    "这只实例进程自己用的 DSH_HOME，与「配置 home」那一份不同"
+  } else {
+    row.home_hint + "\n与上面「配置 home」不是同一份，所以单独列这一行"
+  }
+  Some(field("play", "run-home", row.id, "运行 home", row.home, hint))
+}
+
+///|
+/// 抽屉「配置」组里与 home 有关的那几行（§30.4）：先是「配置 home」这一格，
+/// 只有在跑的实例自己的 home 与它不同时，才多一行「运行 home」。
+fn home_field_items(row : Row) -> Array[@html.Html] {
+  let items : Array[@html.Html] = [
+    field(
+      "cube-outline",
+      "config-home",
+      row.id,
+      "配置 home",
+      home_field_value(row),
+      home_field_hint(row),
+    ),
+  ]
+  match run_home_field(row) {
+    Some(item) => items.push(item)
+    None => ()
+  }
+  items
 }
 
 ///|
@@ -1658,8 +1735,26 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     None => ()
   }
   let mutate : Array[@html.Html] = [
-    drawer_button(row, Rename, "rename-outline", "重命名", false, busy, emit),
-    drawer_button(row, Note, "note-text-outline", "备注", false, busy, emit),
+    drawer_button(
+      row,
+      Rename,
+      "rename-outline",
+      "重命名",
+      false,
+      busy,
+      emit,
+      elem_id=drawer_rename_id(),
+    ),
+    drawer_button(
+      row,
+      Note,
+      "note-text-outline",
+      "备注",
+      false,
+      busy,
+      emit,
+      elem_id=drawer_note_id(),
+    ),
   ]
   if running {
     mutate.push(drawer_button(row, Fork, "source-fork", "派生开发副本", false, busy, emit))
@@ -1760,19 +1855,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
   let config_rows : Array[@html.Html] = [
     // 配置 home 那一格读数留在这里：它是「以后起的实例落在哪儿」，与上面「实例自己在用的
     // DSH_HOME」不是同一件事，所以这一格跟着「配置」这一组走，不挤在读数里。
-    @html.ul(
-      class="dsh-fields is-single",
-      [
-        field(
-          "cube-outline",
-          "config-home",
-          row.id,
-          "配置 home",
-          home_field_value(row),
-          home_field_hint(row),
-        ),
-      ],
-    ),
+    @html.ul(class="dsh-fields is-single", home_field_items(row)),
     @html.div(class="dsh-drawer-btns", home_items),
     // 配置历史（§16.4）：动配置之前先拍一张、之后能还原。
     // 历史下面再摆一颗「整体替换」：这两件事都靠快照兜底（§17.3）
@@ -1877,9 +1960,20 @@ fn detail_drawer(
   // 开 / 收两种状态。样式里 .dsh-drawer 与 .dsh-drawer-scrim 各挂一套 keyframes，
   // 收的那一只对指针关掉（半透明的面板不该再吃点击）
   let state = if closing { "closing" } else { "open" }
+  // 读数只留**别处没说过的**那几格（§30.3）：
+  //   宿主版本 / 访问地址 / 插件数量 / 最近改动（外加有第二个端口时的「还听着」）。
+  //   Profile 删掉：抽屉标题就是这个名字；DSH_HOME 删掉：「配置」那一组已经说了这只 profile
+  //   的 home，两个 home 并排只会让人以为它们不一样。
+  //   宿主版本只放版本号，来源与包目录（versionSource 里的那条 package.json 路径）进悬停。
   let field_items : Array[@html.Html] = [
-    field("label-outline", "dsh-version", row.id, "DSH 版本 / 来源", row.version, row.version_hint),
-    field("layers-outline", "profile", row.id, "Profile", row.profile, row.profile_hint),
+    field(
+      "label-outline",
+      "dsh-version",
+      row.id,
+      "宿主版本",
+      version_value(row),
+      row.version_hint,
+    ),
     field("link-variant", "url", row.id, "访问地址", row.url, url_hint(row)),
   ]
   // 「还听着 9230」：同一个进程的其余监听端口，紧跟在主端口（访问地址）那一行后面。
@@ -1896,12 +1990,7 @@ fn detail_drawer(
       ),
     )
   }
-  field_items.push(
-    field("home-outline", "home", row.id, "DSH_HOME", row.home, row.home_hint),
-  )
   // 「配置 home」那一格不在这里：它跟着「配置」这一组走（§29.1）。
-  // 这一格说的是这只 profile 起的实例落在哪个 home，与上面「实例自己在用的 DSH_HOME」
-  // 不是同一件事：实例那格读的是进程 environ，那一格读的是 profiles 读数里的归属。
   field_items.push(
     field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
   )
@@ -2292,19 +2381,53 @@ fn snapshot_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 重命名框：预填当前名并全选；空名 / 纯空格禁用确定；Enter 确认、Esc 取消；
-/// 关闭后焦点回到触发元素。
+/// 重命名框（design/design-fixes.md §30.2）：预填当前名并全选；空名 / 纯空格禁用确定；
+/// Enter 确认、Esc 取消；关闭后焦点回到抽屉里那一颗「重命名」。
+///
+/// 这一框改的不是显示字符串：它改的是磁盘上的 profile 目录名。所以标题写全「给 X 改名」，
+/// 正文一句说清改的是什么，输入框下面再把**当前目录名**摆出来（技术细节进悬停）——
+/// 一个叫「重命名实例」的框，很容易被读成「只改卡片上的字」。
 fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let name = match find_row(model.rows, model.rename_id) {
-    Some(row) => row.name
-    None => model.rename_id
+  let (name, dir_name, dir_hint) = match find_row(model.rows, model.rename_id) {
+    Some(row) => {
+      let dir_name = match row.profile_name {
+        Some(profile) => profile
+        None => ""
+      }
+      let hint = if dir_name == "" {
+        "这一行的读数里没有 profile 目录名"
+      } else if row.home_path == "" {
+        "磁盘上的目录名：" + dir_name + "（读数里没有它的 home，拼不出完整路径）"
+      } else {
+        "磁盘上的目录：" + row.home_path + "/profiles/" + dir_name + "（改名就是改这一段的最后一级）"
+      }
+      (card_name_text(row), dir_name, hint)
+    }
+    None => (model.rename_id, "", "这一行已经不在读数里了")
   }
+  let title = "给 " + name + " 改名"
   let can_confirm = model.rename_draft.trim().length() > 0
+  let dir_line : Array[@html.Html] = if dir_name == "" {
+    []
+  } else {
+    [
+      @html.p(
+        class="dsh-dialog-sub",
+        attrs=mark("rename-dir", ["dialog", "rename-dialog", "dir"]).title(dir_hint),
+        "当前目录名：" + dir_name,
+      ),
+    ]
+  }
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("dialog-title", ["dialog", "rename-dialog", "title"]),
-      "重命名实例 " + name,
+      title,
+    ),
+    @html.p(
+      class="dsh-dialog-desc",
+      attrs=mark("rename-desc", ["dialog", "rename-dialog", "desc"]),
+      "改的是这只 profile 的目录名；界面上的名字跟着变，配置里的内容不动。",
     ),
     @html.input(
       input_type=Text,
@@ -2313,10 +2436,11 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       value=model.rename_draft,
       autofocus=true,
       attrs=mark("rename-input", ["dialog", "rename-dialog", "input"])
-        .aria_label("实例名称")
+        .aria_label("新的目录名")
         .spellcheck(false),
       on_input=emit.map(fn(text) { RenameInput(text) }),
     ),
+    @html.fragment(dir_line),
     @html.div(class="dsh-dialog-foot", [
       @html.button(
         class="dsh-dialog-btn primary",
@@ -2324,7 +2448,7 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         disabled=!can_confirm,
         attrs=mark("dialog-ok", ["dialog", "rename-dialog", "ok"]),
         on_click=emit(RenameConfirm),
-        [@html.text("确定")],
+        [@html.text("改名")],
       ),
       @html.button(
         class="dsh-dialog-btn",
@@ -2337,7 +2461,7 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "rename-dialog",
-    "重命名实例 " + name,
+    title,
     emit(RenameCancel),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {

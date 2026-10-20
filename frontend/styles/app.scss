@@ -1604,6 +1604,10 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
   line-height: 1.5; resize: vertical;
   font-family: inherit; font-size: 12.5px;
 }
+// 说明与脚注（§30.2 的改名框用这一套）：说明是「这个框改的是什么」，
+// 脚注是技术细节（当前目录名），比说明再淡一档、再小一号。
+.dsh-dialog-desc { margin: 0; font-size: 12.5px; line-height: 1.65; color: $text-mid; }
+.dsh-dialog-sub { margin: 0; font-size: 11.5px; line-height: 1.5; color: $text-dim; }
 // 保存失败的原因：后端给的原文，摆在框里、按钮上方
 .dsh-dialog-error { margin: 0; font-size: 12px; line-height: 1.6; color: $danger; }
 // 删除确认框里的备注：整段照原样显示（换行保留），字比正文小一号
