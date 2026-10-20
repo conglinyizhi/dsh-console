@@ -227,18 +227,23 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       ),
       card_name_text(row),
     ),
-    // 状态词：颜色之外的第二条通道（design/design-fixes.md 第 1 条）。
-    // 灰度截图下运行中 / 故障 / 已停止几乎同一亮度，只靠那颗圆读不出来；
-    // 这个词与灯同源（light_label），data-state 与灯上那一格一字不差，探针按它认。
-    // 摆在第一行、名字与端口之间：**不新起一行**，卡片高度不变（70px）。
-    @html.span(
-      class="dsh-dot-state " + light_key(row.light),
-      attrs=mark("card-state", ["overview", "card", row.id, "state"])
-        .data_set("state", light_key(row.light))
-        .title(light_label(row.light) + "：" + row.light_reason),
-      light_label(row.light),
-    ),
   ]
+  // 状态词：颜色之外的第二条通道（design/design-fixes.md 第 1 条），但**故障那一档不上卡**。
+  // 「上次启动失败」五个字会挤掉名字（headless 被截成「hea…」），而它要说的其实是
+  // 「点开看」——红灯 + 卡上悬停 + 抽屉里那句说都还在，文字通道没断（§43）。
+  if row.light is LightFault {
+    ()
+  } else {
+    head.push(
+      @html.span(
+        class="dsh-dot-state " + light_key(row.light),
+        attrs=mark("card-state", ["overview", "card", row.id, "state"])
+          .data_set("state", light_key(row.light))
+          .title(light_label(row.light) + "：" + row.light_reason),
+        light_label(row.light),
+      ),
+    )
+  }
   // 小金标紧跟在名字后面（隔离那一档才有节点）：它是金边之外的第二信号
   match row.home_kind {
     "isolated" => head.push(card_home_badge(row))
