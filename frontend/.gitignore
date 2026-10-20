@@ -2,6 +2,12 @@ _build/
 .mooncakes/
 .sandbox/
 dist/
-# moon check 生成的接口摘要：构建产物，不是源码
+# moon check 生成的接口摘要（头一行写着 Generated using `moon info`, DON'T EDIT IT）。
+# 查过两处官方做法，结论是「库」与「应用」不同：
+#   · moonbitlang/core 把每个包的 pkg.generated.mbti 提交进仓库（79 个），
+#     CI 还会重新生成并提交（chore(builtin): regenerate pkg.generated.mbti）——
+#     因为它是被别人依赖的库，接口摘要是对外契约的一部分。
+#   · moonbit-community/rabbita（界面框架，形态更接近我们这个应用）一个 mbti 都没提交。
+# 这个控制台是应用、不对外发接口，按后者：不提交，留在本地。
 pkg.generated.mbti
 cmd/app/pkg.generated.mbti
