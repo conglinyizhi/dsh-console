@@ -29,7 +29,16 @@ pub fn app() -> @rabbita.Val[@html.Html] {
       js_shift_watch()
       (
         boot,
-        @cmd.batch([load(emit), enter, read_settings, listen_popstate(emit), settle]),
+        @cmd.batch([
+          load(emit),
+          enter,
+          read_settings,
+          listen_popstate(emit),
+          settle,
+          // 页脚那颗灯：进页面先查一次，之后每 5 秒一次（§31.1）。
+          // 第一条回执到了才排下一次，所以这里只发这一枪、不排定时器。
+          health_ping_cmd(emit),
+        ]),
       )
     },
     update=update,
@@ -551,6 +560,82 @@ fn hard_open_done(
     (false, name + " 的裸地址没能打开（" + outcome + "）")
   }
   (notice_put(model, ok, text, "裸地址 " + url + "；这一颗不管有没有 key，直接开裸地址"), @cmd.none)
+}
+
+///|
+/// 页脚那颗灯的一次探测落地（design/design-fixes.md §31.1）。
+///
+/// 只写这几格 health_*：**页面上的其它读数一个字节都不动** —— 这一枪失败说的是
+/// 「服务端没答上来」，不说明 profiles / instances 那几份读数也坏了（各有各的请求）。
+///
+/// 排下一次：可见时排 5 秒的定时器；已经隐藏了就不排（后台标签页不发请求），
+/// 改成挂一个「等可见」的监听，可见那一刻立刻补一次。
+fn health_settled(
+  model : Model,
+  res : Result[String, Error],
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  let (ok, ms, reason) = match res {
+    Err(err) => (false, 0, "请求没发出去：" + describe(err))
+    Ok(text) => parse_health(text)
+  }
+  let next = {
+    ..model,
+    health_busy: false,
+    health_state: if ok {
+      HealthOnline
+    } else {
+      HealthOffline
+    },
+    health_ms: ms,
+    health_at: local_time_now(),
+    health_fails: if ok {
+      0
+    } else {
+      model.health_fails + 1
+    },
+    health_reason: reason,
+  }
+  if js_page_hidden() {
+    (
+      { ..next, health_visible_wait: true },
+      listen_visible(emit),
+    )
+  } else {
+    (
+      { ..next, health_visible_wait: false },
+      @cmd.delay(emit(HealthTick), health_poll_ms),
+    )
+  }
+}
+
+///|
+/// 探测回执 →（成没成, 往返毫秒, 失败原因）。回执不是约定形状就当失败，
+/// 不拿「解析不出来」说成「在线」。
+fn parse_health(text : String) -> (Bool, Int, String) {
+  let root = try @json.parse(text) catch {
+    _ => return (false, 0, "探测回执不是合法 JSON")
+  }
+  guard root is Json::Object(obj) else {
+    return (false, 0, "探测回执不是 JSON 对象")
+  }
+  let ok = bool_field(obj, "ok")
+  let ms = match int_field(obj, "ms") {
+    Some(n) => n
+    None => 0
+  }
+  let reason = str_field(obj, "error")
+  (
+    ok,
+    ms,
+    if ok {
+      ""
+    } else if reason == "" {
+      "没给出原因"
+    } else {
+      reason
+    },
+  )
 }
 
 ///|
@@ -3302,6 +3387,31 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         )
       } else {
         (model, @cmd.none)
+      }
+    // ── 页脚「服务端在线」灯（design/design-fixes.md §31.1）─────────
+    //
+    // 三拍：到点（HealthTick）→ 探测 → 落地（HealthDone）→ 排下一次。
+    // 页面隐藏时不排 5 秒定时器，改成挂一个「等可见」的监听；可见之后由 HealthVisible
+    // 立刻补一次 —— 后台标签页里不发请求，回到页面时一眼看到的是新结论。
+    HealthTick =>
+      if model.health_busy {
+        // 上一枪还没回来：这一拍什么都不做（别让两枪同时飞）
+        (model, @cmd.none)
+      } else if js_page_hidden() {
+        if model.health_visible_wait {
+          (model, @cmd.none)
+        } else {
+          ({ ..model, health_visible_wait: true }, listen_visible(emit))
+        }
+      } else {
+        ({ ..model, health_busy: true }, health_ping_cmd(emit))
+      }
+    HealthDone(res) => health_settled(model, res, emit)
+    HealthVisible =>
+      if model.health_busy {
+        ({ ..model, health_visible_wait: false }, @cmd.none)
+      } else {
+        ({ ..model, health_busy: true, health_visible_wait: false }, health_ping_cmd(emit))
       }
     // 滑出走完了：这一枪的号还对得上才撤节点。中间又开过抽屉的话（号被清掉或换了一行）
     // 什么都不做 —— 不然会把刚开的那一只撤下去。

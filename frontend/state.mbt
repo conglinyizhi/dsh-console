@@ -97,6 +97,15 @@ enum Light {
 pub extend Light with Eq::{ not_equal, equal }
 
 ///|
+/// 页脚那颗灯的三档（design/design-fixes.md §31.1）：
+/// 还不知道（刚进页面）→ 在线 → 离线。颜色 + 文字两通道，不靠颜色单独表达。
+priv enum ServerHealth {
+  HealthChecking
+  HealthOnline
+  HealthOffline
+} derive(Eq)
+
+///|
 /// 两档：真实读取失败退回演示 / 请求还在路上。
 ///
 /// 「这一份是真读数」那一档已经删掉（使用者 2026-10-15 决定）：页面上读到的一切
@@ -321,6 +330,55 @@ pub let flash_fade_ms : Int = 220
 /// **上限是硬的**：收起来那一段走完之后节点才撤，验收探针在 Esc 之后等 700ms
 /// 就断言「抽屉没了」；这个数超过 300 就会让那条判定误报。
 pub let drawer_anim_ms : Int = 220
+
+///|
+/// 页脚那颗灯的轮询间隔（毫秒）与单次探测的超时（design/design-fixes.md §31.1）：
+/// 每 5 秒查一次，单次超过 3 秒没有应答就算这一次失败。
+pub let health_poll_ms : Int = 5000
+
+///|
+pub let health_timeout_ms : Int = 3000
+
+///|
+/// 灯的状态词。**颜色之外的第二条通道**：三档各有自己的说法，
+/// 读屏与「看不出颜色」的场合都靠它（§31.1）。
+fn health_label(state : ServerHealth) -> String {
+  match state {
+    HealthChecking => "正在检查…"
+    HealthOnline => "服务端在线"
+    HealthOffline => "服务端离线"
+  }
+}
+
+///|
+/// 灯与状态词一起用的那一档键（写进 data-state，样式与探针都按它认）。
+fn health_key(state : ServerHealth) -> String {
+  match state {
+    HealthChecking => "checking"
+    HealthOnline => "online"
+    HealthOffline => "offline"
+  }
+}
+
+///|
+/// 悬停：在线说「多快答的、什么时候查的」，离线说「连挂了几次、最近一次为什么」。
+/// 刚进页面还没有结果时说清「还没有第一次结果」—— 不把「还没查」写成「在线」。
+pub fn health_hint(model : Model) -> String {
+  match model.health_state {
+    HealthChecking => "正在检查服务端：还没有第一次结果"
+    HealthOnline =>
+      "最近一次响应 " + model.health_ms.to_string() + " ms，检查于 " + model.health_at
+    HealthOffline => {
+      let reason = if model.health_reason == "" {
+        "没给出原因"
+      } else {
+        model.health_reason
+      }
+      "连续失败 " + model.health_fails.to_string() + " 次，最近一次：" + reason +
+      (if model.health_at == "" { "" } else { "（" + model.health_at + "）" })
+    }
+  }
+}
 
 ///|
 /// 启动成功之后，最多重读几轮读数去等带令牌的地址。
@@ -640,6 +698,25 @@ struct Model {
   /// 已经发过几条。每发一条 +1，Notice.seq 取的就是它 ——
   /// 提示被收掉之后这格仍然往前走，旧的到期消息回来才认得出「那一条早就不在了」。
   notice_serial : Int
+  // 页脚「服务端在线」灯（design/design-fixes.md §31.1）
+  //
+  // 这几格**只由那条 5 秒一次的探测写**：profiles / instances / console 那几份读数
+  // 各有各的请求与错误格，这一枪失败不许改它们 —— 灯说的是「服务端答不答」，
+  // 不是「读数好不好」。
+  /// 三档：还在检查 / 在线 / 离线
+  health_state : ServerHealth
+  /// 最近一次成功探测的往返毫秒（本机量的）；还没成功过是 0
+  health_ms : Int
+  /// 最近一次探测落地的本地时刻 HH:MM:SS（成功失败都记；悬停里说「检查于」）
+  health_at : String
+  /// 连续失败了几次（成功一次就归零）
+  health_fails : Int
+  /// 最近一次失败的原因（成功时清空）
+  health_reason : String
+  /// 一次探测还在路上：挡住重入，别让两枪同时飞
+  health_busy : Bool
+  /// 已经挂了一个「等页面重新可见」的监听（别重复挂）
+  health_visible_wait : Bool
   /// 启动等待态里那句提示要用的两个词（回执与计时是两条路，各自都拿得到它们）：
   /// 谁（web-dev）与做了什么（启动）。组句见 app.mbt 的 action_receipt。
   act_name : String
@@ -746,6 +823,12 @@ priv enum Msg {
   OrderDone(Result[String, Error])
   /// 关抽屉：点外部 / Esc / 关闭按钮都走这一条。焦点回触发它的那张卡。
   DrawerClose
+  /// 页脚那颗灯：到点了，发一次探测（页面隐藏时改成「等可见」）
+  HealthTick
+  /// 探测的回执（原始 JSON 文本；解析在 update 里做）
+  HealthDone(Result[String, Error])
+  /// 页面重新可见了：清掉「在等」的标记，立刻补一次检查
+  HealthVisible
   /// 「打开 Web UI」右段 chevron：那份菜单开 / 收。展开时焦点落进菜单项，
   /// 收起时回 chevron（菜单项一撤，焦点不能掉到 body 上）。
   SplitMenuToggle
@@ -904,6 +987,13 @@ fn initial_model() -> Model {
     drawer_id: "",
     drawer_closing: "",
     split_menu_open: false,
+    health_state: HealthChecking,
+    health_ms: 0,
+    health_at: "",
+    health_fails: 0,
+    health_reason: "",
+    health_busy: false,
+    health_visible_wait: false,
     order: [],
     drag_id: "",
     drag_start_x: 0.0,

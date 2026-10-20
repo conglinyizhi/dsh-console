@@ -205,9 +205,10 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-nav-label {
   font-size: 13px;
 }
-/* 页脚那句「本机运行，仅限回环访问」：10px 太小，一屏里最该读到的边界说明
-   反而比任何一栏次要文字都淡（design/design-fixes.md §19.4）。字号提到 11px，
-   行高跟着按同一比例走（1.45 × 11 ≈ 16px）。 */
+/* 页脚那颗「服务端在线」灯（design/design-fixes.md §31.1）。
+   灯 + 一句状态词，两通道：颜色说快慢，词说结论（看不出颜色也读得出来）。
+   字号 11px 沿用上一轮的口径（原「仅限回环」那一句的尺寸），悬停给细节：
+   在线是「最近一次响应 N ms，检查于 HH:MM:SS」，离线是「连续失败 N 次，最近一次：…」。 */
 .dsh-side-foot {
   display: flex;
   align-items: center;
@@ -218,13 +219,18 @@ select { appearance: none; -webkit-appearance: none; }
   line-height: 1.45;
   color: $text-dim;
 }
+/* 灯的三档：还没查过是灰的（实心，不是空环 —— 空环留给「读不到状态」那一档），
+   在线绿、离线红。离线那一档连字一起红：那是这一格里唯一的坏消息。 */
 .dsh-side-dot {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   flex: none;
   border-radius: 50%;
-  background: $ok;
+  background: $text-dim;
 }
+.dsh-side-dot.online { background: $ok; }
+.dsh-side-dot.offline { background: $danger; }
+.dsh-side-foot[data-state="offline"] { color: $danger; }
 
 // ── 顶栏 ──
 // 上一轮顶栏整条去掉过：当时它只为「设置」那一个按钮存在，按钮搬进侧栏之后

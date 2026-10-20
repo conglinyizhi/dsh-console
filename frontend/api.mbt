@@ -273,6 +273,35 @@ fn base_profile_cmd(name : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 }
 
 ///|
+/// 页脚那颗「服务端在线」灯的探测（design/design-fixes.md §31.1）：
+/// GET /api/local/console，3 秒超时，回一句 { ok, status, ms, error, at }。
+///
+/// 单开一条而不是复用别的读法：这一枪只回答「答不答、多快答」，
+/// 它的回执**不碰任何读数** —— profiles / instances / console 那几份各有各的请求。
+fn health_ping_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(HealthDone(res)) },
+    async fn() {
+      let text : String = js_health_ping("/api/local/console", health_timeout_ms).wait().cast()
+      text
+    },
+  )
+}
+
+///|
+/// 等页面重新可见（隐藏期间挂一次）。回执是 HealthVisible：那边清掉「在等」的标记，
+/// 并立刻补一次检查 —— 这正是 §31.1 要求的「恢复可见立刻查一次」。
+fn listen_visible(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.attempt(
+    fn(_res : Result[String, Error]) { emit(HealthVisible) },
+    async fn() {
+      let text : String = js_next_visible().wait().cast()
+      text
+    },
+  )
+}
+
+///|
 /// POST /api/local/action 的 **set-row-order**：body 是 { action, params: { order: [...] } }。
 ///
 /// 为什么单开一条而不是复用 action_cmd：这条回执要做一件别处不做的事 ——

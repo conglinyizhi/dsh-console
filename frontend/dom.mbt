@@ -106,6 +106,63 @@ fn set_control_after_render(id : String, value : String) -> @cmd.Cmd {
 }
 
 ///|
+/// 页面此刻是不是隐藏的（切到别的标签页 / 最小化）。
+/// 页脚那颗「服务端在线」灯按它暂停轮询（design/design-fixes.md §31.1）。
+extern "js" fn js_page_hidden() -> Bool =
+  #| () => !!document.hidden
+
+///|
+/// 等页面重新可见：隐藏期间挂一次，可见那一刻 resolve('visible')。
+/// 监听一次就摘掉 —— 回执进 update 之后由那边决定要不要再挂
+/// （与 route.mbt 的 js_next_popstate 同一套「任何时刻只有一个在等」）。
+extern "js" fn js_next_visible() -> @js.Promise =
+  #| () => new Promise((resolve) => {
+  #|   if (!document.hidden) { resolve('visible'); return }
+  #|   const onChange = () => {
+  #|     if (document.hidden) return
+  #|     document.removeEventListener('visibilitychange', onChange)
+  #|     resolve('visible')
+  #|   }
+  #|   document.addEventListener('visibilitychange', onChange)
+  #| })
+
+///|
+/// 一次服务端健康检查：GET url，带超时，回一句 JSON：{ ok, status, ms, error, at }。
+///
+/// - ms 是**本机**量到的往返毫秒（performance.now 差值），不是服务端说的耗时；
+/// - ok = 2xx；非 2xx 也算失败，原因里带状态行（服务端在，但这一步没答对）；
+/// - 超时用 AbortController 掐掉：不掐的话一个不答的请求会一直挂着，灯停在上一档，
+///   看不出「它已经不答了」；
+/// - 带一个 X-DSH-Health 头：这条与页面读数那几枪走同一个端点，留个记号才好单独拦它做验收。
+extern "js" fn js_health_ping(url : String, timeout_ms : Int) -> @js.Promise =
+  #| (url, timeoutMs) => {
+  #|   const started = performance.now()
+  #|   const ctrl = new AbortController()
+  #|   const timer = setTimeout(() => { try { ctrl.abort() } catch (e) {} }, timeoutMs)
+  #|   const done = (ok, status, error) => {
+  #|     clearTimeout(timer)
+  #|     return JSON.stringify({
+  #|       ok: ok,
+  #|       status: status,
+  #|       ms: Math.round(performance.now() - started),
+  #|       error: error,
+  #|       at: new Date().toISOString(),
+  #|     })
+  #|   }
+  #|   return fetch(url, {
+  #|     method: 'GET',
+  #|     signal: ctrl.signal,
+  #|     headers: { 'X-DSH-Health': '1', 'Cache-Control': 'no-store' },
+  #|   }).then(
+  #|     (res) => done(res.ok, res.status, res.ok ? '' : ('HTTP ' + res.status + ' ' + (res.statusText || ''))),
+  #|     (err) => {
+  #|       const aborted = err && (err.name === 'AbortError')
+  #|       return done(false, 0, aborted ? ('超时（' + timeoutMs + ' ms 内没有应答）') : String((err && err.message) || err))
+  #|     },
+  #|   )
+  #| }
+
+///|
 /// 新标签页打开一个地址，回一句结局：'ok' / 'blocked' / 'error: …'。
 ///
 /// 为什么要回结局：带令牌的地址是这一轮的重点，而「点开了没有」不许猜 ——

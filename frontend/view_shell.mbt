@@ -1,7 +1,8 @@
 // 应用外壳：左侧导航六项（实例总览 / 维护 / 日志 / 设置 / 回收站 / 关于）+ 内容区。
 //
 // 导航既是状态切页也写地址（见 route.mbt）：刷新与前进/后退按地址复原页面。
-// 页脚「本机运行，仅限回环访问」在导航栏底部。
+// 页脚那颗「服务端在线」灯在导航栏底部（design/design-fixes.md §31.1），
+// 由 app.mbt 里每 5 秒一次的探测喂，不是写死的文案。
 // 顶部那条 .dsh-route-notice 只在地址认不出来、被回落时出现 —— 回落必须说清为什么，
 // 不然「点进来发现不是自己要的那一页」就成了没法解释的怪事。
 //
@@ -122,10 +123,29 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         nav_item(Trash, model.page, "delete-outline", emit),
         nav_item(About, model.page, "shield-outline", emit),
       ]),
-      @html.p(class="dsh-side-foot", [
-        @html.i(class="dsh-side-dot", @html.nothing),
-        @html.span(class="dsh-side-foot-text", "本机运行，仅限回环访问"),
-      ]),
+      // 页脚那颗灯（design/design-fixes.md §31.1）：**服务端在线状态**，不是「仅限回环」那句。
+      // 颜色 + 状态词两通道：三档各有自己的说法，悬停里给细节（响应毫秒 / 连续失败与原因）。
+      // role=status + aria-live=polite：这一格会自己变，读屏跟着播一句。
+      @html.p(
+        class="dsh-side-foot",
+        attrs=mark("side-foot", ["shell", "side-foot"])
+          .data_set("state", health_key(model.health_state))
+          .title(health_hint(model))
+          .role("status")
+          .aria_live("polite"),
+        [
+          @html.i(
+            class="dsh-side-dot " + health_key(model.health_state),
+            attrs=mark("side-foot-dot", ["shell", "side-foot", "dot"]).aria_hidden("true"),
+            @html.nothing,
+          ),
+          @html.span(
+            class="dsh-side-foot-text",
+            attrs=mark("side-foot-text", ["shell", "side-foot", "text"]),
+            health_label(model.health_state),
+          ),
+        ],
+      ),
     ],
   )
 }
