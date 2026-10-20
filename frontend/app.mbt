@@ -159,8 +159,12 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     Some(facts) => facts.profiles
     None => []
   }
+  // 缺包排不排进状态灯，由设置项 profile.ignoreMissingBundles 决定（§40.2）；
+  // 设置还没读到时按缺省（不报警）—— 缺省就是「缺包不吓人」。
+  let ignore_missing = ignore_missing_bundles(model)
   let running = match model.instances {
-    Some(facts) => running_rows(facts.instances, profile_list, model.console, profiles_home)
+    Some(facts) =>
+      running_rows(facts.instances, profile_list, model.console, profiles_home, ignore_missing)
     None => demo_running()
   }
   // 已停止组要排除「正被某个运行中实例用着」的 profile——同一个东西不能既运行中又已停止
@@ -170,7 +174,14 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   }
   let stopped = match model.profiles {
     Some(facts) =>
-      profile_rows(facts.profiles, model.runtime, profiles_home, live_instances, model.console)
+      profile_rows(
+        facts.profiles,
+        model.runtime,
+        profiles_home,
+        live_instances,
+        model.console,
+        ignore_missing,
+      )
     None => demo_stopped()
   }
   let rows : Array[Row] = []

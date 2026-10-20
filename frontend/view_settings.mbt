@@ -246,7 +246,12 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
         ]),
         @html.p(
           class="dsh-setting-desc",
-          attrs=mark("setting-desc", ["settings", "row", def.key, "desc"]),
+          // 有补充悬停的项（§40.4 的「设置项悬停」）挂一句；没有就只留 mark
+          attrs=if setting_hint(def.key) == "" {
+            mark("setting-desc", ["settings", "row", def.key, "desc"])
+          } else {
+            mark("setting-desc", ["settings", "row", def.key, "desc"]).title(setting_hint(def.key))
+          },
           def.desc,
         ),
         if changed {
@@ -269,6 +274,18 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
       ]),
     ],
   )
+}
+
+///|
+/// 少数设置项除正文说明之外还有一句悬停（design/design-fixes.md §40.4）。
+///
+/// 正文那句回答「要不要开」，悬停这句回答「开了之后原来那些缺口还在不在、还能不能处理」——
+/// 两句话的读者不是同一个时刻的人。
+fn setting_hint(key : String) -> String {
+  match key {
+    "profile.ignoreMissingBundles" => "缺的包仍然可以在抽屉里安装；关掉这一项，缺包会重新算作警告"
+    _ => ""
+  }
 }
 
 ///|

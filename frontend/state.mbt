@@ -214,6 +214,10 @@ struct Row {
   repair_command : String
   /// 补包要带的 home：这只 profile 自己的 home（隔离的那只是它的隔离 home）
   repair_home : String
+  /// 命令行型：bundles 里没有 `@deepseek-ai/dsh-web-app`（读数 webApp === false）。
+  /// 这种 profile 没有网页入口，起不成常驻实例；卡上给它一枚蓝色小标（design/design-fixes.md §41）。
+  /// 读不到这一项（None）时算 false：不确定就不贴标签，不替它下结论。
+  cli_only : Bool
   /// 这一格是**按实例自己的 home 认定**的（design/design-fixes.md §33.1）：
   /// 运行中那一行在 profiles 读数里配不上自家 profile（它来自别处 home），
   /// 于是按实例进程的 DSH_HOME 算成「共用（<那份 home>）」。false = 照 profile 读数。
@@ -1747,16 +1751,33 @@ fn signature_plain(fact : InstanceFact) -> String {
 /// profile 那一侧的毛病（空串 = 没毛病，或者手上没有健康读数）。
 ///
 /// 缺包优先说：一只缺包的 profile 比「补丁文件不在」更值得先看。
-fn profile_trouble(health : InstanceHealth?) -> String {
+fn profile_trouble(health : InstanceHealth?, ignore_missing : Bool) -> String {
   match health {
     None => ""
     Some(h) =>
-      if h.missing_bundles > 0 {
+      if h.missing_bundles > 0 && !ignore_missing {
         "这只 profile 缺 " + h.missing_bundles.to_string() + " 个包"
       } else if !h.has_patch {
         "这只 profile 的 cordis.patch.yml 不在"
       } else {
         ""
+      }
+  }
+}
+
+///|
+/// 「忽略缺包警告」这一项现在是什么（design/design-fixes.md §40）。
+///
+/// 三档：读到值 → 按它；读到但这一版后端不认识这个键 → 按缺省 true；
+/// 设置读数还没到手 → 也按 true（缺省口径）。**缺省就是「不报警」**，
+/// 所以没读到的时候宁可不报警，也不摆一堆黄灯吓人。
+fn ignore_missing_bundles(model : Model) -> Bool {
+  match model.settings {
+    None => true
+    Some(facts) =>
+      match lookup_setting(facts.values, "profile.ignoreMissingBundles") {
+        Some(VBool(v)) => v
+        _ => true
       }
   }
 }
@@ -1784,15 +1805,24 @@ fn instance_health_facts(fact : InstanceFact, profile_fact : ProfileFact?) -> In
 ///
 /// 读数没给状态就走 unknown —— 调用方据此说清「读不到」，不拿握手探测的结果去替它定色。
 /// 返回三样：档位、抽屉正文那一句（人话）、悬停里的技术依据（这个结论是怎么来的）。
-fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, String, String) {
+fn instance_light(
+  fact : InstanceFact,
+  profile_fact : ProfileFact?,
+  ignore_missing : Bool,
+) -> (Light, String, String) {
   let port = fact.port.to_string()
   let health = instance_health_facts(fact, profile_fact)
-  let trouble = profile_trouble(health)
+  let trouble = profile_trouble(health, ignore_missing)
   let signature = signature_plain(fact)
   // 绿灯那一句怎么说：体检读数在手上才说「正常」，读不到就如实说读不到 ——
   // 绿只由签名给，不替 profile 说一句没有读数支撑的话。
   let health_note = match health {
-    Some(_) => "；这只 profile 的体检也正常（缺包 0，cordis.patch.yml 在）。"
+    Some(_) =>
+      if ignore_missing {
+        "；这只 profile 的体检没有别的毛病（cordis.patch.yml 在；缺包这一项按设置不参与判灯）。"
+      } else {
+        "；这只 profile 的体检也正常（缺包 0，cordis.patch.yml 在）。"
+      }
     None =>
       "；这只 profile 的体检读不到（缺包与 patch 都没有读数），绿灯只由握手应答给，不替它说「正常」。"
   }
@@ -1883,7 +1913,7 @@ fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, S
 /// 优先级：红灯（上次启动失败）> 黄（有警告）> 已停止（不画灯）。
 /// 红灯排在最前：一只上一次起不来、之后也没起来过的 profile，缺包只是它的成因之一，
 /// 说成「有警告」会把真正的那件事（它起不来）压过去。
-fn profile_light(fact : ProfileFact) -> (Light, String, String) {
+fn profile_light(fact : ProfileFact, ignore_missing : Bool) -> (Light, String, String) {
   let missing = fact.bundles.missing
   let source = if fact.last_start_source == "" {
     ""
@@ -1912,7 +1942,7 @@ fn profile_light(fact : ProfileFact) -> (Light, String, String) {
     Some(_) => "最近一次启动是成功的"
     None => "审计里没有这只 profile 的启动失败记录"
   }
-  if missing.length() > 0 {
+  if missing.length() > 0 && !ignore_missing {
     (
       LightWarn,
       "没有在跑，但这只 profile 缺 " + missing.length().to_string() + " 个包",
@@ -1930,8 +1960,12 @@ fn profile_light(fact : ProfileFact) -> (Light, String, String) {
     (
       LightStop,
       "没有在跑",
-      "这只 profile 的包都装上了、cordis.patch.yml 也在，" + start_note +
-      "；只是现在没有实例在用它。" + source,
+      (if ignore_missing && missing.length() > 0 {
+        "这只 profile 缺 " + missing.length().to_string() +
+        " 个包（按设置不参与判灯，可以在抽屉里装）、cordis.patch.yml 也在，"
+      } else {
+        "这只 profile 的包都装上了、cordis.patch.yml 也在，"
+      }) + start_note + "；只是现在没有实例在用它。" + source,
     )
   }
 }
@@ -1942,13 +1976,17 @@ fn profile_light(fact : ProfileFact) -> (Light, String, String) {
 ///
 /// 包名清单从 profiles 读数里拿（实例那一侧只给个数）：**名字的个数与手上这个数对得上才用**，
 /// 对不上就只说个数 —— 宁可少一句，也不拿另一份读数里的名字去配这一份的个数。
-fn instance_health(fact : InstanceFact, profile_fact : ProfileFact?) -> HealthNote {
+fn instance_health(
+  fact : InstanceFact,
+  profile_fact : ProfileFact?,
+  ignore_missing : Bool,
+) -> HealthNote {
   match fact.profile_health {
     Some(health) =>
       health_note_of(health.has_patch, health.missing_bundles, matching_names(
         profile_fact,
         health.missing_bundles,
-      ))
+      ), ignore_missing)
     None =>
       match profile_fact {
         Some(item) =>
@@ -1956,6 +1994,7 @@ fn instance_health(fact : InstanceFact, profile_fact : ProfileFact?) -> HealthNo
             item.patch_exists,
             item.bundles.missing.length(),
             join_with(item.bundles.missing, "、"),
+            ignore_missing,
           )
         None => no_reading_note()
       }
@@ -1995,8 +2034,13 @@ priv struct HealthNote {
 /// 缺包优先报（一只缺包的 profile 比「补丁文件不在」更值得先看），都不缺才说「都对」。
 /// names 为空串 = 手上没有包名清单，这时正文只说个数，悬停也就没什么可补的
 /// （为什么没有名字是这一版怎么实现的，不写在给使用者看的那句话里）。
-fn health_note_of(has_patch : Bool, missing_count : Int, names : String) -> HealthNote {
-  if missing_count > 0 {
+fn health_note_of(
+  has_patch : Bool,
+  missing_count : Int,
+  names : String,
+  ignore_missing : Bool,
+) -> HealthNote {
+  if missing_count > 0 && !ignore_missing {
     let count = "缺 " + missing_count.to_string() + " 个包"
     {
       text: count,
@@ -2520,6 +2564,7 @@ fn running_rows(
   profiles : Array[ProfileFact],
   console : ConsoleFacts?,
   profiles_home : String,
+  ignore_missing : Bool,
 ) -> Array[Row] {
   facts.map(fn(fact) {
     // 这一只实例自己的 home（运行时读出来的）。它同时是「按 profile 查上次启动」时要用的那一段：
@@ -2563,8 +2608,8 @@ fn running_rows(
       None => "dsh :" + fact.port.to_string()
     }
     // 状态灯与「为什么是这个颜色」：实例卡只看后端的 state（后端没给就是 unknown，不猜）
-    let (light, light_reason, light_basis) = instance_light(fact, profile_fact)
-    let health = instance_health(fact, profile_fact)
+    let (light, light_reason, light_basis) = instance_light(fact, profile_fact, ignore_missing)
+    let health = instance_health(fact, profile_fact, ignore_missing)
     // 第二行第三顺位：这一只真实的启动时刻优先（进程起始时间），取不到才去查控制台的记录
     let (last_started, last_started_source) = row_last_started(
       fact.started_at,
@@ -2702,6 +2747,8 @@ fn running_rows(
       home_from_instance: fact.home_kind != "trial" &&
         profile_fact is None &&
         home_is_path(instance_home),
+      // 运行中的实例必然有网页入口（没有入口的 profile 起不出常驻实例）
+      cli_only: false,
       // 补包（§39）：只在 profiles 读数配得上这一只时才知道缺几个、也知道该用哪条命令；
       // 配不上（别处 home 的实例）就不摆那颗按钮 —— 数不出来就别许诺能修。
       missing_count: match profile_fact {
@@ -2877,6 +2924,7 @@ fn profile_rows(
   profiles_home : String,
   running : Array[InstanceFact],
   console : ConsoleFacts?,
+  ignore_missing : Bool,
 ) -> Array[Row] {
   let rows : Array[Row] = []
   for fact in profiles {
@@ -2890,8 +2938,13 @@ fn profile_rows(
     }
     let missing = fact.bundles.missing
     // 停止卡的状态灯：没有在跑 + 缺包/缺 patch 这两条判据都在 profiles 读数里（不是猜的）
-    let (light, light_reason, light_basis) = profile_light(fact)
-    let health = health_note_of(fact.patch_exists, missing.length(), join_with(missing, "、"))
+    let (light, light_reason, light_basis) = profile_light(fact, ignore_missing)
+    let health = health_note_of(
+      fact.patch_exists,
+      missing.length(),
+      join_with(missing, "、"),
+      ignore_missing,
+    )
     // 第二行第三顺位：这一只现在没有实例可问，只能按 profile 名去控制台的记录里查
     // 「上次启动」。查不到就是空串 —— 那一行空着，不拿最近改动之类的时刻顶上
     //（最近改动是另一回事，它在抽屉第六格，口径不同）。
@@ -2973,6 +3026,11 @@ fn profile_rows(
       home_path: fact.home_path,
       home_kind_source: fact.home_kind_source,
       home_from_instance: false,
+      // 命令行型（§41）：读数是 webApp === false 才算；None（旧后端）不算
+      cli_only: match fact.web_app {
+        Some(has) => !has
+        None => false
+      },
       // 补包（§39）：缺几个、用哪条命令、带哪个 home。home 用这一行自己的
       // （隔离的那只在自己的 home 里，共用的是控制台 home）—— 与「配置 home」同一格值。
       missing_count: missing.length(),
@@ -3116,6 +3174,7 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     home_path: "",
     home_kind_source: "",
     home_from_instance: false,
+    cli_only: false,
     missing_count: 0,
     repair_command: "",
     repair_home: "",
@@ -3163,7 +3222,7 @@ fn demo_running() -> Array[Row] {
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
+      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
       missing_count: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
@@ -3191,7 +3250,7 @@ fn demo_running() -> Array[Row] {
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
+      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
       missing_count: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
@@ -3225,7 +3284,7 @@ fn demo_stopped() -> Array[Row] {
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
+      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
       missing_count: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",

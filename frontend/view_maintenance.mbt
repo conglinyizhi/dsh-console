@@ -453,7 +453,7 @@ fn job_profile_fact_of(model : Model, name : String) -> ProfileFact? {
 /// 两边各缺一半时按有的那半说：行不在（读数里有、行里没有）就走 profile_light 判灯，
 /// 读数不在（行在、读数没配上）就不判可用性 —— 宁可让试跑自己去撞失败，也不凭一个
 /// 说不清的读数把一份其实能用的配置灰掉（与 job_profile_usable 同一口径）。
-fn job_profile_pick(row : Row?, fact : ProfileFact?) -> ProfilePick {
+fn job_profile_pick(row : Row?, fact : ProfileFact?, ignore_missing : Bool) -> ProfilePick {
   let (usable, why) = match fact {
     Some(item) => job_profile_usable(item)
     None => (true, "")
@@ -469,7 +469,7 @@ fn job_profile_pick(row : Row?, fact : ProfileFact?) -> ProfilePick {
     None =>
       match fact {
         Some(item) => {
-          let (light, reason, basis) = profile_light(item)
+          let (light, reason, basis) = profile_light(item, ignore_missing)
           (item.name, light, reason, basis, false)
         }
         None => ("", LightUnknown, "", "", false)
@@ -530,6 +530,8 @@ fn job_profile_pick(row : Row?, fact : ProfileFact?) -> ProfilePick {
 /// 一只 profile 不该因为读数没配上就在侧栏里人间蒸发。
 fn job_profile_picks(model : Model) -> (Array[ProfilePick], Array[ProfilePick]) {
   let (running_rows, stopped_rows) = display_groups(model)
+  // 与总览同一把尺子（§40.3）：缺包排不排进灯，全看这一个设置项
+  let ignore_missing = ignore_missing_bundles(model)
   let running : Array[ProfilePick] = []
   let stopped : Array[ProfilePick] = []
   let seen : Array[String] = []
@@ -541,7 +543,7 @@ fn job_profile_picks(model : Model) -> (Array[ProfilePick], Array[ProfilePick]) 
       Some(name) => match job_profile_fact_of(model, name) {
         Some(fact) =>
           if !seen.contains(name) {
-            running.push(job_profile_pick(Some(row), Some(fact)))
+            running.push(job_profile_pick(Some(row), Some(fact), ignore_missing))
             seen.push(name)
           }
         None => ()
@@ -554,7 +556,7 @@ fn job_profile_picks(model : Model) -> (Array[ProfilePick], Array[ProfilePick]) 
       Some(name) => match job_profile_fact_of(model, name) {
         Some(fact) =>
           if !seen.contains(name) {
-            stopped.push(job_profile_pick(Some(row), Some(fact)))
+            stopped.push(job_profile_pick(Some(row), Some(fact), ignore_missing))
             seen.push(name)
           }
         None => ()
@@ -564,7 +566,7 @@ fn job_profile_picks(model : Model) -> (Array[ProfilePick], Array[ProfilePick]) 
   }
   for fact in job_profile_facts(model) {
     if !seen.contains(fact.name) {
-      stopped.push(job_profile_pick(None, Some(fact)))
+      stopped.push(job_profile_pick(None, Some(fact), ignore_missing))
       seen.push(fact.name)
     }
   }

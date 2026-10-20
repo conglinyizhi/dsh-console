@@ -244,6 +244,11 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
     "isolated" => head.push(card_home_badge(row))
     _ => ()
   }
+  // 蓝标：命令行型（bundles 里没有 dsh-web-app）。这种 profile 没有网页入口，
+  // 起不成常驻实例 —— 在卡上先说出来，省得用户点「启动」再看报错（§41）。
+  if row.cli_only {
+    head.push(card_cli_badge(row))
+  }
   match row.port_value {
     Some(port) => head.push(card_port(row, port))
     None => ()
@@ -490,6 +495,23 @@ fn card_class(row : Row, model : Model) -> String {
 ///
 /// 只在 isolated 那一档产出节点（共用的卡 DOM 与从前逐节点一致）；悬停里说清这份 home
 /// 在哪儿、为什么这一只被单独放在一个 home 里。
+fn card_cli_badge(row : Row) -> @html.Html {
+  @html.span(
+    class="dsh-cli-badge",
+    attrs=mark("card-cli-badge", ["overview", "card", row.id, "cli"])
+      .data_set("cli-only", "true")
+      .role("img")
+      .aria_label("命令行型")
+      .title(
+        "命令行型：这只 profile 的 bundles 里没有 @deepseek-ai/dsh-web-app，" +
+        "没有网页入口，起不成常驻实例。要用它就按它自己的用法在终端里跑一次" +
+        "（dsh --profile <名字> …，具体参数看 --help）",
+      ),
+    [@html.text("命令行型")],
+  )
+}
+
+///|
 fn card_home_badge(row : Row) -> @html.Html {
   if row.home_kind != "isolated" {
     return @html.nothing
@@ -1899,6 +1921,8 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     // 配置历史（§16.4）：动配置之前先拍一张、之后能还原。
     // home 那颗按钮并进同一行（lead），免得「配置」变成一串短行。
     snapshot_history(row, model, emit, lead=home_items),
+    // 缺包仍可修（§40.2）：低调地摆在配置组里 —— 状态组不再摆那一行大提示
+    repair_action(row, model, emit),
     promote_launcher(row, emit),
     // 查看与编辑（第三轮接上的那三项）
     @html.div(class="dsh-drawer-btns", ops),
@@ -1959,17 +1983,19 @@ fn drawer_state_block(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.
       row.health_hint,
       row.health_free,
     ),
-    // 缺包时多一行自助修复（§39.1）：有缺口才摆，数量写在标签上。
-    // 缺失清单已经在上面的健康那句里，这里不重复列。
-    repair_action(row, model, emit),
+    // 缺包那一行与那颗按钮已经不在这里了（§40.2）：搬进「配置」组，降成一句低调的小字
+    // + 一颗「安装」（见 repair_action）。状态组只留「还有没有别的毛病」。
   ])
 }
 
 ///|
-/// 「安装缺的包（N）」那一行（design/design-fixes.md §39.1）：缺包时才有。
+/// 「还缺 N 个包」+「安装」那一行（design/design-fixes.md §40.2 / §40.4）。
 ///
-/// 视觉上是线框次要按钮，与主操作（启动 / 打开 Web UI）区分开 —— 它是修数据，
-/// 不是把这只实例带起来。悬停写清在哪个目录跑哪条命令、日志落在哪儿。
+/// 缺包默认不报警（设置项 profile.ignoreMissingBundles），所以这一行从「状态」组
+/// 搬到「配置」组，并降成一句低调的小字 + 一颗次要按钮：它不再是要人看一眼的警告，
+/// 而是「想弄干净的时候」才去点的一个入口。缺包仍然可以装 —— 只是不喊。
+///
+/// 悬停写清在哪个目录跑哪条命令、日志落在哪儿（与 §39 同一句话）。
 fn repair_action(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if row.missing_count <= 0 || row.repair_command == "" || row.repair_home == "" {
     return @html.nothing
@@ -1983,15 +2009,21 @@ fn repair_action(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   }
   let dir = row.repair_home + "/profiles/" + dir_name
   let log_hint = "输出写进状态目录的 logs/repair-" + dir_name + "-<毫秒>.log"
-  let label = if repairing {
+  let label = if repairing { "正在安装…" } else { "安装" }
+  let note = if repairing {
     "正在安装…"
   } else {
-    "安装缺的包（" + row.missing_count.to_string() + "）"
+    "还缺 " + row.missing_count.to_string() + " 个包"
   }
-  @html.div(class="dsh-drawer-btns", [
+  @html.div(class="dsh-drawer-btns dsh-missing-row", [
+    @html.span(
+      class="dsh-foot",
+      attrs=mark("drawer-missing-note", ["overview", "drawer", row.id, "missing"]),
+      note,
+    ),
     @html.button(
       id=drawer_repair_id(),
-      class=if repairing { "dsh-btn" } else { "dsh-btn" },
+      class="dsh-btn",
       type_="button",
       disabled=row.busy || repairing,
       attrs=mark("drawer-repair", ["overview", "drawer", row.id, "action", "repair"])

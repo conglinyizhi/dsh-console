@@ -12,6 +12,7 @@
 //   ui.archiveOpenByDefault  false   归档区默认是否展开
 //   ui.sidebarCollapsed      false   宽屏侧栏是否收成图标栏（窄屏不看这一项）
 //   safety.deleteToTrash     true    删除进回收站还是硬删
+//   profile.ignoreMissingBundles true 缺包是否参与状态灯（§40，缺省不报警）
 //
 // 这个文件只做三件事：列键（顺序、分组、控件、说明）、从 GET 的响应里取值、
 // 拼 PUT 的请求体。**界面不编数值**：接口没给的键就写「接口未返回该键」，
@@ -95,7 +96,7 @@ let settings_groups : Array[SettingGroup] = [
 ]
 
 ///|
-/// 十个键（顺序即条目顺序）。
+/// 十一个键（顺序即条目顺序）。
 let settings_table : Array[SettingDef] = [
   {
     key: "instance.basePort",
@@ -174,6 +175,14 @@ let settings_table : Array[SettingDef] = [
     group: "safety",
     label: "删除进回收站",
     desc: "开：删除时移入回收站，可以捞回来；关：直接删除，无法恢复。",
+    kind: CBool,
+    fallback: VBool(true),
+  },
+  {
+    key: "profile.ignoreMissingBundles",
+    group: "ui",
+    label: "忽略缺包警告",
+    desc: "声明了但没装的包不影响运行时不再报警",
     kind: CBool,
     fallback: VBool(true),
   },

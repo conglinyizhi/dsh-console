@@ -18,6 +18,9 @@ pub struct Settings {
   /// 那一档的侧栏从顶部汉堡滑出，不占位）。前端读它复原形态，后端只负责存取与回显。
   ui_sidebar_collapsed : Bool
   safety_delete_to_trash : Bool
+  /// 忽略缺包警告（design/design-fixes.md §40）：开（缺省）时缺包不参与状态灯判定、
+  /// 也不产生「有警告」；关掉回到旧行为（缺包 → 黄）。缺包仍然可以在抽屉里修。
+  profile_ignore_missing_bundles : Bool
 }
 
 ///|
@@ -51,6 +54,10 @@ pub let key_ui_sidebar_collapsed : String = "ui.sidebarCollapsed"
 pub let key_safety_delete_to_trash : String = "safety.deleteToTrash"
 
 ///|
+/// 缺包默认不报警（§40.1）：布尔，缺省 true。
+pub let key_profile_ignore_missing_bundles : String = "profile.ignoreMissingBundles"
+
+///|
 /// 契约里的键序（响应的 values / defaults / sources 都按这个顺序出）。
 pub fn settings_keys() -> Array[String] {
   [
@@ -64,6 +71,7 @@ pub fn settings_keys() -> Array[String] {
     key_ui_archive_open_by_default,
     key_ui_sidebar_collapsed,
     key_safety_delete_to_trash,
+    key_profile_ignore_missing_bundles,
   ]
 }
 
@@ -81,6 +89,7 @@ pub fn default_settings() -> Settings {
     ui_archive_open_by_default: false,
     ui_sidebar_collapsed: false,
     safety_delete_to_trash: true,
+    profile_ignore_missing_bundles: true,
   }
 }
 
@@ -130,7 +139,7 @@ fn apply_one(current : Settings, key : String, json : Json) -> Result[Settings, 
       }
     }
     "process.detach" | "ui.archiveOpenByDefault" | "ui.sidebarCollapsed" |
-    "safety.deleteToTrash" => {
+    "safety.deleteToTrash" | "profile.ignoreMissingBundles" => {
       let value = match as_bool(json) {
         Some(v) => v
         None => return Err("要布尔值，收到 " + describe(json))
@@ -139,6 +148,7 @@ fn apply_one(current : Settings, key : String, json : Json) -> Result[Settings, 
         "process.detach" => Ok({ ..current, process_detach: value })
         "ui.archiveOpenByDefault" => Ok({ ..current, ui_archive_open_by_default: value })
         "ui.sidebarCollapsed" => Ok({ ..current, ui_sidebar_collapsed: value })
+        "profile.ignoreMissingBundles" => Ok({ ..current, profile_ignore_missing_bundles: value })
         _ => Ok({ ..current, safety_delete_to_trash: value })
       }
     }
@@ -240,6 +250,7 @@ pub fn settings_values_json(s : Settings) -> @json.JsonVal {
     (key_ui_archive_open_by_default, @json.JBool(s.ui_archive_open_by_default)),
     (key_ui_sidebar_collapsed, @json.JBool(s.ui_sidebar_collapsed)),
     (key_safety_delete_to_trash, @json.JBool(s.safety_delete_to_trash)),
+    (key_profile_ignore_missing_bundles, @json.JBool(s.profile_ignore_missing_bundles)),
   ])
 }
 
@@ -257,6 +268,7 @@ pub fn value_of(s : Settings, key : String) -> @json.JsonVal {
     "ui.archiveOpenByDefault" => @json.JBool(s.ui_archive_open_by_default)
     "ui.sidebarCollapsed" => @json.JBool(s.ui_sidebar_collapsed)
     "safety.deleteToTrash" => @json.JBool(s.safety_delete_to_trash)
+    "profile.ignoreMissingBundles" => @json.JBool(s.profile_ignore_missing_bundles)
     _ => @json.JNull
   }
 }

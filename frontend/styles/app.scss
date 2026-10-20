@@ -836,6 +836,22 @@ select { appearance: none; -webkit-appearance: none; }
     inset 0 0 0 2px rgb(66, 109, 191),
     inset 0 0 0 3px rgba($gold-rgb, 0.16);
 }
+/* 蓝标：命令行型（§41）。尺寸与金标逐项一致 —— 带标与不带标的卡一样高（70px 不变式）。 */
+.dsh-cli-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid rgba($accent-rgb, 0.52);
+  border-radius: 999px;
+  background: rgba($accent-rgb, 0.12);
+  color: $accent;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 /* 小金标：名字后面那一个。line-height 16 + 上下 padding 各 1 + 边框 1 = 20 < 第一行 22，
    所以带标与不带标的卡片**一样高**（卡片高度不变式：70px），响应式列数不用重算。 */
 .dsh-home-badge {
@@ -1346,6 +1362,10 @@ $drawer-ms: 220ms;
 /* 组里的一行按钮：会折行的一片（操作那一组有两行：主操作 / 打开与复制）。
    行内 6px 比组内行距 8 更紧 —— 同一排的按钮是一件事的几种做法。 */
 .dsh-drawer-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 「还缺 N 个包」+「安装」（design/design-fixes.md §40.2）：一行小字配一颗次要按钮。
+   小字自己不带下边距（.dsh-foot 有 10px 的上边距，摆在这一行里会把它顶得比按钮低）。 */
+.dsh-missing-row { align-items: center; gap: 10px; }
+.dsh-missing-row .dsh-foot { margin: 0; }
 /* ── 配置历史（design/ops-maintenance-jobs.md §16.4）────────────────
    这一组给「改动这只 profile」兜底：一颗创建快照 + 一份快照列表。
    自己占满一整行（.dsh-drawer-btns 是 flex-wrap），列表行横向排：
