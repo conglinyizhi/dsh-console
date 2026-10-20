@@ -232,14 +232,18 @@ profile 名按 JS 字符串序升序。每个 profile 的字段与取值口径�
   备注放在 `<profile 目录>/.dsh-note.txt`，读到给原文 + `"文件"`；没有这个文件给 `""` + `"默认"`；
   有文件读不动给 `""` + `"默认（<路径> 读取失败：…）"`（与设置的 `sources` 同一套口径，读不到就说读不到）
 - `lastStart` / `lastStartSource`（第十六轮新增的**加字段**，旧消费者忽略即可）：
-  这只 profile **最近一次启动**的结局，读自审计流水 `audit.jsonl` 里最近一条
-  `action="start-instance"` 的行 —— `{ ok, at, code, message, home }`。
+  这只 profile **最近一次启动**的结局，读自审计流水 `audit.jsonl` 里最近一条启动记录
+  （`action` 为 `start-instance` 或 `restart-instance`，后者见 design-fixes §27.1），
+  形状是 `{ action, ok, at, code, message, home }`。
   `ok:false` 表示最近一次是失败的：它就是「失败之后没有成功过」的判据
   （真有过一次成功，那一次就是最近那一条）。一条记录都没有时给 `null` + 一句来源说明；
-  `lastStartSource` 写明取的是哪一条、按什么对上的（`params.home` 等于这只 profile 的 home /
-  控制台的 home / 那一笔没带 home 时按 profile 名）。
-  匹配顺序在 `profiles/profiles.mbt` 的 `last_start_of`：先认这只 profile 自己的 home，
-  再认没带 home 的老记录与控制台 home；不拿别的 profile 的记录顶上。
+  `lastStartSource` 写明取的是哪一条（含 `action` 名）、按什么对上的（`params.home` 等于
+  这只 profile 的 home / 控制台的 home / 那一笔没带 home 时按 profile 名）。
+  「最近」的判据是这些行里 `at` 最大的那一条，不按 home 槽先筛一遍：
+  同一只 profile 的记录会落在「带 home」与「不带 home」两个槽里。
+  归属在 `profiles/profiles.mbt` 的 `last_start_of`：别的 home 里的同名记录不算这一只的。
+  `restart-instance` 的审计行由 `actions/action.mbt` 的 `audit_params_for` 补上
+  `params.profile` / `params.home`（请求体里只有 pid 或 port），失败那一笔才认得出是谁。
 - `dirMtimeMs` / `dirMtimeSource`（第五轮新增的**加字段**，旧消费者忽略即可）：profile **目录**的 mtime
   （Unix 毫秒，数字；读不到给 `null` + 原因）。卡片第六格「最近改动」与列表排序都用它。
   **口径是「最近改动」，不是「创建时间」**：多数文件系统上可靠的创建时间拿不到

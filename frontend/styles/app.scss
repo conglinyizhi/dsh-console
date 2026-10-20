@@ -796,7 +796,13 @@ select { appearance: none; -webkit-appearance: none; }
 .dsh-case.dsh-case-home-isolated[data-status]:hover {
   background: $panel-soft;
   /* 金边那一档的悬停（§26.4）：金边是这一只的身份，不能被主色盖掉；
-     所以主色那圈往里收一档（2px），金边仍在外缘 1px、外侧还有一圈淡金。 */
+     所以主色那圈往里收一档（2px），金边仍在外缘 1px、外侧还有一圈淡金。
+     实测（1280 宽无头 chromium、1 倍缩放、量的是卡片上缘的逐像素取色）：
+       静息 0..1px #d8b25a（纯金）；1..3px #3a372c（淡金 0.16 叠卡片底 #1c1f24）
+       悬停 0..1px #d8b25a（纯金）；1..2px #5978ae（主色 0.7 叠悬停底，再叠淡金 0.16）；
+            2..3px #403c32（淡金 0.16 叠悬停底 #23262b）
+     叠放顺序就是 box-shadow 的书写顺序，第一条画在最上层：金在外缘、主色在里圈。
+     hover 那条不许挪到最前面，否则主色那圈会盖掉外缘的金。 */
   box-shadow:
     inset 0 0 0 1px $gold,
     inset 0 0 0 3px rgba($gold-rgb, 0.16),

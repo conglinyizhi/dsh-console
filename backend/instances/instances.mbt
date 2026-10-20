@@ -557,7 +557,7 @@ fn registered_instance(
 /// 红不在这里：没在跑的端口根本不进这个列表。没在跑的那一侧由前端按
 /// GET /api/local/profiles 落四档（design/design-fixes.md §26.1）：
 ///   黄 = bundles.missing 非空 / 没有 cordis.patch.yml；
-///   红 = 那一只的 lastStart.ok == false（审计流水里最近一条 start-instance 失败了，
+///   红 = 那一只的 lastStart.ok == false（审计流水里最近一条启动记录失败了，
 ///        且失败之后没有成功过 —— 后端在 profiles 读数里给事实，前端不自己翻审计）；
 ///   无灯 = 没在跑也没有警告。
 fn judge_state(

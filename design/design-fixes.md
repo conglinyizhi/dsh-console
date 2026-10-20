@@ -320,3 +320,18 @@
 3. 1280 下对话框宽 ≥1120 或 94vw，一行 3 张
 4. hover 有描边（量 box-shadow 或 border 的计算值）
 5. 缺包的 profile 不再出现红灯
+## 27 两件收尾（交队友做）
+
+### 27.1 重启也计入「最近一次启动」
+
+`restart-instance` 现在不写 start-instance 审计，导致一次失败的重启不会改红灯判据。
+
+- 后端在 restart-instance 结束时写一条审计（action 名用 `restart-instance`，带 ok / code / message，结构照 start-instance 那条）；
+- `startattempt` 的读取改成「在 start-instance 与 restart-instance 两种动作里取最新一条」；
+- 读数里的 `lastStartSource` 写清取的是哪一条（含动作名）；
+- 验收：先造一次失败的重启（例如目标端口被占），再读这只 profile 的 lastStart，必须是那条失败；随后成功启动一次，判据回到不红。
+
+### 27.2 隔离金边卡 hover 的分层描边
+
+- 造一只隔离 profile（临时环境），把卡片 hover 起来，量：金色描边（inset 或 border）仍在、主色 hover 描边不覆盖它、两者叠加时的最终 box-shadow/border 计算值。
+- 若金色被主色盖掉，改成「金边在外圈、hover 主色在内圈」并给出计算值。

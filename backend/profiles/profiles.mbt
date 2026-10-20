@@ -147,19 +147,28 @@ fn same_home_text(a : String, b : String) -> Bool {
 }
 
 ///|
-/// 这只 profile **最近一次启动**的结局（design/design-fixes.md §26.1）：
-///   最近一条 start-instance 是失败 → 红灯「上次启动失败」（失败之后没有成功过：
+/// 这只 profile **最近一次启动**的结局（design/design-fixes.md §26.1、§27.1）：
+///   最近一条启动记录是失败 → 红灯「上次启动失败」（失败之后没有成功过：
 ///   真有过一次成功，那一次就是最近那一条）；
 ///   最近一条是成功 → 不是故障，按其余三档；
 ///   一条记录都没有 → None（没有证据就不点红灯）。
 ///
-/// 匹配顺序写死，因为审计行里的 home 有三种情形：
-///   ① 这一行带 home，且等于这只 profile 自己的 home（隔离的那一档）—— 最准，先认它；
-///   ② 这一行没带 home（改动之前的老记录）或带的是控制台的 home（界面启动时发的是
-///      这一行自己的 home，共用那一档就是控制台的 home）—— 按名字认；
-///   ③ 都没有 → None + 一句来源说明（不拿别的 profile 的记录顶上）。
+/// 「启动记录」两种都算：start-instance 与 restart-instance（§27.1 之前只认前者，
+/// 一次失败的重启因此改不了判据）。来源说明里点名这一笔是哪种动作。
 ///
-/// attempts 已按 at 降序（见 store/startattempt.mbt），所以每一轮先碰到的那条就是最近那条。
+/// 一行审计算不算这只 profile 的启动记录，按它带的 home 分三种：
+///   ① 带 home，且等于这只 profile 自己的 home（隔离的那一档）：算，最准；
+///   ② 没带 home（调用方只发了名字的老记录，或界面起共用那一只时的口径）：按名字算；
+///   ③ 带的是控制台的 home（共用那一档）：按名字算；
+///   其余（别的 home 里同名的那一只、试跑的一次性 home）：不算，别拿它顶。
+///
+/// **「最近」是这些行里 at 最大的那一条**，不是「先按 home 筛一遍再比」：
+/// 同一只 profile 的记录会落在不同的 home 槽里（start-instance 带不带 home 看调用方，
+/// restart-instance 一定带），分槽各留一条之后，先按 home 筛出来的那一条可能比
+/// 无 home 槽里那条更旧。§27.1 的验收正是踩在这一条上：失败的重启之后成功启动一次，
+/// 判据必须回到不红。
+///
+/// attempts 已按 at 降序（见 store/startattempt.mbt），所以顺着走、第一条算数的就是最近的。
 fn last_start_of(
   name : String,
   profile_home : String,
@@ -167,37 +176,46 @@ fn last_start_of(
   attempts : Array[@store.StartAttempt],
   notes : Array[String],
 ) -> (@store.StartAttempt?, String) {
-  if profile_home != "" {
-    for a in attempts {
-      if a.profile == name && same_home_text(a.home, profile_home) {
-        return (
-          Some(a),
-          "audit.jsonl 里最近一条 start-instance：params.home 就是这只 profile 的 home（" +
-          a.home + "）",
-        )
-      }
-    }
-  }
   for a in attempts {
-    if a.profile == name {
-      if a.home == "" {
-        return (Some(a), "audit.jsonl 里最近一条 start-instance；那一笔没带 home，按 profile 名对上")
-      }
-      if same_home_text(a.home, console_home) {
-        return (
-          Some(a),
-          "audit.jsonl 里最近一条 start-instance：params.home 是控制台的 home（" + a.home + "）",
-        )
-      }
+    if a.profile != name {
+      continue
+    }
+    if profile_home != "" && same_home_text(a.home, profile_home) {
+      return (
+        Some(a),
+        "audit.jsonl 里最近一条启动记录（action=" + a.action +
+        "）：params.home 就是这只 profile 的 home（" + a.home + "）",
+      )
+    }
+    if a.home == "" {
+      return (
+        Some(a),
+        "audit.jsonl 里最近一条启动记录（action=" + a.action +
+        "）；那一笔没带 home，按 profile 名对上",
+      )
+    }
+    if same_home_text(a.home, console_home) {
+      return (
+        Some(a),
+        "audit.jsonl 里最近一条启动记录（action=" + a.action +
+        "）：params.home 是控制台的 home（" + a.home + "）",
+      )
     }
   }
   if notes.length() > 0 {
     return (None, notes.join("；"))
   }
   if attempts.length() == 0 {
-    return (None, "audit.jsonl 里没有 start-instance 记录（这台机器还没用控制台起过实例）")
+    return (
+      None,
+      "audit.jsonl 里没有启动记录（start-instance 与 restart-instance 都没有，这台机器还没用控制台起过实例）",
+    )
   }
-  (None, "audit.jsonl 里没有这只 profile（" + name + "）的 start-instance 记录")
+  (
+    None,
+    "audit.jsonl 里没有这只 profile（" + name +
+    "）的启动记录（start-instance 与 restart-instance 都没有）",
+  )
 }
 
 ///|
@@ -423,8 +441,8 @@ async fn describe_profile(
   // 这只 profile 的 home 归属（隔离 / 共用）：判据与读数都在 homes.mbt，前端不自己再推一遍。
   // dsh_home 是控制台自己的 home —— 「共用」那一档的 path 就是它。
   let home = home_fact_in(name, dsh_home, dsh_home_source)
-  // 最近一次启动的结局（design/design-fixes.md §26.1）：从审计流水里取这只
-  // (home, profile) 最近一条 start-instance，成败由那一笔自己说。
+  // 最近一次启动的结局（design/design-fixes.md §26.1、§27.1）：从审计流水里取这只
+  // (home, profile) 最近一条启动记录（start-instance 或 restart-instance），成败由那一笔自己说。
   let (last_start, last_start_source) = last_start_of(
     name,
     home.path,
@@ -457,6 +475,8 @@ async fn describe_profile(
       match last_start {
         Some(a) =>
           @json.JObj([
+            // 这一笔是哪种动作写下的：start-instance 或 restart-instance（§27.1）
+            ("action", @json.JStr(a.action)),
             ("ok", @json.JBool(a.ok)),
             ("at", @json.JStr(a.at)),
             ("code", @json.JStr(a.code)),

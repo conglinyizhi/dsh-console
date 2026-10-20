@@ -380,7 +380,8 @@ pub extend SnapshotFact with Eq::{ not_equal, equal }
 ///|
 /// 这只 profile **最近一次启动**的结局（design/design-fixes.md §26.1）。
 ///
-/// 后端从审计流水（audit.jsonl）里取最近一条 start-instance，成败由那一笔自己说：
+/// 后端从审计流水（audit.jsonl）里取最近一条启动记录（start-instance 或 restart-instance，
+/// 见 design/design-fixes.md §27.1），成败由那一笔自己说：
 ///   ok = false → 那一次失败了。它又是最近一条，所以「失败之后没有成功过」自然成立 ——
 ///                真有过一次成功，那一次就是最近那一条。
 ///   ok = true  → 最近一次是成功的，不点红灯，按运行中 / 有警告 / 已停止这三档。

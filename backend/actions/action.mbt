@@ -297,6 +297,52 @@ async fn audit(
 }
 
 ///|
+/// 审计行里的 params：`restart-instance` 的请求体只带 pid 或 port，看不出这一次重启的
+/// 是哪一只 profile。startattempt 的读取靠 params.profile / params.home 认人，失败那一笔
+/// 更要认得出（红灯判据就看它，design/design-fixes.md §27.1），所以跑动作之前先把目标
+/// 解出来，把 profile / home 补进审计 params。
+///
+/// 解不出来（pid 认不出、参数不全）就退回原始 params：那一笔审计照样留痕，只是认不出
+/// 是哪一只。认不出是谁的不算证据，读取那边会跳过它。
+async fn audit_params_for(action : String, params : Json) -> @json.JsonVal {
+  let raw = json_to_val(params)
+  if action != "restart-instance" {
+    return raw
+  }
+  let target = try {
+    resolve_target(optional_int(params, "pid"), optional_int(params, "port"))
+  } catch {
+    ActionError(code~, message~) => {
+      let _ = code
+      let _ = message
+      return raw
+    }
+  }
+  // 调用方给的是 pid 还是 port，照原样留着：审计行要能对回请求
+  let fields : Array[(String, @json.JsonVal)] = []
+  match optional_int(params, "pid") {
+    Some(p) => fields.push(("pid", @json.jint(p)))
+    None => ()
+  }
+  match optional_int(params, "port") {
+    Some(p) => fields.push(("port", @json.jint(p)))
+    None => ()
+  }
+  match target.profile {
+    Some(name) => fields.push(("profile", @json.JStr(name)))
+    None => ()
+  }
+  match target.home {
+    Some(home) =>
+      if home != "" {
+        fields.push(("home", @json.JStr(home)))
+      }
+    None => ()
+  }
+  @json.JObj(fields)
+}
+
+///|
 /// 执行一个动作。返回 data（action / outcome / note?）。
 pub async fn run_action(
   action : String,
@@ -1132,17 +1178,20 @@ async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_
     }
     Ok(_) => ()
   }
+  // 审计行里的 params：重启那一档另补 profile / home（见 audit_params_for）。
+  // 放在守卫之后：没通过守卫的请求不去解目标，那一笔审计照旧用原始 params。
+  let audit_params = audit_params_for(action, params)
   // run_action 返回的就是 data：{ action, outcome, note? }
   let data = try {
     run_action(action, params, confirm)
   } catch {
     ActionError(code~, message~) => {
-      let _ = audit(action, params_for_audit, false, Some(code), Some(message), @json.JNull)
+      let _ = audit(action, audit_params, false, Some(code), Some(message), @json.JNull)
       send_write_error(res, code, message, read_at)
       return
     }
   }
-  let audit_note = audit(action, params_for_audit, true, None, None, data)
+  let audit_note = audit(action, audit_params, true, None, None, data)
   send_write_ok(
     res,
     match audit_note {

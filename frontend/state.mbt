@@ -1655,7 +1655,7 @@ fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, S
 ///
 /// 这不是「猜颜色」：没有在跑是这一组的分组条件（in_use_by 已经排掉了正在被用的那几只），
 /// 缺包与补丁文件在不在来自这份 profiles 读数，红灯那条来自审计流水里这一只
-/// 最近一次 start-instance 的结局（后端给的 lastStart，前端不自己判）。
+/// 最近一次启动的结局（后端给的 lastStart，前端不自己判）。
 ///
 /// 优先级：红灯（上次启动失败）> 黄（有警告）> 已停止（不画灯）。
 /// 红灯排在最前：一只上一次起不来、之后也没起来过的 profile，缺包只是它的成因之一，
@@ -1678,7 +1678,7 @@ fn profile_light(fact : ProfileFact) -> (Light, String, String) {
           "上一次启动失败" +
           (if when == "" { "" } else { "（" + when + "）" }) +
           "，之后没有成功启动过",
-          "判据：audit.jsonl 里这只 profile 最近一条 start-instance 的结局是失败" +
+          "判据：audit.jsonl 里这只 profile 最近一条启动的结局是失败（action 是 start-instance 或 restart-instance）" +
           codes + why + "；它之后没有成功启动的记录，所以这一只是红灯。" + source,
         )
       }

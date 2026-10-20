@@ -406,7 +406,7 @@ node evidence-mtime-field/check-order.mjs evidence-mtime-field/synth.json
 | --- | --- | --- |
 | `running` | 绿 | 实例在跑，且这只 profile 没有已知隐患（签名探测通过、缺包 0、`cordis.patch.yml` 在） |
 | `warn` | 黄 | 有警告：没在跑但有隐患（缺包 / 没有 `cordis.patch.yml`），**或在跑而 profile 有隐患**；也接住「端口在听、签名不通」 |
-| `fault` | 红 | 上一次启动失败，且失败之后没有成功启动过。判据是 profiles 读数里的 `lastStart`（后端从 `audit.jsonl` 的 `start-instance` 取） |
+| `fault` | 红 | 上一次启动失败，且失败之后没有成功启动过。判据是 profiles 读数里的 `lastStart`（后端从 `audit.jsonl` 里 `start-instance` 与 `restart-instance` 两种启动记录取最近一条，见 design-fixes §27.1） |
 | `stopped` | **不画灯** | 没在跑、没有警告、最近一次启动也没失败。状态词「已停止」是第一行唯一的信号 |
 | `starting` | 黄（在动） | 正在起来。同一支琥珀，但文案是「正在启动」，不会被读成故障；它就是原来副标题行上那个等待态的点 |
 | `unknown` | **不上色** | 后端的 `state` 字段没给：空心灰环 |
