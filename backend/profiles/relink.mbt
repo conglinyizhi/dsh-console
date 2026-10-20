@@ -184,6 +184,34 @@ async fn rewrite_link(link : String, target : String) -> Bool noraise {
 }
 
 ///|
+/// 一只 profile 目录里的「外部软链接」与「坏链接」条数（design/design-fixes.md §60.1）：
+///  · 外部：解析后落在 profile 目录之外、且目标存在的链接；
+///  · 坏：解析不到目标的链接（只供排查，不上界面）。
+/// 口径与 §48 的 relink 一致：相对链接按链接自身目录解析，只看链接本身、不跟进目标目录。
+pub async fn link_counts_in(dir : String) -> (Int, Int) noraise {
+  let mut external = 0
+  let mut broken = 0
+  if dir == "" {
+    return (0, 0)
+  }
+  let prefix = if dir.has_suffix("/") { dir } else { dir + "/" }
+  for link in collect_links(dir, []) {
+    match link_target(link) {
+      None => broken = broken + 1
+      Some(target) =>
+        if @json.exists(target) {
+          if !target.has_prefix(prefix) {
+            external = external + 1
+          }
+        } else {
+          broken = broken + 1
+        }
+    }
+  }
+  (external, broken)
+}
+
+///|
 /// 搬家之后跑一遍：把 new_dir 里的相对链接按 old_dir→new_dir 重算，
 /// 再把两份配置里以 old_dir 开头的绝对路径换成 new_dir。
 pub async fn relink_after_move(old_dir : String, new_dir : String) -> RelinkReport noraise {

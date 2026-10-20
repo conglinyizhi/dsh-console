@@ -62,6 +62,8 @@ pub struct ForkOutcome {
   dir_mtime_ms : Int64?
   /// mtime 的来源或读不到的原因
   dir_mtime_source : String
+  /// 源 profile 里指向它之外的有效软链接条数（§60：派生副本前要告知「藕断丝连」）
+  external_links : Int
   /// 派生时带过来的软链接条数 / 跳过的（目标不在）/ 配置里换掉的旧目录前缀条数（§48）
   links_fixed : Int
   links_broken : Int
@@ -85,6 +87,8 @@ pub async fn fork_profile(
   // 派生的源按**它自己现在在哪儿**取（隔离的那一只在自己 home 里）；
   // 新副本一律落在共用 home 的 profiles/ 下，随后照旧"派生即隔离"。
   let (source_dir, _source_home) = @profiles.profile_location(source_name)
+  // 源 profile 里指向它之外的链接条数（§60.1）：派生回执与确认框都要用它
+  let (external_links, _broken_links) = @profiles.link_counts_in(source_dir)
   let root = profiles_root()
   if !@json.is_dir(source_dir) {
     fail("not-found", "profile 目录不存在：" + source_dir)
@@ -187,6 +191,7 @@ pub async fn fork_profile(
     note_path,
     note_error,
     dir_mtime_ms,
+    external_links,
     links_fixed: relink.links_fixed,
     links_broken: relink.links_broken,
     refs_rewritten: relink.refs_rewritten,

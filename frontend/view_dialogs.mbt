@@ -136,6 +136,62 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+/// 派生副本前的确认框（design/design-fixes.md §60.2）：副本里的相对软链接仍指向原处，
+/// 「在副本里改插件 = 改原处那一份」这件事得先让人知道，再决定要不要派生。
+fn fork_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let (name, count) = match find_row(model.rows, model.fork_confirm_id) {
+    Some(row) => (row.name, row.external_links)
+    None => (model.fork_confirm_id, 0)
+  }
+  let message = "这份副本里还有 " + count.to_string() +
+    " 个软链接指向原 profile 之外（例如 .pi/agent 下的本地插件）。" +
+    "在副本里改这些插件，等于改原处那一份，仍然会影响主机上的其他 profile。" +
+    "要真正隔开，先把它们拷成实体文件再改。"
+  let card = @html.div(class="dsh-dialog-card", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("fork-dialog-title", ["dialog", "fork-confirm-dialog", "title"]),
+      "派生 " + name + " 的开发副本",
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("fork-dialog-message", ["dialog", "fork-confirm-dialog", "message"])
+        .title("这一只有 " + count.to_string() + " 个外部软链接"),
+      message,
+    ),
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id="dsh-fork-dialog-ok",
+        class="dsh-dialog-btn primary",
+        type_="button",
+        attrs=mark("fork-dialog-ok", ["dialog", "fork-confirm-dialog", "ok"]),
+        on_click=emit(ForkConfirm),
+        [@html.text("仍然派生")],
+      ),
+      @html.button(
+        class="dsh-dialog-btn",
+        type_="button",
+        attrs=mark("fork-dialog-cancel", ["dialog", "fork-confirm-dialog", "cancel"]),
+        on_click=emit(ForkCancel),
+        [@html.text("取消")],
+      ),
+    ]),
+  ])
+  dialog(
+    "fork-confirm-dialog",
+    "派生 " + name + " 的开发副本",
+    emit(ForkCancel),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        ForkCancel
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
+///|
 /// 补包确认框（design/design-fixes.md §39.1）：写 node_modules 是真动作，先问一句。
 ///
 /// 文案把「在哪个目录、跑哪条命令、动的是什么」讲全：这三件事决定了这一下会不会把

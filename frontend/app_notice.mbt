@@ -313,7 +313,17 @@ fn action_receipt(
       let text = if action == "rename-profile" {
         name + " 已改名为 " + new_name + "。"
       } else {
-        name + " 已派生出 " + new_name + "。"
+        // 副本里的外部软链接还指向原处（§60.2）：回执带一句短的，细节在悬停里
+        let links = match outcome {
+          Some(o) => int_or(o, "externalLinks", 0)
+          None => 0
+        }
+        let suffix = if links > 0 {
+          "（副本里还有 " + links.to_string() + " 个软链接指向原处）"
+        } else {
+          ""
+        }
+        name + " 已派生出 " + new_name + "。" + suffix
       }
       return (text, backend_hint(note))
     }

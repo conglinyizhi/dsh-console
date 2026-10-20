@@ -425,6 +425,10 @@ struct Model {
   notice_unread : Int
   /// 通知侧栏开着没有（右侧面板，盖在抽屉之上、确认框之下）
   notice_panel : Bool
+  /// 派生副本前的确认框说的是哪一行（§60.2）。空串 = 框没开
+  fork_confirm_id : String
+  /// 打开确认框那颗按钮的 DOM id：关框之后焦点回它
+  fork_confirm_return : String
   /// 补包确认框说的是哪一行（§39.1）。空串 = 框没开
   repair_confirm_id : String
   /// 打开确认框那颗按钮的 DOM id：框关掉之后焦点回它
@@ -491,6 +495,12 @@ priv enum Msg {
   NoticeOpenUi
   /// 失败提示条里那颗「查看日志」被点了：跳 /logs/audit，选中审计来源、滚到底、焦点进日志区
   NoticeOpenLogs
+  /// 「派生开发副本」但这一只有外部软链接（§60.2）：先开确认框，不直接发请求
+  ForkOpen(id~ : String, return_id~ : String)
+  /// 确认框里点了「仍然派生」
+  ForkConfirm
+  /// 确认框里点了「取消」（或 Esc / 遮罩）
+  ForkCancel
   /// 抽屉里点了「安装缺的包（N）」：开确认框（写 node_modules 算真动作）
   RepairOpen(id~ : String, return_id~ : String)
   /// 确认框里点了「取消」（或遮罩 / Esc）
@@ -818,6 +828,8 @@ fn initial_model() -> Model {
     notice_history: [],
     notice_unread: 0,
     notice_panel: false,
+    fork_confirm_id: "",
+    fork_confirm_return: "",
     repair_confirm_id: "",
     repair_confirm_return: "",
     repair_id: "",

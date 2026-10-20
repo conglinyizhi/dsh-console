@@ -215,6 +215,11 @@ pub(all) struct ProfileFact {
   /// 补包会在 profile 目录里跑的那条命令（design/design-fixes.md §39）：
   /// 后端按 lock 文件选好了（pnpm / npm install --prefer-offline）。空串 = 这一版后端没给。
   repair_command : String
+  /// 指向 profile 之外、且目标存在的软链接条数（design/design-fixes.md §60.1）：
+  /// 派生副本前用它决定要不要先告知「藕断丝连」。
+  external_links : Int
+  /// 解析不到目标的链接条数（只进读数供排查，界面不显示）
+  broken_links : Int
   // ── 试跑那一块的判据（design/ops-maintenance-jobs.md §9.3）──
   //
   // None = 这一版后端没给这一项（那时不拿它判不可用，宁可让试跑自己去撞失败）。

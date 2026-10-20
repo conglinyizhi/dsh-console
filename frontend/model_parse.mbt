@@ -313,6 +313,8 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       home_created_at: opt_str_field(home, "createdAt"),
       home_kind_source: str_field(fact, "homeKindSource"),
       repair_command: str_field(fact, "repairCommand"),
+      external_links: int_or(fact, "externalLinks", 0),
+      broken_links: int_or(fact, "brokenLinks", 0),
       snapshots,
       last_start,
       // 字段整个不在（这一版后端还没落地）时补一句前端自己的话：

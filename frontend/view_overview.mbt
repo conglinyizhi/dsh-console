@@ -295,6 +295,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.home_confirm_id.length() > 0 {
     dialogs.push(home_confirm_dialog(model, emit))
   }
+  if model.fork_confirm_id.length() > 0 {
+    dialogs.push(fork_confirm_dialog(model, emit))
+  }
   if model.repair_confirm_id.length() > 0 {
     dialogs.push(repair_confirm_dialog(model, emit))
   }

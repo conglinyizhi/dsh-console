@@ -155,15 +155,28 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
             emit,
           )
         Fork =>
-          send_action(
-            model,
-            id,
-            "fork-profile",
-            row_name(model, id),
-            "派生",
-            params_for_row(model, id, "profile"),
-            emit,
-          )
+          match find_row(model.rows, id) {
+            Some(row) =>
+              if row.external_links > 0 {
+                // 副本里那些链接还指向原处（§60.2）：先告知，不直接发请求
+                handle_fork_open(
+                  model,
+                  ForkOpen(id=id, return_id="dsh-drawer-fork"),
+                  emit,
+                )
+              } else {
+                send_action(
+                  model,
+                  id,
+                  "fork-profile",
+                  row_name(model, id),
+                  "派生",
+                  params_for_row(model, id, "profile"),
+                  emit,
+                )
+              }
+            None => (model, @cmd.none)
+          }
         // 查看日志：切到日志页（这里是状态切页，**不开新页面**），来源设成这一行对应的实例，
         // 内容打开即读一次再滚到底（不靠"上一次读过的还在"，换来源必须真读一次）。
         Logs =>
@@ -343,3 +356,63 @@ fn handle_split_menu_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> 
   }
 }
 
+///|
+/// 「派生开发副本」那颗按钮（§60.2）：有外部软链接时走确认框，没有就直接派生（那条在
+/// handle_row_action 的 Fork 分支里）。
+fn handle_fork_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    ForkOpen(id~, return_id~) =>
+      match find_row(model.rows, id) {
+        Some(_) =>
+          (
+            { ..model, fork_confirm_id: id, fork_confirm_return: return_id },
+            focus_after_render("dsh-fork-dialog-ok"),
+          )
+        None => (model, @cmd.none)
+      }
+    _ => (model, @cmd.none)
+  }
+}
+
+///|
+/// 确认框里点了「取消」：什么都不发，焦点回抽屉那颗按钮。
+fn handle_fork_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    ForkCancel =>
+      if model.fork_confirm_id == "" {
+        (model, @cmd.none)
+      } else {
+        let back = model.fork_confirm_return
+        (
+          { ..model, fork_confirm_id: "", fork_confirm_return: "" },
+          if back == "" { @cmd.none } else { focus_after_render(back) },
+        )
+      }
+    _ => (model, @cmd.none)
+  }
+}
+
+///|
+/// 确认框里点了「仍然派生」：清掉框，走与无链接时同一条 fork-profile。
+fn handle_fork_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    ForkConfirm => {
+      let id = model.fork_confirm_id
+      let cleared = { ..model, fork_confirm_id: "", fork_confirm_return: "" }
+      match find_row(cleared.rows, id) {
+        Some(_) =>
+          send_action(
+            cleared,
+            id,
+            "fork-profile",
+            row_name(cleared, id),
+            "派生",
+            params_for_row(cleared, id, "profile"),
+            emit,
+          )
+        None => (cleared, @cmd.none)
+      }
+    }
+    _ => (model, @cmd.none)
+  }
+}

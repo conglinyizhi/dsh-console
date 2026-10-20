@@ -464,6 +464,8 @@ async fn describe_profile(
     }
   }
 
+  // 外部 / 坏软链接（§60.1）：派生副本前要告知「藕断丝连」。坏链接只进读数供排查。
+  let (external, broken) = link_counts_in(dir)
   let pkg_ok = package_json_ok(dir)
   let (note, note_source) = read_profile_note(dir)
   let (dir_mtime, dir_mtime_source) = read_profile_dir_mtime(dir)
@@ -554,6 +556,9 @@ async fn describe_profile(
     // 补包那条命令（§39）：界面拿它写确认框与悬停，口径与后端动作完全同一处
     // （repair_command_of），前端不自己按 lock 文件猜一遍。
     ("repairCommand", @json.JStr(repair_command_of(dir))),
+    // 外部 / 坏软链接条数（§60.1）：brokenLinks 只进读数供排查，界面不显示。
+    ("externalLinks", @json.jint(external)),
+    ("brokenLinks", @json.jint(broken)),
     ("note", @json.JStr(note)),
     ("noteSource", @json.JStr(note_source)),
     // 配置快照（design/ops-maintenance-jobs.md 第 16.2 节）：每份 { id, at, reason, files, bytes }，

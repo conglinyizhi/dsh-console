@@ -463,7 +463,18 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     ),
   ]
   if running {
-    mutate.push(drawer_button(row, Fork, "source-fork", "派生开发副本", false, busy, emit))
+    mutate.push(
+      drawer_button(
+        row,
+        Fork,
+        "source-fork",
+        "派生开发副本",
+        false,
+        busy,
+        emit,
+        elem_id="dsh-drawer-fork",
+      ),
+    )
   } else {
     mutate.push(drawer_button(row, Archive, "archive-outline", "归档", false, busy, emit))
   }

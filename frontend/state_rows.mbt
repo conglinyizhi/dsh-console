@@ -96,6 +96,9 @@ struct Row {
   repair_command : String
   /// 补包要带的 home：这只 profile 自己的 home（隔离的那只是它的隔离 home）
   repair_home : String
+  /// 指向 profile 之外的有效软链接条数（design/design-fixes.md §60.1）：
+  /// 派生开发副本前按它决定要不要先告知「藕断丝连」。
+  external_links : Int
   /// 命令行型：bundles 里没有 `@deepseek-ai/dsh-web-app`（读数 webApp === false）。
   /// 这种 profile 没有网页入口，起不成常驻实例；卡上给它一枚蓝色小标（design/design-fixes.md §41）。
   /// 读不到这一项（None）时算 false：不确定就不贴标签，不替它下结论。
@@ -452,6 +455,10 @@ fn running_rows(
         Some(item) => item.repair_command
         None => ""
       },
+      external_links: match profile_fact {
+        Some(item) => item.external_links
+        None => 0
+      },
       repair_home: match profile_fact {
         Some(item) => if item.home_path != "" { item.home_path } else { instance_home }
         None => ""
@@ -627,6 +634,7 @@ fn profile_rows(
       // 补包（§39）：缺几个、用哪条命令、带哪个 home。home 用这一行自己的
       // （隔离的那只在自己的 home 里，共用的是控制台 home）—— 与「配置 home」同一格值。
       missing_count: missing.length(),
+      external_links: fact.external_links,
       repair_command: fact.repair_command,
       repair_home: row_home,
       mtime_ms: fact.dir_mtime_ms,
@@ -769,6 +777,7 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     home_from_instance: false,
     cli_only: false,
     missing_count: 0,
+    external_links: 0,
     repair_command: "",
     repair_home: "",
     // 磁盘上连目录都没有，控制台的启动记录里也不会有这只 profile：那一行空着
@@ -816,7 +825,8 @@ fn demo_running() -> Array[Row] {
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
       home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
-      missing_count: 0, repair_command: "", repair_home: "",
+      missing_count: 0,
+      external_links: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -844,7 +854,8 @@ fn demo_running() -> Array[Row] {
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
       home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
-      missing_count: 0, repair_command: "", repair_home: "",
+      missing_count: 0,
+      external_links: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -878,7 +889,8 @@ fn demo_stopped() -> Array[Row] {
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
       home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
-      missing_count: 0, repair_command: "", repair_home: "",
+      missing_count: 0,
+      external_links: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",

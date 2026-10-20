@@ -847,31 +847,32 @@ switch（轨道 + 圆点滑动），并抽成组件，别处要用直接调。
 - 同一前缀的一组规则，改成父选择器 + 嵌套（`&-title`、`.dsh-setting > & {}` 之类），
   **产物选择器必须逐字不变**（嵌套只是写法，不许改变选择器、不许顺手改名、不许调整声明顺序导致层叠变化）。
 - `@media` 可以搬进被它修饰的规则里（precss 会提出来），但产物里的媒体查询与声明顺序要与现在一致。
-## 59 拆分收尾（第八批起）
+## 60 派生副本前告知「藕断丝连」（§49 未落地，补上）
 
-前七批已提交（app / view_overview / state / job / app_actions 起头 / view_maintenance / view_drawer）。
-剩下六个常规文件 + 两个硬骨头：
+事实：`node_modules/@local/*` 这类软链接指向 profile 之外的目录（例如 `~/.pi/agent/.local-drafts/…`）。
+派生出的副本里这些链接仍指向原处：在副本里改插件 = 改原处那一份，仍会影响主机其他 profile。
 
-| 批次 | 文件 | 行数 | 目标 |
-| --- | --- | --- | --- |
-| 8 | frontend/model.mbt | 1492 | model_parse / model_facts / 主文件 ≤900 |
-| 9 | backend/actions/action.mbt | 1285 | action_dispatch / action_params |
-| 10 | backend/actions/instance.mbt | 1199 | instance_spawn / instance_stop |
-| 11 | backend/profiles/homes.mbt | 1182 | homes_isolate / homes_trial |
-| 12 | backend/instances/instances.mbt | 1128 | probe / scan |
-| 13 | frontend/view_dialogs.mbt | 975 | 新建实例框单独一份 |
+### 60.1 后端
 
-### 59.1 两个硬骨头，允许改代码
+- profiles 读数每只加 `externalLinks`：profile 目录内、**解析后落在 profile 目录之外且目标存在**的软链接条数。
+- 同一条遍历里另算 `brokenLinks`（解析不到），只进读数供排查，不上界面。
+- 口径与 §48 的 relink 一致（相对链接按链接自身目录解析），不跟随链接目录继续深入（只看链接本身）。
 
-- `frontend/state_rows.mbt` 1662：拆成 `state_rows`（Row 结构与两条构造函数）、
-  `state_order`（分组、拖动顺序、compose/commit order）、`state_load`（读数加载那几条）。
-  这三份各管一件事，行模型与构造函数仍在一起。
-- `frontend/app_actions.mbt` 2096：**允许把 `update_inner` 里的分支体抽成函数**
-  （仅此一项例外）。抽法：每个 Msg 分支体变成一个同名 handler 函数，match 里只留一行调用；
-  函数体逐字搬，不改逻辑。验收要求比平时多一条：抽屉开合、补包、改名、通知面板、新建实例、
-  设置保存六条路径的探针拆前拆后逐字节相同。
+### 60.2 前端
 
-### 59.2 终局标准
+- ProfileFact 与 Row 带 `external_links`。
+- 抽屉「派生开发副本」：`external_links > 0` 时先开确认框，否则照旧直接派生。
+  - 标题：`派生 <名字> 的开发副本`
+  - 正文三句：`这份副本里还有 N 个软链接指向原 profile 之外（例如 .pi/agent 下的本地插件）。` /
+    `在副本里改这些插件，等于改原处那一份，仍然会影响主机上的其他 profile。` /
+    `要真正隔开，先把它们拷成实体文件再改。`
+  - 按钮：`仍然派生` / `取消`；Esc 与点遮罩等于取消；关框后焦点回「派生开发副本」那颗按钮。
+- 派生完成的回执：有外部链接时后缀 `（副本里还有 N 个软链接指向原处）`，细节进悬停；没有就不加。
 
-全部做完之后：整个仓库没有 `.mbt` 文件超过 900 行。收尾报告给一张表：
-每个文件的最终行数 + 是否达标 + 拆分说明。
+### 60.3 验收
+
+1. 对带外部链接的 profile（真环境 web 有 13 个）：点派生先出确认框，N 与实际条数一致；取消后什么都不发生、焦点回按钮
+2. 点「仍然派生」才真的发 fork-profile（用临时环境验，别在真环境落副本）
+3. 对没有外部链接的 profile：直接派生，不弹框（临时环境造一只即可）
+4. 390 宽下确认框不溢出
+5. 构建 0 error，验收 30 项全过

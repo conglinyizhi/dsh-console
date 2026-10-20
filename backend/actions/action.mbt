@@ -135,6 +135,8 @@ pub async fn run_action(
         ("filesCopied", @json.jint(outcome.files)),
         ("dirsCreated", @json.jint(outcome.dirs)),
         ("skipped", @json.jstr_array(outcome.skipped)),
+        // 源 profile 里指向它之外的链接条数（§60：派生回执的后缀用它）
+        ("externalLinks", @json.jint(outcome.external_links)),
         // 派生的软链处理（§48）：带过来几条、跳过几条（目标不在）、配置里换掉几处旧目录前缀
         ("linksFixed", @json.jint(outcome.links_fixed)),
         ("linksBroken", @json.jint(outcome.links_broken)),
