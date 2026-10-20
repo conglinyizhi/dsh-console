@@ -1123,6 +1123,9 @@ select { appearance: none; -webkit-appearance: none; }
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px 20px;
 }
+/* 只有一格的那一份（抽屉「配置」组里的配置 home）：强制一列。
+   两列格里只摆一格的话，那一格只占半幅，值会被挤成省略号。 */
+.dsh-fields.is-single { grid-template-columns: minmax(0, 1fr); }
 .dsh-field {
   /* z-index: 0 让它成为层叠上下文，下面的 ::before 才能安全地压到内容之下 */
   position: relative; z-index: 0;
@@ -1264,11 +1267,15 @@ $drawer-ms: 220ms;
 .dsh-drawer-head .dsh-console-mark { flex: none; }
 .dsh-drawer-head .dsh-btn.icon-only { margin-left: auto; }
 /* 内容区自己滚：抽屉高度固定为视口，读数与控制按钮再多也不撑破页面 */
+/* §29.1：抽屉只剩五组，组间是组内的两倍（军规 09 的亲疏之别）。
+   组内行距 8（.dsh-drawer-section 的 gap）、组间 16（这里的 gap）：
+   16 = 2 × 8，两组之间的缝一眼看得出来，组里的按钮行仍然是一簇。 */
 .dsh-drawer-body {
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  display: flex; flex-direction: column; gap: 14px;
+  display: flex; flex-direction: column; gap: 16px;
   padding: 14px 16px 20px;
 }
+/* 一组 = 标题 + 若干行。组内只有行，没有二级小标题（§29.1）。 */
 .dsh-drawer-section { display: flex; flex-direction: column; gap: 8px; }
 .dsh-drawer-section-title {
   margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
@@ -1314,34 +1321,14 @@ $drawer-ms: 220ms;
   /* 后端给的是一整条没有空格的串，折不开的话两行也放不下 */
   overflow-wrap: anywhere;
 }
-/* 控制按钮分组：主操作 / 拿走 / 改动 / 运维，一组一行小标题 + 一片会折行的按钮 */
-.dsh-drawer-group { display: flex; flex-direction: column; gap: 6px; }
-.dsh-drawer-group + .dsh-drawer-group { margin-top: 10px; }
-.dsh-drawer-group-title { font-size: 11px; color: $text-dim; }
+/* 组里的一行按钮：会折行的一片（操作那一组有两行：主操作 / 打开与复制）。
+   行内 6px 比组内行距 8 更紧 —— 同一排的按钮是一件事的几种做法。 */
 .dsh-drawer-btns { display: flex; flex-wrap: wrap; gap: 6px; }
-/* 「打开与复制」分组末尾那一行小开关（design/ops-maintenance-jobs.md §15.2）：
-   标签 + 小开关，下面一行小字。它和按钮一起躺在 flex-wrap 的 .dsh-drawer-btns 里，
-   所以自己占满一整行，不跟按钮挤在同一排。 */
-.dsh-drawer-advanced {
-  flex: 0 0 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-top: 2px;
-}
-.dsh-drawer-advanced-line { display: flex; align-items: center; gap: 8px; }
-.dsh-drawer-advanced-label { font-size: 12.5px; color: $text; }
-.dsh-drawer-advanced-hint {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.5;
-  color: $text-dim;
-}
 /* ── 配置历史（design/ops-maintenance-jobs.md §16.4）────────────────
    这一组给「改动这只 profile」兜底：一颗创建快照 + 一份快照列表。
    自己占满一整行（.dsh-drawer-btns 是 flex-wrap），列表行横向排：
    时间 / 原因 / 体积 / 还原。原因过长时用省略号收尾，全文在那一行的悬停里。 */
-.dsh-drawer-history { flex: 0 0 100%; display: flex; flex-direction: column; gap: 4px; }
+.dsh-drawer-history { display: flex; flex-direction: column; gap: 4px; }
 .dsh-snapshot-create-line { display: flex; }
 .dsh-snapshot-empty { margin: 0; font-size: 11px; line-height: 1.5; color: $text-dim; }
 .dsh-snapshot-row {
@@ -1368,7 +1355,7 @@ $drawer-ms: 220ms;
 /* ── 整体替换（design/ops-maintenance-jobs.md §17.3）────────────────
    右侧栏里先选源、再摆四段差异。覆盖项那一对**并排**摆（同 id 两边的原文），
    源那一条在左、带一枚「会盖掉目标这条」；blocks 非空时底部按钮禁用并写明原因。 */
-.dsh-promote-launcher { display: flex; flex: 0 0 100%; }
+.dsh-promote-launcher { display: flex; }
 .dsh-promote-target {
   margin: 0;
   font-size: 12px;
@@ -1508,9 +1495,49 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 /* 主色底随实例色调：运行中卡蓝（accent）、已停止的 profile 卡紫（violet） */
 .dsh-btn.primary.accent { --btn-bg: $accent; }
 .dsh-btn.primary.violet { --btn-bg: $violet; }
-/* 分段按钮（左半主按钮 + 右半 caret 开菜单）早已撤掉；行尾那个 ⋯ 也在第七轮撤了
-   （卡片上不再有任何按钮，控制全在抽屉里）。这两组规则都不留 ——
-   死规则留着，下一次改动会被照着抄。 */
+/* ── 「打开 Web UI」拆分按钮（design/design-fixes.md §29.3）────────────────
+   主段 + 右段 chevron 共用一圈边框：主段只留左边两角、去掉右边框，chevron 补右边两角，
+   两段之间那道细线由 chevron 的左边框给。高度跟 .dsh-btn 一样是 30，不新增一档。
+   chevron 与主段同色（实心主色），只是压暗一档 —— 看起来是同一颗按钮的右半。 */
+.dsh-split { position: relative; display: inline-flex; align-items: stretch; }
+.dsh-split.accent { --btn-bg: $accent; }
+.dsh-split.violet { --btn-bg: $violet; }
+.dsh-split > .dsh-split-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+.dsh-split-toggle {
+  width: 28px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; border-radius: 0 $radius-sm $radius-sm 0;
+  border-left: 1px solid rgba(0, 0, 0, 0.22);
+  background: var(--btn-bg, $accent); color: #fff;
+  cursor: pointer;
+}
+.dsh-split-toggle:hover { filter: brightness(1.08); }
+.dsh-split-toggle:focus-visible { outline: 2px solid $text; outline-offset: 1px; }
+/* 下拉：贴在拆分按钮下面，右缘对齐。宽度按内容给个下限，只有一项也不至于一小条。 */
+.dsh-split-menu {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  z-index: 2;
+  min-width: 168px;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 4px;
+  background: $panel; border: 1px solid $line-strong; border-radius: $radius-sm;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+}
+.dsh-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  height: 28px; padding: 0 8px;
+  border: 0; border-radius: $radius-sm;
+  background: transparent; color: $text;
+  font-size: 12.5px; text-align: left; white-space: nowrap; cursor: pointer;
+}
+.dsh-menu-item:hover, .dsh-menu-item:focus-visible { background: $panel-soft; }
+/* 点外部关闭那一层：整屏透明垫片，压在菜单下面一层（与抽屉遮罩同一套做法）。
+   z-index 只有 1：菜单是 2。 */
+.dsh-split-scrim { position: fixed; inset: 0; z-index: 1; background: transparent; }
 .dsh-dot-danger { width: 7px; height: 7px; border-radius: 50%; background: $danger; }
 
 /* 这里原来还有一整块右栏信息面板的规则（.dsh-side-info / .dsh-info-card /
@@ -2581,9 +2608,6 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   gap: 6px;
 }
 .dsh-switch.small .dsh-switch-knob { width: 10px; height: 10px; }
-/* 硬开裸地址（§15.2）：「有风险」这件事用红色说，与删除同一档脸色，
-   但它是普通按钮大小，位置在「打开 Web UI」旁边。 */
-.dsh-btn.dsh-hard-open { flex: none; }
 .dsh-settings-hint {
   padding: 14px 15px;
   border: 1px dashed $line-strong;

@@ -753,7 +753,6 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `process.stopGraceMs` | 5000 | 停止时 SIGTERM 到 SIGKILL 的宽限（实测 grace=0 → 直接 SIGKILL，`sigkillSent:true`；grace=5000 → 只发 SIGTERM） |
 | `logs.defaultTail` | 200 | 日志接口不带 tail 参数时的缺省（实测 50 → 回 50 行，500 → 回 500 行；显式 tail 不受影响） |
 | `ui.archiveOpenByDefault` | false | 前端读 `GET /api/local/settings` 决定归档区默认展开（后端负责存取与回显） |
-| `ui.advancedActions` | false | 前端读它决定抽屉里摆不摆「硬开裸地址」这类有风险的按钮（后端负责存取与回显） |
 | `ui.sidebarCollapsed` | false | 前端读它决定宽屏下侧栏的形态：展开成 190px，或收成 56px 的图标栏。窄屏不看这一项，那一档的侧栏从顶部汉堡滑出、不占位（后端负责存取与回显） |
 | `safety.deleteToTrash` | true | 删除进回收站还是硬删（见上表） |
 

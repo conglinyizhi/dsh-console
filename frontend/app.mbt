@@ -56,7 +56,7 @@ fn default_log_source(model : Model) -> String {
 /// 设置读数的懒加载入口（唯一的一处）：还没读到、也没在读，才发这一枪。
 ///
 /// 两个地方要它：进设置页（那一页整页靠这份读数），以及**开抽屉**时
-/// （抽屉按 ui.advancedActions 决定摆不摆「硬开裸地址」，见 ops-maintenance-jobs.md §15.2）。
+/// （抽屉里那颗删除按钮按 safety.deleteToTrash 决定写「删除」还是「彻底删除」）。
 /// 启动时不预拉：后端没提供这个接口时，每次打开总览都会在控制台里留一条 404，
 /// 而「控制台零问题」是验收项。读过一次（成功或失败）就不再自动重发，
 /// 失败之后要重试走设置页那颗「重新读取」。
@@ -2103,7 +2103,7 @@ fn sidebar_collapsed_stored(model : Model) -> Bool {
 ///|
 /// 宽屏顶栏的折叠按钮：**先翻界面，再写设置**。
 ///
-/// 先翻是因为「点了没动」最容易被再点一次；写设置走的是与「高级操作」同一条 PUT
+/// 先翻是因为「点了没动」最容易被再点一次；写设置走的是设置页同一条 PUT
 /// （commit_setting_value），回执失败时 settings_saved_state 会把形态退回存着的那一份，
 /// 所以这里不必再挂一份回滚。
 fn toggle_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
@@ -3233,10 +3233,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 又把抽屉打开了：正在收的那一只当场作废（同一行会撞出两个 #dsh-drawer-close），
         // 它那条计时回来时号对不上，自己会是空枪
         //
-        // 顺手把这页要用的设置读一次（只读一次，读过就不再发）：抽屉里的
-        // 「高级操作」开关与「硬开裸地址」都按 ui.advancedActions 摆（§15.2）。
+        // 顺手把这页要用的设置读一次（只读一次，读过就不再发）：抽屉里那颗删除按钮
+        // 按 safety.deleteToTrash 决定写「删除」还是「彻底删除」。
+        // 打开抽屉时那份下拉菜单一定是收着的（同一时刻只有一份，换行也不带走）。
         let (next, read) = ensure_settings_read(
-          { ..model, drawer_id: id, drawer_closing: "" },
+          { ..model, drawer_id: id, drawer_closing: "", split_menu_open: false },
           emit,
         )
         (next, @cmd.batch([read, focus_after_render(drawer_close_id())]))
@@ -3256,18 +3257,43 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 「减少动效」：不做位移也不淡出，节点当场撤掉（样式里那条 media query 关的是
         // 开的那一半；收的这半边要连节点都不留，所以在这里判）
         (
-          { ..model, drawer_id: "", drawer_closing: "" },
+          { ..model, drawer_id: "", drawer_closing: "", split_menu_open: false },
           focus_after_render(card_id(model.drawer_id)),
         )
       } else {
         (
-          { ..model, drawer_id: "", drawer_closing: model.drawer_id },
+          { ..model, drawer_id: "", drawer_closing: model.drawer_id, split_menu_open: false },
           @cmd.batch([
             focus_after_render(card_id(model.drawer_id)),
             // 号用的是**正在收的那一行**（model.drawer_closing 此刻还是上一拍的值）
             @cmd.delay(emit(DrawerClosed(model.drawer_id)), drawer_anim_ms),
           ]),
         )
+      }
+    // 「打开 Web UI」右段 chevron：开 ↔ 收。焦点跟着走 ——
+    // 展开落进菜单项（键盘直接 Enter 就能走「强制启动」），收起回 chevron。
+    SplitMenuToggle =>
+      if model.split_menu_open {
+        (
+          { ..model, split_menu_open: false },
+          focus_after_render(split_menu_btn_id(model.drawer_id)),
+        )
+      } else {
+        (
+          { ..model, split_menu_open: true },
+          focus_after_render(split_menu_item_id(model.drawer_id)),
+        )
+      }
+    // 收菜单：点外部 / Esc / 选了菜单项都走这一条。焦点一律回 chevron ——
+    // 菜单项一撤，焦点落在被卸载的节点上会掉到 body。
+    SplitMenuClose =>
+      if model.split_menu_open {
+        (
+          { ..model, split_menu_open: false },
+          focus_after_render(split_menu_btn_id(model.drawer_id)),
+        )
+      } else {
+        (model, @cmd.none)
       }
     // 滑出走完了：这一枪的号还对得上才撤节点。中间又开过抽屉的话（号被清掉或换了一行）
     // 什么都不做 —— 不然会把刚开的那一只撤下去。

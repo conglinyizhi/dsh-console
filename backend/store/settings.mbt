@@ -14,8 +14,6 @@ pub struct Settings {
   process_stop_grace_ms : Int
   logs_default_tail : Int
   ui_archive_open_by_default : Bool
-  /// 高级操作：抽屉里摆不摆「硬开裸地址」这类有风险的按钮（手机上没有修饰键，用这个开关）
-  ui_advanced_actions : Bool
   /// 侧栏收起：宽屏下侧栏是展开成 190px，还是收成 56px 的图标栏（窄屏不看这一项，
   /// 那一档的侧栏从顶部汉堡滑出，不占位）。前端读它复原形态，后端只负责存取与回显。
   ui_sidebar_collapsed : Bool
@@ -47,9 +45,6 @@ pub let key_logs_default_tail : String = "logs.defaultTail"
 pub let key_ui_archive_open_by_default : String = "ui.archiveOpenByDefault"
 
 ///|
-pub let key_ui_advanced_actions : String = "ui.advancedActions"
-
-///|
 pub let key_ui_sidebar_collapsed : String = "ui.sidebarCollapsed"
 
 ///|
@@ -67,7 +62,6 @@ pub fn settings_keys() -> Array[String] {
     key_process_stop_grace_ms,
     key_logs_default_tail,
     key_ui_archive_open_by_default,
-    key_ui_advanced_actions,
     key_ui_sidebar_collapsed,
     key_safety_delete_to_trash,
   ]
@@ -85,7 +79,6 @@ pub fn default_settings() -> Settings {
     process_stop_grace_ms: 5000,
     logs_default_tail: 200,
     ui_archive_open_by_default: false,
-    ui_advanced_actions: false,
     ui_sidebar_collapsed: false,
     safety_delete_to_trash: true,
   }
@@ -136,8 +129,8 @@ fn apply_one(current : Settings, key : String, json : Json) -> Result[Settings, 
         _ => Ok({ ..current, logs_default_tail: value })
       }
     }
-    "process.detach" | "ui.archiveOpenByDefault" | "ui.advancedActions" |
-    "ui.sidebarCollapsed" | "safety.deleteToTrash" => {
+    "process.detach" | "ui.archiveOpenByDefault" | "ui.sidebarCollapsed" |
+    "safety.deleteToTrash" => {
       let value = match as_bool(json) {
         Some(v) => v
         None => return Err("要布尔值，收到 " + describe(json))
@@ -145,7 +138,6 @@ fn apply_one(current : Settings, key : String, json : Json) -> Result[Settings, 
       match key {
         "process.detach" => Ok({ ..current, process_detach: value })
         "ui.archiveOpenByDefault" => Ok({ ..current, ui_archive_open_by_default: value })
-        "ui.advancedActions" => Ok({ ..current, ui_advanced_actions: value })
         "ui.sidebarCollapsed" => Ok({ ..current, ui_sidebar_collapsed: value })
         _ => Ok({ ..current, safety_delete_to_trash: value })
       }
@@ -246,7 +238,6 @@ pub fn settings_values_json(s : Settings) -> @json.JsonVal {
     (key_process_stop_grace_ms, @json.jint(s.process_stop_grace_ms)),
     (key_logs_default_tail, @json.jint(s.logs_default_tail)),
     (key_ui_archive_open_by_default, @json.JBool(s.ui_archive_open_by_default)),
-    (key_ui_advanced_actions, @json.JBool(s.ui_advanced_actions)),
     (key_ui_sidebar_collapsed, @json.JBool(s.ui_sidebar_collapsed)),
     (key_safety_delete_to_trash, @json.JBool(s.safety_delete_to_trash)),
   ])
@@ -264,7 +255,6 @@ pub fn value_of(s : Settings, key : String) -> @json.JsonVal {
     "process.stopGraceMs" => @json.jint(s.process_stop_grace_ms)
     "logs.defaultTail" => @json.jint(s.logs_default_tail)
     "ui.archiveOpenByDefault" => @json.JBool(s.ui_archive_open_by_default)
-    "ui.advancedActions" => @json.JBool(s.ui_advanced_actions)
     "ui.sidebarCollapsed" => @json.JBool(s.ui_sidebar_collapsed)
     "safety.deleteToTrash" => @json.JBool(s.safety_delete_to_trash)
     _ => @json.JNull

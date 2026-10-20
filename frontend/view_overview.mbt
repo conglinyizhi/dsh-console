@@ -753,70 +753,103 @@ fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
 }
 
 ///|
-/// 抽屉里「硬开裸地址」那一颗（design/ops-maintenance-jobs.md §15.2）。
+/// 「打开 Web UI」拆成两段（design/design-fixes.md §29.3）：
+///   主段：照旧开带令牌的地址（RowAction OpenUi；没有令牌时给那句提示）；
+///   右段 chevron：约 28px、与主段同高共用边框，点开一份只有「强制启动」的菜单。
 ///
-/// **这一枪要在 DOM 监听器里同步打**：window.open 只有在用户手势的同一个同步栈里
-/// 才不会被弹窗拦截器吃掉（与「启动」的占位标页同一条理由，见 start_click）——
-/// update 走的是 queueMicrotask，等它去调就已经晚了一拍。结局随 HardOpenDone 进 model，
-/// 成没成照那个回执说，不报一句空的「已打开」。
+/// 菜单项就是原来的「硬开裸地址」：这一枪要在 DOM 监听器里**同步**打
+/// （window.open 只有在手势的同一个栈里才不被拦，见 start_click 那段），
+/// 打完顺手收菜单 —— 两件事同一拍发出去，回执照旧走 HardOpenDone。
 ///
-/// 它不依赖任何修饰键：手机上没有 Alt，点它就是硬开。
-fn hard_open_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
-  mark("drawer-hard-open", ["overview", "drawer", row.id, "action", "hard-open"])
-    .data_set("action", "hard-open")
-    .title("不管有没有 key，直接在新标签页打开裸地址；服务端没握手，可能用不了")
-    .on_click(fn(_event) { emit(HardOpenDone(row.id, row.url, js_open_url(row.url))) })
-}
-
-///|
-/// 抽屉「打开与复制」分组末尾那一行小开关（§15.2）：切换即一次 PUT 设置，
-/// 回执走全局提示（SettingToggle → commit_setting_value，与设置页那颗开关同一条路）。
-///
-/// 设置还没读到（或读失败）时开关是禁用的，标签与那行小字照常摆：
-/// 手机那一侧除了这里没有别的入口，「不摆」比「摆一颗点不动的」更让人无从下手。
-fn drawer_advanced_toggle(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let on = advanced_actions_on(model)
-  let known = setting_bool_of(model, "ui.advancedActions") is Some(_)
-  let saving = model.settings_saving == "ui.advancedActions"
-  @html.div(
-    class="dsh-drawer-advanced",
-    attrs=mark("drawer-advanced", ["overview", "drawer", "advanced"]).data_set(
-      "state",
-      if on {
-        "on"
-      } else {
-        "off"
-      },
+/// 焦点：展开落进菜单项（键盘 Enter 就是「强制启动」），收起回 chevron；
+/// 菜单项一撤，焦点落在被卸载的节点上会掉到 body。
+fn drawer_open_ui_split(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let tone = match row.tone {
+    Accent => " accent"
+    Violet => " violet"
+  }
+  let open = model.split_menu_open
+  let main_attrs = mark("drawer-open-web-ui", [
+    "overview", "drawer", row.id, "action", "open-ui",
+  ])
+    .data_set("action", "open-ui")
+    .title(
+      open_ui_hint(row) +
+      "；按住 Alt，或点右边的菜单：不管有没有 key，直接开裸地址（可能用不了）",
+    )
+  let toggle_attrs = mark("drawer-open-ui-menu", [
+    "overview", "drawer", row.id, "action", "open-ui-menu",
+  ])
+    .data_set("action", "open-ui-menu")
+    .data_set("state", if open { "open" } else { "closed" })
+    .aria_haspopup("menu")
+    .aria_expanded(if open { "true" } else { "false" })
+    .aria_label("打开 Web UI 的其它方式")
+    .title("打开 Web UI 的其它方式")
+  let children : Array[@html.Html] = [
+    @html.button(
+      class="dsh-btn primary dsh-open-ui dsh-split-main" + tone,
+      type_="button",
+      attrs=main_attrs,
+      on_click=emit(RowAction(row.id, OpenUi)),
+      [icon("open-in-new"), @html.span("打开 Web UI")],
     ),
-    [
-      @html.div(class="dsh-drawer-advanced-line", [
-        @html.span(
-          class="dsh-drawer-advanced-label",
-          attrs=mark("drawer-advanced-label", ["overview", "drawer", "advanced", "label"]),
-          "高级操作",
-        ),
-        @html.button(
-          class=if on { "dsh-switch small on" } else { "dsh-switch small" },
-          type_="button",
-          disabled=!known || saving,
-          attrs=mark("drawer-advanced-switch", ["overview", "drawer", "advanced", "switch"])
-            .role("switch")
-            .aria_checked(if on { "true" } else { "false" })
-            .aria_label("高级操作")
-            .title("打开之后，抽屉里会多出「硬开裸地址」这类按钮；手机上没有修饰键，用这个开关"),
-          on_click=emit(SettingToggle("ui.advancedActions", !on)),
-          [
-            @html.span(class="dsh-switch-knob", @html.nothing),
-            @html.span(class="dsh-switch-text", if on { "开" } else { "关" }),
-          ],
-        ),
-      ]),
-      @html.p(
-        class="dsh-drawer-advanced-hint",
-        attrs=mark("drawer-advanced-hint", ["overview", "drawer", "advanced", "hint"]),
-        "显示有风险的按钮（硬开裸地址）",
+    @html.button(
+      id=split_menu_btn_id(row.id),
+      class="dsh-split-toggle",
+      type_="button",
+      attrs=toggle_attrs,
+      on_click=emit(SplitMenuToggle),
+      [icon("chevron-down", size=14)],
+    ),
+  ]
+  if open {
+    children.push(
+      @html.div(
+        class="dsh-split-menu",
+        attrs=mark("drawer-open-ui-menu-list", ["overview", "drawer", row.id, "menu"])
+          .role("menu")
+          .aria_label("打开 Web UI 的其它方式"),
+        [
+          @html.button(
+            id=split_menu_item_id(row.id),
+            class="dsh-menu-item",
+            type_="button",
+            attrs=mark("drawer-open-ui-force", [
+              "overview", "drawer", row.id, "action", "open-ui-force",
+            ])
+              .data_set("action", "open-ui-force")
+              .role("menuitem")
+              .title("不管有没有 key，直接在新标签页打开裸地址；服务端没握手，可能用不了")
+              .on_click(fn(_event) {
+                // 两件事同一拍：开裸地址（同步，手势栈里）、收菜单（焦点回 chevron）
+                @cmd.batch([
+                  emit(HardOpenDone(row.id, row.url, js_open_url(row.url))),
+                  emit(SplitMenuClose),
+                ])
+              }),
+            [icon("open-in-new", size=14), @html.span("强制启动")],
+          ),
+        ],
       ),
-    ],
+    )
+    // 点外部关闭：一层透明的整屏垫片，与抽屉遮罩同一套做法（rabbita 的 on_click
+    // 收不到 target，判不了「点在菜单外面」）。它在菜单下面一层，点菜单不会误触。
+    children.push(
+      @html.div(
+        class="dsh-split-scrim",
+        attrs=mark("drawer-open-ui-scrim", ["overview", "drawer", row.id, "menu", "scrim"]),
+        on_click=emit(SplitMenuClose),
+        @html.nothing,
+      ),
+    )
+  }
+  @html.div(
+    class="dsh-split" + tone,
+    attrs=mark("drawer-open-ui-split", [
+      "overview", "drawer", row.id, "action", "open-ui-split",
+    ]).data_set("open", if open { "true" } else { "false" }),
+    children,
   )
 }
 
@@ -1552,39 +1585,11 @@ fn home_field_hint(row : Row) -> String {
 fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let running = row.status is Running
   let busy = row.busy
-  // 主色底随色调走：运行卡蓝、profile 卡紫（与卡片图标底板同一套）
-  let tone = match row.tone {
-    Accent => " accent"
-    Violet => " violet"
-  }
   let main : Array[@html.Html] = []
   if running {
-    main.push(
-      @html.button(
-        // dsh-open-ui：按住 Shift 换一套颜色（CSS 认 body[data-shift]），意思是「硬开裸地址」
-        class="dsh-btn primary dsh-open-ui" + tone,
-        type_="button",
-        // 令牌读不到时按钮**照样可点**：点下去先把原因说清，不给一个点了 401 的链接
-        attrs=mark("drawer-open-web-ui", ["overview", "drawer", row.id, "action", "open-ui"])
-          .data_set("action", "open-ui")
-          .title(open_ui_hint(row) + "；按住 Alt：不管有没有 key，直接开裸地址（可能用不了）"),
-        on_click=emit(RowAction(row.id, OpenUi)),
-        [icon("open-in-new"), @html.span("打开 Web UI")],
-      ),
-    )
-    // 「高级操作」开着的时候，「打开 Web UI」旁边多一颗硬开的（§15.2）：
-    // 手机上没有修饰键，这颗按钮是那一侧唯一的入口。关掉就一个节点都不产出。
-    if advanced_actions_on(model) {
-      main.push(
-        @html.button(
-          class="dsh-btn danger dsh-hard-open",
-          type_="button",
-          disabled=busy,
-          attrs=hard_open_click(row, emit),
-          [icon("open-in-new"), @html.span("硬开裸地址")],
-        ),
-      )
-    }
+    // 「打开 Web UI」是一颗拆分按钮（§29.3）：主段 + 右侧 chevron 菜单。
+    // 硬开裸地址从「一颗独立按钮 / 一个设置开关」收进了那份菜单（§29.2 删掉高级操作）。
+    main.push(drawer_open_ui_split(row, model, emit))
     main.push(
       @html.button(
         class="dsh-btn",
@@ -1652,9 +1657,6 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       }
     None => ()
   }
-  // 「打开与复制」分组**末尾**那一行小开关（§15.2）：切换即 PUT 设置。
-  // 摆在这一组最后 —— 它是「这一组要不要多摆一颗」的开关，不是复制动作本身。
-  take.push(drawer_advanced_toggle(model, emit))
   let mutate : Array[@html.Html] = [
     drawer_button(row, Rename, "rename-outline", "重命名", false, busy, emit),
     drawer_button(row, Note, "note-text-outline", "备注", false, busy, emit),
@@ -1740,34 +1742,49 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     drawer_button(row, Dir, "folder-open-outline", "打开工作目录", false, busy, emit),
     drawer_button(row, Config, "tune", "编辑配置", false, busy, emit),
   ]
-  let groups : Array[(String, Array[@html.Html])] = [
-    ("主操作", main),
-    // 「拿走」读起来像破坏性动作（"从这儿拿走"），而里面装的是在新标签页打开与两处复制 ——
-    // 是「拿出去用」，不是「拿走」。组名要与里面装的东西逐字对得上。
-    ("打开与复制", take),
-    ("改动这只 profile", mutate),
-    // 配置历史（§16.4）：动配置之前先拍一张、之后能还原。
-    // 放在「改动这只 profile」下面 —— 它是给这一组那些动作兜底的。
-    // 配置历史下面再摆一颗「整体替换」：这两件事都靠快照兜底（§17.3）
-    ("配置历史", [snapshot_history(row, model, emit), promote_launcher(row, emit)]),
-    // 配置 home 单独一组：它改的是「以后实例落在哪儿」，与改名 / 删除不是一类
-    ("配置 home", home_items),
-    // 「运维」偏行话，换成直白的（使用者 2026-10-16 定的）
-    ("查看与编辑", ops),
+  // ── 五组里的后三组（§29.1）：操作 / 这只 profile / 配置 ──
+  //
+  // 组内只有行，不再有二级小标题：一组一个标题，标题下面是它能折的按钮行。
+  // 组间间距是组内的两倍（样式在 app.scss 的 .dsh-drawer-body / .dsh-drawer-section）。
+  let op_rows : Array[@html.Html] = [
+    // 第一行：主操作（启动 / 停止 / 重启 / 打开 Web UI 拆分按钮）
+    @html.div(class="dsh-drawer-btns", main),
+    // 第二行：拿出去用（开新标签、两条复制、复制开发指令）
+    @html.div(class="dsh-drawer-btns", take),
   ]
-  let blocks : Array[@html.Html] = []
-  for group in groups {
-    let (title, items) = group
-    blocks.push(
-      @html.div(class="dsh-drawer-group", [
-        @html.span(class="dsh-drawer-group-title", title),
-        @html.div(class="dsh-drawer-btns", items),
-      ]),
-    )
+  let profile_rows : Array[@html.Html] = []
+  if row.user_note.length() > 0 {
+    profile_rows.push(card_note(row))
   }
-  @html.div(class="dsh-drawer-section", [
-    @html.h3(class="dsh-drawer-section-title", "控制"),
-    @html.fragment(blocks),
+  profile_rows.push(@html.div(class="dsh-drawer-btns", mutate))
+  let config_rows : Array[@html.Html] = [
+    // 配置 home 那一格读数留在这里：它是「以后起的实例落在哪儿」，与上面「实例自己在用的
+    // DSH_HOME」不是同一件事，所以这一格跟着「配置」这一组走，不挤在读数里。
+    @html.ul(
+      class="dsh-fields is-single",
+      [
+        field(
+          "cube-outline",
+          "config-home",
+          row.id,
+          "配置 home",
+          home_field_value(row),
+          home_field_hint(row),
+        ),
+      ],
+    ),
+    @html.div(class="dsh-drawer-btns", home_items),
+    // 配置历史（§16.4）：动配置之前先拍一张、之后能还原。
+    // 历史下面再摆一颗「整体替换」：这两件事都靠快照兜底（§17.3）
+    snapshot_history(row, model, emit),
+    promote_launcher(row, emit),
+    // 查看与编辑（第三轮接上的那三项）
+    @html.div(class="dsh-drawer-btns", ops),
+  ]
+  @html.fragment([
+    drawer_section("操作", "action", op_rows),
+    drawer_section("这只 profile", "profile", profile_rows),
+    drawer_section("配置", "config", config_rows),
   ])
 }
 
@@ -1807,11 +1824,35 @@ fn drawer_state_block(row : Row) -> @html.Html {
       light_label(row.light),
     ),
   )
-  @html.div(class="dsh-drawer-section", [
-    @html.h3(class="dsh-drawer-section-title", "状态"),
+  // 第二行：profile 健康（§29.1 并进「状态」）。只说人话：缺几个包、补丁文件在不在；
+  // 「这句话是从哪读出来的」不在这里 —— 那是这一版怎么实现的，正文一个字不占。
+  // **高度封顶**（第十二轮）：包名清单进悬停，自由文本那一类最多两行。
+  drawer_section("状态", "state", [
     @html.div(class="dsh-drawer-light-line", light_line),
     @html.p(class="dsh-drawer-why", attrs=why_attrs, row.light_reason),
+    problem_hint(
+      "drawer-health",
+      ["overview", "drawer", row.id, "health"],
+      row.health_text,
+      row.health_hint,
+      row.health_free,
+    ),
   ])
+}
+
+///|
+/// 抽屉里的一个组（§29.1）：小字标题 + 组内若干行。
+///
+/// 五个组用同一套画法，data-name 的尾巴是组自己的键（state / readings / action /
+/// profile / config）—— 量「组间是组内的两倍」时按它取盒子，不看位置。
+/// 组内只有行，没有二级小标题：标题一多，那五组又会被读成九组。
+fn drawer_section(title : String, key : String, items : Array[@html.Html]) -> @html.Html {
+  @html.div(
+    class="dsh-drawer-section",
+    attrs=mark("drawer-section", ["overview", "drawer", "section", key])
+      .data_set("section", key),
+    [@html.h3(class="dsh-drawer-section-title", title), @html.fragment(items)],
+  )
 }
 
 ///|
@@ -1858,19 +1899,9 @@ fn detail_drawer(
   field_items.push(
     field("home-outline", "home", row.id, "DSH_HOME", row.home, row.home_hint),
   )
-  // 「配置 home」：独立（隔离 home 路径）/ 共用（控制台的 DSH_HOME）。
-  // 这一格说的是这只 profile 起的实例落在哪个 home，与上面那条「实例自己在用的 DSH_HOME」
-  // 不是同一件事：实例那格读的是进程 environ，这一格读的是 profiles 读数里的归属。
-  field_items.push(
-    field(
-      "cube-outline",
-      "config-home",
-      row.id,
-      "配置 home",
-      home_field_value(row),
-      home_field_hint(row),
-    ),
-  )
+  // 「配置 home」那一格不在这里：它跟着「配置」这一组走（§29.1）。
+  // 这一格说的是这只 profile 起的实例落在哪个 home，与上面「实例自己在用的 DSH_HOME」
+  // 不是同一件事：实例那格读的是进程 environ，那一格读的是 profiles 读数里的归属。
   field_items.push(
     field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
   )
@@ -1878,38 +1909,13 @@ fn detail_drawer(
     field("clock-outline", "mtime", row.id, "最近改动", mtime_value(row), row.mtime_hint),
   )
   let fields = @html.ul(class="dsh-fields", field_items)
+  // 五组（§29.1）：状态（含 profile 健康）/ 读数 / 操作 / 这只 profile / 配置。
+  // 后三组在 drawer_controls 里拼（它们要 model 与 emit）。
   let body : Array[@html.Html] = [
     drawer_state_block(row),
-    @html.div(class="dsh-drawer-section", [
-      @html.h3(class="dsh-drawer-section-title", "读数"),
-      fields,
-    ]),
-    @html.div(class="dsh-drawer-section", [
-      @html.h3(class="dsh-drawer-section-title", "profile 健康"),
-      // 只说人话：缺几个包、补丁文件在不在。
-      // 「这句话是从哪读出来的」不在这里 —— 那是这一版怎么实现的，正文一个字不占。
-      //
-      // **高度封顶**（第十二轮）：11 个包名整串摊在正文里会占掉大半屏。
-      // 已知那一类压成一行摘要（「缺 11 个包」），清单进悬停；
-      // 自由文本那一类最多两行，原文同样进悬停（见 view_parts 的 problem_hint）。
-      problem_hint(
-        "drawer-health",
-        ["overview", "drawer", row.id, "health"],
-        row.health_text,
-        row.health_hint,
-        row.health_free,
-      ),
-    ]),
+    drawer_section("读数", "readings", [fields]),
+    drawer_controls(row, model, emit),
   ]
-  if row.user_note.length() > 0 {
-    body.push(
-      @html.div(class="dsh-drawer-section", [
-        @html.h3(class="dsh-drawer-section-title", "备注"),
-        card_note(row),
-      ]),
-    )
-  }
-  body.push(drawer_controls(row, model, emit))
   let head : Array[@html.Html] = [
     @html.div(class="dsh-drawer-head", [
       @html.span(
@@ -1947,8 +1953,15 @@ fn detail_drawer(
         .data_set("light", light_key(row.light))
         .data_set("state", state)
         .on_keydown(fn(event) {
+          // Esc 先收菜单（§29.3：收起并把焦点还回 chevron），菜单没开才关抽屉。
+          // 这里判 model 而不是在菜单上拦事件：键从菜单项冒泡上来，同一个处理器
+          // 分得清「这一下该收谁」，也不必给两个节点各挂一套。
           if event.key() == "Escape" {
-            emit(DrawerClose)
+            if model.split_menu_open {
+              emit(SplitMenuClose)
+            } else {
+              emit(DrawerClose)
+            }
           } else {
             @cmd.none
           }

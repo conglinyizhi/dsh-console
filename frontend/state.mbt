@@ -399,6 +399,9 @@ struct Model {
   /// 关上之后节点还留 drawer_anim_ms，让滑出看得见；到点由 DrawerClosed 撤掉。
   /// 它不参与任何判定 —— 焦点、点击、键盘都按「抽屉已经关了」走。
   drawer_closing : String
+  /// 抽屉里「打开 Web UI」右段 chevron 那份菜单开着没有（§29.3）。
+  /// 同一时刻只有一份（抽屉只开一行），所以一格布尔就够；抽屉一关、换行一并复位。
+  split_menu_open : Bool
   // ── 拖动排序（第十轮） ──
   //
   // 状态分三块：**表**（order）、**这一次拖动的过程**（drag_*）、**写回失败的回滚点**
@@ -743,6 +746,11 @@ priv enum Msg {
   OrderDone(Result[String, Error])
   /// 关抽屉：点外部 / Esc / 关闭按钮都走这一条。焦点回触发它的那张卡。
   DrawerClose
+  /// 「打开 Web UI」右段 chevron：那份菜单开 / 收。展开时焦点落进菜单项，
+  /// 收起时回 chevron（菜单项一撤，焦点不能掉到 body 上）。
+  SplitMenuToggle
+  /// 收起那份菜单（点外部 / Esc / 选了菜单项）。焦点回 chevron。
+  SplitMenuClose
   /// 抽屉滑出那一段走完了，节点可以撤了（带的是正在收的那一行的 id：
   /// 号对不上说明这中间抽屉又开了，那一枪作废）。
   DrawerClosed(String)
@@ -895,6 +903,7 @@ fn initial_model() -> Model {
     rows: [],
     drawer_id: "",
     drawer_closing: "",
+    split_menu_open: false,
     order: [],
     drag_id: "",
     drag_start_x: 0.0,
@@ -1212,6 +1221,18 @@ fn drawer_panel_id() -> String {
 /// 焦点必须**真的进抽屉**（不然 Tab 还在背后的列表里走，Esc 也未必收得到）。
 fn drawer_close_id() -> String {
   "dsh-drawer-close"
+}
+
+///|
+/// 「打开 Web UI」右段 chevron 的 DOM id：菜单收起之后焦点回它身上。
+fn split_menu_btn_id(row_id : String) -> String {
+  "dsh-split-menu-btn-" + dom_key(row_id)
+}
+
+///|
+/// 那份菜单里「强制启动」的 DOM id：展开时焦点落进它（键盘用户按 Enter 就能走这条路）。
+fn split_menu_item_id(row_id : String) -> String {
+  "dsh-split-menu-item-" + dom_key(row_id)
 }
 
 ///|
