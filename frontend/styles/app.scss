@@ -226,6 +226,12 @@ select { appearance: none; -webkit-appearance: none; }
   line-height: 1.45;
   color: $text-dim;
 }
+// 与导航名同一个理由：展开那一瞬间宽度还只有 56px，这句「服务端在线」
+// 若允许换行就会在过渡里竖排下去。不换行、超出裁掉。
+.dsh-side-foot-text {
+  white-space: nowrap;
+  overflow: hidden;
+}
 /* 灯的三档：还没查过是灰的（实心，不是空环 —— 空环留给「读不到状态」那一档），
    在线绿、离线红。离线那一档连字一起红：那是这一格里唯一的坏消息。 */
 .dsh-side-dot {
