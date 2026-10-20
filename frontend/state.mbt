@@ -260,11 +260,6 @@ struct Row {
   /// 正文是不是**自由文本**（未知那一类）。true → 最多两行、超出省略号；
   /// false → 一行摘要 + 省略号。已知那一类再长也不换形状。
   health_free : Bool
-  /// 同一个进程的其余监听端口（如 "9230"）。空数组 = 只听着一个端口 ——
-  /// 抽屉里那行「还听着 9230」只在非空时出现；卡片上一律不显示、也不因此变色。
-  also_ports : Array[String]
-  /// 上面那一行的悬停：每个端口各自是什么（后端给的那句话）
-  also_ports_hint : String
   // ── 配置快照（design/ops-maintenance-jobs.md §16.2）──
   /// 这只 profile 的快照列表，从新到旧。空数组 = 还没拍过（或读数里没有这一项，
   /// 两种情况由 snapshots_source 分开说 —— 空态文案只给「还没拍过」那一档）。
@@ -2662,13 +2657,6 @@ fn running_rows(
       health_text: health.text,
       health_hint: health.hint,
       health_free: health.free,
-      // 同一个进程的其余监听端口：只作附注（抽屉里一行「还听着 9230」），
-      // 卡片上不显示、也不因此变色 —— 那一行说的是这只实例，不是那个端口。
-      also_ports: fact.also_ports.map(fn(p) { p.port.to_string() }),
-      also_ports_hint: join_with(
-        fact.also_ports.map(fn(p) { "端口 " + p.port.to_string() + "：" + p.note }),
-        " | ",
-      ),
       last_started,
       last_started_source,
       // 配置快照跟着那只 profile 走：实例解析出 profile 就用它的读数
@@ -2797,7 +2785,12 @@ fn profile_rows(
 ) -> Array[Row] {
   let rows : Array[Row] = []
   for fact in profiles {
-    if in_use_by(fact, running, profiles_home) {
+    // 这一行属于哪个 home：读数里的 home_path 就是答案（隔离的那只在它自己的 home 里）。
+    // 后面「这只 profile 有没有在跑」「行 id」「上次启动」全都要用同一个值 ——
+    // 拿控制台 home 去配对，隔离的那只会既配不上运行中那一只（多出一行），
+    // 行 id 也会指到它不在的地方。
+    let row_home = if fact.home_path != "" { fact.home_path } else { profiles_home }
+    if in_use_by(fact, running, row_home) {
       continue
     }
     let missing = fact.bundles.missing
@@ -2810,12 +2803,12 @@ fn profile_rows(
     let (last_started, last_started_source) = row_last_started(
       None,
       "",
-      profile_id_candidates(fact.name, profiles_home),
+      profile_id_candidates(fact.name, row_home),
       console,
     )
     rows.push({
       // 行 id 带上 home：同名两份档案在两个 home 里时，它们是两行，各排各的
-      id: profile_row_id(fact.name, profiles_home),
+      id: profile_row_id(fact.name, row_home),
       name: fact.name,
       // 「本地 profile」这个标签永远为真、从不提供信息（没有「远端 profile」这种东西）→ 删掉：
       // 一只磁盘上的 profile 当然是本地的，写出来只是噪声（与「真实数据」那一类同理）。
@@ -2849,13 +2842,7 @@ fn profile_rows(
       // 是控制台 home）；只有它给不出来时才退回「这批 profile 是从哪个 home 列出来的」。
       // 两种情况都读不到就写「未知」：绝不拿控制台自己的 home 顶替 ✗
       // （那会把这只 profile 说成属于一个它不属于的地方，开发指令也会因此指错目录）。
-      home: if fact.home_path != "" {
-        fact.home_path
-      } else if profiles_home == "" {
-        "未知"
-      } else {
-        profiles_home
-      },
+      home: if row_home == "" { "未知" } else { row_home },
       home_hint: if profiles_home == "" {
         "这一版 profiles 读数里没有 dshHome：不知道这批 profile 是从哪个 home 的 profiles/ 下读出来的，" +
         "所以这一格写「未知」。不拿控制台自己的 home 顶上，那只是把别处的 home 说成它的"
@@ -2905,9 +2892,6 @@ fn profile_rows(
       health_text: health.text,
       health_hint: health.hint,
       health_free: health.free,
-      // 没有在跑的实例，也就没有「同一个进程的另一个端口」这回事
-      also_ports: [],
-      also_ports_hint: "",
       // 配置快照：profiles 读数里每只一份，从新到旧
       snapshots: fact.snapshots,
       snapshots_source: fact.snapshots_source,
@@ -3045,8 +3029,6 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     health_text: "—",
     health_hint: "",
     health_free: false,
-    also_ports: [],
-    also_ports_hint: "",
     // 磁盘上没有目录，没有 .snapshots 可读
     snapshots: [],
     snapshots_source: "磁盘上没有这只 profile 的目录，没有配置快照可读",
@@ -3089,8 +3071,6 @@ fn demo_running() -> Array[Row] {
       health_text: "—",
       health_hint: "",
       health_free: false,
-      also_ports: [],
-      also_ports_hint: "",
       // 演示数据不是读数：没有快照可读（空数组 + 原因，界面据此不摆列表）
       snapshots: [],
       snapshots_source: "演示数据：不是真实读数，没有配置快照可读",
@@ -3118,8 +3098,6 @@ fn demo_running() -> Array[Row] {
       health_text: "—",
       health_hint: "",
       health_free: false,
-      also_ports: [],
-      also_ports_hint: "",
       // 演示数据不是读数：没有快照可读（空数组 + 原因，界面据此不摆列表）
       snapshots: [],
       snapshots_source: "演示数据：不是真实读数，没有配置快照可读",
@@ -3153,8 +3131,6 @@ fn demo_stopped() -> Array[Row] {
       health_text: "—",
       health_hint: "",
       health_free: false,
-      also_ports: [],
-      also_ports_hint: "",
       // 演示数据不是读数：没有快照可读（空数组 + 原因，界面据此不摆列表）
       snapshots: [],
       snapshots_source: "演示数据：不是真实读数，没有配置快照可读",

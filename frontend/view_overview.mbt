@@ -1709,11 +1709,9 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     ),
   )
   let take : Array[@html.Html] = []
-  if running {
-    take.push(
-      drawer_button(row, Tab, "open-in-new", "在新标签页打开", false, false, emit),
-    )
-  }
+  // 「在新标签页打开」与「打开 Web UI」是同一件事（后者本来就在新标签页里开），
+  // 摆两颗只是让这一组多一行按钮，所以删掉。ActionKey::Tab 与其处理分支保留，
+  // 免得动到别处引用（现在没有别的入口发它）。
   // 「复制访问地址」：只有**真在跑、地址不是占位串**的行才是可点的（§13.1）。
   // 停用行的 url 是「已停用，无法访问」，点下去就是把一句占位话写进剪贴板。
   // 置灰 + 悬停说清；复制动作自己也拦一道（见 app.mbt 的 copy_url_action）。
@@ -1987,7 +1985,7 @@ fn detail_drawer(
   // 收的那一只对指针关掉（半透明的面板不该再吃点击）
   let state = if closing { "closing" } else { "open" }
   // 读数只留**别处没说过的**那几格（§30.3）：
-  //   宿主版本 / 访问地址 / 插件数量 / 最近改动（外加有第二个端口时的「还听着」）。
+  //   宿主版本 / 访问地址 / 插件数量 / 最近改动。
   //   Profile 删掉：抽屉标题就是这个名字；DSH_HOME 删掉：「配置」那一组已经说了这只 profile
   //   的 home，两个 home 并排只会让人以为它们不一样。
   //   宿主版本只放版本号，来源与包目录（versionSource 里的那条 package.json 路径）进悬停。
@@ -2002,20 +2000,9 @@ fn detail_drawer(
     ),
     field("link-variant", "url", row.id, "访问地址", row.url, url_hint(row)),
   ]
-  // 「还听着 9230」：同一个进程的其余监听端口，紧跟在主端口（访问地址）那一行后面。
-  // 只在真有第二个端口时出现；卡片上一律不显示、也不因此变色。
-  if row.also_ports.length() > 0 {
-    field_items.push(
-      field(
-        "hub-outline",
-        "also-ports",
-        row.id,
-        "还听着",
-        join_with(row.also_ports, "、"),
-        row.also_ports_hint,
-      ),
-    )
-  }
+  // 同一个进程的其余监听端口（以前这里有一格「还听着 9230」）不再显示：
+  // 那是 Unix 的「监听端口」说法，这个控制台要跨平台，没必要让用户读这一格。
+  // 读数里仍然带着 alsoPorts，需要排查的人去 /api/local/instances 看得到。
   // 「配置 home」那一格不在这里：它跟着「配置」这一组走（§29.1）。
   field_items.push(
     field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),

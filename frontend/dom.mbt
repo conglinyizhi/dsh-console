@@ -203,11 +203,35 @@ extern "js" fn js_tab_hold(profile : String) -> String =
   #|     tabs[profile] = w
   #|     try { w.opener = null } catch (e) {}
   #|     try {
+  #|       // 占位页做成一张居中的 hero：说清在做什么、要不要留着等。
+  #|       // 跟随系统深色模式（color-scheme + prefers-color-scheme），不再是一块白底灰字。
+  #|       const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  #|       const name = esc(profile)
   #|       w.document.title = '正在启动 ' + profile
-  #|       const p = w.document.createElement('p')
-  #|       p.textContent = '正在启动 ' + profile + '，等控制台把带令牌的地址填进来…'
-  #|       p.setAttribute('style', 'font:14px/1.7 system-ui,sans-serif;color:#555;padding:24px')
-  #|       w.document.body.appendChild(p)
+  #|       w.document.open()
+  #|       w.document.write('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">' +
+  #|         '<meta name="color-scheme" content="light dark">' +
+  #|         '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+  #|         '<title>正在启动 ' + name + '</title><style>' +
+  #|         ':root{color-scheme:light dark;--bg:#f6f7f9;--fg:#191b1f;--dim:#5f6570;--line:#e2e4ea;--accent:#4f8cff}' +
+  #|         '@media (prefers-color-scheme: dark){:root{--bg:#0f1013;--fg:#e8e6e1;--dim:#b4b3ae;--line:#26282e}}' +
+  #|         '*{box-sizing:border-box}html,body{height:100%;margin:0}' +
+  #|         'body{display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);' +
+  #|         'font:15px/1.7 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:24px;text-align:center}' +
+  #|         '.hero{max-width:520px;display:flex;flex-direction:column;align-items:center;gap:16px}' +
+  #|         '.badge{width:46px;height:46px;border-radius:13px;background:var(--accent);color:#fff;' +
+  #|         'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;letter-spacing:.5px}' +
+  #|         'h1{margin:0;font-size:22px;font-weight:600;line-height:1.35}' +
+  #|         'p{margin:0;color:var(--dim);font-size:14px;max-width:42ch}' +
+  #|         '.spinner{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);' +
+  #|         'border-top-color:var(--accent);animation:spin 900ms linear infinite}' +
+  #|         '@keyframes spin{to{transform:rotate(360deg)}}.foot{font-size:12px;opacity:.8}' +
+  #|         '@media (prefers-reduced-motion: reduce){.spinner{animation:none}}' +
+  #|         '</style></head><body><div class="hero"><div class="badge">DSH</div>' +
+  #|         '<h1>正在启动 ' + name + '</h1><div class="spinner" aria-hidden="true"></div>' +
+  #|         '<p>起好之后这个标签页会自动跳到那只实例，不用留在这里等</p>' +
+  #|         '<p class="foot">由 DSH 控制台打开 · ' + name + '</p></div></body></html>')
+  #|       w.document.close()
   #|     } catch (e) {}
   #|     return 'held'
   #|   } catch (e) {
