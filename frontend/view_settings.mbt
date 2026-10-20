@@ -102,7 +102,8 @@ fn setting_number_control(
 }
 
 ///|
-/// 开关：没有中间态，点一下就是一次 PUT。role=switch + aria-checked 是它的语义面。
+/// 开关：没有中间态，点一下就是一次 PUT。控件本身是 view_parts 里的 switch_control
+/// （§51：MD2 轨道 + 圆点，不再写「开/关」两个字），这里只管取值与缺省口径。
 fn setting_switch_control(
   model : Model,
   def : SettingDef,
@@ -117,20 +118,14 @@ fn setting_switch_control(
     Some(VBool(_)) => true
     _ => false
   }
-  @html.button(
-    class=if on { "dsh-switch on" } else { "dsh-switch" },
-    type_="button",
-    disabled=!known || model.settings_saving == def.key,
-    attrs=mark("setting-switch", ["settings", "row", def.key, "switch"])
-      .role("switch")
-      .aria_checked(if on { "true" } else { "false" })
-      .aria_label(def.label)
-      .title(setting_fallback_text(def)),
-    on_click=emit(SettingToggle(def.key, !on)),
-    [
-      @html.span(class="dsh-switch-knob", @html.nothing),
-      @html.span(class="dsh-switch-text", if on { "开" } else { "关" }),
-    ],
+  switch_control(
+    on,
+    !known || model.settings_saving == def.key,
+    def.label,
+    setting_fallback_text(def),
+    emit(SettingToggle(def.key, !on)),
+    key=def.key,
+    elem_id=setting_switch_id(def.key),
   )
 }
 

@@ -332,6 +332,54 @@ priv struct ProfilePick {
 }
 
 ///|
+/// 开关组件（design/design-fixes.md §51.1）：MD2 的轨道 + 圆点，没有开/关文字。
+///
+/// 语义全在 button 上：`role=switch` + `aria-checked` + `aria-label`，键盘 Tab 能到、
+/// 空格与回车都能切（button 的原生行为）。视觉只有两件事：圆点停在哪一端、轨道什么颜色。
+///
+/// `key` 是这一颗的语义路径尾巴（进 data-uid）：同页多颗开关时**必须不一样** ——
+/// uid 是路径的哈希，路径一样的两颗会拿到同一个 uid，diff 时分不开谁是谁。
+/// 不给时退回 `label`（读屏名字，通常也够唯一）。
+fn switch_control(
+  on : Bool,
+  disabled : Bool,
+  label : String,
+  title : String,
+  on_click : @cmd.Cmd,
+  small? : Bool = false,
+  key? : String = "",
+  elem_id? : String = "",
+) -> @html.Html {
+  let path = if key == "" { label } else { key }
+  let mut cls = "dsh-switch"
+  if on {
+    cls = cls + " on"
+  }
+  if small {
+    cls = cls + " small"
+  }
+  @html.button(
+    id=elem_id,
+    class=cls,
+    type_="button",
+    disabled=disabled,
+    attrs=mark("switch", ["switch", path])
+      .role("switch")
+      .aria_checked(if on { "true" } else { "false" })
+      .aria_label(label)
+      .data_set("state", if on { "on" } else { "off" })
+      .title(title),
+    on_click=on_click,
+    [
+      // 轨道里只有圆点：开/关文字已经撤掉，状态由位置与颜色表达（§51.1）
+      @html.span(
+        class="dsh-switch-track",
+        [@html.span(class="dsh-switch-thumb", @html.nothing)],
+      ),
+    ],
+  )
+}
+///|
 /// 一条 data-name 路径：前缀 + 这一格的尾巴。
 /// 三张卡（新建实例框 / 选择配置 / 替换用源）共用一份画法，差别之一就是前缀，所以路径得拼。
 fn mark_path(marks : Array[String], tail : Array[String]) -> Array[String] {

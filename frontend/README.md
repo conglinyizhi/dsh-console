@@ -1014,6 +1014,36 @@ Esc 与点遮罩都能收，焦点回 `dsh-notice-bell`。连做 21 次复制后
 - 390×780：抽屉里「还缺 6 个包」17..71、「安装」81..144；设置行 29..361；两页都是
   `scrollWidth 390 = clientWidth 390`，不溢出。
 
+## 开关换成 MD2，并抽成组件（第五十一轮追加）
+
+设置页那颗开关原来是「药丸里塞开/关两个字」，像自造控件、也占宽度。这一轮换成 Material Design 2
+的轨道 + 圆点，并抽成可复用组件（`design/design-fixes.md` §51）：
+
+- `view_parts.mbt` 的 `switch_control(on, disabled, label, title, on_click, small?, key?, elem_id?)`：
+  结构是 `button.dsh-switch[role=switch][aria-checked]` > `.dsh-switch-track` > `.dsh-switch-thumb`，
+  **不再有开/关文字**（状态由圆点位置 + 轨道颜色表达，读屏靠 `aria-checked`）。
+  `key` 是这一颗的语义路径尾巴（进 `data-uid`）：同页多颗必须不同，否则 uid 撞车；
+  `elem_id` 用来在保存之后把焦点送回来。
+- MD2 几何：轨道 36×14、圆角 7，圆点 20；圆点默认左移 3px，让圆心落在左端点（半径 7）上，
+  开时右移 22px 停到右端点，两端各外溢 3px（(20−14)/2）。切换 120ms，`prefers-reduced-motion`
+  关掉动画；`:focus-visible` 给 2px 主色描边（离轨道 2px）；禁用 0.45 不透明度；
+  `small` 档轨道 32×12、圆点 18、位移 20。
+- 颜色：关 = 轨道 `rgba(255,255,255,.24)` + 圆点 `$text-mid`；开 = 轨道 `rgba($accent-rgb,.5)` +
+  圆点 `$accent`。悬停给圆点外一圈 8% 淡影。
+- 设置页三项（归档区默认展开 / 侧栏收起 / 忽略缺包警告）都改用它；旧的 `.dsh-switch-text`、
+  `.dsh-switch-knob`、`.dsh-switch.small` 那套规则删干净了（构建产物里 grep 0 命中）。
+- 一个顺带的修：保存成功之后把焦点送回那一颗开关（`setting_switch_id(key)` + `focus_after_render`）。
+  保存会让这一行冒出「恢复默认」按钮，节点结构一变焦点就掉到 body —— 不送回来的话，
+  键盘用户按一次空格就再也接不上第二下（§51.4 要空格与回车都能切）。
+
+实测（隔离 5392）：三颗开关轨道都是 36×14（圆角 7px）、圆点 20×20；关的那两颗圆点在左端
+（圆心距轨道左端 7px、距右端 29px，向左外溢 3px），开的那颗圆心距右端 7px、向右外溢 3px
+（thumb 右边缘 = 轨道右边缘 + 3）。计算颜色：关 track rgba(255,255,255,0.24) / thumb rgb(207,205,200)；
+开 track rgba(79,140,255,0.5) / thumb rgb(79,140,255)。role=switch、aria-checked 随状态变；
+空格与回车都能切（切完焦点还在开关上，刷新后值保留）。`.dsh-switch-text` / `.dsh-switch-knob`
+在 DOM 与 CSS 里都是 0 个。390 宽下文书不溢出（scrollWidth 390 = clientWidth 390），
+开关在行右侧、与文字不重叠（390 下那一档是「文字在上、开关在下」的列布局）。
+
 ## 这一版没做的
 
 - 归档区没有读接口（见上），所以它不是「真实的归档清单」，是本次会话的记录。

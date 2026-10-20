@@ -790,3 +790,40 @@ bundles 里没有 `@deepseek-ai/dsh-web-app` 的 profile 在概览卡上贴一�
 - 判定顺序改成：`confirm == "DELETE"` → 硬删（优先于设置）；
 - 否则 `safety.deleteToTrash` 开着 → 进回收站；
 - 否则（回收站关着、又没带 confirm）→ `bad-params`，不悄悄换一种删法。
+## 51 开关做成可复用组件，换成 Material 风格
+
+设置页那颗开关现在是「药丸里塞开/关两个字」，看着像自造控件，也占宽度。改成 Material Design 2 的
+switch（轨道 + 圆点滑动），并抽成组件，别处要用直接调。
+
+### 51.1 组件
+
+在 `frontend/view_parts.mbt` 里加一个 switch 组件（名字自定，例如 `switch_control`），入参：
+
+- `on`（当前值）、`disabled`、`label`（读屏用的名字）、`title`（悬停说明）、
+  `on_click`（切换命令）、`small? : Bool = false`（抽屉里那档矮的）。
+- 结构：`button.dsh-switch[role=switch][aria-checked]` 里放一个 `.dsh-switch-track`，
+  轨道里放 `.dsh-switch-thumb`；**不再有开/关文字**（状态由 thumb 位置 + 轨道颜色表达，
+  读屏靠 aria-checked）。
+
+### 51.2 样式（MD2）
+
+- 轨道 36×14、圆角 7px；thumb 20×20 圆形，默认坐在轨道左端（左移 3px 让圆心对齐端点）。
+- 关：轨道 `rgba(255,255,255,0.24)`、thumb `$text-mid`。
+- 开：轨道 `rgba($accent-rgb, 0.5)`、thumb `$accent`。
+- 切换时 thumb 位移 120ms；`prefers-reduced-motion` 时不动画。
+- 悬停：thumb 外一圈 8% 的淡影；`:focus-visible` 给 2px 主色描边（离轨道 2px）。
+- 禁用：整体 0.45 不透明度。
+- `small`：轨道 32×12、thumb 18。
+
+### 51.3 用起来
+
+- 设置页所有布尔项改用它（现在只有「归档区默认展开」「侧栏收起」「忽略缺包警告」三项）。
+- 抽屉与新建实例框里如果还有布尔控件，也一并用它；没有就只改设置页。
+
+### 51.4 验收
+
+1. 设置页三颗开关：轨道 36×14、thumb 20×20；开的那颗 thumb 在右端（圆心距轨道右端 3px），关的在左端
+2. 颜色：开 = 主色轨道 + 主色 thumb；关 = 灰轨道 + 灰 thumb（量计算值）
+3. 键盘：Tab 能到、空格与回车都能切；aria-checked 跟着变
+4. 抽屉里没有残留旧样式的开关；`.dsh-switch-text` 这类旧规则删干净
+5. 390 宽下不溢出，开关不与文字重叠

@@ -189,6 +189,20 @@ let settings_table : Array[SettingDef] = [
 ]
 
 ///|
+/// 这一项是不是开关（§51）：保存成功之后要把焦点送回那颗开关，别的控件不走这条路。
+fn setting_is_switch(key : String) -> Bool {
+  for def in settings_table {
+    if def.key == key {
+      return match def.kind {
+        CBool => true
+        _ => false
+      }
+    }
+  }
+  false
+}
+
+///|
 /// 一个分组里有几条（索引行右侧那个数）。
 fn settings_group_count(group_id : String) -> Int {
   settings_table.filter(fn(def) { def.group == group_id }).length()

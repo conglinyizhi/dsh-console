@@ -1398,6 +1398,14 @@ fn drawer_close_id() -> String {
 }
 
 ///|
+/// 设置页一颗开关的 DOM id（§51）：保存成功之后把焦点送回它 ——
+/// 保存会让这一行多出「恢复默认」那颗按钮，节点结构一变焦点就掉到 body，
+/// 键盘用户按一次空格就「走丢」了（§51.4 要空格与回车都能切）。
+fn setting_switch_id(key : String) -> String {
+  "dsh-switch-" + key
+}
+
+///|
 /// 抽屉里「安装缺的包（N）」那颗按钮的 DOM id（§39）：确认框关掉之后焦点回它。
 fn drawer_repair_id() -> String {
   "dsh-drawer-repair"

@@ -2471,13 +2471,20 @@ fn settings_saved_state(
   } else {
     saved
   }
+  // 开关保存成功之后把焦点送回那一颗（§51.4）：这一行会因为「恢复默认」按钮的出现
+  // 而改变节点结构，焦点会掉到 body —— 键盘用户按一次空格就再也接不上第二下。
+  let refocus = if setting_is_switch(key) {
+    focus_after_render(setting_switch_id(key))
+  } else {
+    @cmd.none
+  }
   (
     notice_ok(
       saved,
       label + " 已保存：" + value_text,
       "",
     ),
-    @cmd.none,
+    refocus,
   )
 }
 
