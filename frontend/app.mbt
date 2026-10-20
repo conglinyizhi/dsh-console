@@ -3849,6 +3849,9 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
             focus_after_render(repair_dialog_ok_id()),
           )
       }
+    // 命令行型 profile 的启动说明（§42）：只开一句说明，不发任何请求。
+    CliHelpOpen(id) => ({ ..model, cli_help_id: id }, focus_after_render("dsh-cli-help-ok"))
+    CliHelpClose => ({ ..model, cli_help_id: "" }, @cmd.none)
     RepairCancel =>
       if model.repair_confirm_id == "" {
         (model, @cmd.none)

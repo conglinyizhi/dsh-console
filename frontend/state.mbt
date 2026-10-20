@@ -772,6 +772,8 @@ struct Model {
   start_tab_waiting : Bool
   /// 等地址时重读了几轮读数（有界，见 start_tab_max_tries）
   start_tab_tries : Int
+  /// 命令行型 profile 那句说明开着没有（§42）：值是那一行的 id，空串 = 关。
+  cli_help_id : String
   /// 提示条里那颗「打开 Web UI」要开的地址（方案 B：用户再点一下 = 新手势，
   /// 一定不被弹窗拦截器吃掉）。None = 不摆按钮。
   notice_url : String?
@@ -902,6 +904,10 @@ priv enum Msg {
   SplitMenuToggle
   /// 收起那份菜单（点外部 / Esc / 选了菜单项）。焦点回 chevron。
   SplitMenuClose
+  /// 命令行型 profile 的「启动」被点：弹一句说明（§42）。带这一行的 id。
+  CliHelpOpen(String)
+  /// 关掉那句说明（按钮 / Esc / 点遮罩）。
+  CliHelpClose
   /// 抽屉滑出那一段走完了，节点可以撤了（带的是正在收的那一行的 id：
   /// 号对不上说明这中间抽屉又开了，那一枪作废）。
   DrawerClosed(String)
@@ -1167,6 +1173,7 @@ fn initial_model() -> Model {
     start_tab_profile: "",
     start_tab_waiting: false,
     start_tab_tries: 0,
+    cli_help_id: "",
     notice_url: None,
     notice_url_notice: "",
     notice_history: [],

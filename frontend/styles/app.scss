@@ -1622,6 +1622,31 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 }
 .dsh-dialog-title { margin: 0; font-size: 14px; font-weight: 600; color: $text; }
 .dsh-dialog-message { margin: 0; font-size: 12px; line-height: 1.6; color: $text-mid; }
+/* 命令行型说明框里那条示例命令（§42）：等宽、可选中、不折出框。 */
+.dsh-dialog-code {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $panel-soft;
+  color: $text-mid;
+  font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+/* 置灰但**仍可点**的按钮（命令行型的「启动」）：禁用样式，点击留着解释用。
+   不写 pointer-events / disabled 属性，就是要收得到那一下点击。 */
+.dsh-btn.is-inert {
+  border-color: $line-strong;
+  background: transparent;
+  color: $text-dim;
+  cursor: help;
+}
+.dsh-btn.is-inert:hover {
+  background: $panel-soft;
+  color: $text-mid;
+}
 .dsh-dialog-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .dsh-dialog-btn {
   height: 30px; padding: 0 14px;

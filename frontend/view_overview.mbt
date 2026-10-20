@@ -762,6 +762,19 @@ fn drawer_start_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     Accent => " accent"
     Violet => " violet"
   }
+  // 命令行型（§41）：没有网页入口，点了必然失败。按钮置灰但**仍可点** ——
+  // 点它弹一句说明（禁用按钮收不到点击，也就没法解释为什么不让点）。
+  if row.cli_only {
+    return @html.button(
+      class="dsh-btn is-inert" + tone,
+      type_="button",
+      attrs=mark("drawer-start-cli", ["overview", "drawer", row.id, "action", "start-cli"])
+        .aria_disabled("true")
+        .title("命令行型 profile，起不成常驻实例；点一下看怎么用"),
+      on_click=emit(CliHelpOpen(row.id)),
+      [icon("play", size=13), @html.span("启动")],
+    )
+  }
   @html.button(
     class="dsh-btn primary" + tone,
     type_="button",
@@ -2562,8 +2575,67 @@ fn snapshot_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 重命名框（design/design-fixes.md §30.2）：预填当前名并全选；空名 / 纯空格禁用确定；
-/// Enter 确认、Esc 取消；关闭后焦点回到抽屉里那一颗「重命名」。
+/// 命令行型 profile 的「启动」说明（design/design-fixes.md §42）：
+/// 启动键置灰但仍可点 —— 禁用按钮收不到点击，就没法解释为什么不让点。
+fn cli_help_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let (name, home) = match find_row(model.rows, model.cli_help_id) {
+    Some(row) =>
+      (
+        match row.profile_name {
+          Some(profile) => profile
+          None => row.name
+        },
+        row.home,
+      )
+    None => (model.cli_help_id, "")
+  }
+  let command = "DSH_HOME=" + home + " dsh --profile " + name + " --help"
+  let body = "这只 profile 的 bundles 里没有 @deepseek-ai/dsh-web-app，没有网页入口，" +
+    "起不成常驻实例。它要按自己的用法在终端里跑一次，参数以 --help 为准。"
+  let card = @html.div(class="dsh-dialog-card", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("cli-help-title", ["dialog", "cli-help", "title"]),
+      name + " 是命令行型",
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("cli-help-message", ["dialog", "cli-help", "message"]).title(home),
+      body,
+    ),
+    @html.pre(
+      class="dsh-dialog-code",
+      attrs=mark("cli-help-code", ["dialog", "cli-help", "code"]),
+      [@html.text(command)],
+    ),
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id="dsh-cli-help-ok",
+        class="dsh-dialog-btn primary",
+        type_="button",
+        attrs=mark("cli-help-ok", ["dialog", "cli-help", "ok"]),
+        on_click=emit(CliHelpClose),
+        [@html.text("知道了")],
+      ),
+    ]),
+  ])
+  dialog(
+    "cli-help-dialog",
+    "命令行型 profile",
+    emit(CliHelpClose),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        CliHelpClose
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
+
+///|
+/// 改名框（§30.2）：说清改的是目录名，不是卡片上的字。
 ///
 /// 这一框改的不是显示字符串：它改的是磁盘上的 profile 目录名。所以标题写全「给 X 改名」，
 /// 正文一句说清改的是什么，输入框下面再把**当前目录名**摆出来（技术细节进悬停）——
@@ -3189,6 +3261,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   if model.promote_confirm {
     dialogs.push(promote_confirm_dialog(model, emit))
+  }
+  if model.cli_help_id.length() > 0 {
+    dialogs.push(cli_help_dialog(model, emit))
   }
   if model.rename_id.length() > 0 {
     dialogs.push(rename_dialog(model, emit))
