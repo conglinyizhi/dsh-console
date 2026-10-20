@@ -214,10 +214,10 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
     Accent => "dsh-tile accent"
     Violet => "dsh-tile violet"
   }
-  let tile_icon = match row.tone {
-    Accent => "open-in-new"
-    Violet => "puzzle-outline"
-  }
+  // 一只 profile 就是一份配置：不管在跑还是停着，图标都是那份文档。
+  // 状态由灯与状态词说（颜色 + 文字两通道），不再让图标兼职表达运行状态 ——
+  // 之前「跑着的」用 open-in-new、「停着的」用拼图块，两者都不像一份配置。
+  let tile_icon = "file-document-outline"
   // 第一行：名字占满余下的宽度，把端口顶到右端
   let head : Array[@html.Html] = [
     @html.span(
