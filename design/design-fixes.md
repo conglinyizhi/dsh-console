@@ -847,28 +847,31 @@ switch（轨道 + 圆点滑动），并抽成组件，别处要用直接调。
 - 同一前缀的一组规则，改成父选择器 + 嵌套（`&-title`、`.dsh-setting > & {}` 之类），
   **产物选择器必须逐字不变**（嵌套只是写法，不许改变选择器、不许顺手改名、不许调整声明顺序导致层叠变化）。
 - `@media` 可以搬进被它修饰的规则里（precss 会提出来），但产物里的媒体查询与声明顺序要与现在一致。
-## 57 MoonBit 文件拆分（第四批：backend/actions/job.mbt）
+## 59 拆分收尾（第八批起）
 
-规矩同前三批：按 `///|` 块切、整块搬；函数体与 `priv`/`pub` 原样；不重命名、不夹带修 bug；
-新文件头写职责与原因；块文本多重集比对 missing 0 / extra 0；行数之和 ≈ 1670。
+前七批已提交（app / view_overview / state / job / app_actions 起头 / view_maintenance / view_drawer）。
+剩下六个常规文件 + 两个硬骨头：
 
-### 57.1 拆成四份
+| 批次 | 文件 | 行数 | 目标 |
+| --- | --- | --- | --- |
+| 8 | frontend/model.mbt | 1492 | model_parse / model_facts / 主文件 ≤900 |
+| 9 | backend/actions/action.mbt | 1285 | action_dispatch / action_params |
+| 10 | backend/actions/instance.mbt | 1199 | instance_spawn / instance_stop |
+| 11 | backend/profiles/homes.mbt | 1182 | homes_isolate / homes_trial |
+| 12 | backend/instances/instances.mbt | 1128 | probe / scan |
+| 13 | frontend/view_dialogs.mbt | 975 | 新建实例框单独一份 |
 
-| 文件 | 放什么 |
-| --- | --- |
-| `job.mbt` | 状态机主干：作业的生命周期与阶段推进、对外入口 |
-| `job_steps.mbt` | 各步骤的实现（lock / install / trial / verdict） |
-| `job_commit.mbt` | 收尾：commit / rollback / cleanup、审计落笔 |
-| `job_releases.mbt` | 版本来源与刷新（refresh-releases、来源选择、缓存） |
+### 59.1 两个硬骨头，允许改代码
 
-### 57.2 总目标（用户要求「拆到拆完」）
+- `frontend/state_rows.mbt` 1662：拆成 `state_rows`（Row 结构与两条构造函数）、
+  `state_order`（分组、拖动顺序、compose/commit order）、`state_load`（读数加载那几条）。
+  这三份各管一件事，行模型与构造函数仍在一起。
+- `frontend/app_actions.mbt` 2096：**允许把 `update_inner` 里的分支体抽成函数**
+  （仅此一项例外）。抽法：每个 Msg 分支体变成一个同名 handler 函数，match 里只留一行调用；
+  函数体逐字搬，不改逻辑。验收要求比平时多一条：抽屉开合、补包、改名、通知面板、新建实例、
+  设置保存六条路径的探针拆前拆后逐字节相同。
 
-整个仓库（backend + frontend）**没有 `.mbt` 文件超过 900 行**（`state.mbt` 888 已达标）。
-达不到时把剩余的超标文件与理由列出来，不要硬拆到伤内聚。
+### 59.2 终局标准
 
-### 57.3 验收
-
-1. 构建 0 error，warning 数不增。
-2. 既有验收 30 项全过。
-3. 维护页关键路径探针拆前拆后逐字节相同：作业卡、版本表、选择配置侧栏、开始作业面板。
-4. `job.mbt` 不超过 900 行。
+全部做完之后：整个仓库没有 `.mbt` 文件超过 900 行。收尾报告给一张表：
+每个文件的最终行数 + 是否达标 + 拆分说明。
