@@ -1560,7 +1560,13 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 /* 点外部关闭那一层：整屏透明垫片，压在菜单下面一层（与抽屉遮罩同一套做法）。
    z-index 只有 1：菜单是 2。 */
 .dsh-split-scrim { position: fixed; inset: 0; z-index: 1; background: transparent; }
-.dsh-dot-danger { width: 7px; height: 7px; border-radius: 50%; background: $danger; }
+/* 「停止」键里那枚红色方块（原来的 .dsh-dot-danger 圆点已删：圆点在别处是状态灯，
+   混用会读成「这里有个红点」）。方块由 stop 图标画，这里只给颜色与对齐。 */
+.dsh-stop-mark {
+  display: inline-flex;
+  align-items: center;
+  color: $danger;
+}
 
 /* 这里原来还有一整块右栏信息面板的规则（.dsh-side-info / .dsh-info-card /
    .dsh-flows / .dsh-flow* / .dsh-notes / .dsh-note*，260px 宽、贴右边、一条左分隔线）。

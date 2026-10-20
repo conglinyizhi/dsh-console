@@ -933,14 +933,25 @@ fn find_snapshot(snaps : Array[SnapshotFact], id : String) -> SnapshotFact? {
 /// 空态只在**真读到空**时出现。读数里根本没有 snapshots 这一项时（旧后端）
 /// 换成一句「这一版读数里没有配置快照」，与「还没拍过」分开说 ——
 /// 把「读不到」写成「没有」，正是这套界面一直要避开的那件事。
-fn snapshot_history(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn snapshot_history(
+  row : Row,
+  model : Model,
+  emit : @cmd.Emit[Msg],
+  lead? : Array[@html.Html] = [],
+) -> @html.Html {
   let busy = row.busy
   let creatable = row.profile_name is Some(_) && !busy
+  // lead：「配置 home」那颗按钮与「创建快照」并排 —— 这两件事都属于「给这一份配置做点什么」，
+  // 各自单独占一行会让「配置」这一组变成一串长度不一的短行（§38）。
+  let lead_items : Array[@html.Html] = []
+  for item in lead {
+    lead_items.push(item)
+  }
   let items : Array[@html.Html] = [
     @html.div(
       class="dsh-snapshot-create-line",
       attrs=mark("drawer-snapshot-create-line", ["overview", "drawer", row.id, "snapshot", "create"]),
-      [
+      lead_items + [
         @html.button(
           class="dsh-btn",
           type_="button",
@@ -954,22 +965,27 @@ fn snapshot_history(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Ht
               "保留最近 20 份；这只 profile 有实例在跑时不让动配置",
             ),
           on_click=emit(SnapshotCreate(row.id)),
-          [icon("clock-outline"), @html.span("创建快照")],
+          [icon("camera-outline"), @html.span("创建快照")],
         ),
       ],
     ),
   ]
   if row.snapshots.length() == 0 {
-    let text = if row.snapshots_source == "这一版读数里没有「配置快照」这一项" {
-      "这一版读数里没有配置快照，暂时拍不了也还原不了。"
-    } else {
-      "还没有快照。动配置之前可以先拍一张，出了问题能还原。"
-    }
+    // 空态只留三个字：这一组里已经有一颗「创建快照」按钮，长句子只是把一组按钮隔断。
+    // 完整说明进悬停（「动配置之前先拍一张，出了问题能还原」也在那儿）。
+    let old_backend = row.snapshots_source == "这一版读数里没有「配置快照」这一项"
+    let text = if old_backend { "这一版读数里没有配置快照，暂时拍不了也还原不了。" } else { "还没有快照" }
     items.push(
       @html.p(
         class="dsh-snapshot-empty",
         attrs=mark("drawer-snapshot-empty", ["overview", "drawer", row.id, "snapshot", "empty"])
-          .title(row.snapshots_source),
+          .title(
+            if old_backend {
+              row.snapshots_source
+            } else {
+              "还没有快照。动配置之前可以先拍一张，出了问题能还原。" + row.snapshots_source
+            },
+          ),
         text,
       ),
     )
@@ -1650,7 +1666,7 @@ fn run_home_field(row : Row) -> @html.Html? {
 fn home_field_items(row : Row) -> Array[@html.Html] {
   let items : Array[@html.Html] = [
     field(
-      "cube-outline",
+      "home-outline",
       "config-home",
       row.id,
       "配置 home",
@@ -1687,7 +1703,8 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         attrs=mark("drawer-stop", ["overview", "drawer", row.id, "action", "stop"])
           .data_set("action", "stop"),
         on_click=emit(RowAction(row.id, Toggle)),
-        [@html.i(class="dsh-dot-danger", @html.nothing), @html.span("停止")],
+        // 红色方块：停止键的通行形状。圆形在别处是状态灯，混用会读成「这里有个红点」
+        [@html.span(class="dsh-stop-mark", [icon("stop", size=12)]), @html.span("停止")],
       ),
     )
   } else {
@@ -1797,7 +1814,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
           ),
         on_click=emit(RowAction(row.id, DeisolateHome)),
         [
-          icon("close"),
+          icon("home-outline"),
           @html.span(if moving { "正在移动…" } else { "移回共用 home" }),
         ],
       ),
@@ -1834,7 +1851,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
           .title(hint),
         on_click=emit(RowAction(row.id, IsolateHome)),
         [
-          icon("link-variant"),
+          icon("folder-move-outline"),
           @html.span(if moving { "正在移动…" } else { "移到独立 home" }),
         ],
       ),
@@ -1879,10 +1896,9 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     // 配置 home 那一格读数留在这里：它是「以后起的实例落在哪儿」，与上面「实例自己在用的
     // DSH_HOME」不是同一件事，所以这一格跟着「配置」这一组走，不挤在读数里。
     @html.ul(class="dsh-fields is-single", home_field_items(row)),
-    @html.div(class="dsh-drawer-btns", home_items),
     // 配置历史（§16.4）：动配置之前先拍一张、之后能还原。
-    // 历史下面再摆一颗「整体替换」：这两件事都靠快照兜底（§17.3）
-    snapshot_history(row, model, emit),
+    // home 那颗按钮并进同一行（lead），免得「配置」变成一串短行。
+    snapshot_history(row, model, emit, lead=home_items),
     promote_launcher(row, emit),
     // 查看与编辑（第三轮接上的那三项）
     @html.div(class="dsh-drawer-btns", ops),
