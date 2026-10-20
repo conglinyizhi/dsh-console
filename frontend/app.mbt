@@ -761,20 +761,33 @@ fn dev_instruction_text(row : Row, name : String) -> String {
     return ""
   }
   let dir = home + "/profiles/" + name
-  let head = "【给另一个会话的插件开发任务】请在你当前这个会话里，针对下面这一只 profile 做开发，" +
-    "不要切进它自己的会话来改。这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n"
-  let facts = "开发对象：profile「" + name + "」\n" +
-    "它在磁盘上的目录：" + dir + "\n" +
-    "DSH_HOME：" + home + "\n\n"
-  let start = "起它做验证（与在控制台里点这只 profile 的「启动」等价）：\n" +
-    "  cd " + dir + "\n" +
-    "  DSH_HOME=" + home + " dsh --profile " + name + " --no-open --port 8400\n" +
-    "  （8400 换成任何一个空闲端口都行；控制台自己也是从设置里的端口起点往后找第一个空闲的）\n\n"
-  let rules = "约束（这一条是隔离的全部意义，务必守住）：\n" +
-    "1. 只改 " + dir + " 这一份下的文件；\n" +
-    "2. 不要动主线的 profile，也不要动别的 profile，各是各的一份；\n" +
-    "3. 改完按上面那条命令把它起一次，确认这一份真能起来。"
-  head + facts + start + rules
+  let head = "【给另一个会话的插件开发任务】针对下面这一只 profile 做开发。" +
+    "这段说明由 DSH 控制台的「复制开发指令」生成，粘过来直接可用。\n\n"
+  let facts = "目标 profile：" + name + "\n" +
+    "目录：" + dir + "\n" +
+    "DSH_HOME：" + home + "\n"
+  // 状态按这一行**现在的事实**分两支：在跑的时候绝不能让它再起一只，
+  // 也不该由它去重启用户正在用的进程（design/design-fixes.md §34）。
+  let state = match (row.status, row.port_value) {
+    (Running, Some(port)) =>
+      "状态：正在运行，端口 " + port.to_string() + "（" +
+      (if row.console_started { "由本控制台起的" } else { "不是本控制台起的" }) +
+      (match row.web_url {
+        Some(_) => "）"
+        None => "；令牌在启动它的终端里）"
+      }) + "\n\n" +
+      "不要动这只进程，也不要再起第二只。\n" +
+      "改完配置之后告诉用户：需要重启 :" + port.to_string() +
+      " 那一只才会生效，重启由用户来做。\n\n"
+    _ =>
+      "状态：没在跑\n\n" +
+      "需要起它做验证时（与在控制台里点「启动」等价）：\n" +
+      "  DSH_HOME=" + home + " dsh --profile " + name + " --no-open --port <空闲端口>\n" +
+      "  <空闲端口> 换成当前任意空闲端口。留意在哪个目录下起：会话会记在那一份目录的桶里。\n" +
+      "起好的那只进程归你管，可以停、可以重启；除它之外别动别的进程。\n\n"
+  }
+  let rules = "只改 " + dir + " 这一份下的文件。别的 profile 与主线各是各的，不要碰。"
+  head + facts + state + rules
 }
 
 ///|

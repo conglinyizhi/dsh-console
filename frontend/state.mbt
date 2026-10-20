@@ -2845,10 +2845,17 @@ fn profile_rows(
       version_hint: "控制台读到的 dsh 版本与来源（这只 profile 没有运行中的进程，版本取的是控制台自身的读数）",
       profile: fact.name,
       profile_hint: "磁盘上真实存在的 profile 目录名：" + fact.name,
-      // 这一行的 home：**它自己的** —— 这只 profile 就是从 profiles_home 的 profiles/ 下被列出来的。
-      // 读数的 home 也给不出时那一格写「未知」：读不到就说读不到，
-      // 绝不拿控制台自己的 home 顶替 ✗（那会把这只 profile 说成属于一个它不属于的地方）
-      home: if profiles_home == "" { "未知" } else { profiles_home },
+      // 这一行的 home：**它自己的**。读数的 home_path 就是答案（隔离的那只在那里、共用的那只
+      // 是控制台 home）；只有它给不出来时才退回「这批 profile 是从哪个 home 列出来的」。
+      // 两种情况都读不到就写「未知」：绝不拿控制台自己的 home 顶替 ✗
+      // （那会把这只 profile 说成属于一个它不属于的地方，开发指令也会因此指错目录）。
+      home: if fact.home_path != "" {
+        fact.home_path
+      } else if profiles_home == "" {
+        "未知"
+      } else {
+        profiles_home
+      },
       home_hint: if profiles_home == "" {
         "这一版 profiles 读数里没有 dshHome：不知道这批 profile 是从哪个 home 的 profiles/ 下读出来的，" +
         "所以这一格写「未知」。不拿控制台自己的 home 顶上，那只是把别处的 home 说成它的"
