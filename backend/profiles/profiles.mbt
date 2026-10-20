@@ -308,6 +308,45 @@ async fn declared_bundles(dir : String) -> Array[String] noraise {
 }
 
 ///|
+/// 这只 profile 该用哪条命令补包（design/design-fixes.md §39.2）：
+/// 有 pnpm-lock.yaml 用 pnpm、有 package-lock.json 用 npm，都没有按 pnpm
+/// （控制台自己这套生态就是 pnpm，缺 lock 时它最可能是这个项目的包管理器）。
+pub async fn repair_command_of(dir : String) -> String noraise {
+  if @json.exists(@json.join_path(dir, "pnpm-lock.yaml")) {
+    "pnpm install --prefer-offline"
+  } else if @json.exists(@json.join_path(dir, "package-lock.json")) {
+    "npm install --prefer-offline"
+  } else {
+    "pnpm install --prefer-offline"
+  }
+}
+
+///|
+/// 同一条命令的 argv 形状（跑的时候用这个，不经过 shell）。
+pub async fn repair_argv_of(dir : String) -> Array[String] noraise {
+  if @json.exists(@json.join_path(dir, "pnpm-lock.yaml")) {
+    ["pnpm", "install", "--prefer-offline"]
+  } else if @json.exists(@json.join_path(dir, "package-lock.json")) {
+    ["npm", "install", "--prefer-offline"]
+  } else {
+    ["pnpm", "install", "--prefer-offline"]
+  }
+}
+
+///|
+/// 这只 profile 现在缺哪些包：按 package.json 里 dsh.profile.bundles 逐条看落盘位置
+/// （profile 自己的 node_modules → hoisted → 缺）。与读数那一份同一把尺子（locate_bundle_nr），
+/// 所以「修完还剩几个」与界面上那个数永远对得上。
+pub async fn missing_bundles_in(dir : String, shared_dir : String) -> Array[String] noraise {
+  let out : Array[String] = []
+  for name in declared_bundles(dir) {
+    if locate_bundle_nr(name, dir, shared_dir) == "missing" {
+      out.push(name)
+    }
+  }
+  out
+}
+///|
 /// package.json 在不在、读不读得动（"这只 profile 的配置读得到吗"的判据）。
 /// 只 stat + 解析，不改内容。
 async fn package_json_ok(dir : String) -> Bool noraise {
@@ -512,6 +551,9 @@ async fn describe_profile(
       ("exists", @json.JBool(patch_exists)),
       ("lines", @json.jint(patch_lines)),
     ])),
+    // 补包那条命令（§39）：界面拿它写确认框与悬停，口径与后端动作完全同一处
+    // （repair_command_of），前端不自己按 lock 文件猜一遍。
+    ("repairCommand", @json.JStr(repair_command_of(dir))),
     ("note", @json.JStr(note)),
     ("noteSource", @json.JStr(note_source)),
     // 配置快照（design/ops-maintenance-jobs.md 第 16.2 节）：每份 { id, at, reason, files, bytes }，

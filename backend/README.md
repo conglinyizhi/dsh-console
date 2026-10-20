@@ -547,17 +547,27 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 
 守卫顺序：方法 → 解析 body → 守卫 → 执行 → 审计 → 应答。**解析在守卫前是有意的**：解析没有副作用，
 先回「body 不对」比先回 403 更好排查。守卫不过回 `403 not-authorized`，其余按码给状态：
-`unknown-action`/`bad-params`/`dsh-not-installed` 400、`not-found` 404、`conflict` 409、
-`spawn-failed`/`stop-failed`/`io-error` 500。
+`unknown-action`/`bad-params`/`dsh-not-installed` 400、`not-found` 404、`conflict`/`job-exists`/`busy` 409、
+`spawn-failed`/`stop-failed`/`install-failed`/`install-incomplete`/`io-error` 500。
+
+> `busy` / `install-failed` / `install-incomplete` 是补包那一轮（第九轮）加的三个码：
+> 同一只 profile 已经有一个补包在跑（`busy`，409）、包管理器退出码非 0 或超时（`install-failed`）、
+> 装完了按 `dsh.profile.bundles` 重算仍缺（`install-incomplete`）。后两条的 message 都带日志路径。
 
 > `dsh-not-installed` 是版本切换那一轮加的第八个码（原契约七码之外）。为什么单开一条：
 > 那是**调用方点了一个不是安装的目录**，不是读写失败 —— message 里把「这台机器上装着哪几份」都列出来了，
 > 归进 `io-error` 会把人引去查磁盘。
 
+**失败也要带结构化细节**（`actions/action.mbt` 的 `failure_outcome`）：`ActionError` 只装得下
+code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingBefore, missingAfter }`
+这些字段。动作在 `fail` 之前把这一笔的 outcome 放进那个 Ref，`handle_action` 的 catch 取走
+（取走即清）写进审计 —— 所以**失败那笔审计与成功那笔形状一致**，`/logs/actions` 里能直接
+看到日志路径。写入点与抛出点之间没有 await，两笔并发失败不会互串。
+
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
 **对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
 
-### 十三个动作
+### 十四个动作
 
 | action | 真实做的事 | 关键边界 |
 | --- | --- | --- |
@@ -574,6 +584,7 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 | `set-row-order` | 把**整份**手动顺序原子写进 `<状态目录>/order.json`：一个行 id 的字符串数组，元素只认 `port:<端口号>` 与 `profile:<名字>@<home>`（老形状 `profile:<名字>` 仍然认，见下面「状态文件」那一节） | 不是字符串 / id 形状不对 / 有重复 / 超 5000 条 → `bad-params`；写不动 `io-error`。空数组合法（= 清空顺序表，回到自动排序）。**不做增量合并**：调用方给的就是要落盘的那一份 —— 增量式接口要后端先读一份当前顺序再算，两次并发拖动会互相覆盖 |
 | `pin-dsh` | **指定用哪一版 dsh 起实例**：把 `{ dir, version, pinnedAt }` 原子写进 `<状态目录>/dsh-pin.json`。只改控制台自己的记录，**不碰系统上的 `dsh` 命令、不碰 pnpm 全局安装** | `params` 只认 `dir`，多一个键 `bad-params`；`dir` 必须在本机候选里（按真实路径比，`.pnpm` 里那个写法也认），不在 → `dsh-not-installed`（message 里列出这台机器上装着哪几份）；写不动 `io-error`。`outcome` 是 `{ dir, version, pinPath }` |
 | `unpin-dsh` | 撤掉指定，回到自动挑：删掉 `<状态目录>/dsh-pin.json` | **不收参数**（多一个键 `bad-params`）；文件本来就不在也算成功，`outcome.removed=false` 如实说「不是刚删掉的」。`outcome` 是 `{ removed, previousVersion, pinPath }` |
+| `repair-packages` | 在 profile 目录里跑包管理器补 node_modules：有 `pnpm-lock.yaml` → `pnpm install --prefer-offline`，有 `package-lock.json` → `npm install --prefer-offline`，都没有按 pnpm。stdout/stderr 追加进 `<状态目录>/logs/repair-<名>-<毫秒>.log`；跑完重读 bundles 算剩余缺包 | 120 秒上限（到点 SIGTERM，2 秒后 SIGKILL）；**同一只 profile 同时只允许一个**（第二个 `busy`）；目录不在 / 没有 package.json → `not-found`；命令退出码非 0 或超时 → `install-failed`；装完仍缺 → `install-incomplete`。`outcome` 带 `command / exitCode / durationMs / logPath / missingBefore / missingAfter / remaining`（**失败那笔审计也带**，见下面的 failure_outcome） |
 
 ### 派生出的新 profile 怎么认得出（第五轮）
 

@@ -441,6 +441,9 @@ pub(all) struct ProfileFact {
   home_created_at : String?
   /// 后端给的一句判断依据（homeKindSource）；空串 = 这一版后端没给
   home_kind_source : String
+  /// 补包会在 profile 目录里跑的那条命令（design/design-fixes.md §39）：
+  /// 后端按 lock 文件选好了（pnpm / npm install --prefer-offline）。空串 = 这一版后端没给。
+  repair_command : String
   // ── 试跑那一块的判据（design/ops-maintenance-jobs.md §9.3）──
   //
   // None = 这一版后端没给这一项（那时不拿它判不可用，宁可让试跑自己去撞失败）。
@@ -552,6 +555,7 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       home_profile_dir: str_field(home, "profileDir"),
       home_created_at: opt_str_field(home, "createdAt"),
       home_kind_source: str_field(fact, "homeKindSource"),
+      repair_command: str_field(fact, "repairCommand"),
       snapshots,
       last_start,
       // 字段整个不在（这一版后端还没落地）时补一句前端自己的话：

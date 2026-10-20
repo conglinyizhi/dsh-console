@@ -207,6 +207,13 @@ struct Row {
   home_path : String
   /// 后端给的判断依据（进悬停）。空串 = 读数里没给
   home_kind_source : String
+  /// 缺几个包（读数的 bundles.missing 条数）。>0 时抽屉「状态」组里多一颗
+  /// 「安装缺的包（N）」（design/design-fixes.md §39）。
+  missing_count : Int
+  /// 补包会在 profile 目录里跑的那条命令（后端 repairCommand，同一处口径）
+  repair_command : String
+  /// 补包要带的 home：这只 profile 自己的 home（隔离的那只是它的隔离 home）
+  repair_home : String
   /// 这一格是**按实例自己的 home 认定**的（design/design-fixes.md §33.1）：
   /// 运行中那一行在 profiles 读数里配不上自家 profile（它来自别处 home），
   /// 于是按实例进程的 DSH_HOME 算成「共用（<那份 home>）」。false = 照 profile 读数。
@@ -773,6 +780,12 @@ struct Model {
   notice_unread : Int
   /// 通知侧栏开着没有（右侧面板，盖在抽屉之上、确认框之下）
   notice_panel : Bool
+  /// 补包确认框说的是哪一行（§39.1）。空串 = 框没开
+  repair_confirm_id : String
+  /// 打开确认框那颗按钮的 DOM id：框关掉之后焦点回它
+  repair_confirm_return : String
+  /// 正在补包的那一行：按钮写「正在安装…」，别的写动作跟着 row.busy 一起禁用
+  repair_id : String
   // 成功 toast 的两格过程状态（外观见 view_shell 的 global_notice，计时见 app.mbt 的 update）
   /// 鼠标正停在提示上：这一拍不许它消失（悬停时别让它正好在眼皮底下走掉）
   flash_hover : Bool
@@ -833,6 +846,12 @@ priv enum Msg {
   NoticeOpenUi
   /// 失败提示条里那颗「查看日志」被点了：跳 /logs/audit，选中审计来源、滚到底、焦点进日志区
   NoticeOpenLogs
+  /// 抽屉里点了「安装缺的包（N）」：开确认框（写 node_modules 算真动作）
+  RepairOpen(id~ : String, return_id~ : String)
+  /// 确认框里点了「取消」（或遮罩 / Esc）
+  RepairCancel
+  /// 确认框里点了「安装」：发 repair-packages
+  RepairConfirm
   /// 顶栏「通知」：开侧栏看历史（顺手把未读角标清零，焦点进关闭键）
   NoticePanelOpen
   /// 关掉通知侧栏（关闭键 / 遮罩 / Esc 三条路），焦点回顶栏那颗铃铛
@@ -1149,6 +1168,9 @@ fn initial_model() -> Model {
     notice_history: [],
     notice_unread: 0,
     notice_panel: false,
+    repair_confirm_id: "",
+    repair_confirm_return: "",
+    repair_id: "",
     flash_hover: false,
     flash_fading: false,
     console: None,
@@ -1360,6 +1382,18 @@ fn drawer_panel_id() -> String {
 /// 焦点必须**真的进抽屉**（不然 Tab 还在背后的列表里走，Esc 也未必收得到）。
 fn drawer_close_id() -> String {
   "dsh-drawer-close"
+}
+
+///|
+/// 抽屉里「安装缺的包（N）」那颗按钮的 DOM id（§39）：确认框关掉之后焦点回它。
+fn drawer_repair_id() -> String {
+  "dsh-drawer-repair"
+}
+
+///|
+/// 补包确认框里「安装」那颗按钮的 DOM id：打开时焦点落在它上面。
+fn repair_dialog_ok_id() -> String {
+  "dsh-repair-dialog-ok"
 }
 
 ///|
@@ -2668,6 +2702,20 @@ fn running_rows(
       home_from_instance: fact.home_kind != "trial" &&
         profile_fact is None &&
         home_is_path(instance_home),
+      // 补包（§39）：只在 profiles 读数配得上这一只时才知道缺几个、也知道该用哪条命令；
+      // 配不上（别处 home 的实例）就不摆那颗按钮 —— 数不出来就别许诺能修。
+      missing_count: match profile_fact {
+        Some(item) => item.bundles.missing.length()
+        None => 0
+      },
+      repair_command: match profile_fact {
+        Some(item) => item.repair_command
+        None => ""
+      },
+      repair_home: match profile_fact {
+        Some(item) => if item.home_path != "" { item.home_path } else { instance_home }
+        None => ""
+      },
       // 第六格：这只实例用的 profile 目录的最近改动。profile 解析得出就用它的 mtime；
       // 解析不出就写「—」（不是「读不到」）—— 没有可读的对象与读了拿不到，不是一件事。
       mtime_ms: match profile_fact {
@@ -2925,6 +2973,11 @@ fn profile_rows(
       home_path: fact.home_path,
       home_kind_source: fact.home_kind_source,
       home_from_instance: false,
+      // 补包（§39）：缺几个、用哪条命令、带哪个 home。home 用这一行自己的
+      // （隔离的那只在自己的 home 里，共用的是控制台 home）—— 与「配置 home」同一格值。
+      missing_count: missing.length(),
+      repair_command: fact.repair_command,
+      repair_home: row_home,
       mtime_ms: fact.dir_mtime_ms,
       mtime_missing: "读不到",
       mtime_hint: match fact.dir_mtime_ms {
@@ -3063,6 +3116,9 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     home_path: "",
     home_kind_source: "",
     home_from_instance: false,
+    missing_count: 0,
+    repair_command: "",
+    repair_home: "",
     // 磁盘上连目录都没有，控制台的启动记录里也不会有这只 profile：那一行空着
     last_started: "",
     last_started_source: "",
@@ -3108,6 +3164,7 @@ fn demo_running() -> Array[Row] {
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
       home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
+      missing_count: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -3135,6 +3192,7 @@ fn demo_running() -> Array[Row] {
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
       home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
+      missing_count: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -3168,6 +3226,7 @@ fn demo_stopped() -> Array[Row] {
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
       home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
+      missing_count: 0, repair_command: "", repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",

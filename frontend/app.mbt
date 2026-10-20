@@ -1451,6 +1451,29 @@ fn action_receipt(
   if action == "open-path" {
     return (name + " 已用本机默认程序" + verb + "。", backend_hint(note))
   }
+  // 补包（design/design-fixes.md §39.3）：正文就要后端那一句短的
+  //（「<名> 的包已装齐（pnpm install --prefer-offline，3 秒）」），
+  // 别再加一层「已安装缺的包」。logPath / 退出码 / 用时这些进悬停。
+  if action == "repair-packages" {
+    let hint = match outcome {
+      Some(outcome) =>
+        backend_hint(note) +
+        (if str_field(outcome, "logPath") == "" {
+          ""
+        } else {
+          "\n日志：" + str_field(outcome, "logPath")
+        }) +
+        (if str_field(outcome, "command") == "" {
+          ""
+        } else {
+          "\n命令：" + str_field(outcome, "command") + "（退出码 " +
+          int_or(outcome, "exitCode", -1).to_string() + "，" +
+          (int_or(outcome, "durationMs", 0) / 1000).to_string() + " 秒）"
+        })
+      None => backend_hint(note)
+    }
+    return (if note == "" { name + " 的包已装齐" } else { note }, hint)
+  }
   // 配置 home 两条：回执要把**从哪儿移到哪儿**说清楚，而且要说「这是移动」——
   // 光说「已隔离」的话，使用者还得自己翻读数去确认那份目录现在在哪。
   if action == "isolate-profile" {
@@ -3804,6 +3827,63 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     // 带令牌的地址还没到手：再重读一轮读数（有界，见 start_tab_max_tries）。
     // 地址到了就填、到不了就认输关标页 —— 两条路都在 fill_start_tab 里。
     StartTabRetry => refresh_readings(model, emit)
+    // 抽屉里「安装缺的包（N）」：先开确认框（写 node_modules 是真动作，§39.1）。
+    // 焦点进「安装」键；关掉之后回那颗按钮（见 RepairCancel 与原位按钮的 id）。
+    RepairOpen(id~, return_id~) =>
+      match find_row(model.rows, id) {
+        None => (model, @cmd.none)
+        Some(_) =>
+          (
+            { ..model, repair_confirm_id: id, repair_confirm_return: return_id },
+            focus_after_render(repair_dialog_ok_id()),
+          )
+      }
+    RepairCancel =>
+      if model.repair_confirm_id == "" {
+        (model, @cmd.none)
+      } else {
+        let back = model.repair_confirm_return
+        (
+          { ..model, repair_confirm_id: "", repair_confirm_return: "" },
+          if back == "" { @cmd.none } else { focus_after_render(back) },
+        )
+      }
+    // 确认：发 repair-packages（profile + home）。这一笔走 send_action：
+    // 行置忙 → 抽屉里其余写动作跟着禁用，提示条清空等回执。
+    RepairConfirm => {
+      let id = model.repair_confirm_id
+      match find_row(model.rows, id) {
+        None => (model, @cmd.none)
+        Some(row) => {
+          let name = row.name
+          let params = match (row.profile_name, row.repair_home) {
+            (Some(profile), home) =>
+              if profile == "" || home == "" {
+                ""
+              } else {
+                params_of([
+                  ("profile", json_text_literal(profile)),
+                  ("home", json_text_literal(home)),
+                ])
+              }
+            _ => ""
+          }
+          let (next, cmd) = send_action(
+            { ..model, repair_confirm_id: "", repair_confirm_return: "" },
+            id,
+            "repair-packages",
+            name,
+            "安装缺的包",
+            params,
+            emit,
+          )
+          (
+            { ..next, repair_id: id },
+            @cmd.batch([cmd, focus_after_render(drawer_repair_id())]),
+          )
+        }
+      }
+    }
     // 顶栏「通知」（§36）：开侧栏看历史。未读角标在这一拍清零 ——
     // 「看过了」就是打开过，不另设已读按钮。焦点进侧栏的关闭键（与抽屉那一套一致）。
     NoticePanelOpen =>
@@ -4420,6 +4500,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
         // 移动这一枪的回执到了：抽屉里那颗按钮的「正在移动…」随之收掉（成没成都收）。
         if action == "isolate-profile" || action == "deisolate-profile" {
           cleared = { ..cleared, home_move_id: "" }
+        }
+        // 补包这一枪的回执到了（§39.3）：「正在安装…」收掉；成功那条下面走
+        // refresh_readings，重读之后缺包数会归零、灯也不再是黄。
+        if action == "repair-packages" {
+          cleared = { ..cleared, repair_id: "" }
         }
         // 还原这一枪的回执到了：确认框那三格随之清空（成没成都清）
         if action == "restore-snapshot" {

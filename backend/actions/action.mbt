@@ -576,6 +576,11 @@ pub async fn run_action(
     // 预览只读；应用要先重跑一遍 blockers 再动磁盘（见 actions/promote.mbt）。
     "promote-preview" => promote_preview_action(params)
     "promote-profile" => promote_profile_action(params, confirm)
+    // ── 补包（design/design-fixes.md §39）──────────────────────────
+    "repair-packages" => {
+      ensure_only_keys(params, ["profile", "home"])
+      repair_packages(require_string(params, "profile"), optional_string(params, "home"))
+    }
     "open-path" => {
       // 这个动作的参数只有 profile 与 kind：多一个键就拒，免得有人塞个 path 还以为它生效了
       ensure_only_keys(params, ["profile", "kind"])
@@ -1186,7 +1191,11 @@ async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_
     run_action(action, params, confirm)
   } catch {
     ActionError(code~, message~) => {
-      let _ = audit(action, audit_params, false, Some(code), Some(message), @json.JNull)
+      // 失败也尽量带上结构化细节（§39：补包失败那笔审计要有 command / exitCode /
+      // durationMs / logPath / missingBefore / missingAfter）。ActionError 只装得下
+      // code 与 message，所以动作在抛错之前把 outcome 放进 failure_outcome，
+      // 这里取走并清空 —— 取走即清，下一笔失败不会捡到上一笔的细节。
+      let _ = audit(action, audit_params, false, Some(code), Some(message), take_failure_outcome())
       send_write_error(res, code, message, read_at)
       return
     }
@@ -1200,6 +1209,29 @@ async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_
     },
     read_at,
   )
+}
+
+///|
+/// 失败那笔审计的结构化细节（§39.2）。ActionError 只有 code 与 message 两个格，
+/// 装不下「命令 / 退出码 / 用时 / 日志路径 / 修前修后缺几个」这些字段；
+/// 动作在 fail 之前把这些放进这里，handle_action 的 catch 取走写进审计。
+///
+/// 这么放是安全的：写入点与抛出点之间没有 await（同一个协程一口气跑完），
+/// 取走点紧跟 catch —— 两笔并发失败不会互串。
+let failure_outcome : Ref[@json.JsonVal] = { val: @json.JNull }
+
+///|
+/// 动作失败之前登记这一笔的 outcome（见 failure_outcome）。
+pub fn set_failure_outcome(v : @json.JsonVal) -> Unit {
+  failure_outcome.val = v
+}
+
+///|
+/// 取走失败 outcome（取走即清）。
+fn take_failure_outcome() -> @json.JsonVal {
+  let v = failure_outcome.val
+  failure_outcome.val = @json.JNull
+  v
 }
 
 ///|

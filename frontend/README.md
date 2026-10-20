@@ -949,6 +949,40 @@ cd ../../design && ACC_NO_START=1 node run-acceptance.mjs http://127.0.0.1:5390/
 Esc 与点遮罩都能收，焦点回 `dsh-notice-bell`。连做 21 次复制后历史停在 20 条、角标 `20+`；
 390 下面板宽 390（满宽）、`scrollWidth 390 = clientWidth 390`。
 
+## 缺包自助修复（第三十九轮追加）
+
+缺 bundles 的 profile 以前只会一直报警（状态灯黄、抽屉里一句「缺 N 个包」），这一轮给它一颗
+能按的按钮（`design/design-fixes.md` §39）：
+
+- 抽屉「状态」组里，缺包时多一行 `安装缺的包（N）`（次要样式，与启动 / 打开 Web UI 分开）。
+  悬停写清三件事：在哪个目录跑哪条命令、只动 `node_modules`、输出落到状态目录的
+  `logs/repair-<名>-<毫秒>.log`。命令由后端按 lock 文件选好（`repairCommand` 一处口径，
+  前端不自己猜 pnpm / npm）。
+- 点它先开确认框：标题 `给 <名> 安装缺的包`，正文 `将在 <目录> 里执行 <命令>，只补 node_modules。
+  装完会重新读一次这只 profile。`，按钮 `安装` / `取消`（Esc / 遮罩也能关，焦点回那颗按钮）。
+- 确认之后这一行置忙：按钮变 `正在安装…` 并禁用，抽屉里其余写动作（启动 / 重启 / 改名 / 备注 /
+  归档 / 删除……）跟着一起禁用。回执到了才收。
+- 成功：提示一句短的（后端那句 `repairme 的包已装齐（pnpm install --prefer-offline，0 秒）`），
+  悬停补日志路径与退出码 / 用时；同时重读读数 —— 缺包归零、灯不再是黄、按钮自己消失。
+- 失败：走 §32 那条路 —— 提示条一句话（`install-failed` 之类），右侧一颗 `查看日志`，
+  点它落到 `/logs/actions`，那一行就是这次 `repair-packages`，`message` 里带完整输出路径。
+
+实测（隔离 5396；两只专门造的 profile）：`repairme` 声明一个 `file:` 本地包、没有 node_modules
+（缺 1 个）；`repairfail` 声明一个不存在的包（任何 registry 都装不到，必然失败）。
+
+- 按钮 `安装缺的包（1）`、宽 135、悬停照上面三件事；确认框 360×…（1280）、焦点在 `安装`。
+- 点 `安装` 之后抓到 `正在安装…`（disabled=true，state=running），同一拍里其余写按钮
+  `启动 / 重启 / 复制访问地址 / 重命名 / 备注 / 归档 / 删除` 全部 disabled。
+- 成功：提示 `repairme 的包已装齐（pnpm install --prefer-offline，0 秒）`，抽屉健康行变成
+  「声明的包都已安装，cordis.patch.yml 也在」，`安装缺的包` 那颗按钮消失（缺包 0）。
+- 失败：提示 `repairfail 安装缺的包失败：HTTP 500 Internal Server Error | inst…`（57 字，§32 的口径），
+  悬停是完整原文含日志路径；点 `查看日志` → `/logs/actions`，最后一行
+  `06:09:37.687 error repair-packages · 失败 · install-failed · 安装失败（退出码 1）：…完整输出在
+  …/logs/repair-repairfail-1792476576983.log`；审计那笔的 outcome 里 `logPath`、`exitCode=1`、
+  `missingBefore=1`、`missingAfter=1` 都在。
+- 并发：同一只连发两次，第二次 `busy`（409，「这只 profile 上一次补包还没结束」）。
+- 390：确认框 342 宽（x 24..366）、文档 `scrollWidth 390 = clientWidth 390`，不溢出。
+
 ## 这一版没做的
 
 - 归档区没有读接口（见上），所以它不是「真实的归档清单」，是本次会话的记录。

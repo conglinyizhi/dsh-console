@@ -29,6 +29,12 @@ pub let codes : Array[String] = [
   "dsh-not-installed",
   // 同一 kind 已经有一条没做完的作业（见 job.mbt 的 job_start）
   "job-exists",
+  // 同一只 profile 已经有一个补包在跑（见 repair.mbt 的 repair_packages）
+  "busy",
+  // 包管理器跑了但退出码不 0（§39.2）
+  "install-failed",
+  // 装完了，但按 dsh.profile.bundles 重算仍缺包（§39.2）
+  "install-incomplete",
 ]
 
 ///|
@@ -58,6 +64,8 @@ pub fn status_for_code(code : String) -> Int {
     "conflict" => 409
     // 撞上一条没做完的作业：请求本身没问题，是状态不允许再来一条
     "job-exists" => 409
+    // 同一只 profile 已经有一个补包在跑：同上，是状态不允许
+    "busy" => 409
     _ => 500
   }
 }

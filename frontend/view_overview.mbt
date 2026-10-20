@@ -1920,7 +1920,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
 /// **判据怎么来的收进悬停**（哪一条握手应答命中、探测回来的是什么、profile 那一侧
 /// 怎么样）：正文一个字都不占。正文是给用这个工具的人看的，技术依据是给要核对
 /// 这个结论的人看的 —— 两个读者不是同一个人。
-fn drawer_state_block(row : Row) -> @html.Html {
+fn drawer_state_block(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let mut why_attrs = mark("drawer-why", ["overview", "drawer", row.id, "state", "why"])
   let mut dot_attrs = mark("drawer-light", ["overview", "drawer", row.id, "state", "light"])
     .data_set("state", light_key(row.light))
@@ -1958,6 +1958,51 @@ fn drawer_state_block(row : Row) -> @html.Html {
       row.health_text,
       row.health_hint,
       row.health_free,
+    ),
+    // 缺包时多一行自助修复（§39.1）：有缺口才摆，数量写在标签上。
+    // 缺失清单已经在上面的健康那句里，这里不重复列。
+    repair_action(row, model, emit),
+  ])
+}
+
+///|
+/// 「安装缺的包（N）」那一行（design/design-fixes.md §39.1）：缺包时才有。
+///
+/// 视觉上是线框次要按钮，与主操作（启动 / 打开 Web UI）区分开 —— 它是修数据，
+/// 不是把这只实例带起来。悬停写清在哪个目录跑哪条命令、日志落在哪儿。
+fn repair_action(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  if row.missing_count <= 0 || row.repair_command == "" || row.repair_home == "" {
+    return @html.nothing
+  }
+  let repairing = model.repair_id == row.id
+  // 目录名要用磁盘上的目录名（profile_name），不是卡片上那串「web :3080」——
+  // 后者带端口，拼出来的路径不存在（§39 验收时撞到的那条）。
+  let dir_name = match row.profile_name {
+    Some(profile) => profile
+    None => row.name
+  }
+  let dir = row.repair_home + "/profiles/" + dir_name
+  let log_hint = "输出写进状态目录的 logs/repair-" + dir_name + "-<毫秒>.log"
+  let label = if repairing {
+    "正在安装…"
+  } else {
+    "安装缺的包（" + row.missing_count.to_string() + "）"
+  }
+  @html.div(class="dsh-drawer-btns", [
+    @html.button(
+      id=drawer_repair_id(),
+      class=if repairing { "dsh-btn" } else { "dsh-btn" },
+      type_="button",
+      disabled=row.busy || repairing,
+      attrs=mark("drawer-repair", ["overview", "drawer", row.id, "action", "repair"])
+        .data_set("action", "repair-packages")
+        .data_set("state", if repairing { "running" } else { "idle" })
+        .title(
+          "在 " + dir + " 里跑 " + row.repair_command +
+          "；只动 node_modules，不改 package.json 与 cordis.patch.yml。" + log_hint,
+        ),
+      on_click=emit(RepairOpen(id=row.id, return_id=drawer_repair_id())),
+      [icon("cube-outline", size=13), @html.span(label)],
     ),
   ])
 }
@@ -2029,7 +2074,7 @@ fn detail_drawer(
   // 五组（§29.1）：状态（含 profile 健康）/ 读数 / 操作 / 这只 profile / 配置。
   // 后三组在 drawer_controls 里拼（它们要 model 与 emit）。
   let body : Array[@html.Html] = [
-    drawer_state_block(row),
+    drawer_state_block(row, model, emit),
     drawer_section("读数", "readings", [fields]),
     drawer_controls(row, model, emit),
   ]
@@ -2270,6 +2315,82 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   )
 }
 
+///|
+/// 补包确认框（design/design-fixes.md §39.1）：写 node_modules 是真动作，先问一句。
+///
+/// 文案把「在哪个目录、跑哪条命令、动的是什么」讲全：这三件事决定了这一下会不会把
+/// 别的东西改坏 —— 答案是只补 node_modules，不改 package.json 与 cordis.patch.yml。
+fn repair_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let (name, dir, command, count) = match find_row(model.rows, model.repair_confirm_id) {
+    Some(row) =>
+      (
+        // 对话框里说名字，说的是磁盘上那一只（profile_name），不是卡片上带端口的显示名
+        match row.profile_name {
+          Some(profile) => profile
+          None => row.name
+        },
+        if row.repair_home == "" {
+          ""
+        } else {
+          let dir_name = match row.profile_name {
+            Some(profile) => profile
+            None => row.name
+          }
+          row.repair_home + "/profiles/" + dir_name
+        },
+        row.repair_command,
+        row.missing_count,
+      )
+    None => (model.repair_confirm_id, "", "", 0)
+  }
+  let where_text = if dir == "" { "这只 profile 的目录" } else { dir }
+  let cmd_text = if command == "" { "包管理器 install" } else { command }
+  let message = "将在 " + where_text + " 里执行 " + cmd_text + "，只补 node_modules。" +
+    "装完会重新读一次这只 profile。"
+  let card = @html.div(class="dsh-dialog-card", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("repair-dialog-title", ["dialog", "repair-confirm-dialog", "title"]),
+      "给 " + name + " 安装缺的包",
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("repair-dialog-message", ["dialog", "repair-confirm-dialog", "message"])
+        .title(message + "\n缺 " + count.to_string() + " 个包"),
+      message,
+    ),
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id=repair_dialog_ok_id(),
+        class="dsh-dialog-btn primary",
+        type_="button",
+        attrs=mark("repair-dialog-ok", ["dialog", "repair-confirm-dialog", "ok"]),
+        on_click=emit(RepairConfirm),
+        [@html.text("安装")],
+      ),
+      @html.button(
+        class="dsh-dialog-btn",
+        type_="button",
+        attrs=mark("repair-dialog-cancel", ["dialog", "repair-confirm-dialog", "cancel"]),
+        on_click=emit(RepairCancel),
+        [@html.text("取消")],
+      ),
+    ]),
+  ])
+  dialog(
+    "repair-confirm-dialog",
+    "给 " + name + " 安装缺的包",
+    emit(RepairCancel),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        RepairCancel
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
 ///|
 /// 取消隔离的确认框：文案照 design/deep-home-isolation.md 第 5 节。
 ///
@@ -3027,6 +3148,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   if model.home_confirm_id.length() > 0 {
     dialogs.push(home_confirm_dialog(model, emit))
+  }
+  if model.repair_confirm_id.length() > 0 {
+    dialogs.push(repair_confirm_dialog(model, emit))
   }
   if model.snapshot_confirm_id.length() > 0 {
     dialogs.push(snapshot_confirm_dialog(model, emit))
