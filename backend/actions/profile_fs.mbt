@@ -322,6 +322,19 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
       )
     None => ()
   }
+  // 硬删信号（Shift 点「彻底删除」，或回收站关着）：前端在 body 顶层带 confirm = "DELETE"。
+  // 这一支**优先于设置** —— 以前先看设置，于是按住 Shift 的彻底删除照样进回收站。
+  let given = match confirm {
+    Some(v) => @json.trim_both(v)
+    None => ""
+  }
+  if given == "DELETE" {
+    match @fsx.remove_tree(dir) {
+      Ok(_) => ()
+      Err(e) => fail("io-error", e)
+    }
+    return { profile: name, dir, mode: "hard-delete", trash_path: "", home, origin_error: None, confirm: given }
+  }
   let settings = @store.load_settings().values
   if settings.safety_delete_to_trash {
     let paths = @store.state_paths()
@@ -362,21 +375,12 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
       confirm: "",
     }
   }
-  let given = match confirm {
-    Some(v) => @json.trim_both(v)
-    None => ""
-  }
-  if given != "DELETE" {
-    fail(
-      "bad-params",
-      "safety.deleteToTrash=false 时删除是硬删，body 里必须再带 \"confirm\":\"DELETE\"",
-    )
-  }
-  match @fsx.remove_tree(dir) {
-    Ok(_) => ()
-    Err(e) => fail("io-error", e)
-  }
-  { profile: name, dir, mode: "hard-delete", trash_path: "", home, origin_error: None, confirm: given }
+  // 走到这里只剩「回收站关着、又没带 confirm」这一种：拒掉，别悄悄换一种删法。
+  fail(
+    "bad-params",
+    "safety.deleteToTrash=false 时删除是硬删，body 里必须再带 \"confirm\":\"DELETE\"",
+  )
+  abort("unreachable: fail 一定抛错")
 }
 
 ///|

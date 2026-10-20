@@ -782,3 +782,11 @@ bundles 里没有 `@deepseek-ai/dsh-web-app` 的 profile 在概览卡上贴一�
 2. 取消：什么都不发生；仍然派生：生成副本，回执带那句后缀
 3. 对没有外部链接的 profile：直接派生，不弹框
 4. 390 宽度下确认框不溢出
+## 50 硬删要压过设置（Shift 彻底删除进回收站的修复）
+
+前端按住 Shift 点「彻底删除」时会在 body 顶层带 `confirm = "DELETE"`。后端原来**先看**
+`safety.deleteToTrash`，那一支直接走回收站并把 `confirm` 丢掉 —— 于是 Shift 硬删照样进回收站。
+
+- 判定顺序改成：`confirm == "DELETE"` → 硬删（优先于设置）；
+- 否则 `safety.deleteToTrash` 开着 → 进回收站；
+- 否则（回收站关着、又没带 confirm）→ `bad-params`，不悄悄换一种删法。
