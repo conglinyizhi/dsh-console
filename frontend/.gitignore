@@ -2,3 +2,6 @@ _build/
 .mooncakes/
 .sandbox/
 dist/
+# moon check 生成的接口摘要：构建产物，不是源码
+pkg.generated.mbti
+cmd/app/pkg.generated.mbti

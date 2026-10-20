@@ -847,18 +847,39 @@ switch（轨道 + 圆点滑动），并抽成组件，别处要用直接调。
 - 同一前缀的一组规则，改成父选择器 + 嵌套（`&-title`、`.dsh-setting > & {}` 之类），
   **产物选择器必须逐字不变**（嵌套只是写法，不许改变选择器、不许顺手改名、不许调整声明顺序导致层叠变化）。
 - `@media` 可以搬进被它修饰的规则里（precss 会提出来），但产物里的媒体查询与声明顺序要与现在一致。
-- 注释保留（它们是这个仓库的判据来源）；可以合并同类注释，不许删掉结论。
-- 不新增变量去重数值（那是另一件事），只做「结构收短」。
+## 54 MoonBit 文件拆分（第一批：app.mbt）
 
-### 53.2 目标
+只拆文件，不改一行逻辑。MoonBit 同一个包里按文件拆是零成本的：不需要改导入、不动公开接口。
+判据：**产物行为必须与现在一致**，warning 数不许增加。
 
-- 行数至少减少 25%（当前 `wc -l` 报多少，按它算）。
-- 产物 `dist/assets/app.css` 的**字节数允许变小**，但渲染必须与现在一致。
+### 54.1 app.mbt（4639 行）拆成四份
 
-### 53.3 验收（硬性）
+| 文件 | 放什么 |
+| --- | --- |
+| `app.mbt` | 初始化、rebuild、路由进出、订阅（页面骨架那条主线） |
+| `app_actions.mbt` | 动作分发与各 action 的处理器（RowAction 那一大段、动作前置校验、请求发送） |
+| `app_notice.mbt` | 提示条、通知历史、令牌清洗、文案拼装（notice_put / redact / notice_parts 等） |
+| `app_copy.mbt` | 剪贴板、开发指令、URL 与回执拼装（copy_* / dev_instruction_text / start_click 那一路） |
 
-1. 改前改后各截一轮：overview / settings/ui / maintenance / logs/actions / about，1280×900 与 390×844，
-   `--force-prefers-reduced-motion`，固定数据；**逐像素比对，必须 0 差异**（脚本在 /tmp/scss-before 有改前那一轮）。
-2. 既有验收 `ACC_NO_START=1 node design/run-acceptance.mjs http://127.0.0.1:5392` 30 项全过。
-3. 类名契约探针 0 个缺规则（`probe-class-contract`）。
-4. 产物 app.css 里 `.dsh-` 选择器集合（排序后）与改前**完全相同**：多一个少一个都算失败。
+### 54.2 硬规则
+
+- 函数体一个字不改：只搬位置。搬过去的私有函数与它唯一的调用方放同一个文件。
+- 不重命名、不合并、不顺手修 bug；发现的问题记下来，别夹带。
+- 新文件的头部写一句注释：这个文件负责什么、从 app.mbt 拆出来的日期与原因。
+- `priv` / `pub` 修饰符原样保留（同包可见性不变）。
+
+### 54.3 验收
+
+1. `moon build cmd/app --target js --release` 0 error；warning 数量不超过拆前。
+2. `ACC_NO_START=1 node design/run-acceptance.mjs` 30 项全过。
+3. 关键路径探针（拆前跑一遍、拆后跑一遍，结果要一致）：
+   - 抽屉能开、五组标题都在
+   - 复制访问地址失败时出提示条
+   - 通知面板能开、条数与角标一致
+   - 补包确认框能开、按钮文案对
+4. 四个文件的行数加起来 ≈ 4639（误差只允许来自新加的注释）。
+
+### 54.4 之后的批次
+
+view_overview.mbt（→ cards / drawer / dialogs）、state.mbt（→ rows / msg / derive）、
+backend actions/job.mbt（按步骤拆）在各批里分别做，一次只交一批。
