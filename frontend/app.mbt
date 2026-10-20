@@ -1833,7 +1833,9 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
         "自动开标页没成（" + model.start_tab + "）"
       }
       let (base_text, base_hint) = notice_parts(model)
-      let text = base_text + "；" + tail + "。带令牌的地址：" + url
+      // 正文里**不许出现地址**：那条地址带着令牌，提示条会留在屏幕上、也会进通知历史。
+      // 要打开就用提示条右侧那颗「打开 Web UI」（它拿的是内存里的 notice_url，不上屏）。
+      let text = base_text + "；" + tail
       (
         {
           ..notice_put(model, true, text, base_hint),
