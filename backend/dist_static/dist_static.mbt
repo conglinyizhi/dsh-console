@@ -168,6 +168,11 @@ pub fn unavailable_middleware(reason : String) -> @moonback.Middleware {
 let gzip_suffix : String = ".gz"
 
 ///|
+/// 前端产物所在的那一层。只有这一层的响应自己带缓存指令（见 gzip_middleware），
+/// 因为它的文件名每次构建都不变（assets/app.css、assets/app.js）。
+let asset_prefix : String = "assets/"
+
+///|
 /// 去掉查询串与片段。静态中间件自己也做这一步，这里是它前面的一层，得同样处理。
 fn path_without_query(raw : String) -> String {
   let mut end = raw.length()
@@ -315,10 +320,6 @@ fn gzip_middleware(root : String) -> @moonback.Middleware {
         next(req, res)
         return
       }
-      guard accepts_gzip(req.headers.get("Accept-Encoding")) else {
-        next(req, res)
-        return
-      }
       let relative = match relative_path_or_none(@json.owned(req.path)) {
         Some(r) => r
         None => {
@@ -327,13 +328,41 @@ fn gzip_middleware(root : String) -> @moonback.Middleware {
         }
       }
       let original = @json.join_path(root, relative)
-      let packed = original + gzip_suffix
-      guard is_regular_file(original) && is_regular_file(packed) else {
+      // 前端产物是同名文件（assets/app.css、assets/app.js）：重新构建后名字不变，
+      // 不给缓存指令时浏览器会自己猜着缓存，出过「新 JS 配旧 CSS」的混合页面。
+      // 所以 assets/ 这一层自己发，带 no-cache；其它路径原样交给下一层。
+      guard relative.starts_with(asset_prefix) && is_regular_file(original) else {
         next(req, res)
         return
       }
+      let packed = original + gzip_suffix
+      if accepts_gzip(req.headers.get("Accept-Encoding")) && is_regular_file(packed) {
+        let file = try {
+          @fs.open(packed, mode=ReadOnly)
+        } catch {
+          _ => {
+            next(req, res)
+            return
+          }
+        }
+        defer file.close()
+        let headers = @moonback.Headers::from({
+          "Content-Type": content_type_of(original),
+          "Content-Length": file.size().to_string(),
+          "Content-Encoding": "gzip",
+          "Cache-Control": "no-cache",
+          "Vary": "Accept-Encoding",
+        })
+        if req.meth is @async_http.Head {
+          res.send_void(status=200, headers~)
+        } else {
+          let writer = res.respond(status=200, headers~)
+          writer.write_reader(file)
+        }
+        return
+      }
       let file = try {
-        @fs.open(packed, mode=ReadOnly)
+        @fs.open(original, mode=ReadOnly)
       } catch {
         _ => {
           next(req, res)
@@ -344,8 +373,7 @@ fn gzip_middleware(root : String) -> @moonback.Middleware {
       let headers = @moonback.Headers::from({
         "Content-Type": content_type_of(original),
         "Content-Length": file.size().to_string(),
-        "Content-Encoding": "gzip",
-        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-cache",
       })
       if req.meth is @async_http.Head {
         res.send_void(status=200, headers~)
@@ -353,6 +381,7 @@ fn gzip_middleware(root : String) -> @moonback.Middleware {
         let writer = res.respond(status=200, headers~)
         writer.write_reader(file)
       }
+      return
     }
   })
 }

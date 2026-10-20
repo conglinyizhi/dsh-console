@@ -294,6 +294,9 @@ select { appearance: none; -webkit-appearance: none; }
   .dsh-side.collapsed {
     width: 56px;
     padding: 12px 9px 10px;
+    // 兜底：哪怕上面那条 display:none 被什么旧样式覆盖了，文字也不许在 56px 里竖排下去
+    overflow: hidden;
+    white-space: nowrap;
   }
   .dsh-side.collapsed .dsh-brand {
     justify-content: center;
