@@ -897,6 +897,32 @@ cd ../../design && ACC_NO_START=1 node run-acceptance.mjs http://127.0.0.1:5390/
 焦点在 `#dsh-log-box`。剪贴板失败（把 `navigator.clipboard.writeText` 换成 reject）那条提示
 没有「查看日志」；390 宽下提示条 195×133、文档 scrollWidth 390 = clientWidth 390，不溢出。
 
+## 别处 home 起的实例：配置 home 按实例认定（第三十三轮追加）
+
+现象（`design/design-fixes.md` §33）：一只实例跑在 `/tmp/…` 的 home 里、它的 profile 不在控制台的
+`DSH_HOME` 里时，「配置 home」写「读不到」，紧接着「运行 home」却给出路径，底下一句还说
+「这一版读数里没有「配置 home」」。根因是运行行先按控制台的 profiles 读数找这只 profile，
+找不到就判 home 未知 —— 而实例自己的 home 明明读得到。
+
+- 运行行：先按 profiles 读数配（控制台 home 或它的隔离 home）；**配不上时用实例自己的 home**
+  认定成「共用（<那份 home>）」，`home_from_instance = true`。悬停第一句是
+  「按实例的 home 认定的：这只 profile 不在控制台的 DSH_HOME 里，所以按它跑着的那份 home 算」。
+- 「运行 home」那一行只在实例 home 与「配置 home」**不同**时才出现 —— 按实例认定这一档两者
+  是同一份，不再单独列一行（以前它俩并排，互相打脸）。
+- 连实例 home 都认不出（`dsh_home` 读不到）才写「读不到」，悬停
+  「这只实例的 home 与 profile 都认不出来（原因）」。老后端缺 `home` 字段时保留原来那句
+  「这一版读数里没有「配置 home」这一项」。
+- 移进 / 移回：profile 不在控制台的 `DSH_HOME` 里时按钮禁用（`data-movable="false"`），
+  悬停「这只 profile 不在控制台的 DSH_HOME 里，动不了它的 home」。
+- 插件数量 / 最近改动是「—」时，悬停补一句「这只 profile 不在控制台的 DSH_HOME 里，
+  读不到它的这些读数」（是「读不到」，不是「没有」）。
+
+实测（1280×900 与 390×780，隔离 5392；probe 起两次，一次在控制台 home、一次用 `home=/tmp/dsh-cf2/home2`）：
+别处 home 那一只的配置 home = `共用（/tmp/dsh-cf2/home2）`，没有「运行 home」行，
+抽屉文本里没有「这一版读数里没有「配置 home」」；「移到独立 home」disabled、
+`data-movable="false"`、悬停写清原因；插件数量与最近改动都是「—」且悬停是那句解释。
+控制台 home 里那一只一切照旧（`共用（/tmp/dsh-cf2/home）`、按钮可点）。390 宽下抽屉不横向溢出。
+
 ## 这一版没做的
 
 - 归档区没有读接口（见上），所以它不是「真实的归档清单」，是本次会话的记录。

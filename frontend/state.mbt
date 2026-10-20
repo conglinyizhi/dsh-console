@@ -208,6 +208,10 @@ struct Row {
   home_path : String
   /// 后端给的判断依据（进悬停）。空串 = 读数里没给
   home_kind_source : String
+  /// 这一格是**按实例自己的 home 认定**的（design/design-fixes.md §33.1）：
+  /// 运行中那一行在 profiles 读数里配不上自家 profile（它来自别处 home），
+  /// 于是按实例进程的 DSH_HOME 算成「共用（<那份 home>）」。false = 照 profile 读数。
+  home_from_instance : Bool
   /// 卡片第二行第三顺位的「上次启动」时刻（UTC ISO）。空串 = 取不到 ——
   /// 那一行就空着，**绝不写一个编出来的时间**。
   ///
@@ -330,6 +334,11 @@ pub let flash_fade_ms : Int = 220
 /// **上限是硬的**：收起来那一段走完之后节点才撤，验收探针在 Esc 之后等 700ms
 /// 就断言「抽屉没了」；这个数超过 300 就会让那条判定误报。
 pub let drawer_anim_ms : Int = 220
+
+///|
+/// 运行行配不上自家 profile 读数（它来自别处 home）时，插件数量 / 最近改动两格的悬停
+/// （design/design-fixes.md §33.2）：两个值都是「—」，得说清为什么不是「没有」。
+pub let not_in_console_home_note : String = "这只 profile 不在控制台的 DSH_HOME 里，读不到它的这些读数"
 
 ///|
 /// 页脚那颗灯的轮询间隔（毫秒）与单次探测的超时（design/design-fixes.md §31.1）：
@@ -2563,7 +2572,7 @@ fn running_rows(
           } else {
             ""
           }
-        None => ""
+        None => not_in_console_home_note
       },
       deletable: false,
       archived_at: None,
@@ -2580,16 +2589,17 @@ fn running_rows(
         Some(item) => item.note_source
         None => ""
       },
-      // 配置 home：试跑的一次性 home 由实例读数自己说（§11.1）——
-      // 那份 home 不属于任何一只 profile 的隔离 home，按 profile 读数配只能配成「读不到」。
-      // 其余两档照 profile 读数（与已停止那张卡同一个口径）；解析不出就三格空着
-      // （界面那一格写「读不到」，不按实例的 dshHome 反推归属）。
+      // 配置 home（§33.1）：先在 profiles 读数里找这只 profile（控制台 home 或它的隔离 home）。
+      // 找不到、而实例自己的 DSH_HOME 读得到时，就**按实例的 home 认定**成「共用（那份 home）」；
+      // 一只从别处 home 起来的实例，它的 profile 本来就不在控制台的 DSH_HOME 里，
+      // 那时写「读不到」等于把手上明明有的答案说成没有。连实例 home 都认不出才留空。
+      // 试跑那一档照旧由实例读数自己说（§11.1）。
       home_kind: if fact.home_kind == "trial" {
         fact.home_kind
       } else {
         match profile_fact {
           Some(item) => item.home_kind
-          None => ""
+          None => if home_is_path(instance_home) { "shared" } else { "" }
         }
       },
       home_path: if fact.home_kind == "trial" {
@@ -2597,7 +2607,7 @@ fn running_rows(
       } else {
         match profile_fact {
           Some(item) => item.home_path
-          None => ""
+          None => if home_is_path(instance_home) { instance_home } else { "" }
         }
       },
       home_kind_source: if fact.home_kind == "trial" {
@@ -2605,9 +2615,17 @@ fn running_rows(
       } else {
         match profile_fact {
           Some(item) => item.home_kind_source
-          None => ""
+          None =>
+            if home_is_path(instance_home) {
+              "按实例的 home 认定：profiles 读数里没有这只 profile（" + fact.dsh_home_source + "）"
+            } else {
+              "实例的 home 读不到（" + fact.dsh_home_source + "），profiles 读数里也没有这只 profile"
+            }
         }
       },
+      home_from_instance: fact.home_kind != "trial" &&
+        profile_fact is None &&
+        home_is_path(instance_home),
       // 第六格：这只实例用的 profile 目录的最近改动。profile 解析得出就用它的 mtime；
       // 解析不出就写「—」（不是「读不到」）—— 没有可读的对象与读了拿不到，不是一件事。
       mtime_ms: match profile_fact {
@@ -2622,14 +2640,20 @@ fn running_rows(
             None => mtime_missing_hint(item.dir_mtime_source)
           }
         None =>
-          match fact.profile {
-            Some(name) =>
-              "这只实例解析出的 profile 名是「" + name + "」，但 profiles 读数里没有这一只，" +
-              "没有目录可读最近改动" +
-              (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
-            None =>
-              "实例读数里没解析出 profile 名，没有 profile 目录可读最近改动" +
-              (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
+          if home_is_path(instance_home) {
+            // 这一只跑在别处的 home 里：它的 profile 不在控制台读数里，这两格是「读不到」，
+            // 不是「没有」——§33.2 要求这句话写进悬停。
+            not_in_console_home_note
+          } else {
+            match fact.profile {
+              Some(name) =>
+                "这只实例解析出的 profile 名是「" + name + "」，但 profiles 读数里没有这一只，" +
+                "没有目录可读最近改动" +
+                (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
+              None =>
+                "实例读数里没解析出 profile 名，没有 profile 目录可读最近改动" +
+                (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
+            }
           }
       },
       light,
@@ -2859,6 +2883,7 @@ fn profile_rows(
       home_kind: fact.home_kind,
       home_path: fact.home_path,
       home_kind_source: fact.home_kind_source,
+      home_from_instance: false,
       mtime_ms: fact.dir_mtime_ms,
       mtime_missing: "读不到",
       mtime_hint: match fact.dir_mtime_ms {
@@ -2999,6 +3024,7 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     home_kind: "",
     home_path: "",
     home_kind_source: "",
+    home_from_instance: false,
     // 磁盘上连目录都没有，控制台的启动记录里也不会有这只 profile：那一行空着
     last_started: "",
     last_started_source: "",
@@ -3045,7 +3071,7 @@ fn demo_running() -> Array[Row] {
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "",
+      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -3074,7 +3100,7 @@ fn demo_running() -> Array[Row] {
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "",
+      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",
@@ -3109,7 +3135,7 @@ fn demo_stopped() -> Array[Row] {
       profile_name: None, port_value: None, console_started: false,
       user_note: "", user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "",
+      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false,
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
       last_started: "", last_started_source: "",
       mtime_ms: None, mtime_missing: "读不到",

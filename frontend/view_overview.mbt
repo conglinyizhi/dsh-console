@@ -1592,24 +1592,35 @@ fn home_field_value(row : Row) -> String {
 }
 
 ///|
-/// 「配置 home」那一格的悬停（§30.4）：先说清独立还是共用（各一句），再给完整路径与依据。
-/// 读数里没有这一项时如实说「没有这一项」，不按 DSH_HOME 猜一个归属出来。
+/// 「配置 home」那一格的悬停（§30.4 / §33.2）：先说清这一格是怎么认定的，再给路径与依据。
+/// 三档：按实例的 home 认定 / 照 profile 读数（独立、共用、试跑）/ 认不出。
 fn home_field_hint(row : Row) -> String {
-  let kind_line = match row.home_kind {
-    "isolated" => "独立：起实例用的是这份 home，与共用 DSH_HOME 分开"
-    "shared" => "共用：与控制台自己的 DSH_HOME 是同一份"
-    "trial" => "试跑：维护作业开的一次性 home，作业收尾时删掉"
-    _ => "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
-  }
   if row.home_kind == "" {
-    return kind_line
-  }
-  let tail = if row.home_kind_source == "" {
-    "（读数里没给判断依据）"
+    if row.home_kind_source != "" {
+      // 连实例的 home 都认不出：说清「两个来源都没有」，不拿默认值顶上
+      "这只实例的 home 与 profile 都认不出来（" + row.home_kind_source + "）"
+    } else {
+      "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
+    }
+  } else if row.home_from_instance {
+    // §33.1：profile 不在控制台的 DSH_HOME 里，按它跑着的那份 home 算
+    "按实例的 home 认定的：这只 profile 不在控制台的 DSH_HOME 里，所以按它跑着的那份 home 算" +
+    "\n路径：" + row.home_path +
+    (if row.home_kind_source == "" { "" } else { "\n依据：" + row.home_kind_source })
   } else {
-    "｜依据：" + row.home_kind_source
+    let kind_line = match row.home_kind {
+      "isolated" => "独立：起实例用的是这份 home，与共用 DSH_HOME 分开"
+      "shared" => "共用：与控制台自己的 DSH_HOME 是同一份"
+      "trial" => "试跑：维护作业开的一次性 home，作业收尾时删掉"
+      _ => "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
+    }
+    let tail = if row.home_kind_source == "" {
+      "（读数里没给判断依据）"
+    } else {
+      "｜依据：" + row.home_kind_source
+    }
+    kind_line + "\n路径：" + row.home_path + tail
   }
-  kind_line + "\n路径：" + row.home_path + tail
 }
 
 ///|
@@ -1621,7 +1632,9 @@ fn run_home_field(row : Row) -> @html.Html? {
   if !(row.status is Running) || !home_is_path(row.home) {
     return None
   }
-  if row.home_path != "" && same_home(row.home, row.home_path) {
+  // 配置 home 有值、且与实例 home 不同，才值得单独列一行（§33.1：
+  // 按实例 home 认定的那一档两者是同一份，再摆一行就是自己打自己）
+  if row.home_path == "" || same_home(row.home, row.home_path) {
     return None
   }
   let hint = if row.home_hint == "" {
@@ -1803,18 +1816,25 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       ),
     )
   } else if row.home_kind == "shared" {
+    // 这只 profile 不在控制台的 DSH_HOME 里（按实例的 home 认出来的那一档，§33.1）：
+    // 它的目录不归控制台管，移进 / 移回都动不了它 —— 按钮摆着但禁用，悬停说清为什么（§33.3）。
+    let movable = !row.home_from_instance
+    let hint = if movable {
+      "把这份 profile 的目录移到控制台的 homes 根下（目录名就是 profile 名，缺省 ~/.dsh-homes），" +
+      "以后用这只 profile 起的实例都在里面跑；共用 home 里那一份跟着搬走，不再留副本"
+    } else {
+      "这只 profile 不在控制台的 DSH_HOME 里，动不了它的 home"
+    }
     home_items.push(
       @html.button(
         class="dsh-btn",
         type_="button",
-        disabled=busy || moving,
+        disabled=busy || moving || !movable,
         attrs=mark("drawer-isolate-home", ["overview", "drawer", row.id, "action", "isolate-home"])
           .data_set("action", "isolate-home")
           .data_set("state", if moving { "moving" } else { "idle" })
-          .title(
-            "把这份 profile 的目录移到控制台的 homes 根下（目录名就是 profile 名，缺省 ~/.dsh-homes），" +
-            "以后用这只 profile 起的实例都在里面跑；共用 home 里那一份跟着搬走，不再留副本",
-          ),
+          .data_set("movable", if movable { "true" } else { "false" })
+          .title(hint),
         on_click=emit(RowAction(row.id, IsolateHome)),
         [
           icon("link-variant"),
@@ -1823,11 +1843,17 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       ),
     )
   } else {
+    // 真的认不出（连实例的 home 都没有）：不给动作，只说清这一版为什么没有这一项
+    let why = if row.home_kind_source != "" {
+      "这只实例的 home 与 profile 都认不出来，移进 / 移回都不发"
+    } else {
+      "这一版读数里没有「配置 home」，移进 / 移回都不发"
+    }
     home_items.push(
       @html.span(
         class="dsh-foot",
         attrs=mark("drawer-home-missing", ["overview", "drawer", row.id, "action", "home-missing"]),
-        "这一版读数里没有「配置 home」，移进 / 移回都不发",
+        why,
       ),
     )
   }
