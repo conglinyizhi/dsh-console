@@ -767,6 +767,7 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 | `ui.archiveOpenByDefault` | false | 前端读 `GET /api/local/settings` 决定归档区默认展开（后端负责存取与回显） |
 | `ui.sidebarCollapsed` | false | 前端读它决定宽屏下侧栏的形态：展开成 190px，或收成 56px 的图标栏。窄屏不看这一项，那一档的侧栏从顶部汉堡滑出、不占位（后端负责存取与回显） |
 | `safety.deleteToTrash` | true | 删除进回收站还是硬删（见上表） |
+| `profile.ignoreMissingBundles` | true | 缺包不参与状态灯（§40）：前端读它决定「缺 N 个包」算不算警告。缺省 true = 不报警；关掉之后缺包重新算作黄灯。后端只负责存取与回显，缺包仍然可以在抽屉里装（`repair-packages` 不受这一项影响） |
 
 取值范围（越界即 `bad-params`，不静默夹取）：`probe.timeoutMs` 50..60000、`probe.concurrency` 1..64、
 `probe.maxCandidates` 1..1000、`instance.basePort` 1..65535、`process.stopGraceMs` 0..600000、

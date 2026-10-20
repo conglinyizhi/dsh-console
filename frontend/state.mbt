@@ -2049,6 +2049,10 @@ fn health_note_of(
     }
   } else if !has_patch {
     settled_note("没有 cordis.patch.yml")
+  } else if ignore_missing && missing_count > 0 {
+    // 缺包按设置不报警（§40.2）：状态组不说「缺 N 个包」，但也不能说「都装齐了」——
+    // 缺口还在，那句是假话。只留另一半体检结论，缺口在配置组那一行里。
+    settled_note("cordis.patch.yml 也在")
   } else {
     settled_note("声明的包都已安装，cordis.patch.yml 也在")
   }
