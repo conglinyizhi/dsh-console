@@ -2611,7 +2611,11 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 }
 .dsh-settings-panel {
   min-width: 0;
-  padding: 14px 15px 15px;
+  /* 右边那颗开关的圆点会向外溢出 3px（MD2 的几何），15px 内边距时它离卡片边缘只剩 12px，
+     看着像贴边。20px 起，溢出之后仍留 17px。宽度也收一档：整行拉满 1270px 时，
+     文字在左、开关在右，中间一大片空，读起来散。 */
+  max-width: 1040px;
+  padding: 18px 22px 20px;
   background: $card;
   border-radius: $radius;
 }
@@ -2631,13 +2635,13 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   flex-direction: column;
 }
 .dsh-setting {
-  /* 条目之间不再画分隔线（第 5 条）：改用留白。一行上下各 13px，
-     两行之间是 26px，比原来那条 1px 线给出的间隔宽得多。 */
+  /* 条目之间不再画分隔线（第 5 条）：改用留白。一行上下各 14px，
+     两行之间是 28px，比原来那条 1px 线给出的间隔宽得多。 */
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 13px 0;
+  gap: 16px;
+  padding: 14px 0;
 }
 .dsh-setting:first-child {
   padding-top: 2px;
@@ -2713,14 +2717,17 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   min-width: 0;
 }
 .dsh-setting-name {
-  font-size: 12.5px;
+  /* 12.5px 在深底上显得发虚（§52）：名字是这一行的主语，抬到 13px 并给 500 字重；
+     说明那行也跟着提一档，免得「名字虚、说明更虚」。 */
+  font-size: 13px;
+  font-weight: 500;
   color: $text;
 }
 .dsh-setting-desc {
   margin: 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: $text-dim;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: $text-mid;
 }
 /* 「恢复默认」：**只在值不等于缺省值时才有节点**（见 view_settings 的 setting_reset_button），
    所以这里不必写「默认态长什么样」。摆在这一条自己的说明下面 —— 它不是常用动作，
