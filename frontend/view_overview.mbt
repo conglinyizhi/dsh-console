@@ -56,6 +56,11 @@ fn status_name(status : RowStatus) -> String {
 /// 档位写在 data-state 上（running / fault / starting / stopped / unknown），
 /// 样式与探针都按档位认，不按颜色值认 —— 颜色不是唯一信息，这一条从 DOM 就开始落实。
 fn status_light(row : Row) -> @html.Html {
+  // §26.1：已停止不显示灯。这一档**一个节点都不产出** —— 不是画一颗透明的圆，
+  // 那仍然占着位置、读屏也还会念它；状态词「已停止」照旧在第一行（颜色不是唯一信号）。
+  if !light_shown(row.light) {
+    return @html.nothing
+  }
   @html.span(
     class="dsh-dot " + light_class(row.light),
     attrs=mark("status-light", ["overview", "card", row.id, "light"])
@@ -1786,17 +1791,25 @@ fn drawer_state_block(row : Row) -> @html.Html {
     why_attrs = why_attrs.title(row.light_basis)
     dot_attrs = dot_attrs.title(row.light_basis)
   }
+  // §26.1：已停止那一档不画灯 —— 抽屉里也不画（这一行的标签与那句为什么照旧在）
+  let light_line : Array[@html.Html] = if light_shown(row.light) {
+    [
+      @html.span(class="dsh-dot " + light_class(row.light), attrs=dot_attrs, @html.nothing),
+    ]
+  } else {
+    []
+  }
+  light_line.push(
+    @html.span(
+      class="dsh-drawer-light-label",
+      attrs=mark("drawer-light-label", ["overview", "drawer", row.id, "state", "label"])
+        .data_set("state", light_key(row.light)),
+      light_label(row.light),
+    ),
+  )
   @html.div(class="dsh-drawer-section", [
     @html.h3(class="dsh-drawer-section-title", "状态"),
-    @html.div(class="dsh-drawer-light-line", [
-      @html.span(class="dsh-dot " + light_class(row.light), attrs=dot_attrs, @html.nothing),
-      @html.span(
-        class="dsh-drawer-light-label",
-        attrs=mark("drawer-light-label", ["overview", "drawer", row.id, "state", "label"])
-          .data_set("state", light_key(row.light)),
-        light_label(row.light),
-      ),
-    ]),
+    @html.div(class="dsh-drawer-light-line", light_line),
     @html.p(class="dsh-drawer-why", attrs=why_attrs, row.light_reason),
   ])
 }

@@ -378,6 +378,30 @@ pub(all) struct SnapshotFact {
 pub extend SnapshotFact with Eq::{ not_equal, equal }
 
 ///|
+/// 这只 profile **最近一次启动**的结局（design/design-fixes.md §26.1）。
+///
+/// 后端从审计流水（audit.jsonl）里取最近一条 start-instance，成败由那一笔自己说：
+///   ok = false → 那一次失败了。它又是最近一条，所以「失败之后没有成功过」自然成立 ——
+///                真有过一次成功，那一次就是最近那一条。
+///   ok = true  → 最近一次是成功的，不点红灯，按运行中 / 有警告 / 已停止这三档。
+///
+/// None = 审计里没有这只 (home, profile) 的记录。**没有证据就不点红灯**：
+/// 与「上一次失败了」不是一件事，所以用 Option 而不是拿 ok: true 或 false 顶上。
+pub(all) struct ProfileLastStart {
+  ok : Bool
+  /// 这一笔的时刻（UTC ISO）。空串 = 读数里没给（不编一个时间出来）
+  at : String
+  /// 失败码（conflict / not-found / spawn-failed / bad-params …）；成功时空串
+  code : String
+  /// 失败时后端写下的那句人话；成功时空串
+  message : String
+  /// 那一笔带的 home；空串 = 那一笔没带（老记录）
+  home : String
+} derive(Eq)
+
+pub extend ProfileLastStart with Eq::{ not_equal, equal }
+
+///|
 pub(all) struct ProfileFact {
   name : String
   is_current : Bool
@@ -429,6 +453,11 @@ pub(all) struct ProfileFact {
   snapshots : Array[SnapshotFact]
   /// 快照读数的来源 / 读不到的原因（后端原样给）
   snapshots_source : String
+  // ── 最近一次启动的结局（design/design-fixes.md §26.1）──
+  /// None = 审计流水里没有这一只的记录（或这一版后端还没给这个字段）
+  last_start : ProfileLastStart?
+  /// 上面那一格的来源 / 为什么没有：取的是审计里哪一条、按什么对上的（后端原样给）
+  last_start_source : String
 } derive(Eq)
 
 pub extend ProfileFact with Eq::{ not_equal, equal }
@@ -463,6 +492,17 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
         Json::String(s) => missing.push(s)
         _ => ()
       }
+    }
+    let last_start = match fact.get("lastStart") {
+      Some(Json::Object(record)) =>
+        Some({
+          ok: bool_field(record, "ok"),
+          at: str_field(record, "at"),
+          code: str_field(record, "code"),
+          message: str_field(record, "message"),
+          home: str_field(record, "home"),
+        })
+      _ => None
     }
     let snapshots : Array[SnapshotFact] = []
     for item in arr_field(fact, "snapshots") {
@@ -512,8 +552,16 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       home_created_at: opt_str_field(home, "createdAt"),
       home_kind_source: str_field(fact, "homeKindSource"),
       snapshots,
+      last_start,
       // 字段整个不在（这一版后端还没落地）时补一句前端自己的话：
       // 那与「后端读了但没有」不是同一件事，不能都写成空。
+      last_start_source: if has_key(fact, "lastStartSource") {
+        str_field(fact, "lastStartSource")
+      } else if has_key(fact, "lastStart") {
+        "读数里没有给这条记录的来源"
+      } else {
+        "这一版读数里没有「上一次启动」这一项"
+      },
       snapshots_source: if has_key(fact, "snapshotsSource") {
         str_field(fact, "snapshotsSource")
       } else if has_key(fact, "snapshots") {

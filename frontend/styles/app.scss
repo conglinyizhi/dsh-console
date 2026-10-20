@@ -770,7 +770,14 @@ select { appearance: none; -webkit-appearance: none; }
   text-align: left;
   cursor: pointer;
 }
-.dsh-case:hover { background: $panel-soft; }
+/* 悬停那一档（§26.4）：**不只是换底色** —— 底色之外再给一圈可见的描边。
+   描边画在盒内（inset 阴影），不新增 1px 边框、也不改卡片尺寸：条目高度与列数
+   那套算式一个数都不动。颜色用主色、透明度 0.8：比选中态淡一档（选中是 2px 实色），
+   两者同时在场时一眼分得出「只是划过」与「这一个选上了」。 */
+.dsh-case:hover {
+  background: $panel-soft;
+  box-shadow: inset 0 0 0 1px rgba($accent-rgb, 0.8);
+}
 .dsh-case:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
 
 /* ── 独立 home 的卡：一道金边（design/deep-home-isolation.md §9.6）────────────────
@@ -788,6 +795,12 @@ select { appearance: none; -webkit-appearance: none; }
 }
 .dsh-case.dsh-case-home-isolated[data-status]:hover {
   background: $panel-soft;
+  /* 金边那一档的悬停（§26.4）：金边是这一只的身份，不能被主色盖掉；
+     所以主色那圈往里收一档（2px），金边仍在外缘 1px、外侧还有一圈淡金。 */
+  box-shadow:
+    inset 0 0 0 1px $gold,
+    inset 0 0 0 3px rgba($gold-rgb, 0.16),
+    inset 0 0 0 2px rgba($accent-rgb, 0.7);
 }
 /* 小金标：名字后面那一个。line-height 16 + 上下 padding 各 1 + 边框 1 = 20 < 第一行 22，
    所以带标与不带标的卡片**一样高**（卡片高度不变式：70px），响应式列数不用重算。 */
@@ -901,14 +914,18 @@ select { appearance: none; -webkit-appearance: none; }
   background: $text-dim;
 }
 .dsh-dot.light-run { background: $ok; box-shadow: 0 0 0 2px rgba($ok-rgb, 0.2); }
-/* 光晕是「它还活着」的信号 —— 只有运行中才发。故障与停用发光会把信号稀释掉 ✗ */
-.dsh-dot.light-fault { background: $warn; }
+/* 光晕是「它还活着」的信号 —— 只有运行中才发。警告与故障发光会把信号稀释掉 ✗ */
+/* 黄：有警告（§26.1）。缺包、patch 不在、端口在听但不应答都落到这一档。 */
+.dsh-dot.light-warn { background: $warn; }
+/* 红：上一次启动失败，且之后没有成功启动过。判据来自审计流水（见 state.mbt 的 profile_light）。 */
+.dsh-dot.light-fault { background: $danger; }
 .dsh-dot.light-start {
   background: $warn;
   box-shadow: 0 0 0 2px rgba($warn-rgb, 0.2);
   animation: dot-pulse 900ms ease-in-out infinite;
 }
-.dsh-dot.light-stop { background: $danger; }
+/* 已停止**不画灯**（§26.1）：这一档不产出节点（state.mbt 的 light_shown），
+   所以这里没有 .dsh-dot.light-stop 的规则 —— 留着一条会让人以为那颗灯还在。 */
 /* 没读到 state：不上色。空心灰环 + 一圈底色描边，一眼看出「这一格没有读数」 */
 .dsh-dot.light-unknown { background: transparent; border-color: $text-dim; box-shadow: none; }
 /* 抽屉状态那一行里的那一颗：跟着标题走，不绝对定位。
@@ -921,6 +938,8 @@ select { appearance: none; -webkit-appearance: none; }
    写在卡片第一行（名字后面、端口前面），灰度下这一行就已经读得出来。
    几何上它**不占新的一行**：line-height 16 < 第一行 22，flex: none + nowrap，
    卡窄了让名字先省略 —— 卡片高度还是 70px（改前 70，改后 70，差 0px）。 */
+/* 五个词：运行中 / 有警告 / 上次启动失败 / 正在启动 / 已停止（+ 状态未知）。
+   已停止那一档没有灯，状态词是它唯一的通道。 */
 .dsh-dot-state {
   flex: none;
   font-size: 11px;
@@ -933,9 +952,10 @@ select { appearance: none; -webkit-appearance: none; }
    而「运行中」那一档原先只是靠「在跑」那枚标记的规则顺手带过（§25 把那枚标记去掉之后
    这里就露出来了）。 */
 .dsh-dot-state.running { color: $text-mid; }
-/* 故障与已停止这两档把词也压亮一档：黑白打印 / 灰度截图里，「故障」两个字
-   该和「运行中」一样读得出来，而不是靠那颗黄点。 */
-.dsh-dot-state.fault, .dsh-dot-state.stopped { color: $text; }
+/* 有警告 / 上次启动失败 / 已停止这三档把词也压亮一档：黑白打印 / 灰度截图里，
+   这三个词该和「运行中」一样读得出来，而不是靠那颗灯。已停止那一档没有灯，
+   这个词就是它唯一的信号 —— 一个字都不许淡掉。 */
+.dsh-dot-state.warn, .dsh-dot-state.fault, .dsh-dot-state.stopped { color: $text; }
 @keyframes dot-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.32; }
@@ -1047,6 +1067,9 @@ select { appearance: none; -webkit-appearance: none; }
   border-color: rgba(79, 140, 255, 0.55);
   background: $accent-soft;
   cursor: default;
+  /* 悬停描边（§26.4）也一并压掉：占位块就在指针底下，:hover 一直成立，
+     它又不是可交互的东西 —— 给它一圈「可以点」的描边等于说谎。 */
+  box-shadow: none;
 }
 .dsh-drop-slot .ghost-tile { opacity: 0.5; }
 /* 图标位与第二行都不参与：占位块只有「一条条目那么高」这一件事要说 */
@@ -1571,17 +1594,20 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 
 // ── 新建实例框（design/design-fixes.md §19.1、§23） ──
 // 比其它对话框宽：里面摆的是「选择配置」那一套卡（图标 + 名字 + 备注 + 读数），
-// 360px 会把它挤成一条。§23 起桌面放到 880（92vw 兜住小桌面），源卡按栅格排，
-// 一行 2 到 3 张。卡片列表自己有上限高度、自己滚 —— 一屏里先看见几只是几只，
+// 360px 会把它挤成一条。§26.3 起桌面放到 min(1120px, 94vw)，源卡按栅格排，
+// 一行 3 张（单卡最小 300）。卡片列表自己有上限高度、自己滚 —— 一屏里先看见几只是几只，
 // 不把整个对话框撑到贴满上下边。
+// §26.3：桌面放到 min(1120px, 94vw)。1120 宽下栅格一行 3 张（单卡最小 300）：
+// 框内宽 = 1120 − 32（左右 padding）= 1088，三列各 357 左右，够 300 那条下限。
 .dsh-new-card {
-  width: min(880px, 92vw);
+  width: min(1120px, 94vw);
 }
 .dsh-new-pick {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: min(46vh, 420px);
+  // §26.3：列表高度上限同步放宽到 min(52vh, 520px)。
+  max-height: min(52vh, 520px);
   /* 横向不滚（§25.3）：列表里的卡任何一张都不许把宽度顶出去。
      纵向照旧自己滚 —— 一屏里先看见几只是几只。 */
   overflow-x: hidden;
@@ -1595,17 +1621,17 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 // 为什么 auto-fill 而不是 auto-fit：卡片宽度只由容器宽度决定，不因为「这一组只剩
 // 两张」就摊开，2 张与 3 张两组里的卡一样宽。剩下那条空轨留在右边；
 // 遮罩盖的是整片 .dsh-new-pick-wrap（见 .dsh-new-pick-veil），空轨也在里面。
-// 单卡最小 260px：再窄，名字那一行与读数那两行就挤成一团。
-// 自动折行按 260 算列数，用 min(260px, 100%) 兜住比 260 还窄的容器（不横向溢出）。
+// 单卡最小 300px（§26.3）：再窄，名字那一行与读数那两行就挤成一团。
+// 自动折行按 300 算列数，用 min(300px, 100%) 兜住比 300 还窄的容器（不横向溢出）。
 // **等高**（§24.2）：align-items: stretch，每张卡再钉死一档高度（见下一条）。同一行里
 // 有备注的、没备注的、不可用的，四边一样齐；高度不随内容长短变。
 .dsh-new-pick .dsh-profile-sidebar-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 8px;
   align-items: stretch;
 }
-// 框里的源卡不再单独立一档高度（§25）：96px、三行、单行省略这一套是卡片自己的
+// 框里的源卡不再单独立一档高度（§25 / §26.2）：72px、三行、单行省略这一套是卡片自己的
 // 基线（见下面 .dsh-profile-card 一节），三个调用点共用。这里只留下栅格。
 // 源卡区外面那层（§22）：只负责给遮罩一个定位容器。列表的高度上限与滚动还在
 // .dsh-new-pick 上 —— 锁上、解锁都是这套 DOM，滚动位置因此一个像素都不动。
@@ -1718,6 +1744,13 @@ body[data-shift="1"] .dsh-btn.dsh-delete:hover:not(:disabled) {
 }
 .dsh-new-name-guide[data-active="false"] {
   visibility: hidden;
+}
+/* 窄屏与中等宽度：§26.3 只放大了桌面那一档（≥1024），1023 以下保持原来的尺寸 ——
+   820 到 1023 仍是 min(880px, 92vw)，819.98 以下贴满宽、一行一张。 */
+@media (max-width: 1023.98px) {
+  .dsh-new-card {
+    width: min(880px, 92vw);
+  }
 }
 /* 窄屏：对话框贴满宽，栅格收成一列（§23「窄屏仍是一行一张」）。
    宽度够凑两列时也不凑，钉一列 —— 窄屏上源卡是拿来逐张读完再点的，
@@ -2882,9 +2915,12 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 .dsh-profile-card {
   // 卡片在侧栏里按列摆，不参与总览那一套栅格
   flex: none;
-  /* §25：三个调用点共用同一张卡 —— 三行钉死 96px，内容超出就裁。
-     高度只由这一条决定，不许被名字、备注或缺包读数顶高。 */
-  height: 96px;
+  /* §26.2：三个调用点共用同一张卡 —— 三行钉死 72px（96 收一档），内容超出就裁。
+     高度只由这一条决定，不许被名字、备注或缺包读数顶高。
+     上下 padding 收到 8（原来是 .dsh-case 的 15）：8 + 18 + 16 + 16 + 两个 2px 间隙 = 70，
+     余下 2px 由 .dsh-case-body 的居中分掉，卡片本身仍是 72。 */
+  height: 72px;
+  padding: 8px;
   overflow: hidden;
 }
 .dsh-profile-card.disabled,
@@ -2893,13 +2929,17 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   background: $panel;
   border-color: $line;
   cursor: default;
+  /* 不可点的卡不给悬停描边（§26.4）：描边是「这一格可以点」的反馈。 */
+  box-shadow: none;
 }
 // 选中那一条（新建实例框里选源）：底色淡主色 + 左侧一道主色竖条。
 // 卡片是无边框的（第 5 条那条规矩），所以这道条用 box-shadow 画，不新增 1px 边框、
 // 也不改卡片尺寸；鼠标划过时 hover 的底色压不过它（两个类的优先级更高）。
 .dsh-profile-card.chosen {
   background: rgba($accent-rgb, 0.1);
-  box-shadow: inset 2px 0 0 rgba($accent-rgb, 0.8);
+  /* 选中态（§26.4）比悬停那圈 1px 半透明再重一档：2px 实色整圈 + 左侧 2px 竖条。
+     两个类（0,2,0）压得过 .dsh-case:hover（0,1,1），所以划过与选不选得住同一个样子。 */
+  box-shadow: inset 2px 0 0 rgba($accent-rgb, 0.8), inset 0 0 0 2px rgba($accent-rgb, 0.9);
 }
 .dsh-profile-card-sub {
   display: block;
@@ -2912,6 +2952,11 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
 }
 .dsh-profile-card-sub.unusable {
   color: $warn;
+}
+// 组件卡的第三行不按 18 排：三行 18 / 16 / 16 是钉住 72px 的那一组数（§26.2）。
+// 不可用的卡第三行换成原因，它在别处（侧栏那几处）仍是 18 —— 这里只压组件卡里这一份。
+.dsh-profile-card .dsh-profile-card-sub {
+  line-height: 16px;
 }
 
 // 分组头：与总览同一个说法（当前运行的实例 / 已停止的实例），组内顺序照 order.json。
@@ -2929,8 +2974,8 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   font-weight: 600;
   color: $text-mid;
 }
-// 第 3 行（§25.2）：缺包数 + 配置 home 档，两个短标记同一行。
-// nowrap + 省略号：这一行永远只占 18px，卡片高度不随读数长短变。
+// 第 3 行（§26.2）：缺包数 + 配置 home 档，两个短标记同一行。
+// nowrap + 省略号：这一行永远只占 16px，卡片高度不随读数长短变。
 // 灯不在这里了 —— 它挂在图标右上角（见 .dsh-profile-card .dsh-tile-slot）。
 .dsh-profile-card-meta {
   display: flex;
@@ -2940,7 +2985,7 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   min-width: 0;
   overflow: hidden;
   font-size: 11.5px;
-  line-height: 18px;
+  line-height: 16px;
   color: $text-mid;
   white-space: nowrap;
 }
@@ -2952,12 +2997,18 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-// 第 1 行（§25.2）：名字 + 状态词 + 标记，一行。卡窄时名字先省略，
-// 状态词与标记 flex: none（见 .dsh-dot-state / .dsh-profile-card-mark），不折行、也不被挤掉。
-// 这一行自己是裁剪区，卡片的 scrollWidth 因此不会因为一个过长的名字变大。
+// 第 1 行（§25.2 / §26.2）：名字 + 状态词 + 标记，一行，行高钉 18。
+// 卡窄时名字先省略，状态词与标记 flex: none（见 .dsh-dot-state / .dsh-profile-card-mark），
+// 不折行、也不被挤掉。这一行自己是裁剪区，卡片的 scrollWidth 不会因为一个过长的名字变大。
 .dsh-profile-card .dsh-case-head {
   min-width: 0;
+  height: 18px;
   overflow: hidden;
+}
+// 名字在组件卡里按 18px 行高排（总览的条目卡仍是 22px，不动）：
+// 三行 18 / 16 / 16 加起来才钉得住 72 这一档。
+.dsh-profile-card .dsh-name {
+  line-height: 18px;
 }
 // 第 2 行：备注。人写的那一档带左侧细线（.dsh-card-note），没有就写「没有备注」。
 // 两档都只占一行、都带省略号 —— 备注多长都不改变卡片高度。

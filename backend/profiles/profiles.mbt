@@ -127,6 +127,80 @@ pub async fn profile_health(dsh_home : String, name : String) -> ProfileHealth? 
 }
 
 ///|
+/// 去掉末尾多余的斜杠（保留根 /）：/a/b 与 /a/b/ 是同一个 home。
+fn trim_home_slash(path : String) -> String {
+  let mut end = path.length()
+  while end > 1 && @json.slice(path, end - 1, end) == "/" {
+    end = end - 1
+  }
+  @json.slice(path, 0, end)
+}
+
+///|
+/// 两个 home 说的是不是同一个目录：只做「逐字相等，或只差一个尾部斜杠」。
+/// 空串一律不算相等（不知道就不认 —— 与界面那一侧 same_home 同一口径）。
+fn same_home_text(a : String, b : String) -> Bool {
+  if a == "" || b == "" {
+    return false
+  }
+  trim_home_slash(a) == trim_home_slash(b)
+}
+
+///|
+/// 这只 profile **最近一次启动**的结局（design/design-fixes.md §26.1）：
+///   最近一条 start-instance 是失败 → 红灯「上次启动失败」（失败之后没有成功过：
+///   真有过一次成功，那一次就是最近那一条）；
+///   最近一条是成功 → 不是故障，按其余三档；
+///   一条记录都没有 → None（没有证据就不点红灯）。
+///
+/// 匹配顺序写死，因为审计行里的 home 有三种情形：
+///   ① 这一行带 home，且等于这只 profile 自己的 home（隔离的那一档）—— 最准，先认它；
+///   ② 这一行没带 home（改动之前的老记录）或带的是控制台的 home（界面启动时发的是
+///      这一行自己的 home，共用那一档就是控制台的 home）—— 按名字认；
+///   ③ 都没有 → None + 一句来源说明（不拿别的 profile 的记录顶上）。
+///
+/// attempts 已按 at 降序（见 store/startattempt.mbt），所以每一轮先碰到的那条就是最近那条。
+fn last_start_of(
+  name : String,
+  profile_home : String,
+  console_home : String,
+  attempts : Array[@store.StartAttempt],
+  notes : Array[String],
+) -> (@store.StartAttempt?, String) {
+  if profile_home != "" {
+    for a in attempts {
+      if a.profile == name && same_home_text(a.home, profile_home) {
+        return (
+          Some(a),
+          "audit.jsonl 里最近一条 start-instance：params.home 就是这只 profile 的 home（" +
+          a.home + "）",
+        )
+      }
+    }
+  }
+  for a in attempts {
+    if a.profile == name {
+      if a.home == "" {
+        return (Some(a), "audit.jsonl 里最近一条 start-instance；那一笔没带 home，按 profile 名对上")
+      }
+      if same_home_text(a.home, console_home) {
+        return (
+          Some(a),
+          "audit.jsonl 里最近一条 start-instance：params.home 是控制台的 home（" + a.home + "）",
+        )
+      }
+    }
+  }
+  if notes.length() > 0 {
+    return (None, notes.join("；"))
+  }
+  if attempts.length() == 0 {
+    return (None, "audit.jsonl 里没有 start-instance 记录（这台机器还没用控制台起过实例）")
+  }
+  (None, "audit.jsonl 里没有这只 profile（" + name + "）的 start-instance 记录")
+}
+
+///|
 /// 派生时给新 profile 写的备注（第五轮契约第二节）：
 /// 第一行是它的来历 `从 <源> 派生 · <本地时间>`，源 profile 原有的备注**原样接在后面**。
 ///
@@ -304,6 +378,8 @@ async fn describe_profile(
   current_profile : String?,
   dsh_home : String,
   dsh_home_source : String,
+  attempts : Array[@store.StartAttempt],
+  attempts_note : Array[String],
 ) -> @json.JsonVal noraise {
   let declared = declared_bundles(dir)
   let bundles : Array[Bundle] = []
@@ -347,6 +423,15 @@ async fn describe_profile(
   // 这只 profile 的 home 归属（隔离 / 共用）：判据与读数都在 homes.mbt，前端不自己再推一遍。
   // dsh_home 是控制台自己的 home —— 「共用」那一档的 path 就是它。
   let home = home_fact_in(name, dsh_home, dsh_home_source)
+  // 最近一次启动的结局（design/design-fixes.md §26.1）：从审计流水里取这只
+  // (home, profile) 最近一条 start-instance，成败由那一笔自己说。
+  let (last_start, last_start_source) = last_start_of(
+    name,
+    home.path,
+    dsh_home,
+    attempts,
+    attempts_note,
+  )
 
   @json.JObj([
     ("name", @json.JStr(name)),
@@ -364,6 +449,26 @@ async fn describe_profile(
     ])),
     // 一句判断依据：这一档是凭什么判出来的（前端只显示，不再推）
     ("homeKindSource", @json.JStr(home.source)),
+    // 最近一次启动的结局（design/design-fixes.md §26.1）：红灯的判据只要这一条 ——
+    // ok == false 且它就是最近那一条，就是「上一次启动失败、之后没有成功过」。
+    // 一条记录都没有时给 null（不是 false：没有证据与「失败了」不是一件事）。
+    (
+      "lastStart",
+      match last_start {
+        Some(a) =>
+          @json.JObj([
+            ("ok", @json.JBool(a.ok)),
+            ("at", @json.JStr(a.at)),
+            ("code", @json.JStr(a.code)),
+            ("message", @json.JStr(a.message)),
+            // 那一笔带的 home；空串 = 那一笔没带（老记录）
+            ("home", @json.JStr(a.home)),
+          ])
+        None => @json.JNull
+      },
+    ),
+    // 上面那一格的来源 / 为什么没有：audit.jsonl 取的是哪一条、按什么对上的
+    ("lastStartSource", @json.JStr(last_start_source)),
     (
       "isCurrent",
       @json.JBool(match current_profile {
@@ -449,6 +554,9 @@ pub async fn read_profiles() -> @json.JsonVal raise @localapi.ReadError {
     }
   }
   names.sort_by(compare_code_units)
+  // 启动结局只读一遍审计文件，逐只 profile 里再按 (home, 名字) 去对
+  // （每只都读一遍整份流水的话，一只 profile 一次全文件扫描）。
+  let (attempts, attempts_note) = @store.load_start_attempts()
   let profiles : Array[@json.JsonVal] = []
   for name in names {
     // 目录按**它自己现在在哪儿**取：隔离的那一个在 <homes root>/<名字>/profiles/<名字>。
@@ -461,6 +569,8 @@ pub async fn read_profiles() -> @json.JsonVal raise @localapi.ReadError {
         current_profile,
         dsh_home,
         dsh_home_source,
+        attempts,
+        attempts_note,
       ),
     )
   }

@@ -346,7 +346,7 @@ fn mark_path(marks : Array[String], tail : Array[String]) -> Array[String] {
 }
 
 ///|
-/// 一张配置卡：**三行、96px、一律单行省略**（design/design-fixes.md §25）。
+/// 一张配置卡：**三行、72px、一律单行省略**（§25 的形态，§26.2 收的高度）。
 ///
 /// 第 1 行 名字 + 状态词（紧跟名字）+ 标记（当前配置 / 已选）；
 /// **不再单独挂「在跑」**：状态词就在名字后面，「运行中」与「在跑」是同一件事，
@@ -500,7 +500,13 @@ fn profile_card(
           class=if pick.running { "dsh-tile accent" } else { "dsh-tile violet" },
           [icon("cube-outline", size=20)],
         ),
-        @html.span(class="dsh-dot " + light_class(pick.light), attrs=light_attrs, @html.nothing),
+        // §26.1：已停止不显示灯。这一档不产出节点（见 state.mbt 的 light_shown），
+        // 状态词「已停止」照旧在第一行 —— 颜色不是唯一信号，不画灯也不会少信息。
+        if light_shown(pick.light) {
+          @html.span(class="dsh-dot " + light_class(pick.light), attrs=light_attrs, @html.nothing)
+        } else {
+          @html.nothing
+        },
       ]),
       @html.div(class="dsh-case-body", lines),
     ],

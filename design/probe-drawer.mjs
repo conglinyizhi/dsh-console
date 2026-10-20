@@ -18,11 +18,15 @@ await send('Page.enable'); await send('Runtime.enable')
 await send('Emulation.setDeviceMetricsOverride', { width: VW, height: VH, deviceScaleFactor: 1, mobile: false })
 await send('Page.navigate', { url: process.argv[2] }); await wait(5000)
 // 卡片：只剩三样？灯的颜色？
+// §26.1：已停止那一档**不画灯**（DOM 里没有 .dsh-dot），状态词仍在第一行。
+// 所以「灯」与「状态词」要分开取：状态词是每张卡都有的那一格（data-state 与灯上那格同源）。
 const cards = JSON.parse(await ev(`JSON.stringify([...document.querySelectorAll('[data-name^=\"instance-card\"]')].map((c) => {
-  const light = c.querySelector('[data-name^=\"status-light\"], [data-state]')
-  const cs = light ? getComputedStyle(light) : null
+  const dot = c.querySelector('[data-name^=\"status-light\"]')
+  const word = c.querySelector('.dsh-dot-state')
+  const shown = dot || word
+  const cs = dot ? getComputedStyle(dot) : null
   return { id: c.id, text: c.textContent.trim().slice(0, 40), buttons: c.querySelectorAll('button').length, menus: c.querySelectorAll('[data-name^=\"row-menu\"]').length, fields: c.querySelectorAll('[data-name^=\"field\"]').length,
-    state: (light && light.getAttribute('data-state')) || null, lightBg: cs ? cs.backgroundColor : null, lightW: light ? Math.round(light.getBoundingClientRect().width) : null }
+    state: (shown && shown.getAttribute('data-state')) || null, lightPresent: !!dot, lightBg: cs ? cs.backgroundColor : null, lightW: dot ? Math.round(dot.getBoundingClientRect().width) : null, word: word ? word.textContent.trim() : null }
 }))`) || '[]')
 // 抽屉：点第一张卡打开
 const firstId = cards[0] && cards[0].id

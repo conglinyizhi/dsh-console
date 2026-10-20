@@ -120,8 +120,17 @@ if (inv) {
     add('卡片上没有 ⋯ 菜单与字段', '全 0', JSON.stringify(dr.cards.map((c) => c.menus + c.fields)), dr.cards.every((c) => c.menus === 0 && c.fields === 0))
     const states = dr.cards.map((c) => c.state)
     add('每张卡都有状态', '无 null', JSON.stringify(states), states.length > 0 && states.every((x) => typeof x === 'string' && x.length > 0))
-    const colored = dr.cards.filter((c) => c.state === 'running' || c.state === 'stopped' || c.state === 'fault')
-    add('三色都来自真读数（有颜色）', '>= 3 档有颜色', colored.length + ' 档', colored.length >= 1 && colored.every((c) => /^rgb\(/.test(String(c.lightBg))))
+    // §26.1 四条：灯只在 running / warn / fault / starting / unknown 这几档出现，
+    // 已停止**不画灯**。所以这一条改成两条：
+    //   ① 有灯的卡，灯色必须来自真读数（背景是实色 rgb），不是透明占位；
+    //   ② 已停止那一档必须没有灯 —— 状态词「已停止」照旧在场（上一条已经判过）。
+    // 旧口径「每张卡都有颜色」是把「已停止 = 红灯」写进了判定，与 §26.1 冲突。
+    const lit = dr.cards.filter((c) => c.lightPresent)
+    add('有灯的卡颜色都来自真读数', '全部实色', lit.length + ' 张有灯',
+      lit.length > 0 && lit.every((c) => /^rgb\(/.test(String(c.lightBg))))
+    const stopped = dr.cards.filter((c) => c.state === 'stopped')
+    add('已停止不显示灯', '全部无灯', stopped.length + ' 张已停止',
+      stopped.every((c) => !c.lightPresent))
     add('抽屉能开', 'true', String(dr.drawer?.open), dr.drawer?.open === true)
     add('抽屉里按钮都可达', '0 项不可达',
       dr.drawer?.buttonCount === 0 ? '抽屉里没有按钮' : (dr.drawer?.unreachable === 0 ? '0 项不可达' : String(dr.drawer?.unreachable) + ' 项不可达'),

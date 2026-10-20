@@ -543,6 +543,8 @@ fn registered_instance(
 ///   fault    b：端口在听，但签名探测不通过（前提：持有它的进程 cmdline 看起来是 dsh）
 ///            c：签名没通、且解析出的 profile 缺包 > 0 或没有 cordis.patch.yml
 ///            b 与 c 同时成立时以 c 起头（那是根因），b 的事实一并写进同一句
+///            （界面上这一档落在**黄**「有警告」，不是红：红灯只给「上一次启动失败
+///            且之后没成功过」的那一只，判据在 profiles 读数的 lastStart）
 ///   starting 本控制台刚起（runtime.json 有登记、进程起不到 start_grace_seconds 秒），
 ///            端口已在听但签名还没通：可能还在启动，不是坏
 ///
@@ -552,8 +554,12 @@ fn registered_instance(
 /// 「在跑、签名也过」的实例一律点成黄，与「绿＝签名探测通过」的判据打架。
 /// 反过来，b 那一路本来就只能靠 c 说清根因，所以 c 在那里仍然起头。
 ///
-/// 红（停用）不在这里：没在跑的端口根本不进这个列表；没在跑的 profile 由前端按
-/// GET /api/local/profiles 的 bundles / patch 自己判（黄 c / 红都落在那一侧）。
+/// 红不在这里：没在跑的端口根本不进这个列表。没在跑的那一侧由前端按
+/// GET /api/local/profiles 落四档（design/design-fixes.md §26.1）：
+///   黄 = bundles.missing 非空 / 没有 cordis.patch.yml；
+///   红 = 那一只的 lastStart.ok == false（审计流水里最近一条 start-instance 失败了，
+///        且失败之后没有成功过 —— 后端在 profiles 读数里给事实，前端不自己翻审计）；
+///   无灯 = 没在跑也没有警告。
 fn judge_state(
   has_signature : Bool,
   signature_id : String,

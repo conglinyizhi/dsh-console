@@ -70,20 +70,24 @@ enum Tone {
 pub extend Tone with Eq::{ not_equal, equal }
 
 ///|
-/// 卡片图标右上角那颗实心圆的档位（第七轮契约：绿 / 黄 / 红，三色 + 一档「没读到」）。
+/// 卡片图标右上角那颗实心圆的档位（design/design-fixes.md §26.1：四档 + 一档「没读到」）。
 ///
-/// 判据来自契约，不在这里发挥：
-///   * 绿 running —— 签名探测通过
-///   * 黄 fault   —— b：端口在听、持有它的进程像 dsh，但签名探测不通过；
-///                   c：解析出的 profile 缺包大于 0（或没有 cordis.patch.yml）
-///   * 红 stopped —— 没有在跑
-/// 另外两档是**状态灯自己需要的**，不是第四种颜色：
-///   * starting —— 正在起来（前端启动等待态，也认读数给的 starting）。用同一支琥珀，
-///     但文案是「正在启动」，不会被读成故障；它在动（dot-pulse），静止态一个动效都没有
-///   * unknown  —— 读数里没有状态这一项。**这时不猜颜色**：
+/// 判据写死在这里，不发挥：
+///   * 绿 LightRun   运行中 —— 实例在跑，且这只 profile 没有已知隐患
+///   * 黄 LightWarn  有警告 —— 没在跑但有隐患（缺包等），或**在跑而 profile 有缺包等隐患**；
+///                   也接住「端口在听、签名不通」这一档（它没在正常服务，是一种警告）
+///   * 红 LightFault 上次启动失败 —— 这只 profile 最近一次 start-instance 失败，
+///                   且失败之后从来没有成功启动过（判据来自审计流水，见 model 的
+///                   ProfileLastStart）。缺包**不再**算故障，归黄。
+///   * 无灯 LightStop 已停止 —— 没在跑，也没有警告。**这一档不画灯**（见 light_shown）
+/// 另外两档是**状态灯自己需要的**，不属于上面四档：
+///   * LightStart 正在起来（启动等待态）。用琥珀，但文案是「正在启动」，
+///     不会被读成故障；它在动（dot-pulse），静止态一个动效都没有
+///   * LightUnknown 读数里没有状态这一项。**这时不猜颜色**：
 ///     灯是空心的灰环，抽屉里写清「读不到状态，颜色不猜」
 enum Light {
   LightRun
+  LightWarn
   LightFault
   LightStart
   LightStop
@@ -1421,29 +1425,32 @@ fn console_started(console : ConsoleFacts?, port : Int) -> Bool {
   }
 }
 
-// ── 状态灯（第七轮） ────────────────────────────────────────
+// ── 状态灯（§26.1 四档） ────────────────────────────────────
 //
 // 卡片上只剩三样：图标与它右上角那颗实心圆、profile 名（左上，右上另有一格端口）、
 // 下面一行备注。所以「这只实例怎么样」
-// 全部压进那颗圆里，**颜色不能是唯一信息** —— 每一档都带一句为什么，在抽屉里展示。
+// 全部压进那颗圆里，**颜色不能是唯一信息** —— 每一档都带一句为什么，在抽屉里展示，
+// 卡片第一行还写着状态词（light_label），灰度截图里也读得出来。
 //
 // 每一档给两句话，读者不是同一个人：
 //   * light_reason —— 抽屉正文那一行，说人话（「它正在 :3080 上应答」）；
 //   * light_basis  —— 悬停里的技术依据（哪一条握手应答命中、探测回来的是什么）。
 // 正文一个字都不摆内部术语：成因编号、应答标识、组件名这些是给改这个工具的人看的。
 //
-// 三色的判据来自契约（第七轮第一节），前端不改口径：
-//   绿 = 握手探测通过；黄 = 故障（端口在听但不应答 / profile 缺包）；红 = 没有在跑。
+// 四档的判据来自 design/design-fixes.md §26.1，前端不改口径：
+//   绿 = 在跑且没有已知隐患；黄 = 有警告（没在跑但有隐患 / 在跑但 profile 有隐患）；
+//   红 = 上一次启动失败且之后没有成功过；无灯 = 已停止（没在跑也没有警告）。
 // 状态由读数给。**读数没给的时候前端不猜**：
 // 实例卡走 unknown（空心灰环 + 一句「读不到状态，颜色不猜」）；
-// 已停止的 profile 卡不一样 —— 它本来就不是实例读数，它的黄/红判据（缺包、有没有 patch）
-// 全都在 profiles 读数里现成摆着，那是照判据算出来的事实，不是猜。
+// 已停止的 profile 卡不一样 —— 它本来就不是实例读数，它的黄/红判据（缺包、patch 在不在、
+// 审计里最近一次启动的成败）全都在 profiles 读数里现成摆着，那是照判据算出来的事实，不是猜。
 
 ///|
 /// 状态灯的类名后缀：样式表里 .dsh-dot.light-* 那一组。
 fn light_class(light : Light) -> String {
   match light {
     LightRun => "light-run"
+    LightWarn => "light-warn"
     LightFault => "light-fault"
     LightStart => "light-start"
     LightStop => "light-stop"
@@ -1456,10 +1463,24 @@ fn light_class(light : Light) -> String {
 fn light_key(light : Light) -> String {
   match light {
     LightRun => "running"
+    LightWarn => "warn"
     LightFault => "fault"
     LightStart => "starting"
     LightStop => "stopped"
     LightUnknown => "unknown"
+  }
+}
+
+///|
+/// 这一档画不画灯（§26.1：已停止不显示灯）。
+///
+/// 返回 false 的档位，视图那边**一个节点都不产出**：不是画一颗透明的圆 ——
+/// 透明的圆还在 DOM 里，几何上仍占着一个位置，读屏也还会念它。
+/// 「不显示」就是没有。
+fn light_shown(light : Light) -> Bool {
+  match light {
+    LightStop => false
+    _ => true
   }
 }
 
@@ -1471,7 +1492,8 @@ fn light_key(light : Light) -> String {
 fn light_label(light : Light) -> String {
   match light {
     LightRun => "运行中"
-    LightFault => "故障"
+    LightWarn => "有警告"
+    LightFault => "上次启动失败"
     LightStart => "正在启动"
     LightStop => "已停止"
     LightUnknown => "状态未知"
@@ -1534,7 +1556,8 @@ fn instance_health_facts(fact : InstanceFact, profile_fact : ProfileFact?) -> In
   }
 }
 ///|
-/// 实例卡的状态灯：档位**只看读数里的状态**，前端不自己改口径。
+/// 实例卡的状态灯（§26.1 的四档）：读数给的 state 是**事实**，四档是它加上
+/// profile 体检之后落下来的那一格。
 ///
 /// 读数没给状态就走 unknown —— 调用方据此说清「读不到」，不拿握手探测的结果去替它定色。
 /// 返回三样：档位、抽屉正文那一句（人话）、悬停里的技术依据（这个结论是怎么来的）。
@@ -1543,22 +1566,35 @@ fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, S
   let health = instance_health_facts(fact, profile_fact)
   let trouble = profile_trouble(health)
   let signature = signature_plain(fact)
+  // 绿灯那一句怎么说：体检读数在手上才说「正常」，读不到就如实说读不到 ——
+  // 绿只由签名给，不替 profile 说一句没有读数支撑的话。
+  let health_note = match health {
+    Some(_) => "；这只 profile 的体检也正常（缺包 0，cordis.patch.yml 在）。"
+    None =>
+      "；这只 profile 的体检读不到（缺包与 patch 都没有读数），绿灯只由握手应答给，不替它说「正常」。"
+  }
   match fact.state {
     Some("running") =>
-      (
-        LightRun,
-        "它正在 :" + port + " 上应答",
-        "判据：探测这个端口时命中了 dsh 的握手应答" +
-        (if signature == "" { "" } else { "（" + signature + "）" }) +
-        "。" +
-        (if trouble == "" {
-          ""
-        } else {
-          "profile 那一侧还有一条：" + trouble + "。绿灯由应答给，缺包不改颜色。"
-        }),
-      )
+      if trouble == "" {
+        (
+          LightRun,
+          "它正在 :" + port + " 上应答",
+          "判据：探测这个端口时命中了 dsh 的握手应答" +
+          (if signature == "" { "" } else { "（" + signature + "）" }) +
+          health_note,
+        )
+      } else {
+        (
+          LightWarn,
+          "它正在 :" + port + " 上应答，但" + trouble,
+          "判据：握手应答通过了" +
+          (if signature == "" { "" } else { "（" + signature + "）" }) +
+          "，但 profile 那一侧有一条已知隐患：" + trouble +
+          "。绿灯只给「在跑且没有已知隐患」的那一档；有隐患归黄（§26.1）。",
+        )
+      }
     Some("fault") => {
-      // 黄的两个成因分开算：握手不应答（端口在听、进程像 dsh、应答对不上），
+      // 黄（有警告）的两个成因分开算：握手不应答（端口在听、进程像 dsh、应答对不上），
       // 与 profile 那一侧有毛病（缺包 / 补丁文件不在）。两句长得不一样，
       // 不会被一起读成一句含糊的「有点问题」。
       let handshake_failed = fact.signature_id == ""
@@ -1570,7 +1606,7 @@ fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, S
         parts.push(trouble)
       }
       let reason = if parts.length() == 0 {
-        "读数把这一档判成故障，但这一版界面读不出具体是哪一条"
+        "读数把这一档判成有警告，但这一版界面读不出具体是哪一条"
       } else {
         join_with(parts, "；")
 }
@@ -1581,11 +1617,11 @@ fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, S
         } else {
           ""
         }) +
-        "。"
+        "。这一档不是红灯：红灯只给「上一次启动失败且之后没成功过」的那一只（§26.1）。"
       } else {
-        "判据：握手应答是通的，这一档是 profile 那一侧给的。"
+        "判据：握手应答是通的，这一档的隐患在 profile 那一侧。"
 }
-      (LightFault, reason, basis)
+      (LightWarn, reason, basis)
     }
     Some("starting") =>
       (
@@ -1615,29 +1651,64 @@ fn instance_light(fact : InstanceFact, profile_fact : ProfileFact?) -> (Light, S
 }
 
 ///|
-/// 已停止的 profile 卡：状态灯由 profiles 读数自己算（黄的两条判据、红的那条都在里面）。
+/// 已停止的 profile 卡：四档的判据全在读数里，前端只按 §26.1 落格。
 ///
 /// 这不是「猜颜色」：没有在跑是这一组的分组条件（in_use_by 已经排掉了正在被用的那几只），
-/// 缺包与补丁文件在不在都是读数里现成给的，一个字都没有编。
+/// 缺包与补丁文件在不在来自这份 profiles 读数，红灯那条来自审计流水里这一只
+/// 最近一次 start-instance 的结局（后端给的 lastStart，前端不自己判）。
+///
+/// 优先级：红灯（上次启动失败）> 黄（有警告）> 已停止（不画灯）。
+/// 红灯排在最前：一只上一次起不来、之后也没起来过的 profile，缺包只是它的成因之一，
+/// 说成「有警告」会把真正的那件事（它起不来）压过去。
 fn profile_light(fact : ProfileFact) -> (Light, String, String) {
   let missing = fact.bundles.missing
+  let source = if fact.last_start_source == "" {
+    ""
+  } else {
+    "来源：" + fact.last_start_source + "。"
+  }
+  match fact.last_start {
+    Some(attempt) =>
+      if !attempt.ok {
+        let when = js_short_time(attempt.at)
+        let codes = if attempt.code == "" { "" } else { "（" + attempt.code + "）" }
+        let why = if attempt.message == "" { "" } else { "：" + attempt.message }
+        return (
+          LightFault,
+          "上一次启动失败" +
+          (if when == "" { "" } else { "（" + when + "）" }) +
+          "，之后没有成功启动过",
+          "判据：audit.jsonl 里这只 profile 最近一条 start-instance 的结局是失败" +
+          codes + why + "；它之后没有成功启动的记录，所以这一只是红灯。" + source,
+        )
+      }
+    None => ()
+  }
+  // 「最近一次启动」这句话按手上有没有记录说，不拿「没有记录」说成「没有失败」
+  let start_note = match fact.last_start {
+    Some(_) => "最近一次启动是成功的"
+    None => "审计里没有这只 profile 的启动失败记录"
+  }
   if missing.length() > 0 {
     (
-      LightFault,
-      "没有在跑；这只 profile 缺 " + missing.length().to_string() + " 个包",
-      "判据：这只 profile 声明的包里有这些没装上：" + join_with(missing, "、") + "。",
+      LightWarn,
+      "没有在跑，但这只 profile 缺 " + missing.length().to_string() + " 个包",
+      "判据：这只 profile 声明的包里有这些没装上：" + join_with(missing, "、") +
+      "。缺包归黄，不是红：红灯只给「上一次启动失败且之后没成功过」（§26.1）。" + source,
     )
   } else if !fact.patch_exists {
     (
-      LightFault,
-      "没有在跑；这只 profile 的 cordis.patch.yml 不在",
-      "判据：cordis.patch.yml 不在，这只 profile 起不来。",
+      LightWarn,
+      "没有在跑，但这只 profile 的 cordis.patch.yml 不在",
+      "判据：cordis.patch.yml 不在，这只 profile 起不来。这一条归黄，不是红（§26.1）。" +
+      source,
     )
   } else {
     (
       LightStop,
       "没有在跑",
-      "这只 profile 的包都装上了、cordis.patch.yml 也在；只是现在没有实例在用它。",
+      "这只 profile 的包都装上了、cordis.patch.yml 也在，" + start_note +
+      "；只是现在没有实例在用它。" + source,
     )
   }
 }
