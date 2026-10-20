@@ -335,3 +335,16 @@
 
 - 造一只隔离 profile（临时环境），把卡片 hover 起来，量：金色描边（inset 或 border）仍在、主色 hover 描边不覆盖它、两者叠加时的最终 box-shadow/border 计算值。
 - 若金色被主色盖掉，改成「金边在外圈、hover 主色在内圈」并给出计算值。
+## 28 两件小收尾（交队友）
+
+### 28.1 「上次启动」时刻也认重启
+
+`backend/store/laststarted.mbt` 现在只认 `start-instance` 且 ok=true，一次成功的重启不会更新卡片第二行的时刻。改成两种动作都认（`start-instance` / `restart-instance`，仍只取成功的那一笔），口径与 startattempt 一致。
+
+验收：成功的重启之后，已停止 profile 的卡片第二行时刻变成那次重启的时刻。
+
+### 28.2 hover 描边换序，让主色环不被淡金压
+
+现在 box-shadow 顺序是「金 1px、淡金 3px、主色 2px」，主色环被上面那层 0.16 淡金压成 rgb(89,120,174)。改成「金 1px、主色 2px、淡金 3px」，让 1..2px 是纯主色，2..3px 才是淡金。
+
+验收：hover 时上缘逐像素应为 #d8b25a → rgb(66,109,191) → rgb(64,60,50) → 悬停底色；computed box-shadow 顺序与之一致。

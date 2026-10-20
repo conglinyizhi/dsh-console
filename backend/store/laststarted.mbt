@@ -3,7 +3,8 @@
 // 卡片第二行的第三顺位用它：**有备注写备注**，没有备注才写它；两个都没有就空着。
 // 数据只从控制台自己的记录里取，一个字都不编：
 //   ① runtime.json 的 startedAt —— 控制台自己起过的实例的登记（本文件读 registry）
-//   ② audit.jsonl 里 action == "start-instance" 且 ok == true 的行 —— 审计流水
+//   ② audit.jsonl 里 action 为 start-instance 或 restart-instance、且 ok == true 的行 —— 审计流水
+//      （design/design-fixes.md §28.1：一次成功的重启也是一次启动；口径与 store/startattempt 一致）
 // 正在跑的那一只不在这里：它的真实启动时刻在 /api/local/instances 的 startedAt 里
 // （由 /proc 的进程起始时间推出来），前端优先用它，这里只是兜底。
 //
@@ -63,19 +64,23 @@ fn put_latest(list : Array[LastStarted], id : String, at : String, source : Stri
 ///|
 /// 从一条审计行里取「上次启动」，取不到给空数组。
 ///
-/// 只认 action == "start-instance" 且 ok == true：失败的那一笔启动没有把实例起起来，
-/// 拿它当「上次启动」会把一次没成的事说成启动过。
+/// 只认 action 为 start-instance 或 restart-instance、且 ok == true 的行：失败的那一笔
+/// 启动没有把实例起起来，拿它当「上次启动」会把一次没成的事说成启动过。
+/// 来源那句点名这一笔是哪种动作（§28.1：重启也算启动，读数里要说清取的是哪一种）。
 /// 端口的两条来源（params.port 是请求里指定的、outcome.port 是实际用的）都可能没有 ——
 /// 都没有就只产出 profile 那一条，**不拿别的端口顶上**。
 fn audit_start_entries(line : Json) -> Array[LastStarted] {
   let out : Array[LastStarted] = []
-  match field_of(line, "action") {
+  let action = match field_of(line, "action") {
     Some(v) =>
       match as_string(v) {
-        Some(name) => if name != "start-instance" { return out }
+        Some(name) => name
         None => return out
       }
     None => return out
+  }
+  if !is_start_action(action) {
+    return out
   }
   match field_of(line, "ok") {
     Some(v) =>
@@ -105,10 +110,11 @@ fn audit_start_entries(line : Json) -> Array[LastStarted] {
       }
     None => ""
   }
-  let source = "audit.jsonl 里 start-instance 那一笔的时间"
+  let source = "audit.jsonl 里 " + action + " 那一笔的时间"
   if profile != "" {
-    // 审计行里**没有** home（start-instance 的 params 只带 profile 与 port）：
-    // 只有 profile 时按老形状产 id（profile:<名字>）。登记里那一路有 home，用那一路的。
+    // 审计行里可能没有 home（start-instance 常常只带 profile 与 port；restart-instance
+    // 的 params 由 actions/action.mbt 的 audit_params_for 补上了 home）：
+    // 没有 home 时按老形状产 id（profile:<名字>）。登记里那一路有 home，用那一路的。
     // 硬安一个默认 home 上去就等于猜，而猜错的行 id 会对到另一份档案的「上次启动」上。
     let home = match field_of(params, "home") {
       Some(v) =>
