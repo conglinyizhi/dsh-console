@@ -22,8 +22,9 @@ await send('Page.navigate', { url: process.argv[2] }); await wait(5000)
 // 所以「灯」与「状态词」要分开取：状态词是每张卡都有的那一格（data-state 与灯上那格同源）。
 const cards = JSON.parse(await ev(`JSON.stringify([...document.querySelectorAll('[data-name^=\"instance-card\"]')].map((c) => {
   const dot = c.querySelector('[data-name^=\"status-light\"]')
+  // §44 之后状态词不再上卡：卡片根节点上留了 data-state 当机器可读的出口。
   const word = c.querySelector('.dsh-dot-state')
-  const shown = dot || word
+  const shown = dot || word || { getAttribute: () => c.getAttribute('data-state') }
   const cs = dot ? getComputedStyle(dot) : null
   return { id: c.id, text: c.textContent.trim().slice(0, 40), buttons: c.querySelectorAll('button').length, menus: c.querySelectorAll('[data-name^=\"row-menu\"]').length, fields: c.querySelectorAll('[data-name^=\"field\"]').length,
     state: (shown && shown.getAttribute('data-state')) || null, lightPresent: !!dot, lightBg: cs ? cs.backgroundColor : null, lightW: dot ? Math.round(dot.getBoundingClientRect().width) : null, word: word ? word.textContent.trim() : null }

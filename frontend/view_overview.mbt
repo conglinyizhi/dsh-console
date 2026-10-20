@@ -228,22 +228,9 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       card_name_text(row),
     ),
   ]
-  // 状态词：颜色之外的第二条通道（design/design-fixes.md 第 1 条），但**故障那一档不上卡**。
-  // 「上次启动失败」五个字会挤掉名字（headless 被截成「hea…」），而它要说的其实是
-  // 「点开看」——红灯 + 卡上悬停 + 抽屉里那句说都还在，文字通道没断（§43）。
-  if row.light is LightFault {
-    ()
-  } else {
-    head.push(
-      @html.span(
-        class="dsh-dot-state " + light_key(row.light),
-        attrs=mark("card-state", ["overview", "card", row.id, "state"])
-          .data_set("state", light_key(row.light))
-          .title(light_label(row.light) + "：" + row.light_reason),
-        light_label(row.light),
-      ),
-    )
-  }
+  // 卡上不再写状态词（§44）：分组标题「当前运行的实例 / 已停止的实例」已经把这件事说了，
+  // 写在每张卡上是同一句话重复 N 遍，还挤名字。红灯/绿灯本身仍带 aria-label 与悬停，
+  // 卡上名字的悬停也仍写「（状态词）」，文字通道没断。
   // 小金标紧跟在名字后面（隔离那一档才有节点）：它是金边之外的第二信号
   match row.home_kind {
     "isolated" => head.push(card_home_badge(row))
@@ -267,7 +254,9 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   @html.article(
     id=card_id(row.id),
     class=card_class(row, model),
-    attrs=card_attrs(row, model, emit),
+    // 状态词不再上卡（§44），但状态本身要留一个机器可读的出口：
+    // 验收与探针按这个属性认，读屏按灯上的 aria-label 认。
+    attrs=card_attrs(row, model, emit).data_set("state", light_key(row.light)),
     [
       @html.span(class="dsh-tile-slot", [
         @html.span(class=tile_class, [icon(tile_icon, size=20)]),

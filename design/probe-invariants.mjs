@@ -91,13 +91,18 @@ const expr = `(() => {
   const dotXs = cards.map((c) => c.dot && c.dot.x).filter((x) => x != null)
   // 响应式多列之后，「跨卡对齐」要按列比：不同列的卡片起点不同，跨列比没有意义 ✗
   // 按卡片左缘（取整到 2px，容忍亚像素）分组，各看各列内部是否全等。
+  // 列按**卡片**左缘分：已停止的卡没有灯（§26.1），按灯分组会把那些列整列漏掉，
+  // 「多列」这一条就会在「只有一张卡在跑」时误判成 1 列。
   const byCol = {}
   for (const c of cards) {
-    if (!c.dot || c.dot.x == null || !c.card) continue
+    if (!c.card) continue
     const k = Math.round(c.card.x / 2) * 2
-    ;(byCol[k] = byCol[k] || []).push(c.dot.x)
+    ;(byCol[k] = byCol[k] || []).push(c.dot && c.dot.x != null ? c.dot.x : null)
   }
-  const colResults = Object.entries(byCol).map(([k, xs]) => ({ colX: Number(k), count: xs.length, allEqual: new Set(xs).size === 1, dotXs: xs }))
+  const colResults = Object.entries(byCol).map(([k, xs]) => {
+    const dots = xs.filter((x) => x != null)
+    return { colX: Number(k), count: xs.length, allEqual: new Set(dots).size <= 1, dotXs: dots }
+  })
   return JSON.stringify({
     columns: colResults.length,
     dotXsByColumn: colResults,
