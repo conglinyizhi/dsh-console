@@ -231,19 +231,29 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   // 卡上不再写状态词（§44）：分组标题「当前运行的实例 / 已停止的实例」已经把这件事说了，
   // 写在每张卡上是同一句话重复 N 遍，还挤名字。红灯/绿灯本身仍带 aria-label 与悬停，
   // 卡上名字的悬停也仍写「（状态词）」，文字通道没断。
-  // 小金标紧跟在名字后面（隔离那一档才有节点）：它是金边之外的第二信号
-  match row.home_kind {
-    "isolated" => head.push(card_home_badge(row))
-    _ => ()
-  }
-  // 蓝标：命令行型（bundles 里没有 dsh-web-app）。这种 profile 没有网页入口，
-  // 起不成常驻实例 —— 在卡上先说出来，省得用户点「启动」再看报错（§41）。
-  if row.cli_only {
-    head.push(card_cli_badge(row))
-  }
   match row.port_value {
     Some(port) => head.push(card_port(row, port))
     None => ()
+  }
+  // 标记（金标「独立 home」/ 蓝标「命令行型」/ 以后别的颜色）**吸在右上角**：
+  // 一律摆在第一行的最右端，按一行并排、新的往后加。名字占满余下宽度（.dsh-name flex:1），
+  // 所以标记组永远贴着卡片右边，与端口同一行时排在端口右侧（§46）。
+  let badges : Array[@html.Html] = []
+  match row.home_kind {
+    "isolated" => badges.push(card_home_badge(row))
+    _ => ()
+  }
+  if row.cli_only {
+    badges.push(card_cli_badge(row))
+  }
+  if badges.length() > 0 {
+    head.push(
+      @html.span(
+        class="dsh-case-badges",
+        attrs=mark("card-badges", ["overview", "card", row.id, "badges"]),
+        badges,
+      ),
+    )
   }
   let lines : Array[@html.Html] = [@html.div(class="dsh-case-head", head)]
   // 第二行只在这一行真有内容时才多一个节点：两条都没有时 DOM 逐节点与从前一致
