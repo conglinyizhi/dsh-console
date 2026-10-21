@@ -746,15 +746,16 @@ extern "js" fn js_slide_capture(track_id : String) -> Unit =
   #|   if (!el) return;
   #|   if (el.__dshDrag) return;
   #|   const fire = (type, ev) => {
-  #|     const Ctor = type === "pointermove" ? PointerEvent : PointerEvent;
-  #|     el.dispatchEvent(new Ctor(type, { clientX: ev.clientX, clientY: ev.clientY, bubbles: true }));
+  #|     // bubbles:false 是关键：合成事件不能再冒到 window，否则 up 里再派发会无限递归（实测炸栈）
+  #|     el.dispatchEvent(new PointerEvent(type, { clientX: ev.clientX, clientY: ev.clientY, bubbles: false }));
   #|   };
   #|   const move = (ev) => fire("pointermove", ev);
   #|   const up = (ev) => {
-  #|     fire("pointerup", ev);
+  #|     // 先卸监听再派发：即使某天又冒泡回来，也已经没有监听器了
   #|     window.removeEventListener("pointermove", move, true);
   #|     window.removeEventListener("pointerup", up, true);
   #|     el.__dshDrag = false;
+  #|     fire("pointerup", ev);
   #|   };
   #|   window.addEventListener("pointermove", move, true);
   #|   window.addEventListener("pointerup", up, true);
