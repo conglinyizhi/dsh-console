@@ -90,8 +90,9 @@ fn normalize_path(path : String) -> String {
 ///|
 /// 这一只「声明要用的插件名」：package.json 的 dsh.profile.bundles，
 /// 加上 cordis.patch.yml 里每条 patch 的 name:（补丁层点到的插件也是声明）。
-async fn declared_plugins(dir : String) -> Array[String] noraise {
+async fn declared_plugins(dir : String) -> (Array[String], Array[String]) noraise {
   let out : Array[String] = []
+  let unresolved : Array[String] = []
   let push = fn(name : String) {
     let n = @json.trim_both(name)
     if n != "" && !out.contains(n) {
@@ -134,31 +135,88 @@ async fn declared_plugins(dir : String) -> Array[String] noraise {
       } else if value.length() >= 2 && value.has_prefix("'") && value.has_suffix("'") {
         value = @json.slice(value, 1, value.length() - 1)
       }
-      push(value)
+      // patch 里的 name: 可能是插件实例名（ClyzhiReviewAgent），不是包名：
+      // 只有能解析成包的才当插件列出来，解析不成的进 warnings（§N 第四版）。
+      match resolve_package(dir, value) {
+        Some(_) => push(value)
+        None => unresolved.push(value)
+      }
     }
   }
-  out
+  (out, unresolved)
 }
 
 ///|
-/// 一只插件在源这一侧的形态（§N 第二版）：本地实体 / 本地软链 / registry 装上的 / 声明了没装。
+/// 按解析顺序找一只包（§N 第四版）：profile/node_modules → home/node_modules → home/packages。
+/// hoisting 与 pnpm workspace 都会把包放到后两处 —— 只看 profile 自己的 node_modules 会误判成没装。
+async fn resolve_package(dir : String, name : String) -> String? noraise {
+  let candidates : Array[String] = [
+    @json.join_all([dir, "node_modules", name]),
+    // dir = <home>/profiles/<name>，所以 home 是上两级
+    @json.join_all([@json.dirname(@json.dirname(dir)), "node_modules", name]),
+    @json.join_all([@json.dirname(@json.dirname(dir)), "packages", @json.basename(name)]),
+    @json.join_all([@json.dirname(@json.dirname(dir)), "packages", name]),
+  ]
+  for path in candidates {
+    let is_link = match @json.read_link(path) {
+      Ok(_) => true
+      Err(_) => false
+    }
+    if is_link || @json.is_dir(path) {
+      return Some(path)
+    }
+  }
+  None
+}
+
+///|
+/// 一只插件在源这一侧的形态（§N 第二版 + 第四版的解析顺序）：
+/// 本地实体 / 本地软链 / registry 装上的 / 声明了没装。
 async fn plugin_kind_of(dir : String, name : String) -> String noraise {
-  let path = @json.join_all([dir, "node_modules", name])
+  let path = match resolve_package(dir, name) {
+    Some(p) => p
+    None => return "missing"
+  }
   let is_link = match @json.read_link(path) {
     Ok(_) => true
     Err(_) => false
   }
-  if is_link {
+  // 只有「profile 自己的 node_modules 里”的本地包才算可分发实体；
+  // home 级 hoisting / packages 里的是安装态，只补声明。
+  let in_profile = path.has_prefix(@json.join_all([dir, "node_modules", ""]))
+  if in_profile && is_link {
     return "local-link"
   }
-  if !@json.is_dir(path) {
-    return "missing"
-  }
-  // @local/* 与 file:/link: 依赖算「本地」；其余是 registry 装上的普通包
-  if name.has_prefix("@local/") {
+  if in_profile && (name.has_prefix("@local/") || is_local_dep(dir, name)) {
     return "local-dir"
   }
   "registry"
+}
+
+///|
+/// package.json 里这只依赖是不是 file: / link: 声明的（那种才算本地实体）。
+async fn is_local_dep(dir : String, name : String) -> Bool noraise {
+  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+    Ok(t) => t
+    Err(_) => return false
+  }
+  let pkg = match @json.json_parse(text) {
+    Some(j) => j
+    None => return false
+  }
+  let deps = match @json.json_field(pkg, "dependencies") {
+    Some(d) => d
+    None => return false
+  }
+  for pair in @store.object_entries(deps) {
+    if pair.0 == name {
+      match @json.json_string(pair.1) {
+        Some(spec) => return spec.has_prefix("file:") || spec.has_prefix("link:")
+        None => return false
+      }
+    }
+  }
+  false
 }
 
 ///|
@@ -174,16 +232,20 @@ pub(all) struct PluginEntry {
 /// 预览用的完整清单：声明 ∪ 本地包，每条带形态 / 版本 / 是否声明。
 pub async fn plugin_inventory(dir : String) -> Array[PluginEntry] noraise {
   let out : Array[PluginEntry] = []
-  let declared = declared_plugins(dir)
+  let (declared, _unresolved) = declared_plugins(dir)
   let locals = local_plugins_of(dir)
   let seen : Array[String] = []
   for name in declared {
     let kind = plugin_kind_of(dir, name)
-    let path = @json.join_all([dir, "node_modules", name])
+    // 版本按解析到的真实位置读（hoisting / packages 里的也有版本）
+    let version = match resolve_package(dir, name) {
+      Some(path) => plugin_version(path)
+      None => ""
+    }
     out.push({
       name,
       kind,
-      version: plugin_version(path),
+      version,
       declared: true,
     })
     seen.push(name)
@@ -237,7 +299,11 @@ pub async fn merge_preview_json(source_in : String) -> @json.JsonVal raise Actio
     fail("not-found", "profile 目录不存在：" + dir)
   }
   let entries = plugin_inventory(dir)
+  let (_declared, unresolved) = declared_plugins(dir)
   let warnings : Array[String] = []
+  for name in unresolved {
+    warnings.push("patch 里 " + name + " 解析不到包（可能是插件实例名，不当插件列出）")
+  }
   let items : Array[@json.JsonVal] = []
   for entry in entries {
     if entry.kind == "missing" {
