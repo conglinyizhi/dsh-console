@@ -184,14 +184,13 @@ fn update(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
   match next.notice {
     None => (next, cmd)
     Some(n) =>
-      if !n.ok {
-        // 失败常驻：不挂计时，也不重置任何东西
-        (next, cmd)
-      } else if n.seq == notice_seq(model) {
+      if n.seq == notice_seq(model) {
         // 同一条还在（悬停重新计时也走这里）：计时已经在跑，不重挂
         (next, cmd)
       } else {
-        (next, @cmd.batch([cmd, @cmd.delay(emit(FlashExpire(n.seq)), flash_ms)]))
+        // 成功 3.5 秒走；失败给长一点（8 秒）但也走，不再常驻（§91）
+        let ms = if n.ok { flash_ms } else { err_ms }
+        (next, @cmd.batch([cmd, @cmd.delay(emit(FlashExpire(n.seq)), ms)]))
       }
   }
 }

@@ -429,7 +429,7 @@ fn notice_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.h2(
             class="dsh-notice-panel-title",
             attrs=mark("notice-panel-title", ["shell", "notice", "panel", "title"]),
-            "通知（" + model.notice_history.length().to_string() + "）",
+            "通知",
           ),
           @html.button(
             id=notice_panel_close_id(),
