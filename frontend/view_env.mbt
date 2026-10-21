@@ -357,6 +357,34 @@ fn env_value_cell(
 }
 
 ///|
+/// N9：专窗顶部的作用域说明 + 「去设置 → 进程」链接（与切换版本那条同一套写法）。
+fn env_scope_line(target : EnvTarget, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let text = if target.scope == "global" {
+    "这些变量在起任何实例时挂进子进程"
+  } else {
+    "只在这只 profile 起实例时生效，同名键覆盖全局"
+  }
+  @html.div(
+    class="dsh-env-scope",
+    attrs=mark("env-scope", ["settings", "env", target.scope_id, "scope"]),
+    [
+      @html.span(
+        class="dsh-env-scope-text",
+        attrs=mark("env-scope-text", ["settings", "env", target.scope_id, "scope-text"]),
+        text,
+      ),
+      @html.button(
+        class="dsh-link-btn",
+        type_="button",
+        attrs=mark("env-goto-process", ["settings", "env", target.scope_id, "goto-process"]),
+        on_click=emit(EnvGotoProcess),
+        [@html.text("去设置 → 进程")],
+      ),
+    ],
+  )
+}
+
+///|
 /// 表里的一行：键 / 值 / 操作。保留键那一档置灰、不给动作，只注明「控制台自己管」。
 fn env_row(
   model : Model,
@@ -1029,6 +1057,10 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       attrs=mark("dialog-title", ["dialog", "env-dialog", "title"]),
       name + " 的启动变量",
     ),
+    match target {
+      Some(t) => env_scope_line(t, emit)
+      None => @html.nothing
+    },
     mode_line,
     running_note,
     content,
@@ -1120,6 +1152,7 @@ fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       attrs=mark("env-dialog-title", ["settings", "env", "dialog", "title"]),
       "全局启动变量",
     ),
+    env_scope_line(target, emit),
     @html.p(
       class="dsh-dialog-message",
       attrs=mark("env-dialog-message", ["settings", "env", "dialog", "message"]),

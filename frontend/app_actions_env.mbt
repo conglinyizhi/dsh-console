@@ -346,6 +346,10 @@ fn handle_env_dialog(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
       focus_after_render("dsh-env-global-close"),
     )
     EnvGlobalClose => ({ ..model, env_global_open: false }, @cmd.none)
+    EnvGotoProcess => {
+      let closed = { ..model, env_global_open: false, env_open: "" }
+      handle_settings_group_picked(closed, SettingsGroupPicked("process"), emit)
+    }
     EnvToggleExpand(key) => {
       let next : Array[String] = []
       let mut had = false

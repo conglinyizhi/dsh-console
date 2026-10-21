@@ -799,6 +799,8 @@ priv enum Msg {
   EnvGlobalClose
   /// 长值那一行展开 / 收起
   EnvToggleExpand(String)
+  /// 专窗顶部那条链接：关框并跳到 设置 → 进程
+  EnvGotoProcess
   EnvProfileClose
   /// 这只在跑：只读档上那颗「仍然修改」—— 解锁本次编辑（不改任何读数，只翻本地一格）
   EnvEditUnlock

@@ -366,6 +366,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     EnvGlobalOpen => handle_env_dialog(model, msg, emit)
     EnvGlobalClose => handle_env_dialog(model, msg, emit)
     EnvToggleExpand(_) => handle_env_dialog(model, msg, emit)
+    EnvGotoProcess => handle_env_dialog(model, msg, emit)
     EnvProfileOpen(_) => handle_env_profile_open(model, msg, emit)
     EnvProfileClose => handle_env_profile_close(model, msg, emit)
     // 只读档上那颗「仍然修改」（M）：只翻本地一格
