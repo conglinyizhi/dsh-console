@@ -19,6 +19,10 @@ pub(all) struct MergeTarget {
   declared_only : Array[String]
   /// 逐只的人话补充（「已声明，目标补包后才生效」这类）
   notes : Array[String]
+  /// cordis.patch.yml 的迁移结果（没动就都空）
+  patch_added : Array[String]
+  patch_overwritten : Array[String]
+  patch_backup : String
 }
 
 ///|
@@ -687,7 +691,13 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
         ("okCount", @json.jint(ok_count)),
         ("failedCount", @json.jint(reports.length() - ok_count)),
         // cordis.patch.yml 这一版不动：回执必须明说，免得以为合并过了
-        ("patchesTouched", @json.JBool(false)),
+        // 本次是否真的动过 patch（任一只目标 patchAdded/patchOverwritten 非空）
+        (
+          "patchesTouched",
+          @json.JBool(
+            reports.any(fn(r) { r.patch_added.length() > 0 || r.patch_overwritten.length() > 0 }),
+          ),
+        ),
       ]),
     ),
     (
@@ -730,6 +740,9 @@ async fn merge_into(
     bundles_added: [],
     declared_only: [],
     notes: [],
+    patch_added: [],
+    patch_overwritten: [],
+    patch_backup: "",
   }
   let (target_dir, _) = @profiles.profile_location(target_name)
   if !@json.is_dir(target_dir) {
@@ -795,6 +808,22 @@ async fn merge_into(
             return { ..report, snapshot, copied, overwritten, error: "写不进目标 package.json：" + e }
         }
       }
+      // 4) N6b：迁 cordis.patch.yml（失败这只目标 ok=false，快照仍在）
+      let (patch_added, patch_overwritten, patch_backup) =
+        match migrate_patch(source_dir, target_dir, snapshot, names) {
+          Ok(triple) => triple
+          Err(e) =>
+            return {
+              ..report,
+              snapshot,
+              copied,
+              overwritten,
+              bundles_added: added,
+              declared_only,
+              notes,
+              error: e,
+            }
+        }
       {
         ..report,
         snapshot,
@@ -803,6 +832,9 @@ async fn merge_into(
         bundles_added: added,
         declared_only,
         notes,
+        patch_added,
+        patch_overwritten,
+        patch_backup,
         ok: true,
       }
     }
@@ -822,6 +854,9 @@ fn merge_target_json(r : MergeTarget) -> @json.JsonVal {
     ("bundlesAdded", @json.jstr_array(r.bundles_added)),
     ("declaredOnly", @json.jstr_array(r.declared_only)),
     ("notes", @json.jstr_array(r.notes)),
+    ("patchAdded", @json.jstr_array(r.patch_added)),
+    ("patchOverwritten", @json.jstr_array(r.patch_overwritten)),
+    ("patchBackup", @json.JStr(r.patch_backup)),
   ])
 }
 ///|
@@ -862,4 +897,171 @@ pub async fn handle_merge_preview(
     }
   }
   @localapi.send_ok(res, data, read_at)
+}
+///|
+/// 把 YAML patch 拆成条目块：每块以顶层 "- " 行起头，后面的缩进行归它。
+fn patch_blocks(text : String) -> Array[String] {
+  let out : Array[String] = []
+  let cur : Array[String] = []
+  for raw in text.split("\n") {
+    let line = @json.owned(raw)
+    if line.has_prefix("- ") {
+      if cur.length() > 0 {
+        out.push(cur.join("\n"))
+        cur.clear()
+      }
+      cur.push(line)
+    } else if cur.length() > 0 {
+      cur.push(line)
+    }
+  }
+  if cur.length() > 0 {
+    out.push(cur.join("\n"))
+  }
+  out
+}
+
+///|
+/// 一块 patch 里 name: 的值（没有给空串）。
+fn patch_block_name(block : String) -> String {
+  for raw in block.split("\n") {
+    let line = @json.trim_both(@json.owned(raw))
+    if line.has_prefix("name:") {
+      let mut v = @json.trim_both(@json.slice(line, 5, line.length()))
+      if v.length() >= 2 && v.has_prefix("\"") && v.has_suffix("\"") {
+        v = @json.slice(v, 1, v.length() - 1)
+      }
+      return v
+    }
+  }
+  ""
+}
+
+///|
+/// 把源 patch 里属于 names 的条目合进目标 patch 文本：同名覆盖、其它保留、缺的追加。
+fn merge_patch_text(
+  target_text : String,
+  source_text : String,
+  names : Array[String],
+) -> (Array[String], Array[String], String) {
+  let added : Array[String] = []
+  let overwritten : Array[String] = []
+  let wanted_names : Array[String] = []
+  let wanted_blocks : Array[String] = []
+  for block in patch_blocks(source_text) {
+    let name = patch_block_name(block)
+    if names.contains(name) && !wanted_names.contains(name) {
+      wanted_names.push(name)
+      wanted_blocks.push(block)
+    }
+  }
+  if wanted_names.length() == 0 {
+    return (added, overwritten, target_text)
+  }
+  let kept : Array[String] = []
+  let covered : Array[String] = []
+  for block in patch_blocks(target_text) {
+    let name = patch_block_name(block)
+    let mut hit = false
+    for i, w in wanted_names {
+      if w == name {
+        hit = true
+        covered.push(w)
+        overwritten.push(w)
+        kept.push(wanted_blocks[i])
+      }
+    }
+    if !hit {
+      kept.push(block)
+    }
+  }
+  for i, w in wanted_names {
+    if !covered.contains(w) {
+      added.push(w)
+      kept.push(wanted_blocks[i])
+    }
+  }
+  (added, overwritten, kept.join("\n") + "\n")
+}
+
+///|
+/// N6b：把源 patch 里属于 names 的条目迁到目标。四步：
+///   备份进快照目录 → 合并同名 → 重新解析校验（失败回滚）→ 删临时备份（快照里那份留着）
+async fn migrate_patch(
+  source_dir : String,
+  target_dir : String,
+  snapshot : String,
+  names : Array[String],
+) -> Result[(Array[String], Array[String], String), String] noraise {
+  let source_text = match @json.read_text_file(@json.join_path(source_dir, "cordis.patch.yml")) {
+    Ok(s) => s
+    Err(_) => ""
+  }
+  if @json.trim_both(source_text) == "" {
+    return Ok(([], [], ""))
+  }
+  let target_path = @json.join_path(target_dir, "cordis.patch.yml")
+  let target_text = match @json.read_text_file(target_path) {
+    Ok(s) => s
+    Err(_) => ""
+  }
+  // 目标 patch 本身解析不了（不是 "- " 列表）：不动它，如实报错（回滚语义：原文保持）
+  if @json.trim_both(target_text) != "" && patch_blocks(target_text).length() == 0 {
+    return Err("目标 cordis.patch.yml 解析不了（不是 patch 列表），没有动它")
+  }
+  let (added, overwritten, new_text) = merge_patch_text(target_text, source_text, names)
+  if added.length() == 0 && overwritten.length() == 0 {
+    return Ok(([], [], ""))
+  }
+  let backup_path = @json.join_path(
+    @json.join_all([target_dir, ".snapshots", snapshot]),
+    "cordis.patch.yml.bak",
+  )
+  match @fsx.ensure_dir(@json.dirname(backup_path)) {
+    Ok(_) => ()
+    Err(e) => return Err("建不了快照目录：" + e)
+  }
+  match @fsx.write_text_atomic(backup_path, target_text) {
+    Ok(_) => ()
+    Err(e) => return Err("备份 patch 失败：" + e)
+  }
+  let temp_path = @json.join_path(target_dir, ".cordis.patch.yml.merge-bak")
+  match @fsx.write_text_atomic(temp_path, target_text) {
+    Ok(_) => ()
+    Err(e) => return Err("写临时备份失败：" + e)
+  }
+  match @fsx.write_text_atomic(target_path, new_text) {
+    Ok(_) => ()
+    Err(e) => {
+      let _ = @fsx.remove_file(temp_path)
+      return Err("写目标 patch 失败：" + e)
+    }
+  }
+  let ok = match @json.read_text_file(target_path) {
+    Ok(text) => {
+      let mut fine = @json.trim_both(text) != "" && patch_blocks(text).length() > 0
+      for name in added {
+        if !text.contains(name) {
+          fine = false
+        }
+      }
+      for name in overwritten {
+        if !text.contains(name) {
+          fine = false
+        }
+      }
+      fine
+    }
+    Err(_) => false
+  }
+  if !ok {
+    let _ = match @json.read_text_file(temp_path) {
+      Ok(text) => @fsx.write_text_atomic(target_path, text)
+      Err(e) => Err(e)
+    }
+    let _ = @fsx.remove_file(temp_path)
+    return Err("迁移后的 patch 校验不过，已回滚到备份（" + backup_path + "）")
+  }
+  let _ = @fsx.remove_file(temp_path)
+  Ok((added, overwritten, backup_path))
 }
