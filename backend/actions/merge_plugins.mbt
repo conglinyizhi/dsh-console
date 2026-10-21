@@ -147,15 +147,16 @@ async fn declared_plugins(dir : String) -> (Array[String], Array[String]) norais
 }
 
 ///|
-/// 按解析顺序找一只包（§N 第四版）：profile/node_modules → home/node_modules → home/packages。
-/// hoisting 与 pnpm workspace 都会把包放到后两处 —— 只看 profile 自己的 node_modules 会误判成没装。
+/// 按解析顺序找一只包（§N 第四版的口径，与控制台「已装几个」同一套）：
+///   profile/node_modules → 共享 profiles/node_modules（hoisted）→ 共享 profiles/packages → 没有。
+/// 共享 home 走 @runtime.resolve_dsh_home()（不写死 ~/.dsh）。
 async fn resolve_package(dir : String, name : String) -> String? noraise {
   let candidates : Array[String] = [
     @json.join_all([dir, "node_modules", name]),
-    // dir = <home>/profiles/<name>，所以 home 是上两级
-    @json.join_all([@json.dirname(@json.dirname(dir)), "node_modules", name]),
-    @json.join_all([@json.dirname(@json.dirname(dir)), "packages", @json.basename(name)]),
-    @json.join_all([@json.dirname(@json.dirname(dir)), "packages", name]),
+    // hoisted：与 locate_bundle_nr 同一个落点（<home>/profiles/node_modules/<name>）
+    @json.join_all([profiles_root(), "node_modules", name]),
+    @json.join_all([profiles_root(), "packages", @json.basename(name)]),
+    @json.join_all([profiles_root(), "packages", name]),
   ]
   for path in candidates {
     let is_link = match @json.read_link(path) {
