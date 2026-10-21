@@ -21,19 +21,19 @@ let clk_tck : Double = 100.0
 ///|
 /// 一个 dsh 进程的摘要。
 pub struct ProcSummary {
-  pid : Int
-  port : Int?
+  pid : Int32
+  port : Int32?
   profile : String?
   dsh_home : String?
   exe_path : String
   started_at : String?
-  uptime_seconds : Int?
+  uptime_seconds : Int32?
 }
 
 ///|
 /// readProcesses 的整体结果（instances 接口拿它做进程补充）。
 pub struct ProcReport {
-  scanned : Int
+  scanned : Int32
   instances : Array[ProcSummary]
 }
 
@@ -55,7 +55,7 @@ pub fn is_dsh_entry(token : String) -> Bool {
 
 ///|
 /// 读 /proc/<pid>/cmdline 按 NUL 拆成 argv；读不到或空给 None。
-pub async fn read_argv(pid : Int) -> Array[String]? noraise {
+pub async fn read_argv(pid : Int32) -> Array[String]? noraise {
   let file = proc_root + "/" + @json.int_to_dec(pid) + "/cmdline"
   let raw = match @json.read_text_file(file) {
     Ok(t) => t
@@ -79,7 +79,7 @@ pub async fn read_argv(pid : Int) -> Array[String]? noraise {
 /// 某个 PID 的 cmdline 看起来是不是 dsh（与 read_processes 用同一把尺子：is_dsh_entry）。
 /// 读不到 cmdline 给 false —— 读不到就不认，不猜。
 /// 第七轮契约拿它判「签名探测不通过的端口要不要列出来」。
-pub async fn cmdline_looks_like_dsh(pid : Int) -> Bool noraise {
+pub async fn cmdline_looks_like_dsh(pid : Int32) -> Bool noraise {
   match read_argv(pid) {
     Some(argv) => argv.any(fn(token) { is_dsh_entry(token) })
     None => false
@@ -88,7 +88,7 @@ pub async fn cmdline_looks_like_dsh(pid : Int) -> Bool noraise {
 
 ///|
 /// --port 8080 / --port=8080 都认；没有 --port 就是 null（不再是过滤条件）。
-pub fn read_port(argv : Array[String]) -> Int? {
+pub fn read_port(argv : Array[String]) -> Int32? {
   let mut i = 0
   while i < argv.length() {
     let token = argv[i]
@@ -129,7 +129,7 @@ pub fn read_option(argv : Array[String], name : String) -> String? {
 
 ///|
 /// /proc/<pid>/environ 里的某个 key；读不到（别的用户的进程）给 null。
-pub async fn read_env_of(pid : Int, key : String) -> String? noraise {
+pub async fn read_env_of(pid : Int32, key : String) -> String? noraise {
   let file = proc_root + "/" + @json.int_to_dec(pid) + "/environ"
   let raw = match @json.read_text_file(file) {
     Ok(t) => t
@@ -149,7 +149,7 @@ pub async fn read_env_of(pid : Int, key : String) -> String? noraise {
 /// 只扫一遍 /proc/<pid>/fd，取第一个 …/.dsh/… 前缀 —— 与 holders_for_inodes 同一把尺子。
 /// 用在「进程侧只能靠 fd 表判 home」的地方（冲突判定要比 (home, 名字)）。
 /// 这是**线索**不是结论：认不出给 None，调用方不许拿默认值 $HOME/.dsh 顶替。
-pub async fn fd_home_hint(pid : Int) -> String? noraise {
+pub async fn fd_home_hint(pid : Int32) -> String? noraise {
   let fd_dir = proc_root + "/" + @json.int_to_dec(pid) + "/fd"
   let names = match @json.list_dir_result(fd_dir) {
     Ok(list) => list
@@ -171,7 +171,7 @@ pub async fn fd_home_hint(pid : Int) -> String? noraise {
 ///|
 /// /proc/<pid>/stat 第 22 个字段：进程启动时的系统时钟滴答数。
 /// comm 里可能有空格和括号，从最后一个 ')' 之后切。
-pub async fn read_start_ticks(pid : Int) -> Int64? noraise {
+pub async fn read_start_ticks(pid : Int32) -> Int64? noraise {
   let file = proc_root + "/" + @json.int_to_dec(pid) + "/stat"
   let raw = match @json.read_text_file(file) {
     Ok(t) => t
@@ -186,7 +186,11 @@ pub async fn read_start_ticks(pid : Int) -> Int64? noraise {
     return None
   }
   let ticks = @json.parse_dec64(fields[19])
-  if ticks < 0L { None } else { Some(ticks) }
+  if ticks < 0L {
+    None
+  } else {
+    Some(ticks)
+  }
 }
 
 ///|
@@ -237,16 +241,23 @@ fn parse_double(s : String) -> Double {
 
 ///|
 /// JS 的 Math.round：.5 向上。
-fn round_half_up(value : Double) -> Int {
+fn round_half_up(value : Double) -> Int32 {
   let floored = value.to_int()
   let frac = value - floored.to_double()
-  if frac >= 0.5 { floored + 1 } else { floored }
+  if frac >= 0.5 {
+    floored + 1
+  } else {
+    floored
+  }
 }
 
 ///|
 /// 进程已运行秒数：/proc/<pid>/stat 第 22 字段（时钟滴答）与 /proc/uptime 换算。
 /// 任一项读不到就给 None —— 「读不到」与「刚启动」必须能分开。
-pub async fn uptime_seconds_of(pid : Int, sys_uptime : Double?) -> Int? noraise {
+pub async fn uptime_seconds_of(
+  pid : Int32,
+  sys_uptime : Double?,
+) -> Int32? noraise {
   let ticks = match read_start_ticks(pid) {
     Some(t) => t
     None => return None
@@ -269,7 +280,7 @@ pub async fn read_processes() -> ProcReport noraise {
   let now = @async.now()
   let instances : Array[ProcSummary] = []
   let names = @json.list_dir(proc_root)
-  let pids : Array[Int] = []
+  let pids : Array[Int32] = []
   for name in names {
     if @json.is_all_digits(name) {
       pids.push(@json.parse_dec(name))
@@ -295,7 +306,8 @@ pub async fn read_processes() -> ProcReport noraise {
     let port = read_port(argv)
     let uptime_seconds = uptime_seconds_of(pid, sys_uptime)
     let started_at = match uptime_seconds {
-      Some(seconds) => Some(@json.iso_from_epoch_ms(now - seconds.to_int64() * 1000L))
+      Some(seconds) =>
+        Some(@json.iso_from_epoch_ms(now - seconds.to_int64() * 1000L))
       None => None
     }
     instances.push({
@@ -308,7 +320,7 @@ pub async fn read_processes() -> ProcReport noraise {
       uptime_seconds,
     })
   }
-  { scanned: pids.length(), instances }
+  { scanned: pids.length(), instances, }
 }
 
 ///|
@@ -317,15 +329,17 @@ pub async fn read_processes_data() -> @json.JsonVal raise @localapi.ReadError {
   let report = read_processes()
   let instances : Array[@json.JsonVal] = []
   for item in report.instances {
-    instances.push(@json.JObj([
-      ("pid", @json.jint(item.pid)),
-      ("port", @json.int_or_null(item.port)),
-      ("profile", @json.str_or_null(item.profile)),
-      ("dshHome", @json.str_or_null(item.dsh_home)),
-      ("exePath", @json.JStr(item.exe_path)),
-      ("startedAt", @json.str_or_null(item.started_at)),
-      ("uptimeSeconds", @json.int_or_null(item.uptime_seconds)),
-    ]))
+    instances.push(
+      @json.JObj([
+        ("pid", @json.jint(item.pid)),
+        ("port", @json.int_or_null(item.port)),
+        ("profile", @json.str_or_null(item.profile)),
+        ("dshHome", @json.str_or_null(item.dsh_home)),
+        ("exePath", @json.JStr(item.exe_path)),
+        ("startedAt", @json.str_or_null(item.started_at)),
+        ("uptimeSeconds", @json.int_or_null(item.uptime_seconds)),
+      ]),
+    )
   }
   @json.JObj([
     ("procRoot", @json.JStr(proc_root)),

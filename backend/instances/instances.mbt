@@ -30,15 +30,15 @@ priv struct SocketFile {
 ///|
 /// 见上。
 let socket_files : Array[SocketFile] = [
-  { file: "/proc/net/tcp", family: "ipv4" },
-  { file: "/proc/net/tcp6", family: "ipv6" },
+  { file: "/proc/net/tcp", family: "ipv4", },
+  { file: "/proc/net/tcp6", family: "ipv6", },
 ]
 
 ///|
 /// /proc/net/tcp(6) 里一行 LISTEN：端口 + 第 9 列的 socket inode。
 /// inode 是「端口 → 进程」那条 join 的唯一钥匙（见 ../processes/procjoin.mbt）。
 priv struct ListenSocket {
-  port : Int
+  port : Int32
   inode : Int64
 }
 
@@ -57,14 +57,14 @@ let loopback_ipv6_mapped : String = "0000000000000000FFFF00000100007F"
 ///|
 /// 候选端口上限的缺省值：超了就截断，并在响应里说明。
 /// 真正生效的值来自设置 probe.maxCandidates，这里只是缺省与回退。
-pub let max_candidates : Int = 40
+pub let max_candidates : Int32 = 40
 
 ///|
 /// 逐个候选的探测结论（不含响应体），口径可核对。
 pub struct ProbeResult {
-  port : Int
+  port : Int32
   reached : Bool
-  http_status : Int?
+  http_status : Int32?
   content_type : String?
   signature_id : String?
   error : String?
@@ -78,8 +78,8 @@ pub struct ProbeResult {
 /// dsh 的网页入口只有一个端口，另一个端口探 GET / 自然是 404，那是**正常的**。
 /// 界面在说假话比少列一个端口更糟，所以收进主端口那一行，只当一条附注。
 pub struct AlsoPort {
-  port : Int
-  http_status : Int?
+  port : Int32
+  http_status : Int32?
   /// 这个端口命中的判据（没命中给空串）
   signature_id : String
   /// 一句人话：这个端口是什么、这一次探测拿到了什么
@@ -90,21 +90,21 @@ pub struct AlsoPort {
 /// 命中的实例。
 pub struct InstanceSummary {
   id : String
-  port : Int
+  port : Int32
   url : String
   title : String?
-  http_status : Int?
+  http_status : Int32?
   content_type : String?
   signature_id : String
   signature_describe : String
   signature_evidence : String
   profile : String?
-  pid : Int?
+  pid : Int32?
   dsh_home : String?
   exe_path : String?
   started_at : String?
-  uptime_seconds : Int?
-  probe_ms : Int
+  uptime_seconds : Int32?
+  probe_ms : Int32
   /// 该端口在 /proc/net/tcp(6) 里那行的 socket inode（读不到给 None）
   inode : Int64?
   /// 实例入口包的版本（…/node_modules/@deepseek-ai/dsh/package.json）
@@ -156,7 +156,8 @@ let signature_boot : Signature = {
 fn classify(probe : @localapi.Probe) -> Signature? {
   match probe.status {
     Some(401) =>
-      if @json.index_of(probe.body, "dsh web authentication required") is Some(_) {
+      if @json.index_of(probe.body, "dsh web authentication required")
+        is Some(_) {
         return Some(signature_auth)
       }
     _ => ()
@@ -197,7 +198,8 @@ fn parse_listen_sockets(text : String?, family : String) -> Array[ListenSocket] 
     let is_loopback = if family == "ipv4" {
       hex == @json.to_lower(loopback_ipv4)
     } else {
-      hex == @json.to_lower(loopback_ipv6) || hex == @json.to_lower(loopback_ipv6_mapped)
+      hex == @json.to_lower(loopback_ipv6) ||
+      hex == @json.to_lower(loopback_ipv6_mapped)
     }
     if !is_loopback {
       continue
@@ -213,14 +215,14 @@ fn parse_listen_sockets(text : String?, family : String) -> Array[ListenSocket] 
     } else {
       0L
     }
-    out.push({ port, inode })
+    out.push({ port, inode, })
   }
   out
 }
 
 ///|
 /// 十六进制串转 Int；非法给 -1。
-fn parse_hex(s : String) -> Int {
+fn parse_hex(s : String) -> Int32 {
   if s == "" {
     return -1
   }
@@ -243,10 +245,10 @@ fn parse_hex(s : String) -> Int {
 
 ///|
 /// 去重并按端口升序。
-fn dedup_sorted(ports : Array[Int]) -> Array[Int] {
+fn dedup_sorted(ports : Array[Int32]) -> Array[Int32] {
   let sorted = ports.copy()
   sorted.sort()
-  let out : Array[Int] = []
+  let out : Array[Int32] = []
   for p in sorted {
     let last = out.length() - 1
     if last < 0 || out[last] != p {
@@ -300,7 +302,7 @@ fn evidence(probe : @localapi.Probe, signature : Signature) -> String {
 
 ///|
 /// 一个端口对应的 socket inode；没有就 None（列里读不到 inode 时记 0，按读不到处理）。
-fn socket_inode_of(sockets : Array[ListenSocket], port : Int) -> Int64? {
+fn socket_inode_of(sockets : Array[ListenSocket], port : Int32) -> Int64? {
   for row in sockets {
     if row.port == port && row.inode != 0L {
       return Some(row.inode)
@@ -330,7 +332,7 @@ fn push_socket(sockets : Array[ListenSocket], row : ListenSocket) -> Unit {
 /// 这是弱证据，只在 inode join 走不通时兜底（真实实例命令行里根本不带 --port）。
 async fn supplement_processes(
   holders : @processes.HolderScan,
-  socket_inodes : Int,
+  socket_inodes : Int32,
 ) -> (ProcessSupplement, Array[@processes.ProcSummary]) noraise {
   let report = @processes.read_processes()
   let with_port : Array[@processes.ProcSummary] = []
@@ -341,29 +343,33 @@ async fn supplement_processes(
     }
   }
   let note = if with_port.length() > 0 {
-    "按 cmdline 的 --port 匹配到 " + with_port.length().to_string() +
+    "按 cmdline 的 --port 匹配到 " +
+    with_port.length().to_string() +
     " 个宿主 dsh 进程；这只在 socket inode 的 join 走不通时兜底用"
   } else {
     "没有带 --port 的 dsh 进程可兜底（宿主实例的命令行本来就不带 --port），进程侧只认 socket inode 的 join"
   }
-  ({
-    proc_root: @processes.proc_root,
-    scanned: report.scanned,
-    dsh_processes: report.instances.length(),
-    with_port: with_port.length(),
-    note,
-    socket_inodes,
-    inode_holders: holders.holders.length(),
-    fd_denied: holders.fd_denied,
-    join_note: holders.note,
-  }, with_port)
+  (
+    {
+      proc_root: @processes.proc_root,
+      scanned: report.scanned,
+      dsh_processes: report.instances.length(),
+      with_port: with_port.length(),
+      note,
+      socket_inodes,
+      inode_holders: holders.holders.length(),
+      fd_denied: holders.fd_denied,
+      join_note: holders.note,
+    },
+    with_port,
+  )
 }
 
 ///|
 /// 按端口找补充进程；找不到给 None。
 fn find_supplement(
   with_port : Array[@processes.ProcSummary],
-  port : Int,
+  port : Int32,
 ) -> @processes.ProcSummary? {
   for item in with_port {
     if item.port == Some(port) {
@@ -376,14 +382,15 @@ fn find_supplement(
 ///|
 /// 「刚起」的宽限窗口（秒）：控制台起的实例在这段时间内、端口已在听但签名还没通，
 /// 按 starting 算；超过就按故障（b）。判据见 judge_state。
-pub let start_grace_seconds : Int = 20
+pub let start_grace_seconds : Int32 = 20
 
 ///|
 /// 单个端口签名探测不通过时的一句话结论（用探测事实拼，不编）。
 fn probe_verdict(probe : @localapi.Probe) -> String {
   if probe.reached {
     match probe.status {
-      Some(code) => "HTTP " + @json.int_to_dec(code) + "，响应体不含任何 dsh 判据"
+      Some(code) =>
+        "HTTP " + @json.int_to_dec(code) + "，响应体不含任何 dsh 判据"
       None => "拿到了响应，但读不出 HTTP 状态码"
     }
   } else {
@@ -419,7 +426,11 @@ fn profile_fault_text(h : @profiles.ProfileHealth) -> String? {
   let parts : Array[String] = []
   if h.missing_bundles > 0 {
     parts.push(
-      "缺 " + @json.int_to_dec(h.missing_bundles) + " 个包（" + names_preview(h.missing_names) + "）",
+      "缺 " +
+      @json.int_to_dec(h.missing_bundles) +
+      " 个包（" +
+      names_preview(h.missing_names) +
+      "）",
     )
   }
   if !h.has_patch {
@@ -432,7 +443,11 @@ fn profile_fault_text(h : @profiles.ProfileHealth) -> String? {
     }
     text = text + p
   }
-  if text == "" { None } else { Some(text) }
+  if text == "" {
+    None
+  } else {
+    Some(text)
+  }
 }
 
 ///|
@@ -445,7 +460,8 @@ async fn lookup_profile_health(
 ) -> (@profiles.ProfileHealth?, String) noraise {
   let name = match profile {
     Some(n) => n
-    None => return (None, "进程 cmdline 里没有 --profile，解析不出 profile")
+    None =>
+      return (None, "进程 cmdline 里没有 --profile，解析不出 profile")
   }
   let home = match dsh_home {
     Some(h) => h
@@ -458,7 +474,8 @@ async fn lookup_profile_health(
   }
   let dir = match @profiles.profile_dir_of(home, name) {
     Some(d) => d
-    None => return (None, "profile 名不是单段目录名，不解析：" + name)
+    None =>
+      return (None, "profile 名不是单段目录名，不解析：" + name)
   }
   match @profiles.profile_health(home, name) {
     Some(h) => (Some(h), dir)
@@ -471,18 +488,15 @@ async fn lookup_profile_health(
 /// runtime.json 只记控制台起过的实例，外部起的一律不在里面 —— 所以它只用来判 starting。
 fn registered_instance(
   entries : Array[@store.InstanceRecord],
-  pid : Int?,
-  port : Int,
+  pid : Int32?,
+  port : Int32,
 ) -> Bool {
   for r in entries {
     if r.port == port {
       return true
     }
     match pid {
-      Some(p) =>
-        if r.pid == p {
-          return true
-        }
+      Some(p) => if r.pid == p { return true }
       None => ()
     }
   }

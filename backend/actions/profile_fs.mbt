@@ -36,7 +36,12 @@ pub fn validate_profile_name(name : String) -> Unit raise ActionError {
       ch == '_' ||
       ch == '-'
     if !ok {
-      fail("bad-params", "profile 名里有不允许的字符：" + ch.to_string() + "（只允许字母数字与 . _ -）")
+      fail(
+        "bad-params",
+        "profile 名里有不允许的字符：" +
+        ch.to_string() +
+        "（只允许字母数字与 . _ -）",
+      )
     }
   }
 }
@@ -48,8 +53,8 @@ pub struct ForkOutcome {
   profile : String
   new_name : String
   dir : String
-  files : Int
-  dirs : Int
+  files : Int32
+  dirs : Int32
   skipped : Array[String]
   started : SpawnOutcome?
   /// 新 profile 的"出生证明"备注全文（第五轮契约第二节）
@@ -63,11 +68,11 @@ pub struct ForkOutcome {
   /// mtime 的来源或读不到的原因
   dir_mtime_source : String
   /// 源 profile 里指向它之外的有效软链接条数（§60：派生副本前要告知「藕断丝连」）
-  external_links : Int
+  external_links : Int32
   /// 派生时带过来的软链接条数 / 跳过的（目标不在）/ 配置里换掉的旧目录前缀条数（§48）
-  links_fixed : Int
-  links_broken : Int
-  refs_rewritten : Int
+  links_fixed : Int32
+  links_broken : Int32
+  refs_rewritten : Int32
   /// 派生之后顺手建好的隔离 home 路径（规格第 8 节：派生的 profile 默认隔离）。
   /// None = 没建成，原因在 home_error —— 建失败**不影响派生本身**。
   home_path : String?
@@ -80,7 +85,7 @@ pub struct ForkOutcome {
 pub async fn fork_profile(
   profile : String,
   new_name : String?,
-  port : Int?,
+  port : Int32?,
 ) -> ForkOutcome raise ActionError {
   let source_name = @json.trim_both(profile)
   validate_profile_name(source_name)
@@ -110,7 +115,10 @@ pub async fn fork_profile(
     Some(home) => {
       fail(
         "conflict",
-        "名字 " + target_name + " 已经有一份隔离 home：" + home +
+        "名字 " +
+        target_name +
+        " 已经有一份隔离 home：" +
+        home +
         "（同名的那一份还在，换个名字再来）",
       )
       abort("unreachable: fail 一定抛错")
@@ -126,9 +134,10 @@ pub async fn fork_profile(
   let skip = [@profiles.snapshots_dir_name]
   let (total_files, _total_dirs) = @fsx.count_tree(source_dir, skip)
   fork_progress_start(target_name, total_files)
-  let stats = match @fsx.copy_tree(source_dir, target_dir, skip, on_progress=fn(s) {
-    fork_progress_step(s.files)
-  }) {
+  let stats = match
+    @fsx.copy_tree(source_dir, target_dir, skip, on_progress=fn(s) {
+      fork_progress_step(s.files)
+    }) {
     Ok(s) => s
     Err(e) => {
       fork_progress_finish(e)
@@ -140,11 +149,9 @@ pub async fn fork_profile(
   // 「相对」是按链接自己所在目录算的；副本换了目录，原样抄过去会指到别处。这一趟按
   // 「源目录解析出的绝对目标」在副本里重新摆一条（相对路径按副本位置算），顺手把
   // package.json / cordis.patch.yml 里写着源目录的绝对路径换成本次的目标目录（§48.2）。
-  let relink = @profiles.carry_symlinks(
-    source_dir,
-    target_dir,
-    [@profiles.snapshots_dir_name],
-  )
+  let relink = @profiles.carry_symlinks(source_dir, target_dir, [
+    @profiles.snapshots_dir_name,
+  ])
   // copy_tree 把软链记进 skipped（「非普通文件」）—— 这一趟已经把它们带过来了，
   // 回执再报「跳过」就是假话。只摘掉确实已经在副本里落地的那些，其余照旧留着。
   let carried : Array[String] = []
@@ -169,7 +176,9 @@ pub async fn fork_profile(
         Some(zone) => s + " " + zone
         None => s
       }
-    None => @json.iso_from_epoch_ms(@async.now()) + "（本地时区读不到，按 UTC）"
+    None =>
+      @json.iso_from_epoch_ms(@async.now()) +
+      "（本地时区读不到，按 UTC）"
   }
   let note_text = @profiles.fork_note_text(source_name, stamp, source_note)
   // 备注写失败不许让派生失败：目录已经拷好了，为了一个备注把整次派生报成失败是假报。
@@ -180,7 +189,9 @@ pub async fn fork_profile(
   }
   // mtime 在拷贝与写备注**之后**读：这才是这一趟真实留下的"最近改动"，
   // 也正是它在列表里排最前面的依据。读不到给 None + 原因，不拿当前时间冒充。
-  let (dir_mtime_ms, dir_mtime_source) = @profiles.read_profile_dir_mtime(target_dir)
+  let (dir_mtime_ms, dir_mtime_source) = @profiles.read_profile_dir_mtime(
+    target_dir,
+  )
   // 派生出来的 profile 默认隔离（design/deep-home-isolation.md 第 8 节）：顺手把 home 建好。
   // 建失败不许让派生失败 —— 目录已经拷好了，为了一个 home 把整次派生报成失败是假报；
   // 原因原样带出去，回执里说清楚「派生成功、隔离没建成」。
@@ -190,14 +201,7 @@ pub async fn fork_profile(
   }
   let started = match port {
     None => None
-    Some(_) =>
-      Some(
-        start_instance(
-          target_name,
-          None,
-          port,
-        ),
-      )
+    Some(_) => Some(start_instance(target_name, None, port))
   }
   {
     profile: source_name,
@@ -249,7 +253,10 @@ pub struct RenameOutcome {
 
 ///|
 /// 改磁盘上的 profile 目录名。
-pub async fn rename_profile(profile : String, new_name : String) -> RenameOutcome raise ActionError {
+pub async fn rename_profile(
+  profile : String,
+  new_name : String,
+) -> RenameOutcome raise ActionError {
   let from_name = @json.trim_both(profile)
   let to_name = @json.trim_both(new_name)
   validate_profile_name(from_name)
@@ -263,7 +270,10 @@ pub async fn rename_profile(profile : String, new_name : String) -> RenameOutcom
     Some(home) =>
       fail(
         "conflict",
-        from_name + " 移到了独立 home（" + home + "），先移回共用 home 再改名（" +
+        from_name +
+        " 移到了独立 home（" +
+        home +
+        "），先移回共用 home 再改名（" +
         "home 目录名与 profile 名是一对，只改一半会对不上）",
       )
     None => ()
@@ -284,7 +294,10 @@ pub async fn rename_profile(profile : String, new_name : String) -> RenameOutcom
     Some(hit) =>
       fail(
         "conflict",
-        "profile " + from_name + " 正在运行（PID " + hit.pid.to_string() +
+        "profile " +
+        from_name +
+        " 正在运行（PID " +
+        hit.pid.to_string() +
         "），先停掉再改名",
       )
     None => ()
@@ -293,7 +306,7 @@ pub async fn rename_profile(profile : String, new_name : String) -> RenameOutcom
     Ok(_) => ()
     Err(e) => fail("io-error", e)
   }
-  { profile: from_name, new_name: to_name, from, to }
+  { profile: from_name, new_name: to_name, from, to, }
 }
 
 ///|
@@ -322,7 +335,10 @@ pub struct DeleteOutcome {
 ///|
 /// 删一个 profile：按 safety.deleteToTrash 决定进回收站还是硬删。
 /// 硬删必须带 confirm = "DELETE"（契约第二节的 destructive 要求）。
-pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcome raise ActionError {
+pub async fn delete_profile(
+  profile : String,
+  confirm : String?,
+) -> DeleteOutcome raise ActionError {
   let name = @json.trim_both(profile)
   validate_profile_name(name)
   // home 与 root 同源算一次：分开各算一遍迟早会分叉，而分叉出来正好是
@@ -342,7 +358,10 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
     Some(hit) =>
       fail(
         "conflict",
-        "profile " + name + " 正在运行（PID " + hit.pid.to_string() +
+        "profile " +
+        name +
+        " 正在运行（PID " +
+        hit.pid.to_string() +
         "），先停掉再删除",
       )
     None => ()
@@ -358,7 +377,15 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
       Ok(_) => ()
       Err(e) => fail("io-error", e)
     }
-    return { profile: name, dir, mode: "hard-delete", trash_path: "", home, origin_error: None, confirm: given }
+    return {
+      profile: name,
+      dir,
+      mode: "hard-delete",
+      trash_path: "",
+      home,
+      origin_error: None,
+      confirm: given,
+    }
   }
   let settings = @store.load_settings().values
   if settings.safety_delete_to_trash {
@@ -372,17 +399,17 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
     }
     match @fsx.rename_path(dir, trash_path) {
       Ok(_) => ()
-      Err(first) => {
+      Err(first) =>
         // 状态目录与 profile 目录不同文件系统时 rename 会 EXDEV：退回复制再删
         match @fsx.copy_tree(dir, trash_path, []) {
           Ok(_) =>
             match @fsx.remove_tree(dir) {
               Ok(_) => ()
-              Err(e) => fail("io-error", first + "；退回复制也失败：" + e)
+              Err(e) =>
+                fail("io-error", first + "；退回复制也失败：" + e)
             }
           Err(e) => fail("io-error", first + "；退回复制也失败：" + e)
         }
-      }
     }
     // 记下「这一条是从哪个 home 删的」。恢复时按它归位，所以这一步就是
     // 「删了隔离那份、恢复却回到主线上」那个错的正面修法。
@@ -402,8 +429,7 @@ pub async fn delete_profile(profile : String, confirm : String?) -> DeleteOutcom
   }
   // 走到这里只剩「回收站关着、又没带 confirm」这一种：拒掉，别悄悄换一种删法。
   fail(
-    "bad-params",
-    "safety.deleteToTrash=false 时删除是硬删，body 里必须再带 \"confirm\":\"DELETE\"",
+    "bad-params", "safety.deleteToTrash=false 时删除是硬删，body 里必须再带 \"confirm\":\"DELETE\"",
   )
   abort("unreachable: fail 一定抛错")
 }
@@ -418,7 +444,7 @@ pub struct NoteOutcome {
   /// true = 这次是「空串」语义，文件被删掉了（本来就没有也算）
   removed : Bool
   /// 落盘后的字符数；removed 时为 0
-  chars : Int
+  chars : Int32
 }
 
 ///|
@@ -428,7 +454,10 @@ pub struct NoteOutcome {
 ///
 /// 名字先过白名单，再确认拼出来的目录就是 <profilesRoot>/<name> —— 目录穿越在这里被挡掉：
 /// 白名单不接受斜杠、"." 、".."，所以「解析到 profilesRoot 之外」的名字根本走不到这一步。
-pub async fn set_profile_note(profile : String, text : String) -> NoteOutcome raise ActionError {
+pub async fn set_profile_note(
+  profile : String,
+  text : String,
+) -> NoteOutcome raise ActionError {
   let name = @json.trim_both(profile)
   validate_profile_name(name)
   // 隔离的那一只：备注写在它自己那份目录里（备注跟着目录走，这也是它一直的口径）
@@ -451,21 +480,24 @@ pub async fn set_profile_note(profile : String, text : String) -> NoteOutcome ra
         Err(e) => fail("io-error", e)
       }
     }
-    return { profile: name, dir, path, removed: true, chars: 0 }
+    return { profile: name, dir, path, removed: true, chars: 0, }
   }
   let chars = text.length()
   if chars > @profiles.note_max_chars {
     fail(
       "bad-params",
-      "备注太长：" + chars.to_string() + " 字符，上限 " +
-      @profiles.note_max_chars.to_string() + " 字符",
+      "备注太长：" +
+      chars.to_string() +
+      " 字符，上限 " +
+      @profiles.note_max_chars.to_string() +
+      " 字符",
     )
   }
   match @fsx.write_text_atomic(path, text) {
     Ok(_) => ()
     Err(e) => fail("io-error", e)
   }
-  { profile: name, dir, path, removed: false, chars }
+  { profile: name, dir, path, removed: false, chars, }
 }
 
 // ── 从基础模板新建（design/design-fixes.md 第 20 节）──────────────────
@@ -487,7 +519,7 @@ pub let base_template_profile : String = "web"
 ///|
 /// 跑 dsh 建这份 profile 的上限（规格第 20.1 节写的是 60 秒）。
 /// 卡住的 dsh 不能把动作请求挂死：到点按失败处理，并把目录收掉。
-let base_profile_timeout_ms : Int = 60000
+let base_profile_timeout_ms : Int32 = 60000
 
 ///|
 /// 一次「从基础模板新建」的结果。
@@ -503,7 +535,7 @@ pub struct BaseProfileOutcome {
   package_dir : String
   dsh_version : String
   /// dsh 那一步花了多少毫秒
-  ms : Int
+  ms : Int32
 }
 
 ///|
@@ -550,9 +582,19 @@ async fn check_base_profile(dir : String) -> (String?, Array[String]) noraise {
   }
   let bundles = base_bundles_of(json)
   if !bundles.contains(@profiles.web_app_bundle) {
-    let seen = if bundles.length() == 0 { "空表" } else { bundles.join("、") }
+    let seen = if bundles.length() == 0 {
+      "空表"
+    } else {
+      bundles.join("、")
+    }
     return (
-      Some("bundles 里没有 " + @profiles.web_app_bundle + "（读到的是 " + seen + "）"),
+      Some(
+        "bundles 里没有 " +
+        @profiles.web_app_bundle +
+        "（读到的是 " +
+        seen +
+        "）",
+      ),
       bundles,
     )
   }
@@ -600,7 +642,9 @@ fn base_profile_evidence(stdout : String, stderr : String) -> String {
 ///   3. 核对三条：package.json 读得出、bundles 里有 @deepseek-ai/dsh-web-app、cordis.patch.yml 在；
 ///   4. 默认隔离（复用 isolate_profile）：**隔离失败不影响建成功**，原因原样带回去；
 ///   5. 任何一步失败都删掉刚建的目录，回 io-error 并带 stderr 尾部。
-pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise ActionError {
+pub async fn create_base_profile(
+  name_in : String,
+) -> BaseProfileOutcome raise ActionError {
   let name = @json.trim_both(name_in)
   validate_profile_name(name)
   let (dsh_home, dsh_home_source) = @runtime.resolve_dsh_home()
@@ -608,13 +652,20 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
   let dir = @json.join_path(root, name)
   // 硬约束：拼出来的目录必须正好是 <profilesRoot>/<单段名字>
   if !dir.has_prefix(root + "/") || dir == root {
-    fail("bad-params", "profile 名拼出来的目录不在 " + root + " 下：" + dir)
+    fail(
+      "bad-params",
+      "profile 名拼出来的目录不在 " + root + " 下：" + dir,
+    )
     abort("unreachable: fail 一定抛错")
   }
   if @json.exists(dir) {
     fail(
       "conflict",
-      "profile " + name + " 已经存在：" + dir + "；从基础模板只建新的一份，不覆盖，换个名字再来",
+      "profile " +
+      name +
+      " 已经存在：" +
+      dir +
+      "；从基础模板只建新的一份，不覆盖，换个名字再来",
     )
     abort("unreachable: fail 一定抛错")
   }
@@ -624,7 +675,11 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
     Some(home) => {
       fail(
         "conflict",
-        "名字 " + name + " 已经有一份隔离 home：" + home + "（同名的那一份还在，换个名字再来）",
+        "名字 " +
+        name +
+        " 已经有一份隔离 home：" +
+        home +
+        "（同名的那一份还在，换个名字再来）",
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -636,7 +691,11 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
       fail(
         "io-error",
         "这台机器上找不到能跑基础模板的 dsh：PATH 上的 dsh 命令解不出包目录，pnpm 全局根下也没有 " +
-        "@deepseek-ai/dsh/lib/bin.js（DSH_HOME 来自 " + dsh_home_source + "：" + dsh_home + "）",
+        "@deepseek-ai/dsh/lib/bin.js（DSH_HOME 来自 " +
+        dsh_home_source +
+        "：" +
+        dsh_home +
+        "）",
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -659,7 +718,10 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
     Ok(triple) => triple
     Err(why) => {
       let cleaned = remove_failed_base_profile(dir)
-      fail("io-error", "跑 dsh 建基础模板没成：" + why + "；" + cleaned)
+      fail(
+        "io-error",
+        "跑 dsh 建基础模板没成：" + why + "；" + cleaned,
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -667,8 +729,12 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
     let cleaned = remove_failed_base_profile(dir)
     fail(
       "io-error",
-      "dsh 建基础模板失败（退出码 " + code.to_string() + "），stderr 尾部：" +
-      base_profile_evidence(stdout, stderr) + "；" + cleaned,
+      "dsh 建基础模板失败（退出码 " +
+      code.to_string() +
+      "），stderr 尾部：" +
+      base_profile_evidence(stdout, stderr) +
+      "；" +
+      cleaned,
     )
     abort("unreachable: fail 一定抛错")
   }
@@ -678,7 +744,10 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
       let cleaned = remove_failed_base_profile(dir)
       fail(
         "io-error",
-        "dsh 退出码是 0，但新建出来的这一份对不上：" + why + "；" + cleaned,
+        "dsh 退出码是 0，但新建出来的这一份对不上：" +
+        why +
+        "；" +
+        cleaned,
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -694,9 +763,14 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
         Some(zone) => s + " " + zone
         None => s
       }
-    None => @json.iso_from_epoch_ms(@async.now()) + "（本地时区读不到，按 UTC）"
+    None =>
+      @json.iso_from_epoch_ms(@async.now()) +
+      "（本地时区读不到，按 UTC）"
   }
-  let _ = @fsx.write_text_atomic(note_path, "从基础模板新建 · " + note_stamp)
+  let _ = @fsx.write_text_atomic(
+    note_path,
+    "从基础模板新建 · " + note_stamp,
+  )
   // 默认隔离，与派生同一档（design/deep-home-isolation.md 第 8 节）。
   // 隔离失败不许让「建成了」变成「失败了」：profile 已经在磁盘上、也核对过了，
   // 为了一个 home 把整件事报成失败是假报 —— 原因原样带回去，回执照实说。
@@ -715,4 +789,3 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
     ms,
   }
 }
-

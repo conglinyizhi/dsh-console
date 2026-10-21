@@ -5,7 +5,6 @@
 // 这些碎件混在一起；拆开之后「请求长什么样 / 审计怎么写」与「动作做什么」分开读。
 // 只搬位置，函数体一个字没改。
 
-
 ///|
 /// core Json -> 有序 JsonVal（审计行要按固定字段序输出，所以自己转一遍）。
 pub fn json_to_val(json : Json) -> @json.JsonVal {
@@ -95,7 +94,7 @@ fn optional_bool(params : Json, key : String) -> Bool raise ActionError {
 
 ///|
 /// 取一个可选整数参数：JSON 数字或十进制数字串都认（前端两种都可能发）。
-fn optional_int(params : Json, key : String) -> Int? {
+fn optional_int(params : Json, key : String) -> Int32? {
   match @json.json_field(params, key) {
     Some(v) =>
       match v {
@@ -127,7 +126,9 @@ fn require_note_text(params : Json) -> String raise ActionError {
       match @json.json_string(v) {
         Some(s) => s
         None => {
-          fail("bad-params", "text 要是字符串（空串表示删掉备注）")
+          fail(
+            "bad-params", "text 要是字符串（空串表示删掉备注）",
+          )
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -154,7 +155,11 @@ async fn archive_target_home(params : Json) -> String raise ActionError {
       match @store.normalize_home(raw) {
         Some(home) => home
         None => {
-          fail("bad-params", "home 要是一个绝对的目录路径（不含 . 与 .. 段）：" + raw)
+          fail(
+            "bad-params",
+            "home 要是一个绝对的目录路径（不含 . 与 .. 段）：" +
+            raw,
+          )
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -178,7 +183,9 @@ fn require_order_ids(params : Json) -> Array[String] raise ActionError {
   let raw = match @json.json_field(params, "order") {
     Some(v) => v
     None => {
-      fail("bad-params", "缺少参数 order（整份新顺序的行 id 数组）")
+      fail(
+        "bad-params", "缺少参数 order（整份新顺序的行 id 数组）",
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -192,7 +199,10 @@ fn require_order_ids(params : Json) -> Array[String] raise ActionError {
   if items.length() > @store.order_max_ids {
     fail(
       "bad-params",
-      "order 最多 " + @store.order_max_ids.to_string() + " 条，收到 " + items.length().to_string() +
+      "order 最多 " +
+      @store.order_max_ids.to_string() +
+      " 条，收到 " +
+      items.length().to_string() +
       " 条",
     )
     abort("unreachable: fail 一定抛错")
@@ -209,7 +219,8 @@ fn require_order_ids(params : Json) -> Array[String] raise ActionError {
     if !@store.order_id_valid(id) {
       fail(
         "bad-params",
-        "order 里有认不出的行 id：" + id +
+        "order 里有认不出的行 id：" +
+        id +
         "（只认 port:<端口号> 与 profile:<名字>@<home>）",
       )
       abort("unreachable: fail 一定抛错")
@@ -233,10 +244,7 @@ async fn isolated_home_guard(profile : String) -> Unit raise ActionError {
   let (console_home, _) = @runtime.resolve_dsh_home()
   let homes : Array[String] = [console_home]
   match @profiles.isolated_home_of(profile) {
-    Some(isolated) =>
-      if isolated != console_home {
-        homes.push(isolated)
-      }
+    Some(isolated) => if isolated != console_home { homes.push(isolated) }
     None => ()
   }
   for home in homes {
@@ -248,8 +256,15 @@ async fn isolated_home_guard(profile : String) -> Unit raise ActionError {
         }
         fail(
           "conflict",
-          "profile " + profile + " 有实例在跑（PID " + hit.pid.to_string() + "，" + port_text +
-          "，home " + home + "）；移动会把这份目录从它脚下搬走，先停掉它再移",
+          "profile " +
+          profile +
+          " 有实例在跑（PID " +
+          hit.pid.to_string() +
+          "，" +
+          port_text +
+          "，home " +
+          home +
+          "）；移动会把这份目录从它脚下搬走，先停掉它再移",
         )
       }
       None => ()
@@ -309,22 +324,25 @@ async fn audit_params_for(action : String, params : Json) -> @json.JsonVal {
     // 请求没带 options 时，记下这次真正生效的方式（§62.4：审计要有 options 两个值）
     if @store.field_of(params, "options") is None {
       let file = @store.load_env_file()
-      fields.push((
-        "options",
-        @json.JObj([
-          ("inherit", @json.JBool(file.options.keep_system)),
-          ("merge", @json.JStr(file.options.merge)),
-        ]),
-      ))
+      fields.push(
+        (
+          "options",
+          @json.JObj([
+            ("inherit", @json.JBool(file.options.keep_system)),
+            ("merge", @json.JStr(file.options.merge)),
+          ]),
+        ),
+      )
     }
     return @json.JObj(fields)
   }
   if action != "restart-instance" {
     return raw
   }
-  let target = try {
-    resolve_target(optional_int(params, "pid"), optional_int(params, "port"))
-  } catch {
+  let target = resolve_target(
+    optional_int(params, "pid"),
+    optional_int(params, "port"),
+  ) catch {
     ActionError(code~, message~) => {
       let _ = code
       let _ = message
@@ -346,10 +364,7 @@ async fn audit_params_for(action : String, params : Json) -> @json.JsonVal {
     None => ()
   }
   match target.home {
-    Some(home) =>
-      if home != "" {
-        fields.push(("home", @json.JStr(home)))
-      }
+    Some(home) => if home != "" { fields.push(("home", @json.JStr(home))) }
     None => ()
   }
   @json.JObj(fields)
@@ -400,7 +415,7 @@ pub fn spawn_outcome_json(o : SpawnOutcome) -> @json.JsonVal {
 pub fn stop_outcome_json(
   o : StopOutcome,
   target : Target,
-  grace_ms : Int,
+  grace_ms : Int32,
 ) -> @json.JsonVal {
   @json.JObj([
     ("pid", @json.jint(o.pid)),
@@ -422,7 +437,7 @@ pub fn stop_outcome_json(
 ///
 /// 这么放是安全的：写入点与抛出点之间没有 await（同一个协程一口气跑完），
 /// 取走点紧跟 catch —— 两笔并发失败不会互串。
-let failure_outcome : Ref[@json.JsonVal] = { val: @json.JNull }
+let failure_outcome : Ref[@json.JsonVal] = { val: @json.JNull, }
 
 ///|
 /// 动作失败之前登记这一笔的 outcome（见 failure_outcome）。

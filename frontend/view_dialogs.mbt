@@ -16,16 +16,22 @@ fn promote_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     }
   }
   let title = "用 " + source + " 的配置替换 " + target + "？"
-  let message = "替换前会先给 " + target + " 拍一张快照，出问题能还原。"
+  let message = "替换前会先给 " +
+    target +
+    " 拍一张快照，出问题能还原。"
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
-      attrs=mark("promote-dialog-title", ["dialog", "promote-confirm-dialog", "title"]),
+      attrs=mark("promote-dialog-title", [
+        "dialog", "promote-confirm-dialog", "title",
+      ]),
       title,
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("promote-dialog-message", ["dialog", "promote-confirm-dialog", "message"]),
+      attrs=mark("promote-dialog-message", [
+        "dialog", "promote-confirm-dialog", "message",
+      ]),
       message,
     ),
     @html.div(class="dsh-dialog-foot", [
@@ -33,14 +39,18 @@ fn promote_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         id=promote_confirm_ok_id(),
         class="dsh-dialog-btn primary",
         type_="button",
-        attrs=mark("promote-dialog-ok", ["dialog", "promote-confirm-dialog", "ok"]),
+        attrs=mark("promote-dialog-ok", [
+          "dialog", "promote-confirm-dialog", "ok",
+        ]),
         on_click=emit(PromoteConfirm),
         [@html.text("确认替换")],
       ),
       @html.button(
         class="dsh-dialog-btn",
         type_="button",
-        attrs=mark("promote-dialog-cancel", ["dialog", "promote-confirm-dialog", "cancel"]),
+        attrs=mark("promote-dialog-cancel", [
+          "dialog", "promote-confirm-dialog", "cancel",
+        ]),
         on_click=emit(PromoteConfirmCancel),
         [@html.text("取消")],
       ),
@@ -71,8 +81,14 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 三处文案都照**点开那一刻记下来的模式**（§13.2）：确认框开着的时候设置被改了，
   // 这个框说的仍然是对那一次点击的判断。
   let hard = model.confirm_hard
-  let title = (if hard { "彻底删除 " } else { "删除实例 " }) + name + "？"
-  let mode = if hard { "删除后无法恢复。" } else { "删除后移入回收站，可以捞回来。" }
+  let title = (if hard { "彻底删除 " } else { "删除实例 " }) +
+    name +
+    "？"
+  let mode = if hard {
+    "删除后无法恢复。"
+  } else {
+    "删除后移入回收站，可以捞回来。"
+  }
   let note = match find_row(model.rows, model.confirm_id) {
     Some(row) => row.user_note
     None => ""
@@ -89,8 +105,14 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
-      attrs=mark("dialog-title", ["dialog", "confirm-dialog", "title"])
-        .data_set("mode", if hard { "hard" } else { "soft" }),
+      attrs=mark("dialog-title", ["dialog", "confirm-dialog", "title"]).data_set(
+        "mode",
+        if hard {
+          "hard"
+        } else {
+          "soft"
+        },
+      ),
       title,
     ),
     note_block,
@@ -104,10 +126,20 @@ fn confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         id="dsh-confirm-ok",
         // 彻底删除时确认键用红色（.danger）：与「删除后无法恢复」那句一致，
         // 也让两个模式在按键上就分得开 —— 颜色之外还有文案与标题两处文字。
-        class=if hard { "dsh-dialog-btn danger" } else { "dsh-dialog-btn primary" },
+        class=if hard {
+          "dsh-dialog-btn danger"
+        } else {
+          "dsh-dialog-btn primary"
+        },
         type_="button",
-        attrs=mark("dialog-ok", ["dialog", "confirm-dialog", "ok"])
-          .data_set("mode", if hard { "hard" } else { "soft" }),
+        attrs=mark("dialog-ok", ["dialog", "confirm-dialog", "ok"]).data_set(
+          "mode",
+          if hard {
+            "hard"
+          } else {
+            "soft"
+          },
+        ),
         on_click=emit(DeleteConfirm),
         [@html.text(if hard { "彻底删除" } else { "删除" })],
       ),
@@ -143,7 +175,8 @@ fn fork_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     Some(row) => (row.name, row.external_links)
     None => (model.fork_confirm_id, 0)
   }
-  let message = "这份副本里还有 " + count.to_string() +
+  let message = "这份副本里还有 " +
+    count.to_string() +
     " 个软链接指向原 profile 之外（例如 .pi/agent 下的本地插件）。" +
     "在副本里改这些插件，等于改原处那一份，仍然会影响主机上的其他 profile。" +
     "要真正隔开，先把它们拷成实体文件再改。"
@@ -155,8 +188,9 @@ fn fork_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("fork-dialog-message", ["dialog", "fork-confirm-dialog", "message"])
-        .title("这一只有 " + count.to_string() + " 个外部软链接"),
+      attrs=mark("fork-dialog-message", [
+        "dialog", "fork-confirm-dialog", "message",
+      ]).title("这一只有 " + count.to_string() + " 个外部软链接"),
       message,
     ),
     @html.div(class="dsh-dialog-foot", [
@@ -171,7 +205,9 @@ fn fork_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.button(
         class="dsh-dialog-btn",
         type_="button",
-        attrs=mark("fork-dialog-cancel", ["dialog", "fork-confirm-dialog", "cancel"]),
+        attrs=mark("fork-dialog-cancel", [
+          "dialog", "fork-confirm-dialog", "cancel",
+        ]),
         on_click=emit(ForkCancel),
         [@html.text("取消")],
       ),
@@ -191,13 +227,15 @@ fn fork_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     card,
   )
 }
+
 ///|
 /// 补包确认框（design/design-fixes.md §39.1）：写 node_modules 是真动作，先问一句。
 ///
 /// 文案把「在哪个目录、跑哪条命令、动的是什么」讲全：这三件事决定了这一下会不会把
 /// 别的东西改坏 —— 答案是只补 node_modules，不改 package.json 与 cordis.patch.yml。
 fn repair_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let (name, dir, command, count) = match find_row(model.rows, model.repair_confirm_id) {
+  let (name, dir, command, count) = match
+    find_row(model.rows, model.repair_confirm_id) {
     Some(row) =>
       (
         // 对话框里说名字，说的是磁盘上那一只（profile_name），不是卡片上带端口的显示名
@@ -221,18 +259,25 @@ fn repair_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let where_text = if dir == "" { "这只 profile 的目录" } else { dir }
   let cmd_text = if command == "" { "包管理器 install" } else { command }
-  let message = "将在 " + where_text + " 里执行 " + cmd_text + "，只补 node_modules。" +
+  let message = "将在 " +
+    where_text +
+    " 里执行 " +
+    cmd_text +
+    "，只补 node_modules。" +
     "装完会重新读一次这只 profile。"
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
-      attrs=mark("repair-dialog-title", ["dialog", "repair-confirm-dialog", "title"]),
+      attrs=mark("repair-dialog-title", [
+        "dialog", "repair-confirm-dialog", "title",
+      ]),
       "给 " + name + " 安装缺的包",
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("repair-dialog-message", ["dialog", "repair-confirm-dialog", "message"])
-        .title(message + "\n缺 " + count.to_string() + " 个包"),
+      attrs=mark("repair-dialog-message", [
+        "dialog", "repair-confirm-dialog", "message",
+      ]).title(message + "\n缺 " + count.to_string() + " 个包"),
       message,
     ),
     @html.div(class="dsh-dialog-foot", [
@@ -247,7 +292,9 @@ fn repair_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.button(
         class="dsh-dialog-btn",
         type_="button",
-        attrs=mark("repair-dialog-cancel", ["dialog", "repair-confirm-dialog", "cancel"]),
+        attrs=mark("repair-dialog-cancel", [
+          "dialog", "repair-confirm-dialog", "cancel",
+        ]),
         on_click=emit(RepairCancel),
         [@html.text("取消")],
       ),
@@ -290,8 +337,9 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("home-dialog-message", ["dialog", "home-confirm-dialog", "message"])
-        .title(where_text),
+      attrs=mark("home-dialog-message", [
+        "dialog", "home-confirm-dialog", "message",
+      ]).title(where_text),
       message,
     ),
     @html.div(class="dsh-dialog-foot", [
@@ -306,7 +354,9 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.button(
         class="dsh-dialog-btn",
         type_="button",
-        attrs=mark("home-dialog-cancel", ["dialog", "home-confirm-dialog", "cancel"]),
+        attrs=mark("home-dialog-cancel", [
+          "dialog", "home-confirm-dialog", "cancel",
+        ]),
         on_click=emit(HomeDeisolateCancel),
         [@html.text("取消")],
       ),
@@ -333,7 +383,13 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 /// 「会先用当前状态拍一张」不是安慰话：后端 restore-snapshot 的第二步就是先拍
 /// 一张 reason 为「还原前」的快照，那张拍不成就不动任何文件。
 fn snapshot_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let empty : SnapshotFact = { id: model.snapshot_confirm_snap, at: "", reason: "", files: 0, bytes: 0.0 }
+  let empty : SnapshotFact = {
+    id: model.snapshot_confirm_snap,
+    at: "",
+    reason: "",
+    files: 0,
+    bytes: 0.0,
+  }
   let (name, snap) = match find_row(model.rows, model.snapshot_confirm_id) {
     Some(row) =>
       match find_snapshot(row.snapshots, model.snapshot_confirm_snap) {
@@ -354,38 +410,57 @@ fn snapshot_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let message = if stamp == "—" {
     "会先用当前状态拍一张，再把这份快照的三个文件写回去"
   } else {
-    "会先用当前状态拍一张，再把 " + stamp + " 的三个文件写回去"
+    "会先用当前状态拍一张，再把 " +
+    stamp +
+    " 的三个文件写回去"
   }
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
-      attrs=mark("snapshot-dialog-title", ["dialog", "snapshot-confirm-dialog", "title"]),
+      attrs=mark("snapshot-dialog-title", [
+        "dialog", "snapshot-confirm-dialog", "title",
+      ]),
       title,
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("snapshot-dialog-message", ["dialog", "snapshot-confirm-dialog", "message"]),
+      attrs=mark("snapshot-dialog-message", [
+        "dialog", "snapshot-confirm-dialog", "message",
+      ]),
       message,
     ),
     @html.p(
       class="dsh-dialog-note",
-      attrs=mark("snapshot-dialog-what", ["dialog", "snapshot-confirm-dialog", "what"]),
-      name + " 的这一份：" + (if snap.reason == "" { "没有写原因" } else { snap.reason }) + "，" +
-      (if snap.files == 0 { "文件数读不到" } else { snapshot_size_text(snap) }),
+      attrs=mark("snapshot-dialog-what", [
+        "dialog", "snapshot-confirm-dialog", "what",
+      ]),
+      name +
+      " 的这一份：" +
+      (if snap.reason == "" { "没有写原因" } else { snap.reason }) +
+      "，" +
+      (if snap.files == 0 {
+        "文件数读不到"
+      } else {
+        snapshot_size_text(snap)
+      }),
     ),
     @html.div(class="dsh-dialog-foot", [
       @html.button(
         id="dsh-snapshot-confirm-ok",
         class="dsh-dialog-btn primary",
         type_="button",
-        attrs=mark("snapshot-dialog-ok", ["dialog", "snapshot-confirm-dialog", "ok"]),
+        attrs=mark("snapshot-dialog-ok", [
+          "dialog", "snapshot-confirm-dialog", "ok",
+        ]),
         on_click=emit(SnapshotRestoreConfirm),
         [@html.text("还原")],
       ),
       @html.button(
         class="dsh-dialog-btn",
         type_="button",
-        attrs=mark("snapshot-dialog-cancel", ["dialog", "snapshot-confirm-dialog", "cancel"]),
+        attrs=mark("snapshot-dialog-cancel", [
+          "dialog", "snapshot-confirm-dialog", "cancel",
+        ]),
         on_click=emit(SnapshotRestoreCancel),
         [@html.text("取消")],
       ),
@@ -432,7 +507,9 @@ fn cli_help_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("cli-help-message", ["dialog", "cli-help", "message"]).title(home),
+      attrs=mark("cli-help-message", ["dialog", "cli-help", "message"]).title(
+        home,
+      ),
       body,
     ),
     @html.pre(
@@ -482,9 +559,15 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       let hint = if dir_name == "" {
         "这一行的读数里没有 profile 目录名"
       } else if row.home_path == "" {
-        "磁盘上的目录名：" + dir_name + "（读数里没有它的 home，拼不出完整路径）"
+        "磁盘上的目录名：" +
+        dir_name +
+        "（读数里没有它的 home，拼不出完整路径）"
       } else {
-        "磁盘上的目录：" + row.home_path + "/profiles/" + dir_name + "（改名就是改这一段的最后一级）"
+        "磁盘上的目录：" +
+        row.home_path +
+        "/profiles/" +
+        dir_name +
+        "（改名就是改这一段的最后一级）"
       }
       (card_name_text(row), dir_name, hint)
     }
@@ -498,7 +581,9 @@ fn rename_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     [
       @html.p(
         class="dsh-dialog-sub",
-        attrs=mark("rename-dir", ["dialog", "rename-dialog", "dir"]).title(dir_hint),
+        attrs=mark("rename-dir", ["dialog", "rename-dialog", "dir"]).title(
+          dir_hint,
+        ),
         "当前目录名：" + dir_name,
       ),
     ]
@@ -588,10 +673,7 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("dialog-title", ["dialog", "note-dialog", "title"]),
-      [
-        icon("note-text-outline", size=14),
-        @html.text("编辑备注 " + name),
-      ],
+      [icon("note-text-outline", size=14), @html.text("编辑备注 " + name)],
     ),
     @html.p(
       class="dsh-dialog-message",
@@ -655,11 +737,15 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 /// 派生拷贝的进度框（§72）。拷完由轮询把 active 置假、框自动收掉；
 /// 成功与失败仍由派生那条请求的回执去说，这里只说「拷到哪儿了」。
 fn fork_progress_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let name = if model.fork_progress_name == "" { "副本" } else { model.fork_progress_name }
+  let name = if model.fork_progress_name == "" {
+    "副本"
+  } else {
+    model.fork_progress_name
+  }
   let total = model.fork_progress_total
   let files = model.fork_progress_files
   let pct = if total <= 0 { 0 } else { files * 100 / total }
-  let bucket = (pct / 10) * 10
+  let bucket = pct / 10 * 10
   let card = @html.div(class="dsh-dialog-card dsh-fork-progress", [
     @html.h2(
       class="dsh-dialog-title",
@@ -683,8 +769,10 @@ fn fork_progress_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       [
         @html.div(
           class="dsh-fork-progress-fill step-" + bucket.to_string(),
-          attrs=mark("fork-progress-fill", ["dialog", "fork-progress", "fill"])
-            .data_set("pct", pct.to_string()),
+          attrs=mark("fork-progress-fill", ["dialog", "fork-progress", "fill"]).data_set(
+            "pct",
+            pct.to_string(),
+          ),
           @html.nothing,
         ),
       ],
@@ -701,7 +789,13 @@ fn fork_progress_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     "fork-progress-dialog",
     "正在派生 " + name,
     @cmd.none,
-    emit.map(fn(key : @html.Keyboard) { if key.key() == "Escape" { Noop } else { Noop } }),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        Noop
+      } else {
+        Noop
+      }
+    }),
     card,
   )
 }

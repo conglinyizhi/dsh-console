@@ -9,8 +9,8 @@
 ///|
 /// 一条登记。JSON 字段名见 to_json。
 pub(all) struct InstanceRecord {
-  pid : Int
-  port : Int
+  pid : Int32
+  port : Int32
   home : String
   profile : String
   started_at : String
@@ -60,32 +60,36 @@ fn record_of(json : Json) -> InstanceRecord? {
         pid: p,
         port: pt,
         home: match field_of(json, "home") {
-          Some(v) => match as_string(v) {
-            Some(s) => s
-            None => ""
-          }
+          Some(v) =>
+            match as_string(v) {
+              Some(s) => s
+              None => ""
+            }
           None => ""
         },
         profile: name,
         started_at: match field_of(json, "startedAt") {
-          Some(v) => match as_string(v) {
-            Some(s) => s
-            None => ""
-          }
+          Some(v) =>
+            match as_string(v) {
+              Some(s) => s
+              None => ""
+            }
           None => ""
         },
         log_path: match field_of(json, "logPath") {
-          Some(v) => match as_string(v) {
-            Some(s) => s
-            None => ""
-          }
+          Some(v) =>
+            match as_string(v) {
+              Some(s) => s
+              None => ""
+            }
           None => ""
         },
         detached: match field_of(json, "detached") {
-          Some(v) => match as_bool(v) {
-            Some(b) => b
-            None => false
-          }
+          Some(v) =>
+            match as_bool(v) {
+              Some(b) => b
+              None => false
+            }
           None => false
         },
       })
@@ -113,18 +117,28 @@ pub async fn load_registry() -> LoadedRegistry noraise {
             }
           }
           if dropped > 0 {
-            note = Some("runtime.json 里有 " + dropped.to_string() + " 条读不出来的登记，已跳过")
+            note = Some(
+              "runtime.json 里有 " +
+              dropped.to_string() +
+              " 条读不出来的登记，已跳过",
+            )
           }
         }
-        _ => note = Some("runtime.json 顶层不是数组，按空表处理：" + paths.runtime)
+        _ =>
+          note = Some(
+            "runtime.json 顶层不是数组，按空表处理：" +
+            paths.runtime,
+          )
       }
   }
-  { entries, note }
+  { entries, note, }
 }
 
 ///|
 /// 整表落盘（原子写）。
-pub async fn save_registry(entries : Array[InstanceRecord]) -> Result[Unit, String] noraise {
+pub async fn save_registry(
+  entries : Array[InstanceRecord],
+) -> Result[Unit, String] noraise {
   let paths = state_paths()
   let items : Array[@json.JsonVal] = []
   for r in entries {
@@ -175,7 +189,8 @@ pub async fn add_record(entry : InstanceRecord) -> Result[Unit, String] noraise 
   let loaded = load_registry()
   let kept : Array[InstanceRecord] = []
   for r in loaded.entries {
-    let same_slot = r.profile == entry.profile && same_home(Some(r.home), Some(entry.home))
+    let same_slot = r.profile == entry.profile &&
+      same_home(Some(r.home), Some(entry.home))
     if r.pid != entry.pid && !same_slot {
       kept.push(r)
     }
@@ -186,7 +201,7 @@ pub async fn add_record(entry : InstanceRecord) -> Result[Unit, String] noraise 
 
 ///|
 /// 按 pid 去掉一条；没这条也算成功。
-pub async fn remove_by_pid(pid : Int) -> Result[Unit, String] noraise {
+pub async fn remove_by_pid(pid : Int32) -> Result[Unit, String] noraise {
   let loaded = load_registry()
   let kept : Array[InstanceRecord] = []
   for r in loaded.entries {
@@ -204,16 +219,13 @@ pub async fn remove_by_pid(pid : Int) -> Result[Unit, String] noraise {
 /// 就不认（返回 None），免得把别的 home 那一只的 logPath / 端口当成它的。
 pub fn find_record(
   entries : Array[InstanceRecord],
-  pid : Int?,
+  pid : Int32?,
   profile : String?,
   home : String?,
 ) -> InstanceRecord? {
   for r in entries {
     match pid {
-      Some(p) =>
-        if r.pid == p {
-          return Some(r)
-        }
+      Some(p) => if r.pid == p { return Some(r) }
       None => ()
     }
   }

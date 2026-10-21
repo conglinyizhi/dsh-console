@@ -36,7 +36,7 @@ let audit_max_bytes_default : Int64 = 8388608L
 
 ///|
 /// 滚动后新文件保留的最近条数。缺省 2000 条。
-let audit_retain_lines_default : Int = 2000
+let audit_retain_lines_default : Int32 = 2000
 
 ///|
 /// 归档旧文件用的目录名（相对状态目录）。
@@ -49,7 +49,7 @@ let audit_archive_dir : String = ".archive"
 /// 实测主文件稳在保留条数上，归档却一份一份地涨。
 /// 缺省 40 份：按 8 MiB 阈值估，一份归档最多约 8 MiB，40 份把归档上限压在 320 MiB 上下，
 /// 同时留着 40 次滚动窗口之前的历史 —— 要更长历史就调大它，或者自己备份归档目录。
-let audit_archive_keep_default : Int = 40
+let audit_archive_keep_default : Int32 = 40
 
 ///|
 /// 归档文件名前缀。
@@ -97,7 +97,7 @@ let audit_write_lock : @async.Mutex = @async.Mutex::Mutex()
 /// 追加时最多试几次：并发的两笔写会撞同一个临时文件名（临时名 = 目标 + pid + 毫秒，
 /// 同一毫秒里两个写者算出来是同一个），谁先 rename 走谁成功，另一个 ENOENT。
 /// 撞了就等一下重来一次 —— 审计行宁可重试，不该因为并发而丢。
-let append_attempts : Int = 6
+let append_attempts : Int32 = 6
 
 ///|
 /// 临时文件被并发写者先搬走时 @fsx 回的原文。匹配字符串是脆的，
@@ -119,7 +119,9 @@ pub async fn append_audit(line : @json.JsonVal) -> Result[Unit, String] noraise 
 
 ///|
 /// 真正的追加 + 滚动。调用方必须已经持有 audit_write_lock。
-async fn append_audit_locked(line : @json.JsonVal) -> Result[Unit, String] noraise {
+async fn append_audit_locked(
+  line : @json.JsonVal,
+) -> Result[Unit, String] noraise {
   let paths = state_paths()
   let text = @json.encode(line) + "\n"
   let rolled = rotate_if_needed(paths.audit)
@@ -136,14 +138,20 @@ async fn append_audit_locked(line : @json.JsonVal) -> Result[Unit, String] norai
           continue
         } else {
           let why = match rolled {
-            Some(note) => e + "；另外这一次审计滚动没做成：" + note
+            Some(note) =>
+              e + "；另外这一次审计滚动没做成：" + note
             None => e
           }
           return Err(why)
         }
     }
   }
-  Err("追加审计连试 " + append_attempts.to_string() + " 次都撞上并发：" + last)
+  Err(
+    "追加审计连试 " +
+    append_attempts.to_string() +
+    " 次都撞上并发：" +
+    last,
+  )
 }
 
 ///|
@@ -221,7 +229,7 @@ async fn rotate_if_needed(file : String) -> String? noraise {
 /// 归档目录修剪：按文件名（时间戳前缀定长）排序，只留最近 keep 份。
 /// 刚滚出去的那一份一定在 keep 之内 —— keep 至少 1，且它是最新的一份。
 /// 删不动不报错：删不掉只是多占点盘，不该把「审计已经滚好了」这件事说成失败。
-async fn prune_archives(newest : String, keep : Int) -> Unit noraise {
+async fn prune_archives(newest : String, keep : Int32) -> Unit noraise {
   if keep < 1 {
     return
   }
@@ -232,7 +240,8 @@ async fn prune_archives(newest : String, keep : Int) -> Unit noraise {
   }
   let archives : Array[String] = []
   for name in names {
-    if @json.starts_with(name, audit_archive_prefix) && name.has_suffix(audit_archive_suffix) {
+    if @json.starts_with(name, audit_archive_prefix) &&
+      name.has_suffix(audit_archive_suffix) {
       archives.push(name)
     }
   }
@@ -248,7 +257,7 @@ async fn prune_archives(newest : String, keep : Int) -> Unit noraise {
 
 ///|
 /// 归档保留份数：环境变量给了合法正整数就用它，否则缺省。
-async fn audit_archive_keep() -> Int noraise {
+async fn audit_archive_keep() -> Int32 noraise {
   match @json.env_value("DSH_CONSOLE_AUDIT_ARCHIVE_KEEP") {
     Some(raw) =>
       if @json.is_all_digits(raw) && @json.parse_dec(raw) > 0 {
@@ -266,9 +275,9 @@ async fn audit_archive_keep() -> Int noraise {
 fn rotation_note(
   at : String,
   bytes : Int64,
-  lines : Int,
+  lines : Int32,
   archive : String,
-  kept : Int,
+  kept : Int32,
 ) -> @json.JsonVal {
   let message = "因超限轮转：原文件 " +
     lines.to_string() +
@@ -282,22 +291,28 @@ fn rotation_note(
   @json.JObj([
     ("at", @json.JStr(at)),
     ("action", @json.JStr("audit-rotate")),
-    ("params", @json.JObj([
-      ("reason", @json.JStr("over-limit")),
-      ("archivedPath", @json.JStr(archive)),
-      ("sourceLines", @json.jint(lines)),
-      ("sourceBytes", @json.JNum(bytes.to_double())),
-      ("keptLines", @json.jint(kept)),
-    ])),
+    (
+      "params",
+      @json.JObj([
+        ("reason", @json.JStr("over-limit")),
+        ("archivedPath", @json.JStr(archive)),
+        ("sourceLines", @json.jint(lines)),
+        ("sourceBytes", @json.JNum(bytes.to_double())),
+        ("keptLines", @json.jint(kept)),
+      ]),
+    ),
     ("ok", @json.JBool(true)),
     ("code", @json.JNull),
     ("message", @json.JStr(message)),
-    ("outcome", @json.JObj([
-      ("archivedPath", @json.JStr(archive)),
-      ("archivedLines", @json.jint(lines)),
-      ("archivedBytes", @json.JNum(bytes.to_double())),
-      ("keptLines", @json.jint(kept)),
-    ])),
+    (
+      "outcome",
+      @json.JObj([
+        ("archivedPath", @json.JStr(archive)),
+        ("archivedLines", @json.jint(lines)),
+        ("archivedBytes", @json.JNum(bytes.to_double())),
+        ("keptLines", @json.jint(kept)),
+      ]),
+    ),
   ])
 }
 
@@ -388,15 +403,13 @@ async fn newest_archive(audit : String) -> String? noraise {
   let prefix = @json.slice(base, 0, base_prefix_len(base))
   let mut best : String? = None
   for name in names {
-    if !@json.starts_with(name, prefix) || !name.has_suffix(audit_archive_suffix) {
+    if !@json.starts_with(name, prefix) ||
+      !name.has_suffix(audit_archive_suffix) {
       continue
     }
     match best {
       None => best = Some(name)
-      Some(current) =>
-        if name > current {
-          best = Some(name)
-        }
+      Some(current) => if name > current { best = Some(name) }
     }
   }
   match best {
@@ -407,7 +420,7 @@ async fn newest_archive(audit : String) -> String? noraise {
 
 ///|
 /// 主文件去掉 .jsonl 后缀的那一段：audit.jsonl -> "audit"，归档名拿它当前缀配对。
-fn base_prefix_len(base : String) -> Int {
+fn base_prefix_len(base : String) -> Int32 {
   if base.has_suffix(audit_archive_suffix) {
     base.length() - audit_archive_suffix.length()
   } else {
@@ -432,7 +445,7 @@ async fn audit_max_bytes() -> Int64 noraise {
 
 ///|
 /// 保留条数：同上，非法值按缺省。
-async fn audit_retain_lines() -> Int noraise {
+async fn audit_retain_lines() -> Int32 noraise {
   match @json.env_value("DSH_CONSOLE_AUDIT_RETAIN_LINES") {
     Some(raw) =>
       if @json.is_all_digits(raw) && @json.parse_dec(raw) > 0 {

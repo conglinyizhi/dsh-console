@@ -2,7 +2,11 @@
 
 ///|
 /// Navigate 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_navigate(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_navigate(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     Navigate(page) => {
       let route : Route = {
@@ -42,7 +46,11 @@ fn handle_navigate(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @
 
 ///|
 /// RouteChanged 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_route_changed(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_route_changed(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     RouteChanged => {
       let route = parse_route(js_location_url())
@@ -50,7 +58,9 @@ fn handle_route_changed(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mod
       let settle = if route.notice == "" {
         @cmd.none
       } else {
-        replace_route(route_url(next.page, next.settings_group, next.log_source))
+        replace_route(
+          route_url(next.page, next.settings_group, next.log_source),
+        )
       }
       (next, @cmd.batch([enter, settle, listen_popstate(emit)]))
     }
@@ -60,9 +70,13 @@ fn handle_route_changed(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mod
 
 ///|
 /// RowAction 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_row_action(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    RowAction(id, key) => 
+    RowAction(id, key) =>
       match key {
         // 行内的启动 / 停止 / 重启都是真实动作（POST /api/local/action）：
         // 启动要等回执 + 展示下限，其余的动作直接把这一行置忙等回执。
@@ -101,7 +115,7 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
                 emit,
               )
               (
-                { ..next, restarting: id },
+                { ..next, restarting: id, },
                 @cmd.batch([cmd, @cmd.delay(emit(RestartTick), restart_lock_ms)]),
               )
             }
@@ -110,28 +124,30 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
         // （§30.1）：抽屉是 z-index 50/51、对话框 60/61，框本来就在抽屉之上；
         // 收掉抽屉会把用户正在读的读数一起撤走。关框之后焦点回抽屉里那一颗按钮，
         // 那才是「按下它」的那颗元素（卡片在这种情况下根本没被点过）。
-        Rename => (
-          {
-            ..model,
-            rename_id: id,
-            // 预填的是**目录名**（改名改的就是它），不是卡片上那一串：
-            // 运行中的行 row.name 是「名字 :端口」，照它预填等于把一个带空格和冒号的名字塞进输入框。
-            rename_draft: match find_row(model.rows, id) {
-              Some(row) =>
-                match row.profile_name {
-                  Some(name) => name
-                  None => row_name(model, id)
-                }
-              None => row_name(model, id)
+        Rename =>
+          (
+            {
+              ..model,
+              rename_id: id,
+              // 预填的是**目录名**（改名改的就是它），不是卡片上那一串：
+              // 运行中的行 row.name 是「名字 :端口」，照它预填等于把一个带空格和冒号的名字塞进输入框。
+              rename_draft: match find_row(model.rows, id) {
+                Some(row) =>
+                  match row.profile_name {
+                    Some(name) => name
+                    None => row_name(model, id)
+                  }
+                None => row_name(model, id)
+              },
+              rename_return: drawer_rename_id(),
             },
-            rename_return: drawer_rename_id(),
-          },
-          focus_select_after_render("dsh-rename-input"),
-        )
-        Delete => (
-          { ..model, confirm_id: id, confirm_return: drawer_delete_id() },
-          focus_after_render("dsh-confirm-ok"),
-        )
+            focus_select_after_render("dsh-rename-input"),
+          )
+        Delete =>
+          (
+            { ..model, confirm_id: id, confirm_return: drawer_delete_id(), },
+            focus_after_render("dsh-confirm-ok"),
+          )
         // 打开编辑框是纯前端的事，真正的写动作在保存那一步（NoteConfirm）
         Note => (model, emit(NoteOpen(id)))
         Archive =>
@@ -161,11 +177,15 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
                 // 副本里那些链接还指向原处（§60.2）：先告知，不直接发请求
                 handle_fork_open(
                   model,
-                  ForkOpen(id=id, return_id="dsh-drawer-fork"),
+                  ForkOpen(id~, return_id="dsh-drawer-fork"),
                   emit,
                 )
               } else {
-                let (with_progress, poll) = fork_progress_begin(model, row.name, emit)
+                let (with_progress, poll) = fork_progress_begin(
+                  model,
+                  row.name,
+                  emit,
+                )
                 let (next, cmd) = send_action(
                   with_progress,
                   id,
@@ -189,7 +209,12 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
                 Some(source) => {
                   // 这是用户自己挑的来源，rebuild 的缺省推导不许再压过它
                   let (next, read) = start_logs(
-                    { ..model, page: Logs, drawer_id: "", log_user_picked: true },
+                    {
+                      ..model,
+                      page: Logs,
+                      drawer_id: "",
+                      log_user_picked: true,
+                    },
                     source,
                     emit,
                   )
@@ -202,21 +227,23 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
                   )
                 }
                 // 没有在跑的实例可读：留在总览页把原因说清，不切到一个空日志页
-                None => (
-                  notice_err(
-                    { ..model, drawer_id: "" },
-                    row.name +
-                    " 现在没有在跑的实例，没有可读的日志来源（查看日志这一步没有执行）",
-                  ),
-                  @cmd.none,
-                )
+                None =>
+                  (
+                    notice_err(
+                      { ..model, drawer_id: "", },
+                      row.name +
+                      " 现在没有在跑的实例，没有可读的日志来源（查看日志这一步没有执行）",
+                    ),
+                    @cmd.none,
+                  )
               }
           }
         // 打开 Web UI：开带令牌的 webUrl。读不到令牌就不开标签页，把原因与裸地址说清（见 open_web_ui）。
         OpenUi => open_web_ui(model, id)
         // 两条复制：裸地址（卡上「访问地址」那一行的原值）与带令牌的地址（webUrl）
         CopyUrl => copy_url_action(model, id, "访问地址", false, emit)
-        CopyTokenUrl => copy_url_action(model, id, "带令牌的地址", true, emit)
+        CopyTokenUrl =>
+          copy_url_action(model, id, "带令牌的地址", true, emit)
         // 复制开发指令：一段给「另一个会话」的任务说明（粘到别的 profile 的会话里用）
         CopyDev => copy_dev_action(model, id, emit)
         // 配置 home：共用 → 直接发「移到独立 home」；独立 → 先开确认框（移回会把剩下的东西送进回收站）。
@@ -224,7 +251,7 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
         //（真实的目录移动，跨盘退回复制时尤其不是瞬时的）。
         IsolateHome => {
           let (next, cmd) = send_action(
-            { ..model, home_move_id: id },
+            { ..model, home_move_id: id, },
             id,
             "isolate-profile",
             row_name(model, id),
@@ -252,13 +279,17 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
 
 ///|
 /// DrawerOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_drawer_open(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_drawer_open(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    DrawerOpen(id) => 
+    DrawerOpen(id) =>
       // 拖动与点击共用同一套按下-松开，靠位移阈值分开（见 DragDown / DragMove）。
       // 拖过的那一次松手之后浏览器仍会补一个 click，那一下不许再开抽屉。
       if model.drag_suppress_click {
-        ({ ..model, drag_suppress_click: false }, @cmd.none)
+        ({ ..model, drag_suppress_click: false, }, @cmd.none)
       } else {
         // 又把抽屉打开了：正在收的那一只当场作废（同一行会撞出两个 #dsh-drawer-close），
         // 它那条计时回来时号对不上，自己会是空枪
@@ -267,7 +298,12 @@ fn handle_drawer_open(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
         // 按 safety.deleteToTrash 决定写「删除」还是「彻底删除」。
         // 打开抽屉时那份下拉菜单一定是收着的（同一时刻只有一份，换行也不带走）。
         let (next, read) = ensure_settings_read(
-          { ..model, drawer_id: id, drawer_closing: "", split_menu_open: false },
+          {
+            ..model,
+            drawer_id: id,
+            drawer_closing: "",
+            split_menu_open: false,
+          },
           emit,
         )
         (next, @cmd.batch([read, focus_after_render(drawer_close_id())]))
@@ -285,9 +321,13 @@ fn handle_drawer_open(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
 
 ///|
 /// DrawerClose 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_drawer_close(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_drawer_close(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    DrawerClose => 
+    DrawerClose =>
       if model.drawer_id == "" {
         // 已经关了（连按两下 Esc、遮罩与键盘各来一次）：不动焦点，也不留空枪
         (model, @cmd.none)
@@ -295,12 +335,22 @@ fn handle_drawer_close(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
         // 「减少动效」：不做位移也不淡出，节点当场撤掉（样式里那条 media query 关的是
         // 开的那一半；收的这半边要连节点都不留，所以在这里判）
         (
-          { ..model, drawer_id: "", drawer_closing: "", split_menu_open: false },
+          {
+            ..model,
+            drawer_id: "",
+            drawer_closing: "",
+            split_menu_open: false,
+          },
           focus_after_render(card_id(model.drawer_id)),
         )
       } else {
         (
-          { ..model, drawer_id: "", drawer_closing: model.drawer_id, split_menu_open: false },
+          {
+            ..model,
+            drawer_id: "",
+            drawer_closing: model.drawer_id,
+            split_menu_open: false,
+          },
           @cmd.batch([
             focus_after_render(card_id(model.drawer_id)),
             // 号用的是**正在收的那一行**（model.drawer_closing 此刻还是上一拍的值）
@@ -316,17 +366,21 @@ fn handle_drawer_close(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
 
 ///|
 /// SplitMenuToggle 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_split_menu_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_split_menu_toggle(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    SplitMenuToggle => 
+    SplitMenuToggle =>
       if model.split_menu_open {
         (
-          { ..model, split_menu_open: false },
+          { ..model, split_menu_open: false, },
           focus_after_render(split_menu_btn_id(model.drawer_id)),
         )
       } else {
         (
-          { ..model, split_menu_open: true },
+          { ..model, split_menu_open: true, },
           focus_after_render(split_menu_item_id(model.drawer_id)),
         )
       }
@@ -338,12 +392,16 @@ fn handle_split_menu_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) ->
 
 ///|
 /// SplitMenuClose 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_split_menu_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_split_menu_close(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    SplitMenuClose => 
+    SplitMenuClose =>
       if model.split_menu_open {
         (
-          { ..model, split_menu_open: false },
+          { ..model, split_menu_open: false, },
           focus_after_render(split_menu_btn_id(model.drawer_id)),
         )
       } else {
@@ -361,13 +419,17 @@ fn handle_split_menu_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> 
 ///|
 /// 「派生开发副本」那颗按钮（§60.2）：有外部软链接时走确认框，没有就直接派生（那条在
 /// handle_row_action 的 Fork 分支里）。
-fn handle_fork_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_fork_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     ForkOpen(id~, return_id~) =>
       match find_row(model.rows, id) {
         Some(_) =>
           (
-            { ..model, fork_confirm_id: id, fork_confirm_return: return_id },
+            { ..model, fork_confirm_id: id, fork_confirm_return: return_id, },
             focus_after_render("dsh-fork-dialog-ok"),
           )
         None => (model, @cmd.none)
@@ -378,7 +440,11 @@ fn handle_fork_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
 
 ///|
 /// 确认框里点了「取消」：什么都不发，焦点回抽屉那颗按钮。
-fn handle_fork_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_fork_cancel(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     ForkCancel =>
       if model.fork_confirm_id == "" {
@@ -386,8 +452,12 @@ fn handle_fork_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mode
       } else {
         let back = model.fork_confirm_return
         (
-          { ..model, fork_confirm_id: "", fork_confirm_return: "" },
-          if back == "" { @cmd.none } else { focus_after_render(back) },
+          { ..model, fork_confirm_id: "", fork_confirm_return: "", },
+          if back == "" {
+            @cmd.none
+          } else {
+            focus_after_render(back)
+          },
         )
       }
     _ => (model, @cmd.none)
@@ -396,14 +466,22 @@ fn handle_fork_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mode
 
 ///|
 /// 确认框里点了「仍然派生」：清掉框，走与无链接时同一条 fork-profile。
-fn handle_fork_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_fork_confirm(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     ForkConfirm => {
       let id = model.fork_confirm_id
-      let cleared = { ..model, fork_confirm_id: "", fork_confirm_return: "" }
+      let cleared = { ..model, fork_confirm_id: "", fork_confirm_return: "", }
       match find_row(cleared.rows, id) {
         Some(row) => {
-          let (with_progress, poll) = fork_progress_begin(cleared, row.name, emit)
+          let (with_progress, poll) = fork_progress_begin(
+            cleared,
+            row.name,
+            emit,
+          )
           let (next, cmd) = send_action(
             with_progress,
             id,

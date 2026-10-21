@@ -22,11 +22,11 @@ pub let instance_prefix : String = "instance:"
 
 ///|
 /// tail 缺省值（与 Node 版一致）。真正生效的缺省来自设置 logs.defaultTail，这里是回退值。
-pub let default_tail : Int = 200
+pub let default_tail : Int32 = 200
 
 ///|
 /// 见上。超上限不报错，按上限返回。
-pub let max_tail : Int = 1000
+pub let max_tail : Int32 = 1000
 
 ///|
 /// 实例日志目录名。
@@ -34,7 +34,7 @@ let instance_logs_dir : String = "logs"
 
 ///|
 /// 实例日志目录的扫描深度上限。
-let instance_scan_depth : Int = 3
+let instance_scan_depth : Int32 = 3
 
 ///|
 /// 只认这些后缀的普通文件；别的文件不猜，也不读。
@@ -42,11 +42,11 @@ let log_extensions : Array[String] = [".log", ".jsonl", ".txt"]
 
 ///|
 /// 一次扫描最多看多少个目录项，有界。
-let max_scan_entries : Int = 2000
+let max_scan_entries : Int32 = 2000
 
 ///|
 /// 展示用的单行文本上限；超了截断并加省略号。
-let max_text_chars : Int = 400
+let max_text_chars : Int32 = 400
 
 ///|
 /// 白名单里两个固定来源。
@@ -93,7 +93,7 @@ async fn resolve_source(id : String) -> Resolved? noraise {
     if instance_id == "" {
       return None
     }
-    return Some({ id, kind: "instance", instance_id, label: None, file: None })
+    return Some({ id, kind: "instance", instance_id, label: None, file: None, })
   }
   for source in fixed_sources() {
     if source.id == id {
@@ -151,7 +151,10 @@ fn tokenize_alnum(text : String) -> Array[String] {
 pub fn level_from_text(text : String) -> String? {
   let tokens = tokenize_alnum(@json.to_lower(text))
   for token in tokens {
-    if token == "error" || token == "failed" || token == "failure" || token == "exception" {
+    if token == "error" ||
+      token == "failed" ||
+      token == "failure" ||
+      token == "exception" {
       return Some("error")
     }
   }
@@ -235,13 +238,14 @@ pub fn parse_host_line(raw : String) -> ParsedLine {
   let rest = @json.trim_both(@json.slice_from(raw, head.length()))
   match @json.iso_time_part(head) {
     None => fallback
-    Some(t) => {
-      time: Some(t),
-      level: level_from_text(rest),
-      text: rest,
-      verdict: None,
-      outcome: None,
-    }
+    Some(t) =>
+      {
+        time: Some(t),
+        level: level_from_text(rest),
+        text: rest,
+        verdict: None,
+        outcome: None,
+      }
   }
 }
 
@@ -282,7 +286,10 @@ pub fn parse_audit_line(raw : String) -> ParsedLine {
   }
   let verdict = field_string(json, "verdict")
   let outcome = field_string(json, "outcome")
-  let parts : Array[String] = [tool, or_empty(verdict) + "/" + or_empty(outcome)]
+  let parts : Array[String] = [
+    tool,
+    or_empty(verdict) + "/" + or_empty(outcome),
+  ]
   match field_string(json, "reviewMode") {
     Some(flag) if flag != "" => parts.push(flag)
     _ => ()
@@ -330,8 +337,16 @@ pub fn parse_action_line(raw : String) -> ParsedLine {
   let code = or_empty(field_string(json, "code"))
   let message = or_empty(field_string(json, "message"))
   let parts : Array[String] = [
-    if action == "" { "（没写动作名）" } else { action },
-    if ok { "ok" } else { "失败" },
+    if action == "" {
+      "（没写动作名）"
+    } else {
+      action
+    },
+    if ok {
+      "ok"
+    } else {
+      "失败"
+    },
   ]
   if !ok && code != "" {
     parts.push(code)
@@ -341,9 +356,17 @@ pub fn parse_action_line(raw : String) -> ParsedLine {
   }
   {
     time: @json.iso_time_part(or_empty(field_string(json, "at"))),
-    level: if ok { None } else { Some("error") },
+    level: if ok {
+      None
+    } else {
+      Some("error")
+    },
     text: join_parts(parts),
-    verdict: if ok { None } else { Some(code) },
+    verdict: if ok {
+      None
+    } else {
+      Some(code)
+    },
     outcome: Some(if ok { "ok" } else { "fail" }),
   }
 }
@@ -391,7 +414,7 @@ priv struct LogCandidate {
 /// 广度优先扫 logs/ 目录，收集看起来像日志的普通文件，带 mtime。
 async fn collect_log_files(root : String) -> Array[LogCandidate] noraise {
   let found : Array[LogCandidate] = []
-  let queue : Array[(String, Int)] = [(root, 0)]
+  let queue : Array[(String, Int32)] = [(root, 0)]
   let mut cursor = 0
   let mut visited = 0
   while cursor < queue.length() {
@@ -428,7 +451,7 @@ async fn collect_log_files(root : String) -> Array[LogCandidate] noraise {
             Some(n) => n
             None => 0L // 拿不到大小按「没内容」算，不会因此把它顶到默认来源上
           }
-          found.push({ file: full, mtime_ms: ms, bytes })
+          found.push({ file: full, mtime_ms: ms, bytes, })
         }
         None => () // 读不到状态就不收，不猜
       }
@@ -448,7 +471,13 @@ async fn own_log_path(
 ) -> String? noraise {
   match instance.pid {
     Some(pid) =>
-      match @store.find_record(@store.load_registry().entries, Some(pid), None, None) {
+      match
+        @store.find_record(
+          @store.load_registry().entries,
+          Some(pid),
+          None,
+          None,
+        ) {
         Some(record) => return Some(record.log_path)
         None => ()
       }
@@ -483,7 +512,7 @@ let host_log_name : String = "host.log"
 /// 也会留一份 console-*.log，而且通常比还在跑的实例那份新。只按 mtime 挑，日志页
 /// 默认来源显示的就是这份没信息量的失败日志；把它和 host 日志放在同一档里比 mtime，
 /// 同样是拿运气当判据。
-fn candidate_tier(item : LogCandidate, own : String?) -> Int {
+fn candidate_tier(item : LogCandidate, own : String?) -> Int32 {
   let mine = match own {
     Some(path) => item.file == path
     None => false
@@ -491,9 +520,17 @@ fn candidate_tier(item : LogCandidate, own : String?) -> Int {
   let is_host = @json.basename(item.file) == host_log_name
   let has_content = item.bytes > 0L
   if mine {
-    if has_content { 0 } else { 3 }
+    if has_content {
+      0
+    } else {
+      3
+    }
   } else if is_host {
-    if has_content { 1 } else { 4 }
+    if has_content {
+      1
+    } else {
+      4
+    }
   } else if has_content {
     2
   } else {
@@ -503,15 +540,26 @@ fn candidate_tier(item : LogCandidate, own : String?) -> Int {
 
 ///|
 /// 从候选里挑这一条：层级 -> mtime 降序 -> 路径升序（同层级同 mtime 时结果稳定可复现）。
-fn pick_instance_log(candidates : Array[LogCandidate], own : String?) -> LogCandidate {
+fn pick_instance_log(
+  candidates : Array[LogCandidate],
+  own : String?,
+) -> LogCandidate {
   let ranked = candidates.copy()
   ranked.sort_by(fn(a, b) {
     let ta = candidate_tier(a, own)
     let tb = candidate_tier(b, own)
     if ta != tb {
-      if ta < tb { -1 } else { 1 }
+      if ta < tb {
+        -1
+      } else {
+        1
+      }
     } else if a.mtime_ms != b.mtime_ms {
-      if a.mtime_ms > b.mtime_ms { -1 } else { 1 }
+      if a.mtime_ms > b.mtime_ms {
+        -1
+      } else {
+        1
+      }
     } else {
       @json.compare_code_units(a.file, b.file)
     }
@@ -532,7 +580,7 @@ fn settings() -> @json.JsonVal {
 ///|
 /// tail 参数的解析结果。note 非空时上层会把它写成 data.tailNote。
 pub struct TailSpec {
-  tail : Int
+  tail : Int32
   note : String?
 }
 
@@ -544,21 +592,27 @@ pub struct TailSpec {
 ///   - 大于 1000            -> 收敛到 1000，并带 tailNote
 pub fn parse_tail(
   raw : String?,
-  default_tail_value : Int,
+  default_tail_value : Int32,
 ) -> TailSpec raise @localapi.ReadError {
   let text = match raw {
     None => ""
     Some(v) => v
   }
   if text == "" {
-    return { tail: default_tail_value, note: None }
+    return { tail: default_tail_value, note: None, }
   }
   if !@json.is_all_digits(text) {
-    raise @localapi.ReadError(code="bad-tail", message="tail 只接受正整数")
+    raise @localapi.ReadError(
+      code="bad-tail",
+      message="tail 只接受正整数",
+    )
   }
   let value = @json.parse_dec(text)
   if value <= 0 {
-    raise @localapi.ReadError(code="bad-tail", message="tail 只接受正整数")
+    raise @localapi.ReadError(
+      code="bad-tail",
+      message="tail 只接受正整数",
+    )
   }
   if value > max_tail {
     return {
@@ -566,12 +620,14 @@ pub fn parse_tail(
       note: Some("tail 超过上限 \{max_tail}，按 \{max_tail} 返回"),
     }
   }
-  { tail: value, note: None }
+  { tail: value, note: None, }
 }
 
 ///|
 /// 按设置里的 logs.defaultTail 解析 tail：没给 tail 参数时就用它。
-pub async fn parse_tail_with_settings(raw : String?) -> TailSpec raise @localapi.ReadError {
+pub async fn parse_tail_with_settings(
+  raw : String?,
+) -> TailSpec raise @localapi.ReadError {
   let settings = @store.load_settings().values
   parse_tail(raw, settings.logs_default_tail)
 }
@@ -589,7 +645,9 @@ pub async fn read_logs(
     None =>
       raise @localapi.ReadError(
         code="unknown-source",
-        message="没有这个来源：" + source_id + "，只支持 host / audit / instance:<实例 id>",
+        message="没有这个来源：" +
+          source_id +
+          "，只支持 host / audit / instance:<实例 id>",
       )
   }
   // tail 已经在 parse_tail 里收敛过（缺省 200、超上限按上限并带 tailNote）；
@@ -626,9 +684,7 @@ pub async fn read_logs(
     ("maxTail", @json.jint(max_tail)),
     ("settings", settings()),
   ]
-  let read = try {
-    @json.read_tail_lines(file, wanted)
-  } catch {
+  let read = @json.read_tail_lines(file, wanted) catch {
     @json.TailError(msg) => {
       let fields = base.copy()
       fields.push(("readOk", @json.JBool(false)))
@@ -675,8 +731,8 @@ pub async fn read_logs(
 /// 再按有没有内容分层，同级才比 mtime），不是单纯取 mtime 最新的那个文件。
 async fn read_instance_logs(
   source : Resolved,
-  requested : Int,
-  wanted : Int,
+  requested : Int32,
+  wanted : Int32,
 ) -> @json.JsonVal noraise {
   let report = @instances.instances_report_with_settings()
   let detected = report.instances.length()
@@ -688,21 +744,30 @@ async fn read_instance_logs(
   }
   // 命中与未命中两条分支各自算好 port / label，两边都用到，不留悬空绑定
   let (port, label) : (@json.JsonVal, @json.JsonVal) = match matched {
-    Some(item) => (@json.JNum(item.port.to_double()), @json.JStr("dsh :\{item.port}"))
+    Some(item) =>
+      (@json.JNum(item.port.to_double()), @json.JStr("dsh :\{item.port}"))
     None => (@json.JNull, @json.JNull)
   }
   let base : Array[(String, @json.JsonVal)] = [
     ("source", @json.JStr(source.id)),
     ("label", label),
     ("kind", @json.JStr("instance")),
-    ("instance", @json.JObj([
-      ("id", @json.JStr(source.instance_id)),
-      ("port", port),
-      ("dshHome", @json.str_or_null(match matched {
-        Some(item) => item.dsh_home
-        None => None
-      })),
-    ])),
+    (
+      "instance",
+      @json.JObj([
+        ("id", @json.JStr(source.instance_id)),
+        ("port", port),
+        (
+          "dshHome",
+          @json.str_or_null(
+            match matched {
+              Some(item) => item.dsh_home
+              None => None
+            },
+          ),
+        ),
+      ]),
+    ),
     ("detectedInstances", @json.jint(detected)),
     ("path", @json.JNull),
     ("requestedTail", @json.jint(requested)),
@@ -714,12 +779,14 @@ async fn read_instance_logs(
     let fields = base.copy()
     fields.push(("readOk", @json.JBool(false)))
     fields.push(("errorCode", @json.JStr("unknown-instance")))
-    fields.push((
-      "readError",
-      @json.JStr(
-        "没有这个运行中的实例：\{source.instance_id}（当前检测到 \{detected} 个）",
+    fields.push(
+      (
+        "readError",
+        @json.JStr(
+          "没有这个运行中的实例：\{source.instance_id}（当前检测到 \{detected} 个）",
+        ),
       ),
-    ))
+    )
     fields.push(("fileSize", @json.JNull))
     fields.push(("windowBytes", @json.jint(0)))
     fields.push(("lines", @json.JArr([])))
@@ -757,10 +824,14 @@ async fn read_instance_logs(
   if candidates.length() == 0 {
     fields.push(("readOk", @json.JBool(false)))
     fields.push(("errorCode", @json.JStr("no-log-file")))
-    fields.push((
-      "readError",
-      @json.JStr("这个实例没有可读的日志来源：\{logs_dir} 下没有可读日志文件"),
-    ))
+    fields.push(
+      (
+        "readError",
+        @json.JStr(
+          "这个实例没有可读的日志来源：\{logs_dir} 下没有可读日志文件",
+        ),
+      ),
+    )
     fields.push(("fileSize", @json.JNull))
     fields.push(("windowBytes", @json.jint(0)))
     fields.push(("lines", @json.JArr([])))
@@ -769,9 +840,7 @@ async fn read_instance_logs(
     return @json.JObj(fields)
   }
   let picked = pick_instance_log(candidates, own)
-  let read = try {
-    @json.read_tail_lines(picked.file, wanted)
-  } catch {
+  let read = @json.read_tail_lines(picked.file, wanted) catch {
     @json.TailError(msg) => {
       fields.push(("path", @json.JStr(picked.file)))
       fields.push(("readOk", @json.JBool(false)))
@@ -792,12 +861,14 @@ async fn read_instance_logs(
   fields.push(("path", @json.JStr(picked.file)))
   fields.push(("logsDir", @json.JStr(logs_dir)))
   fields.push(("logFileCount", @json.jint(candidates.length())))
-  fields.push((
-    "pickedBy",
-    @json.JStr(
-      "logs 目录内先认这条实例自己的日志、其次 host 日志，再按有没有内容分层；同级取 mtime 最新的一个",
+  fields.push(
+    (
+      "pickedBy",
+      @json.JStr(
+        "logs 目录内先认这条实例自己的日志、其次 host 日志，再按有没有内容分层；同级取 mtime 最新的一个",
+      ),
     ),
-  ))
+  )
   fields.push(("readOk", @json.JBool(true)))
   fields.push(("errorCode", @json.JNull))
   fields.push(("readError", @json.JNull))

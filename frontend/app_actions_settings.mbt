@@ -1,14 +1,21 @@
 // 设置页那一族：草稿、控件 id、保存 / 重置 / 合并回执，以及侧栏收起（ui.sidebarCollapsed）\n// 与归档区默认展开（ui.archiveOpenByDefault）这两条界面偏好的落地。\n//\n// 2026-10-20 从 app_actions.mbt 拆出来：设置是一套完整的读写闭环（草稿 → PUT → 合并回显），\n// 跟别的动作不共用状态。只搬位置，函数体一个字没改。\n
 
 ///|
-fn put_draft(drafts : Array[SettingDraft], key : String, text : String) -> Array[SettingDraft] {
+fn put_draft(
+  drafts : Array[SettingDraft],
+  key : String,
+  text : String,
+) -> Array[SettingDraft] {
   let out = drafts.filter(fn(draft) { draft.key != key })
-  out.push({ key, text })
+  out.push({ key, text, })
   out
 }
 
 ///|
-fn drop_draft(drafts : Array[SettingDraft], key : String) -> Array[SettingDraft] {
+fn drop_draft(
+  drafts : Array[SettingDraft],
+  key : String,
+) -> Array[SettingDraft] {
   drafts.filter(fn(draft) { draft.key != key })
 }
 
@@ -85,15 +92,23 @@ fn sidebar_collapsed_stored(model : Model) -> Bool {
 /// 所以这里不必再挂一份回滚。
 fn toggle_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   let next = !model.sidebar_collapsed
-  let (saving, cmd) = commit_setting_value(model, "ui.sidebarCollapsed", VBool(next), emit)
-  ({ ..saving, sidebar_collapsed: next }, cmd)
+  let (saving, cmd) = commit_setting_value(
+    model,
+    "ui.sidebarCollapsed",
+    VBool(next),
+    emit,
+  )
+  ({ ..saving, sidebar_collapsed: next, }, cmd)
 }
 
 ///|
 /// GET /api/local/settings 的结果落地。404 / 501 与别的失败分开记：
 /// 前者是「后端还没提供这个接口」，页面要照实说。
-fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, @cmd.Cmd) {
-  let base = { ..model, settings_loading: false, settings_loaded: true }
+fn settings_loaded_state(
+  model : Model,
+  res : Result[String, Error],
+) -> (Model, @cmd.Cmd) {
+  let base = { ..model, settings_loading: false, settings_loaded: true, }
   match res {
     Err(err) => {
       let reason = "请求没发出去（" + describe(err) + "）"
@@ -154,13 +169,12 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
             }
             // 读数跟上来之后，与它一样的草稿自动收掉（保存成功那一格就是这样退场的）；
             // 正在敲、还没存的那一格文本仍然不同，留着。
-            (
-              { ..parsed, env_draft: env_prune_drafts(parsed) },
-              @cmd.none,
-            )
+            ({ ..parsed, env_draft: env_prune_drafts(parsed), }, @cmd.none)
           }
           Err(reason) => {
-            let detail = http_status_text(got) + " | 响应不是约定的成功壳：" + reason
+            let detail = http_status_text(got) +
+              " | 响应不是约定的成功壳：" +
+              reason
             (
               {
                 ..base,
@@ -169,7 +183,9 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
                 settings_status_text: got.status_text,
                 settings_error: detail,
                 settings_endpoint_missing: false,
-                tag_settings: fallback_tag("设置读数读取失败：" + detail),
+                tag_settings: fallback_tag(
+                  "设置读数读取失败：" + detail,
+                ),
               },
               @cmd.none,
             )
@@ -178,10 +194,11 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
       } else {
         let missing = got.status == 404 || got.status == 501
         let detail = (if missing {
-          "这台控制台还没有提供设置读数。"
-        } else {
-          "读设置时出错了。"
-        }) + failure_note(got)
+            "这台控制台还没有提供设置读数。"
+          } else {
+            "读设置时出错了。"
+          }) +
+          failure_note(got)
         (
           {
             ..base,
@@ -217,7 +234,10 @@ fn commit_setting(
           let back = setting_stored_text(model, key)
           (
             notice_err(
-              { ..model, settings_draft: drop_draft(model.settings_draft, key) },
+              {
+                ..model,
+                settings_draft: drop_draft(model.settings_draft, key),
+              },
               def.label + " 没保存：" + reason,
             ),
             set_control_after_render(setting_control_id(key), back),
@@ -243,11 +263,7 @@ fn commit_setting_value(
       // 「正在保存 …」不播报（§14.3 只认保存成功 / 失败）：这一句既不是结果，
       // 又会把刚才那条失败提示顶掉。控件自己在 settings_saving 期间是禁用的。
       (
-        {
-          ..model,
-          settings_saving: key,
-          settings_pending: Some(value),
-        },
+        { ..model, settings_saving: key, settings_pending: Some(value), },
         settings_put_cmd(key, settings_put_body(key, value), emit),
       )
   }
@@ -258,7 +274,11 @@ fn commit_setting_value(
 ///
 /// 缺省值读不到时什么都不做，只把原因说清 —— 退到本地契约表里的那个数去顶，
 /// 就是在用户没要求的时候替他写了一个他不认识的数。
-fn reset_setting(model : Model, key : String, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn reset_setting(
+  model : Model,
+  key : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   let label = setting_label(key)
   let value = match model.settings {
     Some(facts) =>
@@ -270,10 +290,14 @@ fn reset_setting(model : Model, key : String, emit : @cmd.Emit[Msg]) -> (Model, 
   }
   match value {
     Some(value) => commit_setting_value(model, key, value, emit)
-    None => (
-      notice_err(model, label + " 没能恢复默认：读数里没有这一项的缺省值"),
-      @cmd.none,
-    )
+    None =>
+      (
+        notice_err(
+          model,
+          label + " 没能恢复默认：读数里没有这一项的缺省值",
+        ),
+        @cmd.none,
+      )
   }
 }
 
@@ -290,11 +314,16 @@ fn settings_saved_state(
   let drafts = drop_draft(model.settings_draft, key)
   if !ok {
     let back = setting_stored_text(model, key)
-    let failed = { ..model, settings_saving: "", settings_pending: None, settings_draft: drafts }
+    let failed = {
+      ..model,
+      settings_saving: "",
+      settings_pending: None,
+      settings_draft: drafts,
+    }
     // 侧栏那一次点击是**先动界面、再写设置**的：写失败就把界面退回设置里存着的那一份，
     // 不能停在「看着收起了、其实没存下」的状态（与拖动换位的回滚同一条规矩）。
     let failed = if key == "ui.sidebarCollapsed" {
-      { ..failed, sidebar_collapsed: sidebar_collapsed_stored(model) }
+      { ..failed, sidebar_collapsed: sidebar_collapsed_stored(model), }
     } else {
       failed
     }
@@ -318,7 +347,7 @@ fn settings_saved_state(
   }
   // 设置页那颗开关与外壳那颗折叠按钮是同一个键：两边都得跟着读数走
   let saved = if key == "ui.sidebarCollapsed" {
-    { ..saved, sidebar_collapsed: sidebar_collapsed_of(facts) }
+    { ..saved, sidebar_collapsed: sidebar_collapsed_of(facts), }
   } else {
     saved
   }
@@ -329,22 +358,19 @@ fn settings_saved_state(
   } else {
     @cmd.none
   }
-  (
-    notice_ok(
-      saved,
-      label + " 已保存：" + value_text,
-      "",
-    ),
-    refocus,
-  )
+  (notice_ok(saved, label + " 已保存：" + value_text, ""), refocus)
 }
 
 ///|
 /// 保存成功之后这一项的取值：后端回了同形的壳就以它为准，否则记下提交的值。
-fn merge_saved(model : Model, key : String, res : Result[String, Error]) -> SettingsFacts {
+fn merge_saved(
+  model : Model,
+  key : String,
+  res : Result[String, Error],
+) -> SettingsFacts {
   let base = match model.settings {
     Some(facts) => facts
-    None => { values: [], defaults: [], sources: [] }
+    None => { values: [], defaults: [], sources: [], }
   }
   let from_body = match res {
     Ok(text) => {
@@ -367,18 +393,21 @@ fn merge_saved(model : Model, key : String, res : Result[String, Error]) -> Sett
 }
 
 ///|
-fn put_setting(facts : SettingsFacts, key : String, value : SettingValue?) -> SettingsFacts {
+fn put_setting(
+  facts : SettingsFacts,
+  key : String,
+  value : SettingValue?,
+) -> SettingsFacts {
   match value {
     None => facts
     Some(value) => {
       let values = facts.values.filter(fn(item) { item.key != key })
-      values.push({ key, value })
+      values.push({ key, value, })
       let sources = facts.sources.filter(fn(item) { item.key != key })
-      sources.push({ key, value: VText("文件") })
-      { values, defaults: facts.defaults, sources }
+      sources.push({ key, value: VText("文件"), })
+      { values, defaults: facts.defaults, sources, }
     }
   }
 }
-
 
 // ── 更新 ───────────────────────────────────────────────────

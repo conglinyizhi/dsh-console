@@ -43,9 +43,9 @@ fn build_headers(extra : Array[(String, String)]) -> @moonback.Headers {
 /// 写 JSON 响应体。
 pub async fn send_json(
   res : @moonback.Responder,
-  status : Int,
+  status : Int32,
   payload : @json.JsonVal,
-  extra_headers? : Array[(String, String)] = [],
+  extra_headers~ : Array[(String, String)] = [],
 ) -> Unit {
   let headers = match extra_headers {
     [] => build_headers([])
@@ -62,23 +62,27 @@ pub async fn send_ok(
   data : @json.JsonVal,
   read_at : String,
 ) -> Unit {
-  send_json(res, 200, @json.JObj([
-    ("ok", @json.JBool(true)),
-    ("readOnly", @json.JBool(true)),
-    ("readAt", @json.JStr(read_at)),
-    ("data", data),
-  ]))
+  send_json(
+    res,
+    200,
+    @json.JObj([
+      ("ok", @json.JBool(true)),
+      ("readOnly", @json.JBool(true)),
+      ("readAt", @json.JStr(read_at)),
+      ("data", data),
+    ]),
+  )
 }
 
 ///|
 /// 失败外壳：{ ok, readOnly, readAt?, error }。readAt 只有读到一半失败时才带。
 pub async fn send_error(
   res : @moonback.Responder,
-  status : Int,
+  status : Int32,
   code : String,
   message : String,
-  read_at? : String? = None,
-  extra_headers? : Array[(String, String)] = [],
+  read_at~ : String? = None,
+  extra_headers~ : Array[(String, String)] = [],
 ) -> Unit {
   let fields : Array[(String, @json.JsonVal)] = [
     ("ok", @json.JBool(false)),
@@ -88,6 +92,11 @@ pub async fn send_error(
     Some(t) => fields.push(("readAt", @json.JStr(t)))
     None => ()
   }
-  fields.push(("error", @json.JObj([("code", @json.JStr(code)), ("message", @json.JStr(message))])))
+  fields.push(
+    (
+      "error",
+      @json.JObj([("code", @json.JStr(code)), ("message", @json.JStr(message))]),
+    ),
+  )
   send_json(res, status, @json.JObj(fields), extra_headers~)
 }

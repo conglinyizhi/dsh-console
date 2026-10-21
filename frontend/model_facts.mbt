@@ -4,7 +4,6 @@
 // 2026-10-20 从 model.mbt 拆出来：结构定义是一份稳定的契约，与逐字段解析分开更好读。
 // 只搬位置，函数体一个字没改。
 
-
 ///|
 /// 这台机器上装着的一份 dsh（读数里的 dshCandidates 一项）。
 ///
@@ -23,7 +22,8 @@ pub(all) struct DshCandidate {
   running : Bool
 } derive(Eq)
 
-pub extend DshCandidate with Eq::{ not_equal, equal }
+///|
+pub extend DshCandidate with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct RuntimeFacts {
@@ -53,7 +53,8 @@ pub(all) struct RuntimeFacts {
   platform : String
 } derive(Eq)
 
-pub extend RuntimeFacts with Eq::{ not_equal, equal }
+///|
+pub extend RuntimeFacts with Eq::{not_equal, equal}
 
 ///|
 /// 一个候选版本（读数里的 versions 一项）。
@@ -74,7 +75,8 @@ pub(all) struct ReleaseVersion {
   published_at : String
 } derive(Eq)
 
-pub extend ReleaseVersion with Eq::{ not_equal, equal }
+///|
+pub extend ReleaseVersion with Eq::{not_equal, equal}
 
 ///|
 /// 一个来源问下来的结果。ok=false 时 error 是后端给的那句人话（超时 / 连不上 / 格式不对）。
@@ -82,13 +84,14 @@ pub(all) struct ReleaseSource {
   id : String
   ok : Bool
   /// 这个源这一趟花了多少毫秒（后端量的，含 curl 起进程与解析）
-  ms : Int
+  ms : Int32
   error : String
   /// 这个源给出几条版本
-  count : Int
+  count : Int32
 } derive(Eq)
 
-pub extend ReleaseSource with Eq::{ not_equal, equal }
+///|
+pub extend ReleaseSource with Eq::{not_equal, equal}
 
 ///|
 /// 版本来源读数（GET /api/local/dsh-releases）。
@@ -120,16 +123,18 @@ pub(all) struct ReleasesFacts {
   fetch_error : String
 } derive(Eq)
 
-pub extend ReleasesFacts with Eq::{ not_equal, equal }
+///|
+pub extend ReleasesFacts with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct ProfileBundles {
-  declared : Int
-  installed : Int
+  declared : Int32
+  installed : Int32
   missing : Array[String]
 } derive(Eq)
 
-pub extend ProfileBundles with Eq::{ not_equal, equal }
+///|
+pub extend ProfileBundles with Eq::{not_equal, equal}
 
 ///|
 /// 一份配置快照（design/ops-maintenance-jobs.md 第 16.2 节）。
@@ -141,12 +146,13 @@ pub(all) struct SnapshotFact {
   id : String
   at : String
   reason : String
-  files : Int
+  files : Int32
   /// meta.json 里记的字节数。接口给的是数字，按 Double 收（与回收站条目同一口径）
   bytes : Double
 } derive(Eq)
 
-pub extend SnapshotFact with Eq::{ not_equal, equal }
+///|
+pub extend SnapshotFact with Eq::{not_equal, equal}
 
 ///|
 /// 这只 profile **最近一次启动**的结局（design/design-fixes.md §26.1）。
@@ -171,14 +177,15 @@ pub(all) struct ProfileLastStart {
   home : String
 } derive(Eq)
 
-pub extend ProfileLastStart with Eq::{ not_equal, equal }
+///|
+pub extend ProfileLastStart with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct ProfileFact {
   name : String
   is_current : Bool
   patch_exists : Bool
-  patch_lines : Int
+  patch_lines : Int32
   lock_exists : Bool
   lock_mtime : String?
   bundles : ProfileBundles
@@ -217,9 +224,9 @@ pub(all) struct ProfileFact {
   repair_command : String
   /// 指向 profile 之外、且目标存在的软链接条数（design/design-fixes.md §60.1）：
   /// 派生副本前用它决定要不要先告知「藕断丝连」。
-  external_links : Int
+  external_links : Int32
   /// 解析不到目标的链接条数（只进读数供排查，界面不显示）
-  broken_links : Int
+  broken_links : Int32
   // ── 试跑那一块的判据（design/ops-maintenance-jobs.md §9.3）──
   //
   // None = 这一版后端没给这一项（那时不拿它判不可用，宁可让试跑自己去撞失败）。
@@ -240,7 +247,8 @@ pub(all) struct ProfileFact {
   last_start_source : String
 } derive(Eq)
 
-pub extend ProfileFact with Eq::{ not_equal, equal }
+///|
+pub extend ProfileFact with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct ProfilesFacts {
@@ -251,7 +259,8 @@ pub(all) struct ProfilesFacts {
   profiles : Array[ProfileFact]
 } derive(Eq)
 
-pub extend ProfilesFacts with Eq::{ not_equal, equal }
+///|
+pub extend ProfilesFacts with Eq::{not_equal, equal}
 
 ///|
 /// 预览里的一边（源或目标）：名字、现在所在的目录、home 归属、配置读不读得到。
@@ -264,7 +273,8 @@ pub(all) struct PromoteSide {
   config_ok : Bool
 } derive(Eq)
 
-pub extend PromoteSide with Eq::{ not_equal, equal }
+///|
+pub extend PromoteSide with Eq::{not_equal, equal}
 
 ///|
 /// 覆盖项里的一条（新增或移除的那一条）：id 与原文。
@@ -273,7 +283,8 @@ pub(all) struct PromotePatchEntry {
   text : String
 } derive(Eq)
 
-pub extend PromotePatchEntry with Eq::{ not_equal, equal }
+///|
+pub extend PromotePatchEntry with Eq::{not_equal, equal}
 
 ///|
 /// 同 id 两边原文不一样的那一条：两边全文都在，界面并排摆。
@@ -283,7 +294,8 @@ pub(all) struct PromotePatchChange {
   target_text : String
 } derive(Eq)
 
-pub extend PromotePatchChange with Eq::{ not_equal, equal }
+///|
+pub extend PromotePatchChange with Eq::{not_equal, equal}
 
 ///|
 /// 同名不同版本的一个本地包。
@@ -293,7 +305,8 @@ pub(all) struct PromotePackageVersion {
   target_version : String
 } derive(Eq)
 
-pub extend PromotePackageVersion with Eq::{ not_equal, equal }
+///|
+pub extend PromotePackageVersion with Eq::{not_equal, equal}
 
 ///|
 /// 一次预览的全部读数。
@@ -315,7 +328,7 @@ pub(all) struct PromotePreview {
   patches_changed : Array[PromotePatchChange]
   patches_removed : Array[PromotePatchEntry]
   /// 没有 id 的覆盖项条数（那几条只能按整段原文比）
-  patches_anonymous : Int
+  patches_anonymous : Int32
   packages_added : Array[String]
   packages_mismatch : Array[PromotePackageVersion]
   /// 非空就不许应用（后端给的原话）
@@ -324,7 +337,8 @@ pub(all) struct PromotePreview {
   notes : Array[String]
 } derive(Eq)
 
-pub extend PromotePreview with Eq::{ not_equal, equal }
+///|
+pub extend PromotePreview with Eq::{not_equal, equal}
 
 ///|
 /// 实例对应的 profile 的健康读数（profileHealth，第七轮契约新增）。
@@ -332,11 +346,12 @@ pub extend PromotePreview with Eq::{ not_equal, equal }
 /// 只报两个事实：缺几个包、有没有 cordis.patch.yml —— 卡片上那颗状态灯「黄」的
 /// 成因 c 就是它们（契约里写死的判据）。包名清单不在这里：它在 profiles 读数里。
 pub(all) struct InstanceHealth {
-  missing_bundles : Int
+  missing_bundles : Int32
   has_patch : Bool
 } derive(Eq)
 
-pub extend InstanceHealth with Eq::{ not_equal, equal }
+///|
+pub extend InstanceHealth with Eq::{not_equal, equal}
 
 ///|
 /// 同一只进程的另一个监听端口（读数里的 alsoPorts 一项）。
@@ -344,27 +359,28 @@ pub extend InstanceHealth with Eq::{ not_equal, equal }
 /// 后端按 pid 把条目归并成一行：只有主端口那一条成行，其余端口收在这里当附注。
 /// 卡片上不显示、也不因它变色 —— 那一行说的是「这一只实例」，不是「一个端口」。
 pub(all) struct AlsoPortFact {
-  port : Int
-  http_status : Int?
+  port : Int32
+  http_status : Int32?
   /// 这个端口命中的判据（没命中是空串）
   signature_id : String
   /// 后端给的一句人话：这个端口是什么、这一次探测拿到了什么
   note : String
 } derive(Eq)
 
-pub extend AlsoPortFact with Eq::{ not_equal, equal }
+///|
+pub extend AlsoPortFact with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct InstanceFact {
   id : String
-  port : Int
+  port : Int32
   url : String
-  http_status : Int
+  http_status : Int32
   signature_id : String
   signature_describe : String
   profile : String?
   dsh_home : String?
-  uptime_seconds : Int?
+  uptime_seconds : Int32?
   /// 这只实例**真实**的启动时刻（UTC ISO）。后端从进程起始时间推出来，不是控制台记的。
   /// None = 读不到 —— 卡片第二行的「上次启动」这时才退回控制台自己的记录
   /// （runtime.json 的 startedAt / audit.jsonl 的 start-instance）；两处都没有就不写那一行，
@@ -407,41 +423,45 @@ pub(all) struct InstanceFact {
   also_ports : Array[AlsoPortFact]
 } derive(Eq)
 
-pub extend InstanceFact with Eq::{ not_equal, equal }
+///|
+pub extend InstanceFact with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct InstancesFacts {
   sources : Array[String]
-  candidate_count : Int
-  probe_hits : Int
+  candidate_count : Int32
+  probe_hits : Int32
   process_note : String
   signature_ids : Array[String]
   instances : Array[InstanceFact]
 } derive(Eq)
 
-pub extend InstancesFacts with Eq::{ not_equal, equal }
+///|
+pub extend InstancesFacts with Eq::{not_equal, equal}
 
 ///|
 /// 进程扫描的一条读数。当前界面不直接渲染它（运行中实例的主口径是端口 + HTTP 签名，
 /// Vue 版同样没用这个接口），数据层照样解析，免得接口在白名单里却没有客户端。
 pub(all) struct ProcessFact {
-  pid : Int
-  port : Int
+  pid : Int32
+  port : Int32
   profile : String?
-  uptime_seconds : Int?
+  uptime_seconds : Int32?
 } derive(Eq)
 
-pub extend ProcessFact with Eq::{ not_equal, equal }
+///|
+pub extend ProcessFact with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct ProcessesFacts {
   proc_root : String
-  scanned : Int
+  scanned : Int32
   matcher : String
   instances : Array[ProcessFact]
 } derive(Eq)
 
-pub extend ProcessesFacts with Eq::{ not_equal, equal }
+///|
+pub extend ProcessesFacts with Eq::{not_equal, equal}
 
 ///|
 /// 级别只在接口真读得出时才有值：error / warn，其余是 None（界面写「··」并压成次级灰）。
@@ -451,42 +471,45 @@ pub(all) struct LogLine {
   text : String
 } derive(Eq)
 
-pub extend LogLine with Eq::{ not_equal, equal }
+///|
+pub extend LogLine with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct LogsFacts {
   source : String
   label : String?
   kind : String
-  instance_port : Int?
-  detected_instances : Int?
+  instance_port : Int32?
+  detected_instances : Int32?
   path : String?
   home_source : String?
-  effective_tail : Int
-  max_tail : Int
+  effective_tail : Int32
+  max_tail : Int32
   read_ok : Bool
   error_code : String?
   read_error : String?
-  file_size : Int?
-  window_bytes : Int
+  file_size : Int32?
+  window_bytes : Int32
   lines : Array[LogLine]
   truncated : Bool
   truncated_note : String?
   tail_note : String?
 } derive(Eq)
 
-pub extend LogsFacts with Eq::{ not_equal, equal }
+///|
+pub extend LogsFacts with Eq::{not_equal, equal}
 
 ///|
 /// 运行时登记里的一条：控制台自己起过的实例（runtime.json）。
 pub(all) struct ConsoleRuntime {
-  pid : Int
-  port : Int
+  pid : Int32
+  port : Int32
   profile : String
   alive : Bool
 } derive(Eq)
 
-pub extend ConsoleRuntime with Eq::{ not_equal, equal }
+///|
+pub extend ConsoleRuntime with Eq::{not_equal, equal}
 
 ///|
 /// 一条归档记录（archive.json）：只记「这只 profile 已归档」，磁盘上的目录不动。
@@ -503,7 +526,8 @@ pub(all) struct ConsoleArchive {
   archived_at : String
 } derive(Eq)
 
-pub extend ConsoleArchive with Eq::{ not_equal, equal }
+///|
+pub extend ConsoleArchive with Eq::{not_equal, equal}
 
 ///|
 /// 回收站里的一条（GET /api/local/console 的 trash[]，第六轮契约）。
@@ -520,14 +544,15 @@ pub(all) struct ConsoleTrash {
   /// 上面那个时间的来源，或读不出来的原因（后端原样给）
   deleted_at_source : String
   /// 递归数出来的普通文件个数；None = 数不动
-  file_count : Int?
+  file_count : Int32?
   /// 递归求和的字节数；None = 数不动
   bytes : Double?
   /// 文件数与体积的来源，或数不动的原因（后端原样给）
   size_source : String
 } derive(Eq)
 
-pub extend ConsoleTrash with Eq::{ not_equal, equal }
+///|
+pub extend ConsoleTrash with Eq::{not_equal, equal}
 
 ///|
 /// 一条「上次启动」读数（GET /api/local/console 的 lastStarted[]）。
@@ -543,7 +568,8 @@ pub(all) struct LastStartedFact {
   source : String
 } derive(Eq)
 
-pub extend LastStartedFact with Eq::{ not_equal, equal }
+///|
+pub extend LastStartedFact with Eq::{not_equal, equal}
 
 ///|
 /// 一步的 evidence 对象压成一行「键=值 | 键=值」：只进悬停，不在正文里摊开。
@@ -588,7 +614,8 @@ pub(all) struct JobStepFact {
   evidence : String
 } derive(Eq)
 
-pub extend JobStepFact with Eq::{ not_equal, equal }
+///|
+pub extend JobStepFact with Eq::{not_equal, equal}
 
 ///|
 /// 一条维护作业（GET /api/local/console 的 jobs[]）。
@@ -615,8 +642,8 @@ pub(all) struct JobFact {
   /// 回滚那句「恢复成开工前」到底意味着「写回一条」还是「删掉」，全看这一格
   pin_before_existed : Bool
   /// 试跑实例（pid ≤ 0 = 还没有试跑过）
-  trial_pid : Int
-  trial_port : Int
+  trial_pid : Int32
+  trial_port : Int32
   trial_url : String
   trial_profile : String
   /// 试跑用的一次性 home（design/deep-home-isolation.md 第 6 节）。空串 = 旧记录
@@ -638,7 +665,8 @@ pub(all) struct JobFact {
   reason : String
 } derive(Eq)
 
-pub extend JobFact with Eq::{ not_equal, equal }
+///|
+pub extend JobFact with Eq::{not_equal, equal}
 
 ///|
 /// 控制台自己的状态读数。这一份不在契约里那五个只读接口之列：
@@ -688,4 +716,5 @@ pub(all) struct ConsoleFacts {
   notes : Array[String]
 } derive(Eq)
 
-pub extend ConsoleFacts with Eq::{ not_equal, equal }
+///|
+pub extend ConsoleFacts with Eq::{not_equal, equal}

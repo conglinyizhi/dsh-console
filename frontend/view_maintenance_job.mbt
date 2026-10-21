@@ -19,7 +19,7 @@
 
 ///|
 /// 一共有几步（步骤表按 7 步摆；卡片上写「第 n 步 / 共 7 步」）。
-let job_step_total : Int = 7
+let job_step_total : Int32 = 7
 
 ///|
 /// 步骤 key → 正文里的名字（§5 第二版的七个名字，一个字都不改）。
@@ -85,7 +85,7 @@ fn job_status_word(job : JobFact) -> String {
 
 ///|
 /// 第几步（1 起）。done 是 7/7；aborted 停在被打断的那一步；认不出的 step 给 1。
-fn job_step_index(job : JobFact) -> Int {
+fn job_step_index(job : JobFact) -> Int32 {
   match job.step {
     "lock" => 1
     "install" => 2
@@ -166,7 +166,9 @@ fn job_step_row(job : JobFact, step : JobStepFact) -> @html.Html {
   let row_attrs = if hint == "" {
     mark("job-step", ["maintenance", "job", job.id, "step", step.key])
   } else {
-    mark("job-step", ["maintenance", "job", job.id, "step", step.key]).title(hint)
+    mark("job-step", ["maintenance", "job", job.id, "step", step.key]).title(
+      hint,
+    )
   }
   @html.div(
     class="dsh-job-step",
@@ -175,17 +177,38 @@ fn job_step_row(job : JobFact, step : JobStepFact) -> @html.Html {
       @html.span(class=job_state_dot(step.state), @html.nothing),
       @html.span(
         class="dsh-job-step-name",
-        attrs=mark("job-step-name", ["maintenance", "job", job.id, "step", step.key, "name"]),
+        attrs=mark("job-step-name", [
+          "maintenance",
+          "job",
+          job.id,
+          "step",
+          step.key,
+          "name",
+        ]),
         job_step_label(step.key),
       ),
       @html.span(
         class="dsh-job-step-state",
-        attrs=mark("job-step-state", ["maintenance", "job", job.id, "step", step.key, "state"]),
+        attrs=mark("job-step-state", [
+          "maintenance",
+          "job",
+          job.id,
+          "step",
+          step.key,
+          "state",
+        ]),
         job_state_word(step.state),
       ),
       @html.span(
         class="dsh-job-step-note",
-        attrs=mark("job-step-note", ["maintenance", "job", job.id, "step", step.key, "note"]),
+        attrs=mark("job-step-note", [
+          "maintenance",
+          "job",
+          job.id,
+          "step",
+          step.key,
+          "note",
+        ]),
         step.note,
       ),
     ],
@@ -252,8 +275,13 @@ fn job_trial_block(job : JobFact) -> @html.Html {
     mark("job-trial-sub", ["maintenance", "job", job.id, "trial", "sub"])
   } else {
     mark("job-trial-sub", ["maintenance", "job", job.id, "trial", "sub"]).title(
-      "一次性 home：" + home +
-      (if job.trial_profile_copy == "" { "" } else { "；配置拷贝：" + job.trial_profile_copy }),
+      "一次性 home：" +
+      home +
+      (if job.trial_profile_copy == "" {
+        ""
+      } else {
+        "；配置拷贝：" + job.trial_profile_copy
+      }),
     )
   }
   @html.div(
@@ -262,7 +290,13 @@ fn job_trial_block(job : JobFact) -> @html.Html {
     [
       @html.p(
         class="dsh-job-trial-line",
-        attrs=mark("job-trial-line", ["maintenance", "job", job.id, "trial", "line"]),
+        attrs=mark("job-trial-line", [
+          "maintenance",
+          "job",
+          job.id,
+          "trial",
+          "line",
+        ]),
         [
           @html.text("新版本起来了："),
           @html.a(
@@ -270,8 +304,13 @@ fn job_trial_block(job : JobFact) -> @html.Html {
             target=@html.Target::Blank,
             rel="noopener",
             class="dsh-job-trial-link",
-            attrs=mark("job-trial-link", ["maintenance", "job", job.id, "trial", "link"])
-              .title("在新标签页打开这只试跑实例"),
+            attrs=mark("job-trial-link", [
+              "maintenance",
+              "job",
+              job.id,
+              "trial",
+              "link",
+            ]).title("在新标签页打开这只试跑实例"),
             [@html.text(url)],
           ),
           @html.text("。你去用一用"),
@@ -299,14 +338,26 @@ fn job_trial_status(job : JobFact) -> @html.Html {
     "试跑实例已经收掉了（端口 " + job.trial_port.to_string() + "）"
   }
   @html.p(
-    class=if job.trial_alive { "dsh-job-trial-state alive" } else { "dsh-job-trial-state" },
-    attrs=mark("job-trial-state", ["maintenance", "job", job.id, "trial", "state"])
+    class=if job.trial_alive {
+      "dsh-job-trial-state alive"
+    } else {
+      "dsh-job-trial-state"
+    },
+    attrs=mark("job-trial-state", [
+        "maintenance",
+        "job",
+        job.id,
+        "trial",
+        "state",
+      ])
       .data_set("alive", if job.trial_alive { "true" } else { "false" })
-      .title(if job.trial_alive {
-        "起好之后不会被作业自动收掉：要收它点「停掉试跑实例」，或者中止作业"
-      } else {
-        "现在没有试跑实例在跑"
-      }),
+      .title(
+        if job.trial_alive {
+          "起好之后不会被作业自动收掉：要收它点「停掉试跑实例」，或者中止作业"
+        } else {
+          "现在没有试跑实例在跑"
+        },
+      ),
     text,
   )
 }
@@ -320,9 +371,13 @@ fn job_receipt(job : JobFact) -> @html.Html {
   let commit_passed = job_step_state_of(job, "commit") == "passed"
   let rollback_passed = job_step_state_of(job, "rollback") == "passed"
   let text = if rollback_passed {
-    "回滚了：起实例还是用 " + job.anchor_version + "；新装的那份留着没删，要删单独清理"
+    "回滚了：起实例还是用 " +
+    job.anchor_version +
+    "；新装的那份留着没删，要删单独清理"
   } else if commit_passed {
-    "已经切到 " + job.target_version + "；起实例会用这一版。旧版本留着当回滚锚，确认稳定后再清理"
+    "已经切到 " +
+    job.target_version +
+    "；起实例会用这一版。旧版本留着当回滚锚，确认稳定后再清理"
   } else {
     ""
   }
@@ -330,7 +385,11 @@ fn job_receipt(job : JobFact) -> @html.Html {
     return @html.nothing
   }
   @html.p(
-    class=if rollback_passed { "dsh-job-receipt rollback" } else { "dsh-job-receipt" },
+    class=if rollback_passed {
+      "dsh-job-receipt rollback"
+    } else {
+      "dsh-job-receipt"
+    },
     attrs=mark("job-receipt", ["maintenance", "job", job.id, "receipt"]),
     text,
   )
@@ -344,7 +403,11 @@ fn job_receipt(job : JobFact) -> @html.Html {
 /// 十个按钮（§5 第二版 + 「停掉试跑实例」）就分布在这几支里：
 ///   开始 / 预演这一步 / 确认执行 / 把新版本跑起来 / 停掉试跑实例 /
 ///   好用，切到新版 / 不好用，回滚 / 先放着 / 清理旧版本 / 中止作业
-fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@html.Html] {
+fn job_actions(
+  model : Model,
+  job : JobFact,
+  emit : @cmd.Emit[Msg],
+) -> Array[@html.Html] {
   let busy = model.job_busy != ""
   let out : Array[@html.Html] = []
   if job_fact_finished(job) {
@@ -384,7 +447,7 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
         ),
       )
     }
-    "trial" => {
+    "trial" =>
       out.push(
         job_button(
           "把新版本跑起来",
@@ -401,7 +464,6 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
           true,
         ),
       )
-    }
     "verdict" => {
       out.push(
         job_button(
@@ -440,7 +502,7 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
         ),
       )
     }
-    "commit" => {
+    "commit" =>
       out.push(
         job_button(
           "切到新版本",
@@ -453,7 +515,6 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
           true,
         ),
       )
-    }
     "cleanup" => {
       out.push(
         job_button(
@@ -521,7 +582,8 @@ fn job_actions(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> Array[@ht
 fn job_boundary_hint(job : JobFact) -> @html.Html {
   let text = match job.step {
     "install" => "这一步会真的装东西，装完不会自动切过去"
-    "cleanup" => "清理删的是旧版本的包目录，删掉不能再装回来"
+    "cleanup" =>
+      "清理删的是旧版本的包目录，删掉不能再装回来"
     _ => ""
   }
   if text == "" {
@@ -549,7 +611,8 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
   let result = job_fact_result(job)
   let head_attrs = mark("job-card", ["maintenance", "job", job.id])
   let card_title = "作业 id：" + job.id
-  let anchor_hint = card_title + " | 试跑 profile：" +
+  let anchor_hint = card_title +
+    " | 试跑 profile：" +
     (if job.profile == "" { "（没记）" } else { job.profile }) +
     (if job.trial_home == "" {
       ""
@@ -559,7 +622,8 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
     (if job.anchor_version == "" {
       ""
     } else {
-      " | 回退点：" + job.anchor_version +
+      " | 回退点：" +
+      job.anchor_version +
       (if job.pin_before_existed {
         if job.pin_before_version == "" {
           "（开工前那份版本指定读不出来）"
@@ -570,7 +634,11 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
         "（开工前没有版本指定）"
       })
     }) +
-    (if job.target_version == "" { "" } else { " | 目标版本：" + job.target_version })
+    (if job.target_version == "" {
+      ""
+    } else {
+      " | 目标版本：" + job.target_version
+    })
   // trial 步：还在跑就摆地址；已经收掉就只摆状态那一句 ——
   // 收尾时那份一次性 home 已经删了，还摆「新版本起来了」就是一句过期的话
   let show_trial = job.step == "trial" || job.step == "verdict"
@@ -608,7 +676,12 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
           ),
           @html.p(
             class="dsh-job-subtitle",
-            attrs=mark("job-subtitle", ["maintenance", "job", job.id, "subtitle"]),
+            attrs=mark("job-subtitle", [
+              "maintenance",
+              "job",
+              job.id,
+              "subtitle",
+            ]),
             "先留下旧版本，新版本你自己试过再切",
           ),
         ]),
@@ -617,15 +690,17 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
           attrs=mark("job-status", ["maintenance", "job", job.id, "status"]),
           [
             @html.span(
-              class=job_state_dot(if job.step == "done" {
-                "passed"
-              } else if job.step == "aborted" {
-                "skipped"
-              } else if job.step == "rollback" {
-                "warn"
-              } else {
-                "running"
-              }),
+              class=job_state_dot(
+                if job.step == "done" {
+                  "passed"
+                } else if job.step == "aborted" {
+                  "skipped"
+                } else if job.step == "rollback" {
+                  "warn"
+                } else {
+                  "running"
+                },
+              ),
               @html.nothing,
             ),
             @html.span(job_status_word(job)),
@@ -635,8 +710,12 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.div(
         class="dsh-job-meta",
         attrs=mark("job-meta", ["maintenance", "job", job.id, "meta"]),
-        "第 " + job_step_index(job).to_string() + " 步 / 共 " +
-        job_step_total.to_string() + " 步 · 开始于 " + job_time_text(job.created_at),
+        "第 " +
+        job_step_index(job).to_string() +
+        " 步 / 共 " +
+        job_step_total.to_string() +
+        " 步 · 开始于 " +
+        job_time_text(job.created_at),
       ),
       if result == "" {
         @html.nothing
@@ -652,8 +731,13 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.button(
         class="dsh-collapse dsh-job-toggle",
         type_="button",
-        attrs=mark("job-toggle", ["maintenance", "job", job.id, "toggle"])
-          .aria_expanded(if expanded { "true" } else { "false" }),
+        attrs=mark("job-toggle", ["maintenance", "job", job.id, "toggle"]).aria_expanded(
+          if expanded {
+            "true"
+          } else {
+            "false"
+          },
+        ),
         on_click=emit(JobToggle(job.id)),
         [
           icon(if expanded { "chevron-down" } else { "chevron-right" }),
@@ -671,7 +755,12 @@ fn job_card(model : Model, job : JobFact, emit : @cmd.Emit[Msg]) -> @html.Html {
       },
       @html.div(
         class="dsh-job-trial-wrap",
-        attrs=mark("job-trial-wrap", ["maintenance", "job", job.id, "trial-wrap"]),
+        attrs=mark("job-trial-wrap", [
+          "maintenance",
+          "job",
+          job.id,
+          "trial-wrap",
+        ]),
         trial_nodes,
       ),
       job_boundary_hint(job),
@@ -695,7 +784,13 @@ fn unreadable_job_card(model : Model, job : JobFact) -> @html.Html {
   let hint = if dir == "" {
     "这条记录读不出来：" + job.reason
   } else {
-    "这条记录读不出来：" + job.reason + " | 文件在 " + dir + "/" + job.id + ".json"
+    "这条记录读不出来：" +
+    job.reason +
+    " | 文件在 " +
+    dir +
+    "/" +
+    job.id +
+    ".json"
   }
   @html.article(
     class="dsh-job-card dsh-job-bad",

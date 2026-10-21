@@ -10,17 +10,19 @@
 
 ///|
 /// 一次补包的硬上限（§39.2）：120 秒。到点收掉进程（SIGTERM，等 2 秒再 SIGKILL）。
-let repair_timeout_ms : Int = 120000
+let repair_timeout_ms : Int32 = 120000
 
 ///|
 /// 正在跑的补包（键是 home + 换行 + profile）。同一只 profile 同时只允许一个：
 /// 两条 install 撞在同一个 node_modules 上会互相撕，报 busy 比赌它没事强。
-let repairing : Ref[Array[String]] = { val: [] }
+let repairing : Ref[Array[String]] = { val: [], }
 
+///|
 fn repair_key(home : String, profile : String) -> String {
   home + "\n" + profile
 }
 
+///|
 fn repair_release(key : String) -> Unit {
   let kept : Array[String] = []
   for item in repairing.val {
@@ -36,7 +38,10 @@ fn repair_release(key : String) -> Unit {
 ///
 /// 失败一律走 fail（busy / not-found / install-failed / install-incomplete），
 /// 并在抛错之前把 outcome 登记到 failure_outcome —— 那笔失败的审计因此也带 logPath。
-pub async fn repair_packages(profile_in : String, home_in : String?) -> @json.JsonVal raise ActionError {
+pub async fn repair_packages(
+  profile_in : String,
+  home_in : String?,
+) -> @json.JsonVal raise ActionError {
   let profile = @json.trim_both(profile_in)
   validate_profile_name(profile)
   let home = match home_in {
@@ -44,7 +49,11 @@ pub async fn repair_packages(profile_in : String, home_in : String?) -> @json.Js
       match @store.normalize_home(@json.trim_both(raw)) {
         Some(h) => h
         None => {
-          fail("bad-params", "home 要是一个绝对的目录路径（不含 . 与 .. 段）：" + raw)
+          fail(
+            "bad-params",
+            "home 要是一个绝对的目录路径（不含 . 与 .. 段）：" +
+            raw,
+          )
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -59,7 +68,12 @@ pub async fn repair_packages(profile_in : String, home_in : String?) -> @json.Js
   }
   let pkg = @json.join_path(dir, "package.json")
   if !@json.exists(pkg) {
-    fail("not-found", "这只 profile 没有 package.json（" + pkg + "）：没有包清单，不知道该装什么")
+    fail(
+      "not-found",
+      "这只 profile 没有 package.json（" +
+      pkg +
+      "）：没有包清单，不知道该装什么",
+    )
   }
   let key = repair_key(home, profile)
   if repairing.val.contains(key) {
@@ -72,9 +86,7 @@ pub async fn repair_packages(profile_in : String, home_in : String?) -> @json.Js
   repairing.val.push(key)
   // 从这里开始，任何一条出口都要把锁摘掉 —— 包括抛错那条（ActionError 只有两个格，
   // 用 catch 摘锁再原样抛回去）。
-  let data = try {
-    run_repair(profile, home, dir)
-  } catch {
+  let data = run_repair(profile, home, dir) catch {
     ActionError(code~, message~) => {
       repair_release(key)
       fail(code, message)
@@ -87,7 +99,11 @@ pub async fn repair_packages(profile_in : String, home_in : String?) -> @json.Js
 
 ///|
 /// 真正干活的那一段：跑命令、写日志、复算缺包、拼 outcome。
-async fn run_repair(profile : String, home : String, dir : String) -> @json.JsonVal raise ActionError {
+async fn run_repair(
+  profile : String,
+  home : String,
+  dir : String,
+) -> @json.JsonVal raise ActionError {
   let shared = @json.join_all([home, "profiles", "node_modules"])
   let missing_before = @profiles.missing_bundles_in(dir, shared)
   let command = @profiles.repair_command_of(dir)
@@ -119,12 +135,24 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
     "repair-" + profile + "-" + started_ms.to_string() + ".log",
   )
   let header = "# repair-packages\n" +
-    "# at: " + @json.iso_from_epoch_ms(started_ms) + "\n" +
-    "# profile: " + profile + "\n" +
-    "# dir: " + dir + "\n" +
-    "# command: " + command + "\n" +
-    "# timeout: " + (repair_timeout_ms / 1000).to_string() + "s\n" +
-    "# missingBefore: " + missing_before.length().to_string() + "\n" +
+    "# at: " +
+    @json.iso_from_epoch_ms(started_ms) +
+    "\n" +
+    "# profile: " +
+    profile +
+    "\n" +
+    "# dir: " +
+    dir +
+    "\n" +
+    "# command: " +
+    command +
+    "\n" +
+    "# timeout: " +
+    (repair_timeout_ms / 1000).to_string() +
+    "s\n" +
+    "# missingBefore: " +
+    missing_before.length().to_string() +
+    "\n" +
     "\n"
   match @fsx.write_text_atomic(log_path, header) {
     Ok(_) => ()
@@ -134,35 +162,48 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
     }
   }
   // 子进程的 stdout/stderr 直接追加进这份日志（append），父进程这一侧只负责等。
-  let out = try {
-    @process.redirect_to_file(log_path, append=true, create_mode=OpenOrCreate, permission=0o600)
-  } catch {
+  let out = @process.redirect_to_file(
+    log_path,
+    append=true,
+    create_mode=OpenOrCreate,
+    permission=0o600,
+  ) catch {
     err => {
-      fail("io-error", "打不开补包日志：" + log_path + "（" + err.to_string() + "）")
+      fail(
+        "io-error",
+        "打不开补包日志：" + log_path + "（" + err.to_string() + "）",
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
-  let input = try {
-    @process.redirect_from_file("/dev/null")
-  } catch {
+  let input = @process.redirect_from_file("/dev/null") catch {
     err => {
       fail("io-error", "打不开 /dev/null：" + err.to_string())
       abort("unreachable: fail 一定抛错")
     }
   }
-  let pid = try {
-    // cwd 必须是 profile 目录：不传的话 pnpm 会在控制台自己的工作目录里
-    // 「Already up to date」并退出 0 —— 装的是别处，缺的包一个没补（实测踩过）。
-    // inherit_env=true：包管理器要 PATH / HOME / 代理 / registry 这些环境才跑得对
-    //（给子进程一份空环境时，pnpm 连自己的 store 都找不着）。
-    @process.spawn_orphan(
-      argv[0], argv[1:], stdin=input, stdout=out, stderr=out, cwd=dir, inherit_env=true,
-    )
-  } catch {
+  // cwd 必须是 profile 目录：不传的话 pnpm 会在控制台自己的工作目录里
+  // 「Already up to date」并退出 0 —— 装的是别处，缺的包一个没补（实测踩过）。
+  // inherit_env=true：包管理器要 PATH / HOME / 代理 / registry 这些环境才跑得对
+  //（给子进程一份空环境时，pnpm 连自己的 store 都找不着）。
+  let pid = @process.spawn_orphan(
+    argv[0],
+    argv[1:],
+    stdin=input,
+    stdout=out,
+    stderr=out,
+    cwd=dir,
+    inherit_env=true,
+  ) catch {
     err => {
       fail(
         "install-failed",
-        "起不了 " + argv[0] + "（" + err.to_string() + "）；日志 " + log_path,
+        "起不了 " +
+        argv[0] +
+        "（" +
+        err.to_string() +
+        "）；日志 " +
+        log_path,
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -190,11 +231,7 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
   }
   let mut exit_code = -1
   if !process_alive(pid) {
-    exit_code = try {
-      @process.wait_pid(pid)
-    } catch {
-      _ => -1
-    }
+    exit_code = @process.wait_pid(pid) catch { _ => -1 }
   } else {
     // 还活着（SIGKILL 之后极短的窗口）：挂一只协程收尸，不留僵尸。
     spawn_reaper(async fn() {
@@ -227,7 +264,10 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
     set_failure_outcome(outcome)
     fail(
       "install-failed",
-      "补包超过 " + (repair_timeout_ms / 1000).to_string() + " 秒，已经收掉；日志 " + log_path,
+      "补包超过 " +
+      (repair_timeout_ms / 1000).to_string() +
+      " 秒，已经收掉；日志 " +
+      log_path,
     )
     abort("unreachable: fail 一定抛错")
   } else if not_in_registry {
@@ -236,24 +276,34 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
     set_failure_outcome(outcome)
     fail(
       "install-incomplete",
-      "这几个在 registry 里找不到，得改 package.json：" + join_names(missing_after) +
-      "（重试不会变好）；日志 " + log_path,
+      "这几个在 registry 里找不到，得改 package.json：" +
+      join_names(missing_after) +
+      "（重试不会变好）；日志 " +
+      log_path,
     )
     abort("unreachable: fail 一定抛错")
   } else if exit_code != 0 {
     set_failure_outcome(outcome)
     fail(
       "install-failed",
-      "安装失败（退出码 " + exit_code.to_string() + "）：" + log_tail_line(log_path) +
-      "；完整输出在 " + log_path,
+      "安装失败（退出码 " +
+      exit_code.to_string() +
+      "）：" +
+      log_tail_line(log_path) +
+      "；完整输出在 " +
+      log_path,
     )
     abort("unreachable: fail 一定抛错")
   } else if missing_after.length() > 0 {
     set_failure_outcome(outcome)
     fail(
       "install-incomplete",
-      "装了，但还缺 " + missing_after.length().to_string() + " 个（" +
-      join_names(missing_after) + "），可以重试；日志 " + log_path,
+      "装了，但还缺 " +
+      missing_after.length().to_string() +
+      " 个（" +
+      join_names(missing_after) +
+      "），可以重试；日志 " +
+      log_path,
     )
     abort("unreachable: fail 一定抛错")
   } else {
@@ -263,7 +313,12 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
       (
         "note",
         @json.JStr(
-          profile + " 的包已装齐（" + command + "，" + (duration / 1000).to_string() + " 秒）",
+          profile +
+          " 的包已装齐（" +
+          command +
+          "，" +
+          (duration / 1000).to_string() +
+          " 秒）",
         ),
       ),
     ])
@@ -278,8 +333,10 @@ async fn log_mentions_missing(path : String) -> Bool noraise {
     Err(_) => return false
   }
   let upper = text.to_upper()
-  upper.contains("ERR_PNPM_FETCH_404") || upper.contains("404 NOT FOUND") ||
-  upper.contains("E404") || upper.contains("NOT FOUND - 404")
+  upper.contains("ERR_PNPM_FETCH_404") ||
+  upper.contains("404 NOT FOUND") ||
+  upper.contains("E404") ||
+  upper.contains("NOT FOUND - 404")
 }
 
 ///|

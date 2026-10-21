@@ -27,7 +27,7 @@ pub(all) struct EnvOptions {
 ///|
 /// 缺省：继承 + 覆盖。
 pub fn default_env_options() -> EnvOptions {
-  { keep_system: true, merge: "override" }
+  { keep_system: true, merge: "override", }
 }
 
 ///|
@@ -48,14 +48,7 @@ pub async fn env_path_separator() -> String noraise {
 ///|
 /// 控制台自己必须管住的键：这些不许被启动环境覆盖（§61.2）。界面据此置灰。
 pub fn reserved_env_keys() -> Array[String] {
-  [
-    "DSH_HOME",
-    "PATH",
-    "HOME",
-    "PWD",
-    "TMPDIR",
-    "DSH_PROFILE",
-  ]
+  ["DSH_HOME", "PATH", "HOME", "PWD", "TMPDIR", "DSH_PROFILE"]
 }
 
 ///|
@@ -67,8 +60,10 @@ pub fn env_key_allowed(key : String) -> Bool {
   // 只认「字母 / 数字 / 下划线」的键名：别把奇怪东西塞进子进程环境
   for ch in key {
     let code = ch.to_int()
-    let ok = (code >= 48 && code <= 57) || (code >= 65 && code <= 90) ||
-      (code >= 97 && code <= 122) || ch == '_'
+    let ok = (code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      ch == '_'
     if !ok {
       return false
     }
@@ -120,7 +115,7 @@ pub async fn load_env_file() -> EnvFile noraise {
     Some(profiles_json) =>
       for pair in object_entries(profiles_json) {
         let entries = parse_env_map(Some(pair.1))
-        if entries.size() > 0 {
+        if entries.length() > 0 {
           profiles[pair.0] = entries
         }
       }
@@ -130,20 +125,22 @@ pub async fn load_env_file() -> EnvFile noraise {
   let options = match field_of(json, "options") {
     Some(opts) => {
       let keep_system = match field_of(opts, "inherit") {
-        Some(json) => match as_bool(json) {
-          Some(b) => b
-          None => true
-        }
+        Some(json) =>
+          match as_bool(json) {
+            Some(b) => b
+            None => true
+          }
         _ => true
       }
       let merge = match field_of(opts, "merge") {
-        Some(json) => match as_string(json) {
-          Some(m) if env_merge_allowed(m) => m
-          _ => "override"
-        }
+        Some(json) =>
+          match as_string(json) {
+            Some(m) if env_merge_allowed(m) => m
+            _ => "override"
+          }
         _ => "override"
       }
-      { keep_system, merge }
+      { keep_system, merge, }
     }
     None => default_env_options()
   }
@@ -155,7 +152,7 @@ pub async fn load_env_file() -> EnvFile noraise {
       None => ()
     }
   }
-  { global, profiles, options, suppressed }
+  { global, profiles, options, suppressed, }
 }
 
 ///|
@@ -187,10 +184,14 @@ pub fn env_map_json(entries : Map[String, String]) -> @json.JsonVal {
 
 ///|
 /// 原子写：临时文件 + rename，权限 600（§61.1）。失败如实返回原因。
+
 ///|
 /// 大小写成对补齐（§94）：全小写的键顺手写一份全大写，全大写的写一份全小写；
 /// 显式写了混合大小写（FooBar）的键原样留着，不拆成两份 —— 那是使用者刻意的写法。
-fn expand_case_variants(entries : Map[String, String], suppressed : Array[String]) -> Map[String, String] {
+fn expand_case_variants(
+  entries : Map[String, String],
+  suppressed : Array[String],
+) -> Map[String, String] {
   let out : Map[String, String] = Map([])
   for pair in entries.iter() {
     out[pair.0] = pair.1
@@ -225,8 +226,10 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
   }
   let profiles_fields : Array[(String, @json.JsonVal)] = []
   for pair in file.profiles.iter() {
-    if pair.1.size() > 0 {
-      profiles_fields.push((pair.0, env_map_json(expand_case_variants(pair.1, file.suppressed))))
+    if pair.1.length() > 0 {
+      profiles_fields.push(
+        (pair.0, env_map_json(expand_case_variants(pair.1, file.suppressed))),
+      )
     }
   }
   let json = @json.JObj([
@@ -260,7 +263,10 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
 /// 起实例时真正要用的一份：继承的进程环境 → global → 该 profile。
 /// 保留键（reserved_env_keys）一律跳过；返回的是「要额外覆盖的那几项」，
 /// 子进程本身仍然继承当前进程环境（inherit_env=true）。
-pub async fn env_for_spawn(home : String, profile : String) -> Map[String, String] noraise {
+pub async fn env_for_spawn(
+  home : String,
+  profile : String,
+) -> Map[String, String] noraise {
   let (_, extra) = env_plan(home, profile)
   extra
 }
@@ -270,7 +276,10 @@ pub async fn env_for_spawn(home : String, profile : String) -> Map[String, Strin
 /// · keep_system=true：extra 只放 global 与该 profile 的键；merge=override 原样覆盖，
 ///   merge=append 时同键拼成「继承值 + 分隔符 + global 值」（profile 仍覆盖 global）。
 /// · keep_system=false：extra 要自带保留键（从控制台进程环境抄一份），子进程不继承。
-pub async fn env_plan(home : String, profile : String) -> (Bool, Map[String, String]) noraise {
+pub async fn env_plan(
+  home : String,
+  profile : String,
+) -> (Bool, Map[String, String]) noraise {
   let file = load_env_file()
   let opts = file.options
   let sep = env_path_separator()
@@ -347,6 +356,9 @@ pub async fn env_plan(home : String, profile : String) -> (Bool, Map[String, Str
 
 ///|
 /// 合并后的键值表（按「global 在前、profile 覆盖」的顺序给界面与开发指令用）。
-pub async fn merged_env(home : String, profile : String) -> Map[String, String] noraise {
+pub async fn merged_env(
+  home : String,
+  profile : String,
+) -> Map[String, String] noraise {
   env_for_spawn(home, profile)
 }

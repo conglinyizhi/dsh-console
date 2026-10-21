@@ -17,7 +17,8 @@ pub(all) enum Page {
   About
 } derive(Eq)
 
-pub extend Page with Eq::{ not_equal, equal }
+///|
+pub extend Page with Eq::{not_equal, equal}
 
 ///|
 /// 行内动作通道的键（与现有 actions.ts 的 ActionKey 一一对应）。
@@ -73,7 +74,8 @@ enum TagKind {
   Pending
 } derive(Eq)
 
-pub extend TagKind with Eq::{ not_equal, equal }
+///|
+pub extend TagKind with Eq::{not_equal, equal}
 
 ///|
 /// 一处数据的数据源标记，界面上逐处标。
@@ -87,7 +89,8 @@ struct SourceTag {
   detail : String
 } derive(Eq)
 
-pub extend SourceTag with Eq::{ not_equal, equal }
+///|
+pub extend SourceTag with Eq::{not_equal, equal}
 
 ///|
 /// 控件里正在编辑的文本。键与文本分开存，保存成功或失败都要能把它清掉。
@@ -96,7 +99,8 @@ struct SettingDraft {
   text : String
 } derive(Eq)
 
-pub extend SettingDraft with Eq::{ not_equal, equal }
+///|
+pub extend SettingDraft with Eq::{not_equal, equal}
 
 ///|
 /// 启动环境里正在编辑的那一格（design/design-fixes.md §61）。
@@ -109,11 +113,12 @@ struct EnvDraft {
   text : String
 } derive(Eq)
 
-pub extend EnvDraft with Eq::{ not_equal, equal }
+///|
+pub extend EnvDraft with Eq::{not_equal, equal}
 
 ///|
 /// 通知历史上最多留几条（design/design-fixes.md §36）：新到旧，超了就丢最旧的。
-pub let notice_history_max : Int = 20
+pub let notice_history_max : Int32 = 20
 
 ///|
 struct Model {
@@ -170,7 +175,7 @@ struct Model {
   /// 这一次拖动落在哪一组（"" = 没有）。占位块只插在这一组里。
   drag_group : String
   /// 被拖的那一条原来在第几格（0 起）：换位播报要说「从第几到第几」时用得上。
-  drag_from : Int
+  drag_from : Int32
   /// 落点那一格现在是哪一条（"" = 现在没有落点）。
   ///
   /// 只是给人读的读数（拖动过程里「要落到谁那儿」），不参与摆放：
@@ -182,7 +187,7 @@ struct Model {
   /// 这一格是这一轮的**唯一判据**：占位块画在第 k 格、松手就落在第 k 格。
   /// -1 = 没有落点（指针横向出了这一组的栅格 / 跨组 / 还没过阈值）。纵向**不设界**：
   /// 越过最后一块 = 最后一格、越过第一块 = 第一格（第十三轮口径变更）。
-  drag_at_index : Int
+  drag_at_index : Int32
   /// 拖动中的虚影跟着指针走到哪儿了（视口坐标；按下那一刻虚影的中心就压在指针上）。
   /// 只是画：不参与任何判定。
   drag_ghost_x : Double
@@ -202,7 +207,7 @@ struct Model {
   /// Ctrl+方向键分两拍：先摆出占位块让人看见「要落到哪儿」，190ms 之后才真的换。
   /// 这一格记的就是那第二拍要走的步长 —— 不记的话，第二拍只能现猜，
   /// 而这中间使用者可能又按了别的方向（那时预览已经跟着换了，落位必须听最后一次）。
-  drag_key_dir : Int
+  drag_key_dir : Int32
   /// 提交前的那一份顺序。写回失败要按它回滚：失败之后页面必须回到原样，
   /// 停在「看着是新的、其实没存下」的状态比不做还糟。
   order_before : Array[String]
@@ -308,7 +313,7 @@ struct Model {
   /// 已经为「还在拉」补问了几次（进维护页 / 打开侧栏时清零）。
   /// 后端那条 GET 只回缓存，所以读到 loading 之后要隔一会儿再问一次才拿得到结果；
   /// 上限见 state.mbt 的 releases_poll_cap，免得某次真挂了把定时器挂成永动机。
-  releases_ticks : Int
+  releases_ticks : Int32
   /// 已经有一个补问的定时器排着了。**同一时刻只许排一个**：
   /// 进页面与打开侧栏会各发一次 GET，两个回执各排一个定时器的话，补问会翻倍
   /// （2、4、8…几拍就把上限吃完），列表还没落地就已经不再问了。
@@ -360,7 +365,7 @@ struct Model {
   settings_loading : Bool
   settings : SettingsFacts?
   settings_error : String
-  settings_status : Int
+  settings_status : Int32
   settings_status_text : String
   settings_endpoint_missing : Bool
   /// 设置页的分组。**空串 = 没有指定分组**：窄屏按它画第一级（分区列表），
@@ -429,7 +434,7 @@ struct Model {
   notice : Notice?
   /// 已经发过几条。每发一条 +1，Notice.seq 取的就是它 ——
   /// 提示被收掉之后这格仍然往前走，旧的到期消息回来才认得出「那一条早就不在了」。
-  notice_serial : Int
+  notice_serial : Int32
   // 页脚「服务端在线」灯（design/design-fixes.md §31.1）
   //
   // 这几格**只由那条 5 秒一次的探测写**：profiles / instances / console 那几份读数
@@ -438,11 +443,11 @@ struct Model {
   /// 三档：还在检查 / 在线 / 离线
   health_state : ServerHealth
   /// 最近一次成功探测的往返毫秒（本机量的）；还没成功过是 0
-  health_ms : Int
+  health_ms : Int32
   /// 最近一次探测落地的本地时刻 HH:MM:SS（成功失败都记；悬停里说「检查于」）
   health_at : String
   /// 连续失败了几次（成功一次就归零）
-  health_fails : Int
+  health_fails : Int32
   /// 最近一次失败的原因（成功时清空）
   health_reason : String
   /// 一次探测还在路上：挡住重入，别让两枪同时飞
@@ -462,7 +467,7 @@ struct Model {
   /// 启动成功、还在等 instances 读数把带令牌的地址给出来（拿到就填进占位标页）
   start_tab_waiting : Bool
   /// 等地址时重读了几轮读数（有界，见 start_tab_max_tries）
-  start_tab_tries : Int
+  start_tab_tries : Int32
   /// 命令行型 profile 那句说明开着没有（§42）：值是那一行的 id，空串 = 关。
   cli_help_id : String
   /// 提示条里那颗「打开 Web UI」要开的地址（方案 B：用户再点一下 = 新手势，
@@ -474,7 +479,7 @@ struct Model {
   /// 最近的通知历史（§36）：新到旧，最多 notice_history_max 条。只在内存里，刷新就清空。
   notice_history : Array[NoticeRecord]
   /// 上一次打开通知侧栏之后又来了几条（铃铛上的角标）。打开侧栏就归零。
-  notice_unread : Int
+  notice_unread : Int32
   /// 通知侧栏开着没有（右侧面板，盖在抽屉之上、确认框之下）
   notice_panel : Bool
   /// 分发插件对话框说的是哪一行（design/backlog.md N）。空串 = 框没开
@@ -486,11 +491,11 @@ struct Model {
   /// 正在分发
   merge_busy : Bool
   /// 滑动确认的进度（0..100，到 95 以上才提交）
-  merge_slide : Int
+  merge_slide : Int32
   /// 提交区起点百分比（按下时按轨道宽度算，视觉与松手判定都用它）
-  merge_zone_pct : Int
+  merge_zone_pct : Int32
   /// 对话框当前第几步（1 = 选插件，2 = 选目标）
-  merge_step : Int
+  merge_step : Int32
   /// 正在拖滑块：只有按下之后才跟随指针
   merge_dragging : Bool
   /// 预览接口读回来的插件：名字 / 版本 / 形态（local-dir / local-link / registry / missing）
@@ -508,8 +513,8 @@ struct Model {
   /// 派生拷贝进度（§72）：跑的过程中摆一只进度框，拷完自动关。
   fork_progress_active : Bool
   fork_progress_name : String
-  fork_progress_files : Int
-  fork_progress_total : Int
+  fork_progress_files : Int32
+  fork_progress_total : Int32
   fork_progress_error : String
   /// 补包确认框说的是哪一行（§39.1）。空串 = 框没开
   repair_confirm_id : String
@@ -544,7 +549,8 @@ struct Model {
   log_instance_note : String
 } derive(Eq)
 
-pub extend Model with Eq::{ not_equal, equal }
+///|
+pub extend Model with Eq::{not_equal, equal}
 
 ///|
 priv enum Msg {
@@ -586,11 +592,11 @@ priv enum Msg {
   MergeStepNext
   MergeStepPrev
   /// 按下滑块：记下这条轨道的提交区起点百分比
-  MergeSlideStart(Int)
-  MergeSlide(Int)
+  MergeSlideStart(Int32)
+  MergeSlide(Int32)
   /// 松开滑块：到 95 以上才提交，否则弹回左端
   /// 松开滑块：带上松手那一刻的百分比
-  MergeSlideRelease(Int)
+  MergeSlideRelease(Int32)
   /// 键盘操作（方向键 / End / Enter）
   MergeSlideKey(String)
   /// 点「分发」：发 merge-plugins
@@ -624,9 +630,9 @@ priv enum Msg {
   /// 关掉通知侧栏（关闭键 / 遮罩 / Esc 三条路），焦点回顶栏那颗铃铛
   NoticePanelClose
   /// 成功提示（toast）到点了：序号对得上才收
-  FlashExpire(Int)
+  FlashExpire(Int32)
   /// 淡出那一小段走完，节点可以撤了
-  FlashRemove(Int)
+  FlashRemove(Int32)
   /// 鼠标进 / 出 toast（进去之后不许它正好消失）
   FlashHover(Bool)
   /// 点整张卡：开详情抽屉（第七轮 —— 卡片上不再有按钮与 ⋯ 菜单，点卡是唯一入口）
@@ -640,16 +646,16 @@ priv enum Msg {
   /// 位掩码不是装饰：松手若发生在**页面之外**（指针抬到窗口外面），那一下收不到，
   /// 拖动状态就会一直挂着（那一拍再划过列表，落位线还会跟着走）。
   /// 位掩码为 0 = 没有任何键按着 —— 那就是「其实早就松手了」，当场作废。
-  DragMove(Double, Double, Int)
+  DragMove(Double, Double, Int32)
   /// 指针松开：占位块在哪一格就落到哪一格，立刻写回
   DragUp
   /// 指针被取消（触控被打断等）：这一次拖动作废，顺序一个字节都不动
   DragCancel
   /// 键盘换位第一拍：行 id + 方向（-1 往上 / +1 往下）。键盘用户没有鼠标，这条是他们的入口。
   /// 它**只摆占位块**，不动顺序 —— 让人先看见要落到哪儿，第二拍才落
-  ReorderKey(String, Int)
+  ReorderKey(String, Int32)
   /// 键盘换位第二拍：预览摆够了，真的换。带方向，好与预览那一拍对上号
-  ReorderCommit(Int)
+  ReorderCommit(Int32)
   /// set-row-order 的回执：成功了保持新顺序，失败了回滚并如实报错
   OrderDone(Result[String, Error])
   /// 关抽屉：点外部 / Esc / 关闭按钮都走这一条。焦点回触发它的那张卡。
@@ -1044,14 +1050,14 @@ fn initial_model() -> Model {
 /// 返回的就是模型字段的值（SourceTag?），省得每个调用点再套一层 Some ——
 /// 这一档只可能以标记的形式存在。
 fn fallback_tag(detail : String) -> SourceTag? {
-  Some({ kind: Fallback, label: "演示数据 | 真实读取失败", detail })
+  Some({ kind: Fallback, label: "演示数据 | 真实读取失败", detail, })
 }
 
 ///|
 /// 请求还在路上：读数没到之前的那一档。与「演示数据 / 读取失败」分开 ——
 /// 那两档说的是「已经知道了什么」，这一档说的是「还不知道」。
 fn pending_tag(detail : String) -> SourceTag? {
-  Some({ kind: Pending, label: "读取中", detail })
+  Some({ kind: Pending, label: "读取中", detail, })
 }
 
 ///|
@@ -1061,4 +1067,3 @@ fn pending_tag(detail : String) -> SourceTag? {
 fn readings_pending(model : Model) -> Bool {
   !model.built
 }
-

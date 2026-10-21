@@ -47,16 +47,18 @@ async fn console_payload() -> @json.JsonVal noraise {
   let (jobs, bad_jobs, job_notes) = @store.load_jobs()
   let runtime : Array[@json.JsonVal] = []
   for r in registry.entries {
-    runtime.push(@json.JObj([
-      ("pid", @json.jint(r.pid)),
-      ("port", @json.jint(r.port)),
-      ("home", @json.JStr(r.home)),
-      ("profile", @json.JStr(r.profile)),
-      ("startedAt", @json.JStr(r.started_at)),
-      ("logPath", @json.JStr(r.log_path)),
-      ("detached", @json.JBool(r.detached)),
-      ("alive", @json.JBool(process_alive(r.pid))),
-    ]))
+    runtime.push(
+      @json.JObj([
+        ("pid", @json.jint(r.pid)),
+        ("port", @json.jint(r.port)),
+        ("home", @json.JStr(r.home)),
+        ("profile", @json.JStr(r.profile)),
+        ("startedAt", @json.JStr(r.started_at)),
+        ("logPath", @json.JStr(r.log_path)),
+        ("detached", @json.JBool(r.detached)),
+        ("alive", @json.JBool(process_alive(r.pid))),
+      ]),
+    )
   }
   let archived : Array[@json.JsonVal] = []
   for r in archive.entries {
@@ -69,17 +71,19 @@ async fn console_payload() -> @json.JsonVal noraise {
   // 没记来源的旧条目 home 给空串、原因写在 homeSource 里，不拿控制台自己的 home 冒充。
   let trash : Array[@json.JsonVal] = []
   for item in list_trash() {
-    trash.push(@json.JObj([
-      ("dir", @json.JStr(item.dir)),
-      ("profile", @json.JStr(item.profile)),
-      ("deletedAtMs", @json.int64_or_null(item.deleted_at_ms)),
-      ("deletedAtSource", @json.JStr(item.deleted_at_source)),
-      ("home", @json.JStr(item.home)),
-      ("homeSource", @json.JStr(item.home_source)),
-      ("fileCount", @json.int_or_null(item.file_count)),
-      ("bytes", @json.int64_or_null(item.bytes)),
-      ("sizeSource", @json.JStr(item.size_source)),
-    ]))
+    trash.push(
+      @json.JObj([
+        ("dir", @json.JStr(item.dir)),
+        ("profile", @json.JStr(item.profile)),
+        ("deletedAtMs", @json.int64_or_null(item.deleted_at_ms)),
+        ("deletedAtSource", @json.JStr(item.deleted_at_source)),
+        ("home", @json.JStr(item.home)),
+        ("homeSource", @json.JStr(item.home_source)),
+        ("fileCount", @json.int_or_null(item.file_count)),
+        ("bytes", @json.int64_or_null(item.bytes)),
+        ("sizeSource", @json.JStr(item.size_source)),
+      ]),
+    )
   }
   let notes : Array[String] = []
   match registry.note {
@@ -147,7 +151,11 @@ async fn console_payload() -> @json.JsonVal noraise {
 
 ///|
 /// 只答 GET。
-pub async fn handle_console(req : @moonback.Request, res : @moonback.Responder, read_at : String) -> Unit {
+pub async fn handle_console(
+  req : @moonback.Request,
+  res : @moonback.Responder,
+  read_at : String,
+) -> Unit {
   let verb = @localapi.method_name(req.meth)
   if verb != "GET" {
     send_method_not_allowed(res, "GET", verb, read_at)

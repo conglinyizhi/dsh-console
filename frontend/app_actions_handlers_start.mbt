@@ -2,7 +2,11 @@
 
 ///|
 /// HardOpenDone 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_hard_open_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_hard_open_done(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     HardOpenDone(id, url, outcome) => hard_open_done(model, id, url, outcome)
     // 启动按钮的点击：占位标页已经在 DOM 监听器里同步开好（见 view_overview 的
@@ -14,9 +18,13 @@ fn handle_hard_open_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (M
 
 ///|
 /// StartClicked 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_start_clicked(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_start_clicked(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    StartClicked(id, profile, tab) => 
+    StartClicked(id, profile, tab) =>
       match find_row(model.rows, id) {
         Some(row) =>
           if row.status is Stopped {
@@ -38,9 +46,13 @@ fn handle_start_clicked(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mod
 
 ///|
 /// HealthTick 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_health_tick(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_health_tick(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    HealthTick => 
+    HealthTick =>
       if model.health_busy {
         // 上一枪还没回来：这一拍什么都不做（别让两枪同时飞）
         (model, @cmd.none)
@@ -48,10 +60,10 @@ fn handle_health_tick(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
         if model.health_visible_wait {
           (model, @cmd.none)
         } else {
-          ({ ..model, health_visible_wait: true }, listen_visible(emit))
+          ({ ..model, health_visible_wait: true, }, listen_visible(emit))
         }
       } else {
-        ({ ..model, health_busy: true }, health_ping_cmd(emit))
+        ({ ..model, health_busy: true, }, health_ping_cmd(emit))
       }
     _ => (model, @cmd.none)
   }
@@ -59,7 +71,11 @@ fn handle_health_tick(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
 
 ///|
 /// HealthDone 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_health_done(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_health_done(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     HealthDone(res) => health_settled(model, res, emit)
     _ => (model, @cmd.none)
@@ -68,13 +84,20 @@ fn handle_health_done(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
 
 ///|
 /// HealthVisible 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_health_visible(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_health_visible(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    HealthVisible => 
+    HealthVisible =>
       if model.health_busy {
-        ({ ..model, health_visible_wait: false }, @cmd.none)
+        ({ ..model, health_visible_wait: false, }, @cmd.none)
       } else {
-        ({ ..model, health_busy: true, health_visible_wait: false }, health_ping_cmd(emit))
+        (
+          { ..model, health_busy: true, health_visible_wait: false, },
+          health_ping_cmd(emit),
+        )
       }
     // 滑出走完了：这一枪的号还对得上才撤节点。中间又开过抽屉的话（号被清掉或换了一行）
     // 什么都不做 —— 不然会把刚开的那一只撤下去。
@@ -84,11 +107,15 @@ fn handle_health_visible(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mo
 
 ///|
 /// StartTick 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_start_tick(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_start_tick(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    StartTick(id) => 
+    StartTick(id) =>
       if model.act_pending == id {
-        finish_start({ ..model, act_tick: true }, emit)
+        finish_start({ ..model, act_tick: true, }, emit)
       } else {
         (model, @cmd.none)
       }
@@ -100,7 +127,11 @@ fn handle_start_tick(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
 
 ///|
 /// StartTabRetry 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_start_tab_retry(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_start_tab_retry(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     StartTabRetry => refresh_readings(model, emit)
     // 抽屉里「安装缺的包（N）」：先开确认框（写 node_modules 是真动作，§39.1）。
@@ -111,14 +142,22 @@ fn handle_start_tab_retry(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (M
 
 ///|
 /// RepairOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_repair_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_repair_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    RepairOpen(id~, return_id~) => 
+    RepairOpen(id~, return_id~) =>
       match find_row(model.rows, id) {
         None => (model, @cmd.none)
         Some(_) =>
           (
-            { ..model, repair_confirm_id: id, repair_confirm_return: return_id },
+            {
+              ..model,
+              repair_confirm_id: id,
+              repair_confirm_return: return_id,
+            },
             focus_after_render(repair_dialog_ok_id()),
           )
       }
@@ -129,16 +168,24 @@ fn handle_repair_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mode
 
 ///|
 /// RepairCancel 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_repair_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_repair_cancel(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    RepairCancel => 
+    RepairCancel =>
       if model.repair_confirm_id == "" {
         (model, @cmd.none)
       } else {
         let back = model.repair_confirm_return
         (
-          { ..model, repair_confirm_id: "", repair_confirm_return: "" },
-          if back == "" { @cmd.none } else { focus_after_render(back) },
+          { ..model, repair_confirm_id: "", repair_confirm_return: "", },
+          if back == "" {
+            @cmd.none
+          } else {
+            focus_after_render(back)
+          },
         )
       }
     // 确认：发 repair-packages（profile + home）。这一笔走 send_action：
@@ -149,7 +196,11 @@ fn handle_repair_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mo
 
 ///|
 /// RepairConfirm 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_repair_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_repair_confirm(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     RepairConfirm => {
       let id = model.repair_confirm_id
@@ -170,7 +221,7 @@ fn handle_repair_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mo
             _ => ""
           }
           let (next, cmd) = send_action(
-            { ..model, repair_confirm_id: "", repair_confirm_return: "" },
+            { ..model, repair_confirm_id: "", repair_confirm_return: "", },
             id,
             "repair-packages",
             name,
@@ -179,7 +230,7 @@ fn handle_repair_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mo
             emit,
           )
           (
-            { ..next, repair_id: id },
+            { ..next, repair_id: id, },
             @cmd.batch([cmd, focus_after_render(drawer_repair_id())]),
           )
         }
@@ -193,10 +244,13 @@ fn handle_repair_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mo
 
 ///|
 /// RestartTick 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_restart_tick(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_restart_tick(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    RestartTick => ({ ..model, restarting: "" }, @cmd.none)
+    RestartTick => ({ ..model, restarting: "", }, @cmd.none)
     _ => (model, @cmd.none)
   }
 }
-

@@ -4,7 +4,6 @@
 // 2026-10-20 从 state_rows.mbt 拆出来：请求发送与行构造不是一件事，拆开之后改行构造
 // 不必翻一屏的 cmd。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 只重读 /api/local/runtime。
 ///
@@ -12,7 +11,9 @@
 /// 版本变了只需要重读这一份读数，不该顺带把列表用的那三份读数重拼一遍 ——
 /// 重拼会让总览页白白闪一次，而实例一只都没变。
 fn load_runtime(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @http.get("/api/local/runtime").expect_text(emit.map(fn(res) { RuntimeText(res) }))
+  @http.get("/api/local/runtime").expect_text(
+    emit.map(fn(res) { RuntimeText(res) }),
+  )
 }
 
 ///|
@@ -21,10 +22,10 @@ fn load_runtime(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 /// 后端那条 GET 只回进程内缓存、秒回，所以第一趟可能还没落地：读到 loading 就隔一拍
 /// 再问一次。上限 10 拍约 8 秒，长过三个源各自 6 秒的硬超时，也够网络慢的那一档回来；
 /// 再读不到就停手，把「正在拉版本列表」留在页面上，等下一次打开侧栏或进这一页再问。
-let releases_poll_ms : Int = 800
+let releases_poll_ms : Int32 = 800
 
 ///|
-let releases_poll_cap : Int = 10
+let releases_poll_cap : Int32 = 10
 
 ///|
 /// 读数里还写着「有一趟在路上」没有。没有读数（接口都没读到）不算在拉 —— 那一档
@@ -44,7 +45,9 @@ fn releases_still_loading(model : Model) -> Bool {
 /// 「还在拉」由上面的补问接上（见 app.mbt 的 ReleasesText / ReleasesTick）。
 /// 三个源全没答上来也算读到了（回执里 sources 全是 ok=false，state=failed 带原因）。
 fn load_releases(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @http.get("/api/local/dsh-releases").expect_text(emit.map(fn(res) { ReleasesText(res) }))
+  @http.get("/api/local/dsh-releases").expect_text(
+    emit.map(fn(res) { ReleasesText(res) }),
+  )
 }
 
 ///|
@@ -65,7 +68,9 @@ fn version_sort_known(key : String) -> Bool {
 /// GET /api/local/console：运行时登记 + 归档记录。卡片上的「由本控制台启动」与归档区
 /// 都按这份读数来；它读不到不影响别的读数，只是少这两处标记。
 fn load_console(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @http.get("/api/local/console").expect_text(emit.map(fn(res) { ConsoleText(res) }))
+  @http.get("/api/local/console").expect_text(
+    emit.map(fn(res) { ConsoleText(res) }),
+  )
 }
 
 ///|
@@ -76,15 +81,21 @@ fn load_console(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 /// 否则先回来的那一份会拿着旧的另一份把列表拼一次，而 built 已经是 true，后回来的那份就白读了。
 fn load_readings(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   @cmd.batch([
-    @http.get("/api/local/profiles").expect_text(emit.map(fn(res) { ProfilesText(res) })),
-    @http.get("/api/local/instances").expect_text(emit.map(fn(res) { InstancesText(res) })),
+    @http.get("/api/local/profiles").expect_text(
+      emit.map(fn(res) { ProfilesText(res) }),
+    ),
+    @http.get("/api/local/instances").expect_text(
+      emit.map(fn(res) { InstancesText(res) }),
+    ),
   ])
 }
 
 ///|
 /// 日志页的读数：尾部行数由设置决定（读不到就是契约缺省 200），上限由接口负责截断并说明。
-fn load_logs(source : String, tail : Int, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  let query = "/api/local/logs?source=" + js_encode_uri_component(source) + "&tail=" +
+fn load_logs(source : String, tail : Int32, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  let query = "/api/local/logs?source=" +
+    js_encode_uri_component(source) +
+    "&tail=" +
     tail.to_string()
   @http.get(query).expect_text(emit.map(fn(res) { LogsText(res) }))
 }
@@ -94,9 +105,13 @@ fn load_logs(source : String, tail : Int, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 ///
 /// 打开日志页、换来源、点刷新、点卡上的「查看日志」都走这一条 —— 四处各写一遍
 /// 「记得置 log_loading」迟早会漏一处，漏掉的那处就会把「正在读」显示成「没有行」。
-fn start_logs(model : Model, source : String, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn start_logs(
+  model : Model,
+  source : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   (
-    { ..model, log_source: source, log_loading: true },
+    { ..model, log_source: source, log_loading: true, },
     @cmd.batch([
       load_logs(source, log_tail_of(model), emit),
       scroll_bottom_after_render("dsh-log-box"),
@@ -107,7 +122,7 @@ fn start_logs(model : Model, source : String, emit : @cmd.Emit[Msg]) -> (Model, 
 ///|
 /// 日志页默认尾部行数：设置读到就用设置里的 logs.defaultTail，读不到用契约缺省 200。
 /// 这一项是「真能配置」的：它在日志页的请求串上真的生效，不是只显示一个数字。
-fn log_tail_of(model : Model) -> Int {
+fn log_tail_of(model : Model) -> Int32 {
   match model.settings {
     Some(facts) =>
       match lookup_setting(facts.values, "logs.defaultTail") {

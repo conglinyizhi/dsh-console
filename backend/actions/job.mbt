@@ -37,7 +37,7 @@ let job_title_upgrade : String = "升级 dsh"
 ///|
 /// pnpm 安装的超时上限（10 分钟）。网络慢的时候 pnpm 会慢慢来，但不会无限等：
 /// 一个卡住的安装不该把整条动作请求挂死。
-let install_timeout_ms : Int = 600000
+let install_timeout_ms : Int32 = 600000
 
 ///|
 /// verdict 的三个合法取值。表外的值一律 bad-params —— 写进一份读不出来的结论，
@@ -58,7 +58,9 @@ pub(all) struct JobOutcome {
 ///|
 /// 结果包成回执：{ action, outcome: { job, ...fields }, note }。
 pub fn job_outcome_json(action : String, o : JobOutcome) -> @json.JsonVal {
-  let fields : Array[(String, @json.JsonVal)] = [("job", @store.job_list_json(o.job))]
+  let fields : Array[(String, @json.JsonVal)] = [
+    ("job", @store.job_list_json(o.job)),
+  ]
   for pair in o.fields {
     fields.push(pair)
   }
@@ -81,7 +83,7 @@ fn now_iso() -> String {
 /// **必须先做 64 位除法再 to_int**：now() 是毫秒级的 Int64（约 1.7e12），
 /// 先塞进 Int 会溢出成一个两千年前的数（实测第一次就拿到了 1304835）。
 fn epoch_seconds() -> String {
-  ((@async.now() / 1000L).to_int()).to_string()
+  (@async.now() / 1000L).to_int().to_string()
 }
 
 ///|
@@ -97,7 +99,8 @@ async fn require_job(id_in : String) -> @store.Job raise ActionError {
     Some(j) => j
     None => {
       match reason {
-        Some(why) => fail("io-error", "作业记录读不出来（" + id + "）：" + why)
+        Some(why) =>
+          fail("io-error", "作业记录读不出来（" + id + "）：" + why)
         None => fail("not-found", "没有这条作业：" + id)
       }
       abort("unreachable: fail 一定抛错")
@@ -114,14 +117,14 @@ async fn run_capture(
   argv : Array[String],
   extra_env : Map[String, String],
   cwd : String,
-  timeout_ms : Int,
-) -> Result[(Int, String, String), String] noraise {
+  timeout_ms : Int32,
+) -> Result[(Int32, String, String), String] noraise {
   if argv.length() == 0 {
     return Err("命令是空的")
   }
   let prog = argv[0]
   let args = argv[1:].to_owned()
-  let attempt : async () -> (Int, String, String) raise = async fn () {
+  let attempt : async () -> (Int32, String, String) = async fn() {
     let input = @process.redirect_from_file("/dev/null")
     let (code, stdout, stderr) = @process.collect_output(
       prog,
@@ -133,20 +136,23 @@ async fn run_capture(
     )
     (code, stdout.text(), stderr.text())
   }
-  let result = try {
-    @async.with_timeout_opt(timeout_ms, attempt)
-  } catch {
+  let result = @async.with_timeout_opt(timeout_ms, attempt) catch {
     err => return Err(err.to_string())
   }
   match result {
     Some(triple) => Ok(triple)
-    None => Err("命令超过 " + (timeout_ms / 1000).to_string() + " 秒还没结束，已放弃等待")
+    None =>
+      Err(
+        "命令超过 " +
+        (timeout_ms / 1000).to_string() +
+        " 秒还没结束，已放弃等待",
+      )
   }
 }
 
 ///|
 /// 取文本末尾若干非空行（失败信息只带证据，不把整份日志丢出去）。
-fn job_tail_lines(text : String, lines : Int) -> String {
+fn job_tail_lines(text : String, lines : Int32) -> String {
   let kept : Array[String] = []
   for line in text.split("\n") {
     let trimmed = @json.trim_both(@json.owned(line))
@@ -176,7 +182,13 @@ pub async fn job_start(
 ) -> JobOutcome raise ActionError {
   let kind = @json.trim_both(kind_in)
   if kind != job_kind_upgrade {
-    fail("bad-params", "这一版只认识一种作业：" + job_kind_upgrade + "，收到 " + kind)
+    fail(
+      "bad-params",
+      "这一版只认识一种作业：" +
+      job_kind_upgrade +
+      "，收到 " +
+      kind,
+    )
   }
   let target_version = match version {
     Some(v) => @json.trim_both(v)
@@ -187,7 +199,9 @@ pub async fn job_start(
     None => ""
   }
   if profile == "" {
-    fail("bad-params", "要选一只试跑用的 profile：试跑要从这份 home 里的那只 profile 复制一份配置")
+    fail(
+      "bad-params", "要选一只试跑用的 profile：试跑要从这份 home 里的那只 profile 复制一份配置",
+    )
   }
   validate_profile_name(profile)
   let (home, home_source) = @runtime.resolve_dsh_home()
@@ -204,7 +218,10 @@ pub async fn job_start(
     Some(existing) =>
       fail(
         "job-exists",
-        "同一种作业还有一条没做完（" + existing.id + "，现在在 " + existing.step +
+        "同一种作业还有一条没做完（" +
+        existing.id +
+        "，现在在 " +
+        existing.step +
         " 这一步）；先把它做完或中止，再开新的",
       )
     None => ()
@@ -213,8 +230,7 @@ pub async fn job_start(
     Some(sel) => sel
     None => {
       fail(
-        "bad-params",
-        "这台机器上找不到一份可用的 dsh，没法记录回退锚；先装一份 dsh 再来开作业",
+        "bad-params", "这台机器上找不到一份可用的 dsh，没法记录回退锚；先装一份 dsh 再来开作业",
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -222,26 +238,29 @@ pub async fn job_start(
   let now = now_iso()
   let id = kind + "-" + epoch_seconds()
   if @json.exists(@store.job_path(id)) {
-    fail("job-exists", "作业文件已经存在：" + id + "（同一秒内重复开工）；等一秒再点一次")
+    fail(
+      "job-exists",
+      "作业文件已经存在：" +
+      id +
+      "（同一秒内重复开工）；等一秒再点一次",
+    )
   }
   let pin_before = capture_pin_before()
   let pin_text = pin_file_text()
-  let anchor : @store.JobAnchor = { dir: selection.pkg.dir, version: selection.pkg.version }
+  let anchor : @store.JobAnchor = {
+    dir: selection.pkg.dir,
+    version: selection.pkg.version,
+  }
   let job = @store.new_job(
-    id,
-    kind,
-    job_title_upgrade,
-    now,
-    anchor,
-    target_version,
-    profile,
-    pin_before,
+    id, kind, job_title_upgrade, now, anchor, target_version, profile, pin_before,
   )
   @store.mark_step(
     job,
     "lock",
     "passed",
-    "开工时生效的 dsh 是 " + selection.pkg.version + "，已记为回退点",
+    "开工时生效的 dsh 是 " +
+    selection.pkg.version +
+    "，已记为回退点",
     [
       ("version", selection.pkg.version),
       ("dir", selection.pkg.dir),
@@ -270,13 +289,20 @@ pub async fn job_start(
     if pin_before.version == "" {
       "开工前的 dsh-pin.json 读不出来，已经原样留在作业里"
     } else {
-      "开工前指定的是 dsh " + pin_before.version + "（回滚就退回它）"
+      "开工前指定的是 dsh " +
+      pin_before.version +
+      "（回滚就退回它）"
     }
   } else {
     "开工前没有指定过版本（回滚就是把指定删掉）"
   }
-  let note = "回退锚：dsh " + selection.pkg.version + "。试跑用 profile " + profile +
-    "。" + pin_state_text + "。这一步只记在作业里，没有动 dsh-pin.json。" +
+  let note = "回退锚：dsh " +
+    selection.pkg.version +
+    "。试跑用 profile " +
+    profile +
+    "。" +
+    pin_state_text +
+    "。这一步只记在作业里，没有动 dsh-pin.json。" +
     (if target_version == "" {
       "没有给目标版本：安装那一步会拦住，不会替你挑版本。"
     } else if target_version == selection.pkg.version {
@@ -318,14 +344,20 @@ pub async fn job_trial_stop(id : String) -> JobOutcome raise ActionError {
     fail("not-found", "这条作业还没有试跑实例")
   }
   if @store.job_finished(job) {
-    fail("conflict", "这条作业已经结束了（" + job.step + "），没有可停的试跑实例")
+    fail(
+      "conflict",
+      "这条作业已经结束了（" +
+      job.step +
+      "），没有可停的试跑实例",
+    )
   }
   let now = now_iso()
   let note = stop_trial(job)
   @store.append_evidence(job, job.step, [("trialStop", note)], now)
   match @store.save_job(job) {
     Ok(_) => ()
-    Err(e) => fail("io-error", "实例收掉了，但作业没能写进磁盘：" + e)
+    Err(e) =>
+      fail("io-error", "实例收掉了，但作业没能写进磁盘：" + e)
   }
   {
     job,
@@ -337,7 +369,6 @@ pub async fn job_trial_stop(id : String) -> JobOutcome raise ActionError {
     note,
   }
 }
-
 
 // ── 6. job-commit ────────────────────────────────────────────
 
@@ -351,13 +382,17 @@ pub async fn job_trial_stop(id : String) -> JobOutcome raise ActionError {
 pub async fn job_abort(id : String) -> JobOutcome raise ActionError {
   let job = require_job(id)
   if @store.job_finished(job) {
-    fail("conflict", "这条作业已经结束了（" + job.step + "），不能再中止")
+    fail(
+      "conflict",
+      "这条作业已经结束了（" + job.step + "），不能再中止",
+    )
   }
   let now = now_iso()
   let stop_note = stop_trial(job)
   let current = job.step
   match @store.step_of(job, current) {
-    Some(step) => step.note = "作业在这一步被中止；这一步没有验完"
+    Some(step) =>
+      step.note = "作业在这一步被中止；这一步没有验完"
     None => ()
   }
   @store.append_evidence(job, current, [("trialStop", stop_note)], now)
@@ -378,7 +413,7 @@ pub async fn job_abort(id : String) -> JobOutcome raise ActionError {
       ("trialAlive", @json.JBool(false)),
     ],
     note: "作业已中止；" +
-      (if job.trial is Some(_) { stop_note + "。" } else { "" }) +
-      "已经做完的步骤与记录都留着，没做的仍然是未开始。回滚锚没有动，dsh-pin.json 也没有动。",
+    (if job.trial is Some(_) { stop_note + "。" } else { "" }) +
+    "已经做完的步骤与记录都留着，没做的仍然是未开始。回滚锚没有动，dsh-pin.json 也没有动。",
   }
 }

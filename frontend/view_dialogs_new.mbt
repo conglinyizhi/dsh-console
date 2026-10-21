@@ -49,7 +49,11 @@ fn new_instance_base_name(model : Model) -> String {
   }
   let mut index = 1
   while index <= 999 {
-    let digits = if index < 10 { "0" + index.to_string() } else { index.to_string() }
+    let digits = if index < 10 {
+      "0" + index.to_string()
+    } else {
+      index.to_string()
+    }
     let candidate = "base-" + digits
     if !taken.contains(candidate) {
       return candidate
@@ -73,13 +77,21 @@ fn new_instance_source_card(
 ) -> @html.Html {
   let selected = pick.name == model.new_source
   let ok = pick.usable
-  let aria = if ok { "用 " + pick.name + " 当源配置" } else { pick.name + " 不可用：" + pick.why }
+  let aria = if ok {
+    "用 " + pick.name + " 当源配置"
+  } else {
+    pick.name + " 不可用：" + pick.why
+  }
   profile_card(
     pick,
     new_instance_card_id(pick.name),
     "new-instance",
     ["overview", "new-instance"],
-    if selected { "已选" } else { "" },
+    if selected {
+      "已选"
+    } else {
+      ""
+    },
     aria,
     aria,
     fn(name) { NewInstanceStatePicked(name) },
@@ -103,17 +115,22 @@ fn new_instance_group(
   }
   @html.div(
     class="dsh-profile-sidebar-group",
-    attrs=mark("new-instance-group", ["overview", "new-instance", "group", key])
-      .data_set("group", key),
+    attrs=mark("new-instance-group", ["overview", "new-instance", "group", key]).data_set(
+      "group", key,
+    ),
     [
       @html.h3(
         class="dsh-profile-sidebar-group-title",
-        attrs=mark("new-instance-group-title", ["overview", "new-instance", "group", key, "title"]),
+        attrs=mark("new-instance-group-title", [
+          "overview", "new-instance", "group", key, "title",
+        ]),
         title + " (" + picks.length().to_string() + ")",
       ),
       @html.div(
         class="dsh-profile-sidebar-list",
-        attrs=mark("new-instance-list", ["overview", "new-instance", "list", key]),
+        attrs=mark("new-instance-list", [
+          "overview", "new-instance", "list", key,
+        ]),
         cards,
       ),
     ],
@@ -129,7 +146,9 @@ fn new_instance_group(
 fn new_instance_note(kind : String, text : String) -> @html.Html {
   @html.p(
     class="dsh-new-note",
-    attrs=mark("new-instance-note", ["dialog", "new-instance", "note"]).data_set("kind", kind),
+    attrs=mark("new-instance-note", ["dialog", "new-instance", "note"]).data_set(
+      "kind", kind,
+    ),
     text,
   )
 }
@@ -148,7 +167,9 @@ fn new_instance_veil() -> @html.Html {
     [
       @html.p(
         class="dsh-new-pick-veil-text",
-        attrs=mark("new-instance-veil-text", ["dialog", "new-instance", "veil", "text"]),
+        attrs=mark("new-instance-veil-text", [
+          "dialog", "new-instance", "veil", "text",
+        ]),
         "已勾上「从基础实例开始」，这些源配置这一刻不可选",
       ),
     ],
@@ -171,12 +192,16 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let no_usable = new_instance_no_usable_source(model)
   // 勾上复选框、框里又有源卡时，整组锁住（§22）：锁挂在容器上，不挂在卡上。
   // 一只卡都没有时不盖遮罩 —— 那时没有可锁的东西，底下一句空态才是该看的。
-  let lock_sources = model.new_base && (running.length() > 0 || stopped.length() > 0)
+  let lock_sources = model.new_base &&
+    (running.length() > 0 || stopped.length() > 0)
   // 有卡而一只可用的都没有：出路写在卡上面，不让几行「不可用」自己猜。
   // 这一句摆在遮罩**外面**（下面 pick_area 之前）：勾上之后它照样读得到 —— 遮罩上那句说的是
   // 「这一刻不可选」，这一句说的是「本来就没有可用的」，两件事各说各的。
-  let none_usable_note = if no_usable && (running.length() > 0 || stopped.length() > 0) {
-    new_instance_note("none-usable", "现在一只可用的都没有，可以勾上「从基础实例开始」新建一份。")
+  let none_usable_note = if no_usable &&
+    (running.length() > 0 || stopped.length() > 0) {
+    new_instance_note(
+      "none-usable", "现在一只可用的都没有，可以勾上「从基础实例开始」新建一份。",
+    )
   } else {
     @html.nothing
   }
@@ -185,8 +210,14 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     picks.push(
       @html.p(
         class="dsh-empty-sub",
-        attrs=mark("new-instance-empty", ["overview", "new-instance", "empty"])
-          .data_set("state", if landed { "none-usable" } else { "loading" }),
+        attrs=mark("new-instance-empty", ["overview", "new-instance", "empty"]).data_set(
+          "state",
+          if landed {
+            "none-usable"
+          } else {
+            "loading"
+          },
+        ),
         if landed {
           "现在一只可用的都没有，可以勾上「从基础实例开始」新建一份。"
         } else {
@@ -196,10 +227,18 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     )
   } else {
     if running.length() > 0 {
-      picks.push(new_instance_group("running", "当前运行的实例", running, model, emit))
+      picks.push(
+        new_instance_group(
+          "running", "当前运行的实例", running, model, emit,
+        ),
+      )
     }
     if stopped.length() > 0 {
-      picks.push(new_instance_group("stopped", "已停止的实例", stopped, model, emit))
+      picks.push(
+        new_instance_group(
+          "stopped", "已停止的实例", stopped, model, emit,
+        ),
+      )
     }
   }
   // 源那一格：从基础模板开始时写「基础模板」，否则写选中的那一只（还没选就写「还没选」）
@@ -211,7 +250,9 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     model.new_source
   }
   let has_source = model.new_base || model.new_source != ""
-  let can_create = has_source && model.new_name_draft.trim() != "" && !model.new_busy
+  let can_create = has_source &&
+    model.new_name_draft.trim() != "" &&
+    !model.new_busy
   // 框头那句**固定**（§25.4）：它说的是这个框有两条路（复制现有配置 / 用基础模板新建），
   // 勾不勾复选框都不改这一句。复选框只影响卡片区锁不锁、名字格引导要不要显示。
   let message_line = "从现有的某个配置复制一个，或者是创建一个全新的"
@@ -232,7 +273,9 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.label(
       class="dsh-new-name-label",
       for_=new_instance_name_id(),
-      attrs=mark("new-instance-name-label", ["dialog", "new-instance", "name-label"]),
+      attrs=mark("new-instance-name-label", [
+        "dialog", "new-instance", "name-label",
+      ]),
       [
         // 必填星号（§24.1）：颜色是 danger，读屏不报它（靠输入框上的 aria-required）。
         @html.span(
@@ -245,8 +288,9 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     @html.span(
       class="dsh-new-name-guide",
-      attrs=mark("new-instance-name-guide", ["dialog", "new-instance", "name-guide"])
-        .data_set("active", if model.new_base { "true" } else { "false" }),
+      attrs=mark("new-instance-name-guide", [
+        "dialog", "new-instance", "name-guide",
+      ]).data_set("active", if model.new_base { "true" } else { "false" }),
       "填一个名字，它会用基础模板新建",
     ),
   ]
@@ -301,8 +345,14 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     @html.p(
       class="dsh-dialog-message",
-      attrs=mark("new-instance-message", ["dialog", "new-instance", "message"])
-        .data_set("source", if model.new_base { "base" } else { "profile" }),
+      attrs=mark("new-instance-message", ["dialog", "new-instance", "message"]).data_set(
+        "source",
+        if model.new_base {
+          "base"
+        } else {
+          "profile"
+        },
+      ),
       message_line,
     ),
     none_usable_note,
@@ -316,10 +366,14 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.label(
         class="dsh-new-base-check",
         for_=new_instance_base_id(),
-        attrs=mark("new-instance-base-label", ["dialog", "new-instance", "base-label"])
+        attrs=mark("new-instance-base-label", [
+            "dialog", "new-instance", "base-label",
+          ])
           .data_set("checked", if model.new_base { "true" } else { "false" })
           // 悬停说明挂在 label 上（挂在 input 上时只有指着那个小方块才出得来）
-          .title("用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。"),
+          .title(
+            "用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。",
+          ),
         [
           @html.input(
             input_type=Checkbox,
@@ -327,12 +381,23 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-new-base-box",
             checked=model.new_base,
             attrs=mark("new-instance-base", ["dialog", "new-instance", "base"])
-              .data_set("checked", if model.new_base { "true" } else { "false" })
-              .title("用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。")
+              .data_set(
+                "checked",
+                if model.new_base {
+                  "true"
+                } else {
+                  "false"
+                },
+              )
+              .title(
+                "用 dsh 自带的基础模板新建一份，不依赖现有配置。现有配置都不可用时用这个。",
+              )
               .aria_label("从基础实例开始")
               .disabled(model.new_busy)
               // 勾的是「勾完之后的那一档」：模型是唯一真相，原生复选框的翻转随后由重渲染对齐
-              .on_click(fn(_event) { emit(NewInstanceBaseToggled(!model.new_base)) }),
+              .on_click(fn(_event) {
+                emit(NewInstanceBaseToggled(!model.new_base))
+              }),
           ),
           @html.span("从基础实例开始"),
         ],
@@ -345,7 +410,15 @@ fn new_instance_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           disabled=!can_create,
           attrs=mark("new-instance-ok", ["dialog", "new-instance", "ok"]),
           on_click=emit(NewInstanceConfirm),
-          [@html.text(if model.new_busy { "正在创建…" } else { "创建" })],
+          [
+            @html.text(
+              if model.new_busy {
+                "正在创建…"
+              } else {
+                "创建"
+              },
+            ),
+          ],
         ),
         @html.button(
           id="dsh-new-instance-cancel",

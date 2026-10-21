@@ -11,7 +11,11 @@
 ///|
 /// 三条 blocker 的原话（design/ops-maintenance-jobs.md §17.4，一字不改）。
 pub let promote_blocker_running : String = "目标这只正在跑，先停掉它再替换"
+
+///|
 pub let promote_blocker_same : String = "源与目标是同一只"
+
+///|
 pub let promote_blocker_unreadable : String = "源这只读不到配置"
 
 ///|
@@ -23,10 +27,7 @@ async fn running_any_home(profile : String) -> Target? noraise {
   let (console_home, _) = @runtime.resolve_dsh_home()
   let homes : Array[String] = [console_home]
   match @profiles.isolated_home_of(profile) {
-    Some(isolated) =>
-      if isolated != console_home {
-        homes.push(isolated)
-      }
+    Some(isolated) => if isolated != console_home { homes.push(isolated) }
     None => ()
   }
   for home in homes {
@@ -90,7 +91,9 @@ fn patch_change_json(change : @profiles.PromotePatchChange) -> @json.JsonVal {
 
 ///|
 /// 同名不同版本的一个包。
-fn package_version_json(item : @profiles.PromotePackageVersion) -> @json.JsonVal {
+fn package_version_json(
+  item : @profiles.PromotePackageVersion,
+) -> @json.JsonVal {
   @json.JObj([
     ("name", @json.JStr(item.name)),
     ("sourceVersion", @json.JStr(item.source_version)),
@@ -148,28 +151,51 @@ fn promote_facts_json(
 
 ///|
 /// 预览那一句人话（进回执的悬停，也给 curl 直接看）。
-fn preview_note(facts : @profiles.PromoteFacts, blockers : Array[String]) -> String {
+fn preview_note(
+  facts : @profiles.PromoteFacts,
+  blockers : Array[String],
+) -> String {
   if blockers.length() > 0 {
     return "这一趟不能应用：" + blockers.join("；")
   }
   let parts : Array[String] = []
-  parts.push("写 " + facts.files_write.length().to_string() + " 份配置文件")
   parts.push(
-    "插件 " + facts.bundles.added.length().to_string() + " 个会多出来、" +
-    facts.bundles.removed.length().to_string() + " 个会丢",
+    "写 " + facts.files_write.length().to_string() + " 份配置文件",
   )
   parts.push(
-    "覆盖项 " + facts.patches.added.length().to_string() + " 条新增、" +
-    facts.patches.changed.length().to_string() + " 条改写、" +
-    facts.patches.removed.length().to_string() + " 条移除",
+    "插件 " +
+    facts.bundles.added.length().to_string() +
+    " 个会多出来、" +
+    facts.bundles.removed.length().to_string() +
+    " 个会丢",
   )
-  parts.push("本地包 " + facts.packages.added.length().to_string() + " 个会搬过去")
-  "用 " + facts.source.name + " 的配置替换 " + facts.target.name + "：" + parts.join("，")
+  parts.push(
+    "覆盖项 " +
+    facts.patches.added.length().to_string() +
+    " 条新增、" +
+    facts.patches.changed.length().to_string() +
+    " 条改写、" +
+    facts.patches.removed.length().to_string() +
+    " 条移除",
+  )
+  parts.push(
+    "本地包 " +
+    facts.packages.added.length().to_string() +
+    " 个会搬过去",
+  )
+  "用 " +
+  facts.source.name +
+  " 的配置替换 " +
+  facts.target.name +
+  "：" +
+  parts.join("，")
 }
 
 ///|
 /// promote-preview（只读）：算一遍差异，不写任何文件。
-pub async fn promote_preview_action(params : Json) -> @json.JsonVal raise ActionError {
+pub async fn promote_preview_action(
+  params : Json,
+) -> @json.JsonVal raise ActionError {
   ensure_action_params(params, "整体替换预览：", ["from", "to"])
   let source = require_string(params, "from")
   let target = require_string(params, "to")
@@ -199,7 +225,10 @@ fn promote_outcome_json(o : @profiles.PromoteOutcome) -> @json.JsonVal {
     ("packagesSkipped", @json.jstr_array(o.packages_skipped)),
     ("packageNotes", @json.jstr_array(o.package_notes)),
     // 源这一边只读过：这一句讲的是这一趟做过什么，不是猜的
-    ("sourceNote", @json.JStr("源 profile 只读：这一趟只写目标那一边")),
+    (
+      "sourceNote",
+      @json.JStr("源 profile 只读：这一趟只写目标那一边"),
+    ),
     (
       "snapshot",
       @json.JObj([
@@ -221,9 +250,16 @@ fn promote_outcome_json(o : @profiles.PromoteOutcome) -> @json.JsonVal {
 /// 应用的回执那一段话。原话照 §17.4：
 ///   <目标> 的配置已用 <源> 替换（写了 N 份文件，搬了 N 个包，跳过 N 个已存在的包）；替换前快照 <id>
 fn promote_receipt_note(o : @profiles.PromoteOutcome) -> String {
-  o.target_name + " 的配置已用 " + o.source_name + " 替换（写了 " +
-  o.written.length().to_string() + " 份文件，搬了 " + o.packages_moved.length().to_string() +
-  " 个包，跳过 " + o.packages_skipped.length().to_string() + " 个已存在的包）；替换前快照 " +
+  o.target_name +
+  " 的配置已用 " +
+  o.source_name +
+  " 替换（写了 " +
+  o.written.length().to_string() +
+  " 份文件，搬了 " +
+  o.packages_moved.length().to_string() +
+  " 个包，跳过 " +
+  o.packages_skipped.length().to_string() +
+  " 个已存在的包）；替换前快照 " +
   o.snapshot.id
 }
 
@@ -244,8 +280,7 @@ pub async fn promote_profile_action(
   }
   if given != "PROMOTE" {
     fail(
-      "bad-params",
-      "整体替换会改写目标 profile 的配置；这是破坏性动作，body 顶层必须带 confirm 字段，值是 PROMOTE",
+      "bad-params", "整体替换会改写目标 profile 的配置；这是破坏性动作，body 顶层必须带 confirm 字段，值是 PROMOTE",
     )
   }
   // 重跑一遍预览的检查（§17.2 第 1 条）：预览之后目标可能被起了实例，也可能源被删了

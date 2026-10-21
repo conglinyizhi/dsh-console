@@ -169,14 +169,15 @@ fn settings_group_ids() -> String {
 /// 悄悄换一个来源比说一句更糟。
 fn logs_route_source(raw : String) -> Route {
   if known_log_source(raw) {
-    { page: Logs, group: "", source: Some(raw), notice: "" }
+    { page: Logs, group: "", source: Some(raw), notice: "", }
   } else {
     {
       page: Logs,
       group: "",
       source: None,
-      notice: "地址里的日志来源「" + raw +
-        "」认不出来（只认 host / audit / instance:<实例 id>），已按默认来源读。",
+      notice: "地址里的日志来源「" +
+      raw +
+      "」认不出来（只认 host / audit / instance:<实例 id>），已按默认来源读。",
     }
   }
 }
@@ -192,7 +193,7 @@ fn logs_route(query : String, path_source : String) -> Route {
     return logs_route_source(path_source)
   }
   match query_value(query, "source") {
-    None => { page: Logs, group: "", source: None, notice: "" }
+    None => { page: Logs, group: "", source: None, notice: "", }
     Some(raw) => logs_route_source(raw)
   }
 }
@@ -203,12 +204,12 @@ fn parse_route(url : String) -> Route {
   let (raw_path, query) = split_once(url, '?')
   let segs = path_segments(raw_path)
   if segs.length() == 0 {
-    return { page: Overview, group: "", source: None, notice: "" }
+    return { page: Overview, group: "", source: None, notice: "", }
   }
   match segs[0] {
     "maintenance" =>
       if segs.length() == 1 {
-        { page: Maintenance, group: "", source: None, notice: "" }
+        { page: Maintenance, group: "", source: None, notice: "", }
       } else {
         unknown_route(segs)
       }
@@ -224,27 +225,30 @@ fn parse_route(url : String) -> Route {
       if segs.length() == 1 {
         // 只写了 /settings：没指定分组。窄屏这一档画的是分区列表（第一级），
         // 宽屏回落第一组（setting_group_of 兜底），与改之前那一版看起来一模一样。
-        { page: Settings, group: "", source: None, notice: "" }
+        { page: Settings, group: "", source: None, notice: "", }
       } else if segs.length() == 2 && settings_group_exists(segs[1]) {
-        { page: Settings, group: segs[1], source: None, notice: "" }
+        { page: Settings, group: segs[1], source: None, notice: "", }
       } else {
         {
           page: Settings,
           group: "",
           source: None,
-          notice: "地址里的 /" + join_with(segs, "/") + " 对不上任何一个设置分组（现有分组：" +
-            settings_group_ids() + "），已回到设置首页。",
+          notice: "地址里的 /" +
+          join_with(segs, "/") +
+          " 对不上任何一个设置分组（现有分组：" +
+          settings_group_ids() +
+          "），已回到设置首页。",
         }
       }
     "trash" =>
       if segs.length() == 1 {
-        { page: Trash, group: "", source: None, notice: "" }
+        { page: Trash, group: "", source: None, notice: "", }
       } else {
         unknown_route(segs)
       }
     "about" =>
       if segs.length() == 1 {
-        { page: About, group: "", source: None, notice: "" }
+        { page: About, group: "", source: None, notice: "", }
       } else {
         unknown_route(segs)
       }
@@ -259,8 +263,9 @@ fn unknown_route(segs : Array[String]) -> Route {
     page: Overview,
     group: "",
     source: None,
-    notice: "地址里的 /" + join_with(segs, "/") +
-      " 不是本控制台的路由，已回到实例总览。现有路由：/ | /maintenance | /logs 或 /logs/<来源> | /settings/<分组> | /trash | /about",
+    notice: "地址里的 /" +
+    join_with(segs, "/") +
+    " 不是本控制台的路由，已回到实例总览。现有路由：/ | /maintenance | /logs 或 /logs/<来源> | /settings/<分组> | /trash | /about",
   }
 }
 
@@ -305,11 +310,8 @@ fn replace_route(url : String) -> @cmd.Cmd {
 ///|
 /// 挂上下一次 popstate 的监听。回执一进 update 就再挂一次，任何时刻只有一个在等。
 fn listen_popstate(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(_res : Result[String, Error]) { emit(RouteChanged) },
-    async fn() {
-      let text : String = js_next_popstate().wait().cast()
-      text
-    },
-  )
+  @cmd.attempt(fn(_res : Result[String, Error]) { emit(RouteChanged) }, async fn() {
+    let text : String = js_next_popstate().wait().cast()
+    text
+  })
 }

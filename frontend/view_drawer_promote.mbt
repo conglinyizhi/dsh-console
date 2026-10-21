@@ -3,7 +3,6 @@
 // 2026-10-20 从 view_drawer.mbt 拆出来：这一族是抽屉里最长的一条预览链路，单独成文件。
 // 只搬位置，函数体一个字没改。
 
-
 ///|
 /// 抽屉「操作」组里那一颗：打开右侧栏去选源，把这一只的配置换成另一只的（§74）。
 ///
@@ -16,7 +15,13 @@ fn promote_launcher(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     class="dsh-btn",
     type_="button",
     disabled=!usable,
-    attrs=mark("drawer-promote-open", ["overview", "drawer", row.id, "action", "promote-open"])
+    attrs=mark("drawer-promote-open", [
+        "overview",
+        "drawer",
+        row.id,
+        "action",
+        "promote-open",
+      ])
       .data_set("action", "promote-open")
       .title(
         "把这一只的配置（package.json、cordis.patch.yml、pnpm-workspace.yaml）换成另一只的，" +
@@ -26,10 +31,12 @@ fn promote_launcher(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     [icon("swap-horizontal"), @html.span("换上另一只的配置（beta）")],
   )
 }
+
 ///|
 /// 侧栏顶部那一行：被替换的是谁、它属于哪一份 home。路径收进悬停（正文只留一句）。
 fn promote_target_block(model : Model) -> @html.Html {
-  let (name, home_kind, home_path) = match find_row(model.rows, model.promote_row) {
+  let (name, home_kind, home_path) = match
+    find_row(model.rows, model.promote_row) {
     Some(row) =>
       (
         match row.profile_name {
@@ -41,16 +48,26 @@ fn promote_target_block(model : Model) -> @html.Html {
       )
     None => ("", "", "")
   }
-  let home_text = if home_kind == "" { "配置 home 读不到" } else { home_kind_text(home_kind) }
+  let home_text = if home_kind == "" {
+    "配置 home 读不到"
+  } else {
+    home_kind_text(home_kind)
+  }
   let attrs = mark("promote-target", ["overview", "promote-sidebar", "target"])
   let attrs = if home_path == "" { attrs } else { attrs.title(home_path) }
   @html.div(class="dsh-drawer-section", [
     @html.h3(
       class="dsh-drawer-section-title",
-      attrs=mark("promote-target-title", ["overview", "promote-sidebar", "target", "title"]),
+      attrs=mark("promote-target-title", [
+        "overview", "promote-sidebar", "target", "title",
+      ]),
       "目标",
     ),
-    @html.p(class="dsh-promote-target", attrs~, name + "（" + home_text + "）"),
+    @html.p(
+      class="dsh-promote-target",
+      attrs~,
+      name + "（" + home_text + "）",
+    ),
   ])
 }
 
@@ -68,11 +85,15 @@ fn promote_section(
   }
   @html.div(
     class="dsh-promote-section",
-    attrs=mark("promote-section", ["overview", "promote-sidebar", "section", key]),
+    attrs=mark("promote-section", [
+      "overview", "promote-sidebar", "section", key,
+    ]),
     [
       @html.h4(
         class="dsh-promote-title",
-        attrs=mark("promote-section-title", ["overview", "promote-sidebar", "section", key, "title"]),
+        attrs=mark("promote-section-title", [
+          "overview", "promote-sidebar", "section", key, "title",
+        ]),
         title,
       ),
       @html.div(class="dsh-promote-lines", body),
@@ -98,7 +119,12 @@ fn promote_line(key : String, name : String, text : String) -> @html.Html {
 fn promote_patch_pair(change : PromotePatchChange) -> @html.Html {
   @html.div(
     class="dsh-promote-pair",
-    attrs=mark("promote-patch-pair", ["overview", "promote-sidebar", "patch", change.id]),
+    attrs=mark("promote-patch-pair", [
+      "overview",
+      "promote-sidebar",
+      "patch",
+      change.id,
+    ]),
     [
       @html.div(class="dsh-promote-side source", [
         @html.div(class="dsh-promote-side-head", [
@@ -119,15 +145,25 @@ fn promote_patch_pair(change : PromotePatchChange) -> @html.Html {
 
 ///|
 /// 覆盖项里新增 / 移除的那一条：id + 原文。
-fn promote_patch_entry(key : String, entry : PromotePatchEntry, tag : String) -> @html.Html {
+fn promote_patch_entry(
+  key : String,
+  entry : PromotePatchEntry,
+  tag : String,
+) -> @html.Html {
   @html.div(
     class="dsh-promote-entry",
-    attrs=mark("promote-patch-entry", ["overview", "promote-sidebar", "patch", key]),
+    attrs=mark("promote-patch-entry", [
+      "overview", "promote-sidebar", "patch", key,
+    ]),
     [
       @html.div(class="dsh-promote-side-head", [
         @html.span(
           class="dsh-promote-name",
-          if entry.id == "" { "（这一条没有 id）" } else { entry.id },
+          if entry.id == "" {
+            "（这一条没有 id）"
+          } else {
+            entry.id
+          },
         ),
         @html.span(class="dsh-promote-tag", tag),
       ]),
@@ -147,12 +183,20 @@ fn promote_preview_body(
   let bundle_lines : Array[@html.Html] = []
   for name in preview.bundles_added {
     bundle_lines.push(
-      promote_line("bundle-added-" + name, name, "目标里没有，替换后会多出来"),
+      promote_line(
+        "bundle-added-" + name,
+        name,
+        "目标里没有，替换后会多出来",
+      ),
     )
   }
   for name in preview.bundles_removed {
     bundle_lines.push(
-      promote_line("bundle-removed-" + name, name, "目标多出来的，会被移除"),
+      promote_line(
+        "bundle-removed-" + name,
+        name,
+        "目标多出来的，会被移除",
+      ),
     )
   }
   if preview.bundles_reordered {
@@ -161,7 +205,11 @@ fn promote_preview_body(
     } else {
       preview.bundles_from.join("、")
     }
-    let after = if preview.bundles_to.length() == 0 { "空" } else { preview.bundles_to.join("、") }
+    let after = if preview.bundles_to.length() == 0 {
+      "空"
+    } else {
+      preview.bundles_to.join("、")
+    }
     bundle_lines.push(
       @html.p(
         class="dsh-promote-note",
@@ -172,33 +220,52 @@ fn promote_preview_body(
   // 覆盖项：同 id 的并排摆
   let patch_lines : Array[@html.Html] = []
   for entry in preview.patches_added {
-    patch_lines.push(promote_patch_entry("added-" + entry.id, entry, "目标里没有这一条"))
+    patch_lines.push(
+      promote_patch_entry(
+        "added-" + entry.id,
+        entry,
+        "目标里没有这一条",
+      ),
+    )
   }
   for change in preview.patches_changed {
     patch_lines.push(promote_patch_pair(change))
   }
   for entry in preview.patches_removed {
-    patch_lines.push(promote_patch_entry("removed-" + entry.id, entry, "目标多出来的，会被移除"))
+    patch_lines.push(
+      promote_patch_entry(
+        "removed-" + entry.id,
+        entry,
+        "目标多出来的，会被移除",
+      ),
+    )
   }
   if preview.patches_anonymous > 0 {
     patch_lines.push(
       @html.p(
         class="dsh-promote-note",
-        "有 " + preview.patches_anonymous.to_string() + " 条没有 id 的条目，只能按整段原文比",
+        "有 " +
+        preview.patches_anonymous.to_string() +
+        " 条没有 id 的条目，只能按整段原文比",
       ),
     )
   }
   // 本地包：会搬过去的 / 同名不同版本的
   let package_lines : Array[@html.Html] = []
   for name in preview.packages_added {
-    package_lines.push(promote_line("package-added-" + name, name, "会搬过去"))
+    package_lines.push(
+      promote_line("package-added-" + name, name, "会搬过去"),
+    )
   }
   for item in preview.packages_mismatch {
     package_lines.push(
       promote_line(
         "package-version-" + item.name,
         item.name,
-        "同名不同版本：源 " + item.source_version + "，目标 " + item.target_version +
+        "同名不同版本：源 " +
+        item.source_version +
+        "，目标 " +
+        item.target_version +
         "（不搬也不覆盖）",
       ),
     )
@@ -211,18 +278,29 @@ fn promote_preview_body(
       promote_line(
         "file-" + name,
         name,
-        if is_new { "目标里没有，会新建" } else { "会盖掉目标里那一份" },
+        if is_new {
+          "目标里没有，会新建"
+        } else {
+          "会盖掉目标里那一份"
+        },
       ),
     )
   }
   if preview.files_written.length() == 0 {
     file_lines.push(
-      @html.p(class="dsh-promote-note", "源 profile 里这三份文件都没有，这一趟没有可写的"),
+      @html.p(
+        class="dsh-promote-note",
+        "源 profile 里这三份文件都没有，这一趟没有可写的",
+      ),
     )
   }
   for name in preview.files_target_only {
     file_lines.push(
-      promote_line("file-target-only-" + name, name, "目标里有、源里没有，替换之后仍然留着"),
+      promote_line(
+        "file-target-only-" + name,
+        name,
+        "目标里有、源里没有，替换之后仍然留着",
+      ),
     )
   }
   let can_apply = preview.blockers.length() == 0
@@ -259,7 +337,9 @@ fn promote_preview_body(
       @html.div(class="dsh-promote-section", [
         @html.h4(
           class="dsh-promote-title",
-          attrs=mark("promote-notes-title", ["overview", "promote-sidebar", "notes", "title"]),
+          attrs=mark("promote-notes-title", [
+            "overview", "promote-sidebar", "notes", "title",
+          ]),
           "读数备注",
         ),
         @html.div(class="dsh-promote-lines", note_lines),
@@ -273,7 +353,13 @@ fn promote_preview_body(
         disabled=!can_apply || busy,
         attrs=mark("promote-apply", ["overview", "promote-sidebar", "apply"])
           .data_set("state", if can_apply { "ready" } else { "blocked" })
-          .title(if can_apply { "确认之后会先给目标拍一张快照，再把配置写过去" } else { why }),
+          .title(
+            if can_apply {
+              "确认之后会先给目标拍一张快照，再把配置写过去"
+            } else {
+              why
+            },
+          ),
         on_click=emit(PromoteConfirmOpen),
         [@html.span(if busy { "正在替换…" } else { "确认替换" })],
       ),
@@ -341,10 +427,14 @@ fn promote_pick_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       }
     }
     if running_cards.length() > 0 {
-      body.push(promote_pick_group("running", "当前运行的实例", running_cards))
+      body.push(
+        promote_pick_group("running", "当前运行的实例", running_cards),
+      )
     }
     if stopped_cards.length() > 0 {
-      body.push(promote_pick_group("stopped", "已停止的实例", stopped_cards))
+      body.push(
+        promote_pick_group("stopped", "已停止的实例", stopped_cards),
+      )
     }
     if running_cards.length() == 0 && stopped_cards.length() == 0 {
       body.push(
@@ -377,13 +467,16 @@ fn promote_pick_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   @html.div(class="dsh-promote-pick", [
     @html.h3(
       class="dsh-drawer-section-title",
-      attrs=mark("promote-pick-title", ["overview", "promote-sidebar", "pick", "title"]),
+      attrs=mark("promote-pick-title", [
+        "overview", "promote-sidebar", "pick", "title",
+      ]),
       "选一只源配置",
     ),
     @html.fragment(body),
   ])
 }
 
+///|
 fn promote_pick_group(
   key : String,
   title : String,
@@ -391,12 +484,15 @@ fn promote_pick_group(
 ) -> @html.Html {
   @html.div(
     class="dsh-profile-sidebar-group",
-    attrs=mark("promote-group", ["overview", "promote-sidebar", "group", key])
-      .data_set("group", key),
+    attrs=mark("promote-group", ["overview", "promote-sidebar", "group", key]).data_set(
+      "group", key,
+    ),
     [
       @html.h3(
         class="dsh-profile-sidebar-group-title",
-        attrs=mark("promote-group-title", ["overview", "promote-sidebar", "group", key, "title"]),
+        attrs=mark("promote-group-title", [
+          "overview", "promote-sidebar", "group", key, "title",
+        ]),
         title + " (" + cards.length().to_string() + ")",
       ),
       @html.div(
@@ -419,8 +515,9 @@ fn promote_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   @html.fragment([
     @html.div(
       class="dsh-drawer-scrim",
-      attrs=mark("promote-sidebar-scrim", ["overview", "promote-sidebar", "scrim"])
-        .data_set("state", "open"),
+      attrs=mark("promote-sidebar-scrim", [
+        "overview", "promote-sidebar", "scrim",
+      ]).data_set("state", "open"),
       on_click=emit(PromoteClose),
       @html.nothing,
     ),
@@ -432,7 +529,14 @@ fn promote_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         .aria_modal("true")
         .aria_label("用另一只配置替换这一只")
         .data_set("state", "open")
-        .data_set("stage", if model.promote_preview is Some(_) { "preview" } else { "pick" })
+        .data_set(
+          "stage",
+          if model.promote_preview is Some(_) {
+            "preview"
+          } else {
+            "pick"
+          },
+        )
         .on_keydown(fn(event) {
           if event.key() == "Escape" {
             emit(PromoteClose)
@@ -444,15 +548,18 @@ fn promote_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-drawer-head", [
           @html.span(
             class="dsh-drawer-name",
-            attrs=mark("promote-sidebar-title", ["overview", "promote-sidebar", "title"]),
+            attrs=mark("promote-sidebar-title", [
+              "overview", "promote-sidebar", "title",
+            ]),
             "用另一只配置替换这一只",
           ),
           @html.button(
             id=promote_close_id(),
             class="dsh-btn icon-only",
             type_="button",
-            attrs=mark("promote-sidebar-close", ["overview", "promote-sidebar", "close"])
-              .aria_label("关闭用另一只配置替换这一只"),
+            attrs=mark("promote-sidebar-close", [
+              "overview", "promote-sidebar", "close",
+            ]).aria_label("关闭用另一只配置替换这一只"),
             on_click=emit(PromoteClose),
             [icon("close", size=16)],
           ),

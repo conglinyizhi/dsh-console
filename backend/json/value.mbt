@@ -49,9 +49,7 @@ pub fn empty_object() -> Json noraise {
 ///|
 /// Json 解析文本；失败返回 None（等同 Node 的 try/catch JSON.parse）。
 pub fn json_parse(text : String) -> Json? noraise {
-  try {
-    Some(@core_json.parse(text))
-  } catch {
+  Some(@core_json.parse(text)) catch {
     _ => None
   }
 }

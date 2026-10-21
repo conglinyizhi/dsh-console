@@ -2,11 +2,15 @@
 
 ///|
 /// DrawerClosed 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_drawer_closed(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_drawer_closed(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    DrawerClosed(id) => 
+    DrawerClosed(id) =>
       if model.drawer_closing == id {
-        ({ ..model, drawer_closing: "" }, @cmd.none)
+        ({ ..model, drawer_closing: "", }, @cmd.none)
       } else {
         (model, @cmd.none)
       }
@@ -22,9 +26,13 @@ fn handle_drawer_closed(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mo
 
 ///|
 /// DragDown 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_drag_down(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_drag_down(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    DragDown(id, x, y) => 
+    DragDown(id, x, y) =>
       // 窄屏（单列那一档）不启动拖动：那一档里纵向拖动与页面滚动落在同一个手势上，
       // 拖一次条目页面跟着滚。断点与样式里那条 media query 是同一个数。
       if js_viewport_width() < drag_min_viewport_width {
@@ -59,9 +67,13 @@ fn handle_drag_down(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
 
 ///|
 /// DragMove 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_drag_move(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_drag_move(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    DragMove(x, y, buttons) => 
+    DragMove(x, y, buttons) =>
       if model.drag_id == "" {
         // 没按下过：划过卡片也会冒泡到这里，什么都不做
         (model, @cmd.none)
@@ -102,7 +114,8 @@ fn handle_drag_move(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
         // 「指针进到另一组」在 dom.mbt 那一层就已经返回空（那一组的盒子冻在 others 里）；
         // 这里再按组名核一次，是同一件事的第二道 —— 那边管「指针在哪儿的盒子」，
         // 这边管「这个组名是不是被拖那一条的组」。
-        let same_group = group != "" && group == group_of_row_id(model, model.drag_id)
+        let same_group = group != "" &&
+          group == group_of_row_id(model, model.drag_id)
         let ids = if same_group { current_group_ids(model, group) } else { [] }
         let n = ids.length()
         // 格子序号：**预览与落位用的是这一个数**（见 state.mbt 的 drop_cell）。
@@ -115,9 +128,21 @@ fn handle_drag_move(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
           {
             ..model,
             drag_active: true,
-            drag_group: if same_group { group } else { "" },
-            drag_from: if same_group { index_of_row(ids, model.drag_id) } else { -1 },
-            drag_at: if k >= 0 { anchor_at(ids, k) } else { "" },
+            drag_group: if same_group {
+              group
+            } else {
+              ""
+            },
+            drag_from: if same_group {
+              index_of_row(ids, model.drag_id)
+            } else {
+              -1
+            },
+            drag_at: if k >= 0 {
+              anchor_at(ids, k)
+            } else {
+              ""
+            },
             drag_at_index: k,
             drag_ghost: true,
             // 虚影**以指针为中心**：落点按指针在哪一格算，虚影也压在指针上，
@@ -128,7 +153,10 @@ fn handle_drag_move(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
             drag_ghost_h: size.1,
           },
           @cmd.batch([
-            @cmd.custom_cmd(fn(_scheduler) { js_drag_ghost_move(x, y) }, kind=@cmd.after_render),
+            @cmd.custom_cmd(
+              fn(_scheduler) { js_drag_ghost_move(x, y) },
+              kind=@cmd.after_render,
+            ),
             // 摆格子与让位那一段都排在这一拍之后：DOM 刚补完，量到的正是新格子。
             // 顺序不能反 —— 先摆格子（位置变了），再让 FLIP 把这段变化演出来。
             preview_cells_after_render(group, model.drag_id, k),
@@ -142,9 +170,13 @@ fn handle_drag_move(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
 
 ///|
 /// DragUp 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_drag_up(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_drag_up(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    DragUp => 
+    DragUp =>
       if model.drag_id == "" {
         (model, @cmd.none)
       } else if !model.drag_active {
@@ -162,11 +194,21 @@ fn handle_drag_up(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @c
         }
         match moved {
           // 横向出栅格 / 跨组 / 组里只有这一条：这一次拖动作废，顺序不动，也不发请求
-          None => (cleared, @cmd.batch([reorder_after_render(), clear_cells_after_render()]))
+          None =>
+            (
+              cleared,
+              @cmd.batch([reorder_after_render(), clear_cells_after_render()]),
+            )
           // 落点就是原位（指针在被拖的那张自己身上）：顺序逐格没变，同样不发请求
           Some(ids) =>
-            if same_order(current_group_ids(model, group_of_row_id(model, dragged)), ids) {
-              (cleared, @cmd.batch([reorder_after_render(), clear_cells_after_render()]))
+            if same_order(
+                current_group_ids(model, group_of_row_id(model, dragged)),
+                ids,
+              ) {
+              (
+                cleared,
+                @cmd.batch([reorder_after_render(), clear_cells_after_render()]),
+              )
             } else {
               commit_order(cleared, dragged, ids, emit)
             }
@@ -180,9 +222,13 @@ fn handle_drag_up(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @c
 
 ///|
 /// DragCancel 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_drag_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_drag_cancel(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    DragCancel => 
+    DragCancel =>
       (
         reset_drag(model),
         @cmd.batch([reorder_after_render(), clear_cells_after_render()]),
@@ -196,7 +242,11 @@ fn handle_drag_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mode
 
 ///|
 /// ReorderKey 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_reorder_key(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_reorder_key(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     ReorderKey(id, dir) => {
       let group = group_of_row_id(model, id)
@@ -207,10 +257,7 @@ fn handle_reorder_key(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
         // 已经在头 / 尾：没有可换的位置，一个节点都不动。
         // **上一次按键留下的预览也要收掉** —— 不然它会一直挂在那儿，
         // 而这一次按下的方向并没有可去的地方。
-        (
-          { ..reset_drag(model), drag_key_dir: 0 },
-          clear_cells_after_render(),
-        )
+        ({ ..reset_drag(model), drag_key_dir: 0, }, clear_cells_after_render())
       } else {
         // 目标格就是 to：卡槽语义下「换到第 to 格」= 被拖的那一条落在第 to 格。
         // 与指针那条路同一个 drop_cell，预览与落位因此不会分叉。
@@ -245,10 +292,16 @@ fn handle_reorder_key(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
 
 ///|
 /// ReorderCommit 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_reorder_commit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_reorder_commit(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    ReorderCommit(dir) => 
-      if model.drag_key_dir != dir || model.drag_id == "" || model.drag_at_index < 0 {
+    ReorderCommit(dir) =>
+      if model.drag_key_dir != dir ||
+        model.drag_id == "" ||
+        model.drag_at_index < 0 {
         (model, @cmd.none)
       } else {
         let dragged = model.drag_id
@@ -256,7 +309,7 @@ fn handle_reorder_commit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mo
         // 落位这一拍**先把「等着的那一步」清掉**（drag_key_dir 归 0）：
         // 连着按两次方向键时，第一拍留下的那条计时回来会看到号对不上，自己作废，
         // 不会多换一次位。
-        let settled = { ..reset_drag(model), drag_key_dir: 0 }
+        let settled = { ..reset_drag(model), drag_key_dir: 0, }
         match moved_group_ids(model, dragged, k) {
           None => (settled, clear_cells_after_render())
           Some(ids) => commit_order(settled, dragged, ids, emit)
@@ -268,7 +321,11 @@ fn handle_reorder_commit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mo
 
 ///|
 /// OrderDone 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_order_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_order_done(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     OrderDone(res) => {
       let (ok, text) = interpret_http(res)
@@ -279,15 +336,17 @@ fn handle_order_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
         // 「顺序表」是内部的叫法，落盘路径也不是使用者要读的东西（第六轮契约第二节：
         // 细节收进悬停，正文说人话）。路径与条数一个字都没丢，它们在悬停里。
         (
-          notice_ok({ ..model, order_before: [] }, "顺序已保存", text),
+          notice_ok({ ..model, order_before: [], }, "顺序已保存", text),
           @cmd.none,
         )
       } else {
         // 失败：**回滚到提交前那一份**。停在「看着是新的、其实没存下」比不做还糟 ——
         // 下一次刷新列表会跳回原样，而使用者不知道自己刚才拖的那一下去哪了。
         (
-          notice_err({ ..model, order: model.order_before, order_before: [] },
-            "顺序没保存：" + text),
+          notice_err(
+            { ..model, order: model.order_before, order_before: [], },
+            "顺序没保存：" + text,
+          ),
           @cmd.none,
         )
       }
@@ -298,4 +357,3 @@ fn handle_order_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
     _ => (model, @cmd.none)
   }
 }
-

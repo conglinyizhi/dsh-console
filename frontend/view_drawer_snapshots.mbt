@@ -34,8 +34,15 @@ fn snapshot_reason_text(snap : SnapshotFact) -> String {
 /// 快照那一行的悬停：完整原因与拍下来的时刻都在这里（正文里过长的原因会被省略号收掉）。
 fn snapshot_row_hint(snap : SnapshotFact) -> String {
   let when = if snap.at == "" { "读不到时刻" } else { snap.at }
-  "拍下来的时刻：" + when + "；原因：" + snapshot_reason_text(snap) + "；快照 id：" + snap.id +
-  "；这一份里存了 " + snapshot_size_text(snap) + "。还原会用它的三个文件覆盖现在的内容"
+  "拍下来的时刻：" +
+  when +
+  "；原因：" +
+  snapshot_reason_text(snap) +
+  "；快照 id：" +
+  snap.id +
+  "；这一份里存了 " +
+  snapshot_size_text(snap) +
+  "。还原会用它的三个文件覆盖现在的内容"
 }
 
 ///|
@@ -59,7 +66,7 @@ fn snapshot_history(
   row : Row,
   model : Model,
   emit : @cmd.Emit[Msg],
-  lead? : Array[@html.Html] = [],
+  lead~ : Array[@html.Html] = [],
 ) -> @html.Html {
   let busy = row.busy
   let creatable = row.profile_name is Some(_) && !busy
@@ -72,15 +79,26 @@ fn snapshot_history(
   let items : Array[@html.Html] = [
     @html.div(
       class="dsh-snapshot-create-line",
-      attrs=mark("drawer-snapshot-create-line", ["overview", "drawer", row.id, "snapshot", "create"]),
-      lead_items + [
+      attrs=mark("drawer-snapshot-create-line", [
+        "overview",
+        "drawer",
+        row.id,
+        "snapshot",
+        "create",
+      ]),
+      lead_items +
+      [
         @html.button(
           class="dsh-btn",
           type_="button",
           disabled=!creatable,
           attrs=mark("drawer-snapshot-create", [
-            "overview", "drawer", row.id, "action", "snapshot-create",
-          ])
+              "overview",
+              "drawer",
+              row.id,
+              "action",
+              "snapshot-create",
+            ])
             .data_set("action", "snapshot-create")
             .title(
               "把 package.json、cordis.patch.yml、pnpm-workspace.yaml 拍成一张快照（有才存），" +
@@ -95,12 +113,18 @@ fn snapshot_history(
   if row.snapshots.length() == 0 {
     // 「还没有快照」不再单占一行（§69）：空态是常态，这一行每天挂着只是噪声。
     // 只有老后端缺这一项时才留一行 —— 那是「读不到」，与「还没拍过」不是一回事。
-    if row.snapshots_source == "这一版读数里没有「配置快照」这一项" {
+    if row.snapshots_source ==
+      "这一版读数里没有「配置快照」这一项" {
       items.push(
         @html.p(
           class="dsh-snapshot-empty",
-          attrs=mark("drawer-snapshot-empty", ["overview", "drawer", row.id, "snapshot", "empty"])
-            .title(row.snapshots_source),
+          attrs=mark("drawer-snapshot-empty", [
+            "overview",
+            "drawer",
+            row.id,
+            "snapshot",
+            "empty",
+          ]).title(row.snapshots_source),
           "这一版读数里没有配置快照，暂时拍不了也还原不了。",
         ),
       )
@@ -110,28 +134,49 @@ fn snapshot_history(
       items.push(
         @html.div(
           class="dsh-snapshot-row",
-          attrs=mark("drawer-snapshot-row", ["overview", "drawer", row.id, "snapshot", snap.id])
+          attrs=mark("drawer-snapshot-row", [
+              "overview",
+              "drawer",
+              row.id,
+              "snapshot",
+              snap.id,
+            ])
             .data_set("snapshot", snap.id)
             .title(snapshot_row_hint(snap)),
           [
             @html.span(
               class="dsh-snapshot-time",
               attrs=mark("drawer-snapshot-time", [
-                "overview", "drawer", row.id, "snapshot", snap.id, "time",
+                "overview",
+                "drawer",
+                row.id,
+                "snapshot",
+                snap.id,
+                "time",
               ]),
               snapshot_time_text(snap),
             ),
             @html.span(
               class="dsh-snapshot-reason",
               attrs=mark("drawer-snapshot-reason", [
-                "overview", "drawer", row.id, "snapshot", snap.id, "reason",
+                "overview",
+                "drawer",
+                row.id,
+                "snapshot",
+                snap.id,
+                "reason",
               ]),
               snapshot_reason_text(snap),
             ),
             @html.span(
               class="dsh-snapshot-size",
               attrs=mark("drawer-snapshot-size", [
-                "overview", "drawer", row.id, "snapshot", snap.id, "size",
+                "overview",
+                "drawer",
+                row.id,
+                "snapshot",
+                snap.id,
+                "size",
               ]),
               snapshot_size_text(snap),
             ),
@@ -140,11 +185,20 @@ fn snapshot_history(
               type_="button",
               disabled=busy,
               attrs=mark("drawer-snapshot-restore", [
-                "overview", "drawer", row.id, "snapshot", snap.id, "restore",
-              ])
+                  "overview",
+                  "drawer",
+                  row.id,
+                  "snapshot",
+                  snap.id,
+                  "restore",
+                ])
                 .data_set("snapshot", snap.id)
-                .title("把这份快照里的三个文件写回去；还原之前会先给当前状态拍一张"),
-              on_click=emit(SnapshotRestoreOpen(row.id, snap.id, card_id(row.id))),
+                .title(
+                  "把这份快照里的三个文件写回去；还原之前会先给当前状态拍一张",
+                ),
+              on_click=emit(
+                SnapshotRestoreOpen(row.id, snap.id, card_id(row.id)),
+              ),
               [@html.text("还原")],
             ),
           ],
@@ -154,9 +208,22 @@ fn snapshot_history(
   }
   @html.div(
     class="dsh-drawer-history",
-    attrs=mark("drawer-snapshot-history", ["overview", "drawer", row.id, "snapshot", "history"])
+    attrs=mark("drawer-snapshot-history", [
+        "overview",
+        "drawer",
+        row.id,
+        "snapshot",
+        "history",
+      ])
       .data_set("count", row.snapshots.length().to_string())
-      .title("配置快照：" + (if row.snapshots_source == "" { "读数里没给来源" } else { row.snapshots_source })),
+      .title(
+        "配置快照：" +
+        (if row.snapshots_source == "" {
+          "读数里没给来源"
+        } else {
+          row.snapshots_source
+        }),
+      ),
     items,
   )
 }

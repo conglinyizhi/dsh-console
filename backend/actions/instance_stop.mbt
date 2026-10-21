@@ -5,14 +5,13 @@
 // 各自完整、只在共用的小工具上相接；拆开之后排查「起不来 / 停不掉」各看一份。
 // 只搬位置，函数体一个字没改。
 
-
 ///|
 /// SIGKILL 之后等进程真的消失的上限。
-let kill_wait_ms : Int = 3000
+let kill_wait_ms : Int32 = 3000
 
 ///|
 /// 从 basePort 起最多试多少个端口。
-let port_scan_limit : Int = 200
+let port_scan_limit : Int32 = 200
 
 ///|
 /// 一次「参数被拒」的归因证据。
@@ -26,8 +25,8 @@ pub struct ArgRejection {
 ///|
 /// 一次启动的结果。
 pub struct SpawnOutcome {
-  pid : Int
-  port : Int
+  pid : Int32
+  port : Int32
   profile : String
   home : String
   /// 这一只用的 home 归属：trial（homes root 下的 trial- 一次性 home）/ isolated（这只 profile
@@ -35,7 +34,7 @@ pub struct SpawnOutcome {
   home_kind : String
   log_path : String
   detached : Bool
-  boot_ms : Int
+  boot_ms : Int32
   command : String
   url : String
   /// 这一只实例跑的 dsh 版本与包目录（起的那一刻生效的那一份）
@@ -50,23 +49,23 @@ pub struct SpawnOutcome {
 ///|
 /// 一次停止的结果。
 pub struct StopOutcome {
-  pid : Int
-  port : Int?
+  pid : Int32
+  port : Int32?
   profile : String?
   /// 发出 SIGTERM 到进程消失（或宽限期耗尽）的毫秒数
-  sigterm_ms : Int
+  sigterm_ms : Int32
   /// 是否走到了 SIGKILL
   sigkill : Bool
   exited : Bool
-  waited_ms : Int
+  waited_ms : Int32
   signal : String
 }
 
 ///|
 /// 目标实例：停止 / 重启靠它认人。
 pub struct Target {
-  pid : Int
-  port : Int?
+  pid : Int32
+  port : Int32?
   profile : String?
   home : String?
   log_path : String?
@@ -74,18 +73,14 @@ pub struct Target {
 
 ///|
 /// 端口是不是有人在听（连一次 127.0.0.1，连上就算）。
-pub async fn port_listening(port : Int) -> Bool noraise {
-  let attempt : async () -> Bool raise = async fn () {
+pub async fn port_listening(port : Int32) -> Bool noraise {
+  let attempt : async () -> Bool = async fn() {
     let addr = @async_socket.Addr::parse("127.0.0.1:\{port}")
     let sock = @async_socket.Tcp::connect(addr)
     sock.close()
     true
   }
-  let result = try {
-    @async.with_timeout_opt(300, attempt)
-  } catch {
-    _ => None
-  }
+  let result = @async.with_timeout_opt(300, attempt) catch { _ => None }
   match result {
     Some(ok) => ok
     None => false
@@ -94,7 +89,7 @@ pub async fn port_listening(port : Int) -> Bool noraise {
 
 ///|
 /// 十六进制端口。
-fn parse_hex(s : String) -> Int {
+fn parse_hex(s : String) -> Int32 {
   if s == "" {
     return -1
   }
@@ -130,8 +125,8 @@ pub let listen_state : String = "0A"
 ///
 /// 两张表都读：IPv4 在 /proc/net/tcp，IPv6 在 /proc/net/tcp6（`::1` 上的监听只出现在后者，
 /// 只听 v6 的服务也不会在 v4 那张表里留行）。
-pub async fn listening_ports() -> Array[Int] noraise {
-  let out : Array[Int] = []
+pub async fn listening_ports() -> Array[Int32] noraise {
+  let out : Array[Int32] = []
   for file in ["/proc/net/tcp", "/proc/net/tcp6"] {
     let text = match @json.read_text_file(file) {
       Ok(t) => t
@@ -160,7 +155,7 @@ pub async fn listening_ports() -> Array[Int] noraise {
 /// 从 base 起找第一个空闲端口。空闲 = /proc/net/tcp(6) 里没有 LISTEN，且运行登记里没有 ——
 /// 只有真的有人在听的口才跳过（改前连 TIME-WAIT 这类残留也一起跳，白扔掉空着的口）。
 /// 找不到给 None（不瞎扩大范围）。
-pub async fn pick_free_port(base : Int) -> Int? noraise {
+pub async fn pick_free_port(base : Int32) -> Int32? noraise {
   let used = listening_ports()
   let registry = @store.load_registry()
   let mut candidate = base
@@ -181,7 +176,7 @@ pub async fn pick_free_port(base : Int) -> Int? noraise {
 /// 进程还活着吗。比 kill(pid, 0) 多一层：僵尸进程的 kill(pid, 0) 也成功，
 /// 但它已经死了（端口早就放了，只是父进程还没 wait 它）。
 /// 判据取 /proc/<pid>/stat 第三列的状态位，Z（僵尸）按死处理。
-pub async fn process_alive(pid : Int) -> Bool noraise {
+pub async fn process_alive(pid : Int32) -> Bool noraise {
   if !@fsx.pid_alive(pid) {
     return false
   }
@@ -209,7 +204,7 @@ pub async fn process_alive(pid : Int) -> Bool noraise {
 /// 就一直挂在控制台名下（PPID 是控制台）。长跑的控制台每失败一次攒一个。
 /// 只对已经死掉的 pid 调（调用点都先过了 process_alive），不会阻塞；
 /// 不是我们的子进程时 waitpid 直接报 ECHILD，吞掉即可。
-async fn reap_dead_child(pid : Int) -> Unit noraise {
+async fn reap_dead_child(pid : Int32) -> Unit noraise {
   try {
     let _ = @process.wait_pid(pid)
   } catch {
@@ -219,7 +214,7 @@ async fn reap_dead_child(pid : Int) -> Unit noraise {
 
 ///|
 /// 尽力回收我们起的僵尸子进程（不是我们的子进程时 wait 会直接报错，吞掉即可）。
-async fn reap_ours(pid : Int) -> Unit noraise {
+async fn reap_ours(pid : Int32) -> Unit noraise {
   let registry = @store.load_registry()
   match @store.find_record(registry.entries, Some(pid), None, None) {
     Some(_) =>
@@ -234,7 +229,7 @@ async fn reap_ours(pid : Int) -> Unit noraise {
 
 ///|
 /// 起不来时收子进程：SIGTERM 短等，仍在就 SIGKILL。返回一句人话说明。
-async fn reap_after_failure(pid : Int) -> String noraise {
+async fn reap_after_failure(pid : Int32) -> String noraise {
   if !process_alive(pid) {
     // 子进程自己退出了（app 不认参数、入口不存在等都是这一支）——正是要 wait 的那一支：
     // process_alive 把 Z 判成死，但没 wait 的话它就是一只挂在控制台名下的僵尸。
@@ -259,7 +254,9 @@ async fn reap_after_failure(pid : Int) -> String noraise {
     }
     @async.sleep(50)
   }
-  "子进程既没监听端口，也没能被收掉（仍在 " + pid.to_string() + "）"
+  "子进程既没监听端口，也没能被收掉（仍在 " +
+  pid.to_string() +
+  "）"
 }
 
 ///|
@@ -269,7 +266,7 @@ async fn reap_after_failure(pid : Int) -> String noraise {
 ///
 /// 为什么不能用「main 里 serve 之后的收尾代码」：moonbitlang/async 在全局取消信号之后会
 /// 把信号重新抬起来交给默认处理（实测退出码 143），main 里 serve 之后的语句一句都跑不到。
-let console_group : Ref[@async.TaskGroup[Unit]?] = { val: None }
+let console_group : Ref[@async.TaskGroup[Unit]?] = { val: None, }
 
 ///|
 /// 登记主任务组（main 起服务前调用一次）。
@@ -301,28 +298,25 @@ async fn spawn_child(
   cwd : String,
   log_path : String,
   detach : Bool,
-  grace_ms : Int,
-) -> Result[Int, String] noraise {
+  grace_ms : Int32,
+) -> Result[Int32, String] noraise {
   // 子进程环境 = 继承当前进程 → global → 该 profile（§61.2）。
   // 保留键（DSH_HOME / PATH / HOME …）由这里先摆好，env_for_spawn 不会再覆盖它们。
   let env : Map[String, String] = Map([("DSH_HOME", home)])
-  let (inherit, extra) = @store.env_plan(home, profile)
+  let (keep_system, extra) = @store.env_plan(home, profile)
   for pair in extra.iter() {
     env[pair.0] = pair.1
   }
-  let out = try {
-    @process.redirect_to_file(
-      log_path,
-      append=true,
-      create_mode=OpenOrCreate,
-      permission=0o600,
-    )
-  } catch {
-    err => return Err("打不开实例日志 " + log_path + "：" + err.to_string())
+  let out = @process.redirect_to_file(
+    log_path,
+    append=true,
+    create_mode=OpenOrCreate,
+    permission=0o600,
+  ) catch {
+    err =>
+      return Err("打不开实例日志 " + log_path + "：" + err.to_string())
   }
-  let input = try {
-    @process.redirect_from_file("/dev/null")
-  } catch {
+  let input = @process.redirect_from_file("/dev/null") catch {
     err => return Err("打不开 /dev/null：" + err.to_string())
   }
   if !detach {
@@ -334,7 +328,7 @@ async fn spawn_child(
             command.node,
             args,
             extra_env=env,
-            inherit_env=inherit,
+            inherit_env=keep_system,
             stdin=input,
             stdout=out,
             stderr=out,
@@ -344,23 +338,24 @@ async fn spawn_child(
           )
           return Ok(child.pid)
         } catch {
-          err => return Err("spawn 失败（挂控制台任务组）：" + err.to_string())
+          err =>
+            return Err(
+              "spawn 失败（挂控制台任务组）：" + err.to_string(),
+            )
         }
       None => () // 没有任务组就退回 orphan，语义降级成 detach=true
     }
   }
-  let pid = try {
-    @process.spawn_orphan(
-      command.node,
-      args,
-      extra_env=env,
-      inherit_env=inherit,
-      stdin=input,
-      stdout=out,
-      stderr=out,
-      cwd~,
-    )
-  } catch {
+  let pid = @process.spawn_orphan(
+    command.node,
+    args,
+    extra_env=env,
+    inherit_env=keep_system,
+    stdin=input,
+    stdout=out,
+    stderr=out,
+    cwd~,
+  ) catch {
     err => return Err("spawn 失败：" + err.to_string())
   }
   Ok(pid)
@@ -389,7 +384,10 @@ async fn home_of_process(item : @processes.ProcSummary) -> String? noraise {
 /// 实例不该把这一只挡下来（隔离 home 的 web 被主线的 web 挡住，就是这一条）。
 /// home 两边都拿得到且相等才算同一只；实例那边 home 认不出时按不同处处理，
 /// 见 store 的 same_home。
-pub async fn running_for_profile_in(name : String, home : String?) -> Target? noraise {
+pub async fn running_for_profile_in(
+  name : String,
+  home : String?,
+) -> Target? noraise {
   let report = @processes.read_processes()
   let mut hit : Target? = None
   for item in report.instances {
@@ -416,7 +414,7 @@ pub async fn running_for_profile_in(name : String, home : String?) -> Target? no
         Some(_) => Some(found)
         None =>
           match port_of_pid(found.pid) {
-            Some(p) => Some({ ..found, port: Some(p) })
+            Some(p) => Some({ ..found, port: Some(p), })
             None => Some(found)
           }
       }
@@ -443,19 +441,16 @@ pub async fn running_for_profile_in(name : String, home : String?) -> Target? no
 
 ///|
 /// 某 PID 在听哪个端口：先查登记表，再走实例读数（重，只在需要时走）。
-pub async fn port_of_pid(pid : Int) -> Int? noraise {
+pub async fn port_of_pid(pid : Int32) -> Int32? noraise {
   let registry = @store.load_registry()
   match @store.find_record(registry.entries, Some(pid), None, None) {
     Some(r) => Some(r.port)
     None => {
       let report = @instances.instances_report_with_settings()
-      let mut found : Int? = None
+      let mut found : Int32? = None
       for item in report.instances {
         match item.pid {
-          Some(p) =>
-            if p == pid {
-              found = Some(item.port)
-            }
+          Some(p) => if p == pid { found = Some(item.port) }
           None => ()
         }
       }
@@ -466,7 +461,10 @@ pub async fn port_of_pid(pid : Int) -> Int? noraise {
 
 ///|
 /// 认目标实例：params 里给 pid 或 port 之二选一。
-pub async fn resolve_target(pid_in : Int?, port_in : Int?) -> Target raise ActionError {
+pub async fn resolve_target(
+  pid_in : Int32?,
+  port_in : Int32?,
+) -> Target raise ActionError {
   match (pid_in, port_in) {
     (Some(_), Some(_)) => fail("bad-params", "pid 与 port 只能给一个")
     (None, None) => fail("bad-params", "要给 pid 或 port")
@@ -489,7 +487,7 @@ pub async fn resolve_target(pid_in : Int?, port_in : Int?) -> Target raise Actio
     None => ()
   }
   match port_in {
-    Some(p) => {
+    Some(p) =>
       for r in registry.entries {
         if r.port == p {
           return {
@@ -501,7 +499,6 @@ pub async fn resolve_target(pid_in : Int?, port_in : Int?) -> Target raise Actio
           }
         }
       }
-    }
     None => ()
   }
   let report = @processes.read_processes()
@@ -551,13 +548,21 @@ pub async fn resolve_target(pid_in : Int?, port_in : Int?) -> Target raise Actio
   }
   match pid_in {
     Some(p) => {
-      fail("not-found", "PID " + p.to_string() + " 不是已知的 dsh 实例（不在运行登记里，进程表里也没有 dsh 入口）")
+      fail(
+        "not-found",
+        "PID " +
+        p.to_string() +
+        " 不是已知的 dsh 实例（不在运行登记里，进程表里也没有 dsh 入口）",
+      )
       abort("unreachable: fail 一定抛错")
     }
     None =>
       match port_in {
         Some(p) => {
-          fail("not-found", "端口 " + p.to_string() + " 上没有认得出的 dsh 实例")
+          fail(
+            "not-found",
+            "端口 " + p.to_string() + " 上没有认得出的 dsh 实例",
+          )
           abort("unreachable: fail 一定抛错")
         }
         None => {
@@ -570,9 +575,17 @@ pub async fn resolve_target(pid_in : Int?, port_in : Int?) -> Target raise Actio
 
 ///|
 /// 停一个实例：SIGTERM -> 等宽限 -> SIGKILL。
-pub async fn stop_pid(pid : Int, grace_ms : Int) -> StopOutcome raise ActionError {
+pub async fn stop_pid(
+  pid : Int32,
+  grace_ms : Int32,
+) -> StopOutcome raise ActionError {
   if !process_alive(pid) {
-    fail("not-found", "PID " + pid.to_string() + " 已经不在（可能是上一次已经停掉了）")
+    fail(
+      "not-found",
+      "PID " +
+      pid.to_string() +
+      " 已经不在（可能是上一次已经停掉了）",
+    )
   }
   let began = @async.now()
   match @fsx.send_signal(pid, @fsx.sigterm) {
@@ -609,7 +622,10 @@ pub async fn stop_pid(pid : Int, grace_ms : Int) -> StopOutcome raise ActionErro
   if !exited {
     fail(
       "stop-failed",
-      "SIGTERM（宽限 " + grace_ms.to_string() + "ms）与 SIGKILL 之后 PID " + pid.to_string() +
+      "SIGTERM（宽限 " +
+      grace_ms.to_string() +
+      "ms）与 SIGKILL 之后 PID " +
+      pid.to_string() +
       " 仍然在；可能是僵尸进程或没有权限",
     )
   }
@@ -622,6 +638,10 @@ pub async fn stop_pid(pid : Int, grace_ms : Int) -> StopOutcome raise ActionErro
     sigkill,
     exited,
     waited_ms,
-    signal: if sigkill { "SIGKILL" } else { "SIGTERM" },
+    signal: if sigkill {
+      "SIGKILL"
+    } else {
+      "SIGTERM"
+    },
   }
 }

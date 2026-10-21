@@ -46,7 +46,12 @@ pub async fn load_dsh_pin() -> DshPin? noraise {
     Some(j) => j
     None => return None
   }
-  match (field_string(json, "dir"), field_string(json, "version"), field_string(json, "pinnedAt")) {
+  match
+    (
+      field_string(json, "dir"),
+      field_string(json, "version"),
+      field_string(json, "pinnedAt"),
+    ) {
     (Some(dir), Some(version), Some(pinned_at)) => {
       let d = @json.trim_both(dir)
       let v = @json.trim_both(version)
@@ -55,7 +60,7 @@ pub async fn load_dsh_pin() -> DshPin? noraise {
       if d == "" || v == "" || p == "" {
         None
       } else {
-        Some({ dir: d, version: v, pinned_at: p })
+        Some({ dir: d, version: v, pinned_at: p, })
       }
     }
     _ => None

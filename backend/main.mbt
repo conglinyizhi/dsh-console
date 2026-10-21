@@ -67,7 +67,9 @@ async fn read_profiles() -> @json.JsonVal raise @localapi.ReadError {
 ///|
 /// logs 读取函数。tail 从查询串取；缺省取设置里的 logs.defaultTail；
 /// 非正整数 / 超上限都在 logs 包里收敛。
-async fn read_logs(req : @moonback.Request) -> @json.JsonVal raise @localapi.ReadError {
+async fn read_logs(
+  req : @moonback.Request,
+) -> @json.JsonVal raise @localapi.ReadError {
   let source = match @localapi.query_param(req, "source") {
     Some(s) => s
     None =>
@@ -104,7 +106,10 @@ async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
   // 这条接口从不失败：读不到也是读数里的一个事实。ReadError 是路由表要求的形状，
   // 这一格是「形状万一被破坏」时唯一能如实报出来的出口（正常路径走不到）。
   if value is @json.JNull {
-    raise @localapi.ReadError(code="read-failed", message="版本来源读数不完整")
+    raise @localapi.ReadError(
+      code="read-failed",
+      message="版本来源读数不完整",
+    )
   }
   value
 }

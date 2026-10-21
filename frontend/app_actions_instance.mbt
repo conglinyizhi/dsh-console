@@ -19,10 +19,11 @@ fn open_path_action(
     None => []
     Some(row) =>
       match row.profile_name {
-        Some(name) => [
-          ("profile", json_text_literal(name)),
-          ("kind", json_text_literal(kind)),
-        ]
+        Some(name) =>
+          [
+            ("profile", json_text_literal(name)),
+            ("kind", json_text_literal(kind)),
+          ]
         None => []
       }
   }
@@ -72,13 +73,10 @@ fn health_settled(
     health_reason: reason,
   }
   if js_page_hidden() {
-    (
-      { ..next, health_visible_wait: true },
-      listen_visible(emit),
-    )
+    ({ ..next, health_visible_wait: true, }, listen_visible(emit))
   } else {
     (
-      { ..next, health_visible_wait: false },
+      { ..next, health_visible_wait: false, },
       @cmd.delay(emit(HealthTick), health_poll_ms),
     )
   }
@@ -87,8 +85,8 @@ fn health_settled(
 ///|
 /// 探测回执 →（成没成, 往返毫秒, 失败原因）。回执不是约定形状就当失败，
 /// 不拿「解析不出来」说成「在线」。
-fn parse_health(text : String) -> (Bool, Int, String) {
-  let root = try @json.parse(text) catch {
+fn parse_health(text : String) -> (Bool, Int32, String) {
+  let root = @json.parse(text) catch {
     _ => return (false, 0, "探测回执不是合法 JSON")
   }
   guard root is Json::Object(obj) else {
@@ -142,7 +140,10 @@ fn start_instance(
   let name = row.name
   if params == "" {
     return (
-      notice_err(model, name + " 启动没执行：读数里没有 profile 目录名"),
+      notice_err(
+        model,
+        name + " 启动没执行：读数里没有 profile 目录名",
+      ),
       @cmd.none,
     )
   }
@@ -150,7 +151,9 @@ fn start_instance(
   if model.start_tab_waiting {
     ignore(js_tab_close(model.start_tab_profile))
   }
-  let busy = map_rows(model, row.id, fn(item) { { ..item, status: Starting, busy: true } })
+  let busy = map_rows(model, row.id, fn(item) {
+    { ..item, status: Starting, busy: true, }
+  })
   (
     {
       ..busy,
@@ -169,7 +172,14 @@ fn start_instance(
       notice_url_notice: "",
     },
     @cmd.batch([
-      action_cmd(row.id, "start-instance", name, "启动", action_body("start-instance", params), emit),
+      action_cmd(
+        row.id,
+        "start-instance",
+        name,
+        "启动",
+        action_body("start-instance", params),
+        emit,
+      ),
       @cmd.delay(emit(StartTick(row.id)), start_delay_ms),
     ]),
   )
@@ -196,13 +206,17 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
       act_verb: "",
     },
     id,
-    fn(row) { { ..row, busy: false, status: Stopped, port_note: "" } },
+    fn(row) { { ..row, busy: false, status: Stopped, port_note: "", } },
   )
   if ok {
     // 启动成了：占位标页先留着 —— 带令牌的地址由 instances 读数给出（见 fill_start_tab）
     let text = name + " 已" + verb + "。"
     refresh_readings(
-      notice_ok({ ..cleared, start_tab_waiting: true }, text, backend_hint(note)),
+      notice_ok(
+        { ..cleared, start_tab_waiting: true, },
+        text,
+        backend_hint(note),
+      ),
       emit,
     )
   } else {
@@ -210,9 +224,13 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     // 关没关成也要在提示条里说出来，不假装收干净了
     let tail = if model.start_tab == "held" {
       match js_tab_close(model.start_tab_profile) {
-        "closed" => "；刚开的那个占位标页已经关掉，不留空白页"
+        "closed" =>
+          "；刚开的那个占位标页已经关掉，不留空白页"
         "none" => "；没有留下占位标页"
-        other => "；关占位标页时出了岔子（" + other + "），请手动关掉它"
+        other =>
+          "；关占位标页时出了岔子（" +
+          other +
+          "），请手动关掉它"
       }
     } else {
       ""
@@ -222,7 +240,13 @@ fn finish_start(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     // 占位标页那半句（tail）从正文里让出去：它进悬停，正文只留结论。
     (
       notice_failed_action(
-        { ..cleared, start_tab: "", start_tab_profile: "", start_tab_waiting: false, start_tab_tries: 0 },
+        {
+          ..cleared,
+          start_tab: "",
+          start_tab_profile: "",
+          start_tab_waiting: false,
+          start_tab_tries: 0,
+        },
         name + " " + verb + "失败：" + note + tail,
       ),
       @cmd.none,
@@ -290,9 +314,12 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     Some(url) => {
       let tail = if model.start_tab == "held" {
         match js_tab_goto(profile, url) {
-          "ok" => "已在启动时自动打开的那个标页里填上带令牌的地址（能直接过握手，不是 401）"
-          "closed" => "启动时占的那个标页已经被关掉了，没有标页可填"
-          "gone" => "占了位的标页句柄找不到了（页面可能刷过），没有标页可填"
+          "ok" =>
+            "已在启动时自动打开的那个标页里填上带令牌的地址（能直接过握手，不是 401）"
+          "closed" =>
+            "启动时占的那个标页已经被关掉了，没有标页可填"
+          "gone" =>
+            "占了位的标页句柄找不到了（页面可能刷过），没有标页可填"
           other => "往占位标页里填地址失败（" + other + "）"
         }
       } else if model.start_tab == "blocked" {
@@ -322,7 +349,7 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     None =>
       if model.start_tab_tries < start_tab_max_tries {
         (
-          { ..model, start_tab_tries: model.start_tab_tries + 1 },
+          { ..model, start_tab_tries: model.start_tab_tries + 1, },
           @cmd.delay(emit(StartTabRetry), start_tab_retry_ms),
         )
       } else {
@@ -330,7 +357,8 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
           match js_tab_close(profile) {
             "closed" => "已经把这个占位标页关掉，不留空白页"
             "none" => "没有留下空白标页"
-            other => "关标页时出了岔子（" + other + "），请手动关掉它"
+            other =>
+              "关标页时出了岔子（" + other + "），请手动关掉它"
           }
         } else {
           "本来就没有开成标页"
@@ -339,8 +367,18 @@ fn fill_start_tab(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
         let (base_text, _) = notice_parts(model)
         (
           notice_err(
-            { ..model, start_tab: "", start_tab_profile: "", start_tab_waiting: false, start_tab_tries: 0 },
-            base_text + "；等不到带令牌的地址（" + why + "），" + tail +
+            {
+              ..model,
+              start_tab: "",
+              start_tab_profile: "",
+              start_tab_waiting: false,
+              start_tab_tries: 0,
+            },
+            base_text +
+            "；等不到带令牌的地址（" +
+            why +
+            "），" +
+            tail +
             "。令牌由实例日志的启动横幅给出，稍后刷新读数再点卡上的「打开 Web UI」",
           ),
           @cmd.none,

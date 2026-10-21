@@ -10,19 +10,26 @@ pub(all) struct ForkProgress {
   mut active : Bool
   /// 这一趟派生的是哪一只（回执用；空串 = 没有在跑）
   mut profile : String
-  mut files : Int
-  mut total : Int
+  mut files : Int32
+  mut total : Int32
   mut done : Bool
   mut error : String
 }
 
 ///|
 let fork_progress : Ref[ForkProgress] = {
-  val: { active: false, profile: "", files: 0, total: 0, done: true, error: "" },
+  val: {
+    active: false,
+    profile: "",
+    files: 0,
+    total: 0,
+    done: true,
+    error: "",
+  },
 }
 
 ///|
-pub fn fork_progress_start(profile : String, total : Int) -> Unit {
+pub fn fork_progress_start(profile : String, total : Int32) -> Unit {
   fork_progress.val = {
     active: true,
     profile,
@@ -34,15 +41,15 @@ pub fn fork_progress_start(profile : String, total : Int) -> Unit {
 }
 
 ///|
-pub fn fork_progress_step(files : Int) -> Unit {
+pub fn fork_progress_step(files : Int32) -> Unit {
   let current = fork_progress.val
-  fork_progress.val = { ..current, files }
+  fork_progress.val = { ..current, files, }
 }
 
 ///|
 pub fn fork_progress_finish(error : String) -> Unit {
   let current = fork_progress.val
-  fork_progress.val = { ..current, active: false, done: true, error }
+  fork_progress.val = { ..current, active: false, done: true, error, }
 }
 
 ///|

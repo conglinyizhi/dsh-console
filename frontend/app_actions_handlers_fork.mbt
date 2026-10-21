@@ -5,11 +5,15 @@
 // 成功失败仍由原本那条 POST 的回执去说 —— 这里只负责「拷到哪儿了」。
 
 ///|
-let fork_poll_ms : Int = 400
+let fork_poll_ms : Int32 = 400
 
 ///|
 /// 开始一轮轮询：把框摆出来，立刻读第一枪。
-fn fork_progress_begin(model : Model, name : String, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn fork_progress_begin(
+  model : Model,
+  name : String,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   (
     {
       ..model,
@@ -24,15 +28,17 @@ fn fork_progress_begin(model : Model, name : String, emit : @cmd.Emit[Msg]) -> (
 }
 
 ///|
-fn handle_fork_progress(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_fork_progress(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     ForkProgressTick => (model, fork_progress_cmd(emit))
     ForkProgressText(text) => {
       let mut next = model
       if text != "" {
-        let parsed = try @json.parse(text) catch {
-          _ => return (next, @cmd.none)
-        }
+        let parsed = @json.parse(text) catch { _ => return (next, @cmd.none) }
         guard parsed is Json::Object(envelope) else { return (next, @cmd.none) }
         match envelope.get("data") {
           Some(Json::Object(data)) => {

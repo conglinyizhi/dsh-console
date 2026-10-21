@@ -31,13 +31,13 @@ let sources : Array[Source] = [
     id: "github",
     url: "https://api.github.com/repos/deepseek-ai/deepseek-harness/releases?per_page=30",
   },
-  { id: "npm", url: "https://registry.npmjs.org/@deepseek-ai/dsh" },
-  { id: "mirror", url: "https://registry.npmmirror.com/@deepseek-ai/dsh" },
+  { id: "npm", url: "https://registry.npmjs.org/@deepseek-ai/dsh", },
+  { id: "mirror", url: "https://registry.npmmirror.com/@deepseek-ai/dsh", },
 ]
 
 ///|
 /// 每个源的硬超时（毫秒）。§1.2 写的是 6 秒，curl 的 -m 与外面那层取消用的是同一个数。
-let source_timeout_ms : Int = 6000
+let source_timeout_ms : Int32 = 6000
 
 ///|
 /// 一个源给出来的一版：版本号 / 预发布标记 / 发布时间（ISO 8601），三样都是这个源自己说的。
@@ -58,7 +58,7 @@ priv struct VersionItem {
 priv struct Answer {
   id : String
   ok : Bool
-  ms : Int
+  ms : Int32
   error : String
   versions : Array[VersionItem]
   latest : String
@@ -67,8 +67,8 @@ priv struct Answer {
 
 ///|
 /// 没答上来时的那一份：ok=false，versions 空，原因照实写。
-fn failed_answer(id : String, error : String, ms : Int) -> Answer {
-  { id, ok: false, ms, error, versions: [], latest: "", next: "" }
+fn failed_answer(id : String, error : String, ms : Int32) -> Answer {
+  { id, ok: false, ms, error, versions: [], latest: "", next: "", }
 }
 
 ///|
@@ -115,7 +115,7 @@ fn first_line(text : String) -> String {
 /// 子进程只拿最小环境 —— PATH 用来找 curl 可执行文件，代理按 resolve_proxy 的结果显式传；
 /// **不继承**：继承会让「没有 HTTPS_PROXY 就直连」这句话不成立（http_proxy / all_proxy
 /// 这些会自己漏进来，而这一条读数说的是「带没带 HTTPS_PROXY」）。
-async fn run_curl(url : String, proxy : String) -> (Int, String, String) {
+async fn run_curl(url : String, proxy : String) -> (Int32, String, String) {
   let env : Map[String, String] = Map([])
   env["PATH"] = match @json.env_value("PATH") {
     Some(p) => p
@@ -146,9 +146,13 @@ async fn run_curl(url : String, proxy : String) -> (Int, String, String) {
 ///   3/5     地址写坏了 / 连不上代理
 ///   52/56   对端把连接断了
 /// 认不出的退出码原样带上号码 —— 编一句「连不上」比给号码更糟。
-fn curl_failure_text(code : Int, stderr : String) -> String {
+fn curl_failure_text(code : Int32, stderr : String) -> String {
   let head = first_line(stderr)
-  let detail = if head == "" { "" } else { "：" + @json.utf8_prefix(head, 200) }
+  let detail = if head == "" {
+    ""
+  } else {
+    "：" + @json.utf8_prefix(head, 200)
+  }
   match code {
     28 => "6 秒内没有回话" + detail
     6 | 7 => "连不上" + detail
@@ -164,28 +168,34 @@ fn curl_failure_text(code : Int, stderr : String) -> String {
 
 ///|
 /// 版本号切成 (core 数字段, 预发布段)。"0.2.1-rc.2" → ([0, 2, 1], "rc.2")。
-fn split_version(version : String) -> (Array[Int], String) {
+fn split_version(version : String) -> (Array[Int32], String) {
   match @json.index_of(version, "-") {
     Some(at) =>
-      (@json.slice(version, 0, at).split(".").map(fn(s) {
-        @json.parse_dec(@json.owned(s))
-      }).collect(), @json.slice_from(version, at + 1))
+      (
+        @json.slice(version, 0, at)
+        .split(".")
+        .map(fn(s) { @json.parse_dec(@json.owned(s)) })
+        .collect(),
+        @json.slice_from(version, at + 1),
+      )
     None =>
-      (version.split(".").map(fn(s) { @json.parse_dec(@json.owned(s)) }).collect(), "")
+      (
+        version
+        .split(".")
+        .map(fn(s) { @json.parse_dec(@json.owned(s)) })
+        .collect(),
+        "",
+      )
   }
 }
 
 ///|
 /// 预发布段按 semver 的规矩逐段比：两边都是数字就按数字比，否则按字符串比；
 /// 前缀相同、段数多的那份更大（rc.2 > rc）。
-fn compare_pre(a : String, b : String) -> Int {
+fn compare_pre(a : String, b : String) -> Int32 {
   let xs : Array[String] = a.split(".").map(fn(s) { @json.owned(s) }).collect()
   let ys : Array[String] = b.split(".").map(fn(s) { @json.owned(s) }).collect()
-  let n = if xs.length() < ys.length() {
-    xs.length()
-  } else {
-    ys.length()
-  }
+  let n = if xs.length() < ys.length() { xs.length() } else { ys.length() }
   for i = 0; i < n; i = i + 1 {
     let x = xs[i]
     let y = ys[i]
@@ -217,14 +227,10 @@ fn compare_pre(a : String, b : String) -> Int {
 /// 段数多的算大），"0.2.1-rc.2" 会排到 "0.2.1" 之上，不是版本号的语义。
 /// 这里按 semver 走：core 逐段比（缺的段当 0），core 相同则正式版更大，
 /// 两个都预发布时比预发布段。
-fn compare_version(a : String, b : String) -> Int {
+fn compare_version(a : String, b : String) -> Int32 {
   let (ac, ap) = split_version(a)
   let (bc, bp) = split_version(b)
-  let n = if ac.length() < bc.length() {
-    bc.length()
-  } else {
-    ac.length()
-  }
+  let n = if ac.length() < bc.length() { bc.length() } else { ac.length() }
   for i = 0; i < n; i = i + 1 {
     let x = if i < ac.length() { ac[i] } else { 0 }
     let y = if i < bc.length() { bc[i] } else { 0 }
@@ -277,7 +283,7 @@ fn sorted_desc(items : Array[VersionItem]) -> Array[VersionItem] {
 fn sorted_versions_desc(items : Array[String]) -> Array[String] {
   let pairs : Array[VersionItem] = []
   for v in items {
-    pairs.push({ version: v, prerelease: false, published_at: "" })
+    pairs.push({ version: v, prerelease: false, published_at: "", })
   }
   let out : Array[String] = []
   for pair in sorted_desc(pairs) {
@@ -332,7 +338,7 @@ fn parse_github(body : String) -> Result[Array[VersionItem], String] {
         }
       None => ""
     }
-    out.push({ version, prerelease: pre, published_at })
+    out.push({ version, prerelease: pre, published_at, })
   }
   Ok(out)
 }
@@ -348,7 +354,7 @@ fn parse_github(body : String) -> Result[Array[VersionItem], String] {
 /// 同一个 time 对象里还有 created / modified 两条，它们不是「某个版本」的发布时间，
 /// 只按版本号精确取 —— 取不到就是空串，不拿 created 或者拉取时刻顶替。
 fn parse_registry(
-  body : String
+  body : String,
 ) -> Result[(Array[VersionItem], String, String), String] {
   let root = match @json.json_parse(body) {
     Some(j) => j
@@ -356,7 +362,10 @@ fn parse_registry(
   }
   let versions_map = match @json.json_field(root, "versions") {
     Some(Object(map)) => map
-    _ => return Err("回来的 JSON 里没有 versions（不像 registry 的包元数据）")
+    _ =>
+      return Err(
+        "回来的 JSON 里没有 versions（不像 registry 的包元数据）",
+      )
   }
   // 版本号 → 发布时间。registry 的 time 是「版本号 / created / modified」三类的混装对象，
   // 这里整份收下来，取的时候按版本号精确对。
@@ -386,7 +395,7 @@ fn parse_registry(
       Some(s) => s
       None => ""
     }
-    out.push({ version, prerelease: pre, published_at })
+    out.push({ version, prerelease: pre, published_at, })
   }
   let mut latest = ""
   let mut next = ""
@@ -424,7 +433,7 @@ fn proxy_note(proxy : String) -> String {
 /// 一条源坏了不该让整份读数失败（三个源全坏也照样 200，见 §1.3）。
 async fn ask_source(source : Source, proxy : String) -> Answer {
   let started_at = @async.now()
-  let attempt : async () -> Answer = async fn () {
+  let attempt : async () -> Answer = async fn() {
     let (code, stdout, stderr) = run_curl(source.url, proxy)
     if code != 0 {
       return failed_answer(
@@ -476,14 +485,12 @@ async fn ask_source(source : Source, proxy : String) -> Answer {
   }
   // ms 由这里统一量：包含 curl 起进程、跑网络、解析的全部时间，
   // 也就是「这个源到底花了多久」这一件事。
-  let result = try {
-    @async.with_timeout_opt(source_timeout_ms, attempt)
-  } catch {
+  let result = @async.with_timeout_opt(source_timeout_ms, attempt) catch {
     _ => None
   }
   let spent = (@async.now() - started_at).to_int()
   match result {
-    Some(answer) => { ..answer, ms: spent }
+    Some(answer) => { ..answer, ms: spent, }
     None =>
       failed_answer(
         source.id,
@@ -516,11 +523,9 @@ pub async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
   let tasks : Array[async () -> Answer] = []
   for source in sources {
     let one = source
-    tasks.push(async fn () { ask_source(one, proxy) })
+    tasks.push(async fn() { ask_source(one, proxy) })
   }
-  let answers = try {
-    @async.all(tasks[:], max_concurrent=sources.length())
-  } catch {
+  let answers = @async.all(tasks[:], max_concurrent=sources.length()) catch {
     err => {
       // 单个 ask_source 是 noraise：批量本身只会在被取消（请求方断开）时走到这里。
       // 那就如实标成「没问到」，三个源各一条，不编造任何结论。
@@ -593,10 +598,18 @@ pub async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
   if chosen == "" {
     let parts : Array[String] = []
     for answer in answers {
-      let why = if answer.error == "" { "没答上来，原因没给" } else { answer.error }
+      let why = if answer.error == "" {
+        "没答上来，原因没给"
+      } else {
+        answer.error
+      }
       parts.push(answer.id + "：" + why)
     }
-    fetch_error = if parts.length() == 0 { "三个来源都没答上来" } else { parts.join("；") }
+    fetch_error = if parts.length() == 0 {
+      "三个来源都没答上来"
+    } else {
+      parts.join("；")
+    }
   }
   @json.JObj([
     ("readAt", @json.JStr(@json.iso_from_epoch_ms(@async.now()))),
@@ -641,18 +654,13 @@ priv struct Cache {
 
 ///|
 let cache : Ref[Cache] = {
-  val: {
-    payload: @json.JNull,
-    fetched_at_ms: 0L,
-    error: "",
-    in_flight: false,
-  },
+  val: { payload: @json.JNull, fetched_at_ms: 0L, error: "", in_flight: false, },
 }
 
 ///|
 /// 挂后台拉取用的任务组（main 起服务前登记一次，与 actions 的 console_group 同一套做法）。
 /// 没有任务组（被当库调用）时 GET 照旧只读缓存，不会假装在拉。
-let bg_group : Ref[@async.TaskGroup[Unit]?] = { val: None }
+let bg_group : Ref[@async.TaskGroup[Unit]?] = { val: None, }
 
 ///|
 /// 缓存空的时候回给前端的那一份空壳：形状与真读数逐字段一致，一个字段都不少。
@@ -712,9 +720,7 @@ fn payload_chosen(payload : @json.JsonVal) -> String {
 async fn run_fetch() -> Unit noraise {
   // read_releases 把三个源的失败都落成读数里的 error（正常路径不会抛）；
   // 这里仍旧包一层：真抛出来（整批被取消那一档）也只记进 error，绝不带崩任务组。
-  let outcome : Result[@json.JsonVal, String] = try {
-    Ok(read_releases())
-  } catch {
+  let outcome : Result[@json.JsonVal, String] = Ok(read_releases()) catch {
     err => Err(describe_error(err))
   }
   let c = cache.val
@@ -798,7 +804,11 @@ pub fn cached_releases() -> @json.JsonVal {
     // 有一趟在路上（可能是第一次，也可能是刷新）：列表有旧数据就照旧给出去
     "loading"
   } else if !has_data {
-    if c.error == "" { "loading" } else { "failed" }
+    if c.error == "" {
+      "loading"
+    } else {
+      "failed"
+    }
   } else if nothing {
     // 拉到了，但一个源都没答上来。这不是「没有新版」，原因在 error 与各源的 error 里
     "failed"
@@ -841,4 +851,3 @@ pub fn cached_releases() -> @json.JsonVal {
     _ => @json.JObj(extras)
   }
 }
-

@@ -40,8 +40,11 @@ fn env_save(
   // 生效方式只在「写全局那张表」时带上：它是全局的一项（§62.2），profile 那张不动它。
   // 读不到 options 段就不带 —— 旧后端的参数 allow-list 里没有 options，带了整枪会被拒。
   let options = if target.scope == "global" && model.env_options_known {
-    "{\"inherit\":" + (if model.env_inherit { "true" } else { "false" }) +
-    ",\"merge\":" + json_text_literal(model.env_merge) + "}"
+    "{\"inherit\":" +
+    (if model.env_inherit { "true" } else { "false" }) +
+    ",\"merge\":" +
+    json_text_literal(model.env_merge) +
+    "}"
   } else {
     ""
   }
@@ -70,19 +73,23 @@ fn env_save_options(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
 ///
 /// 先翻界面再发请求：这是一次点击，等回执再翻的话那一下看着像没点上，
 /// 而回执是一条本地 GET，几十毫秒就回来了。失败时 EnvSaved 重读设置把它退回去。
-fn handle_env_options(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_options(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     EnvInheritToggled(next) =>
       if !model.env_options_known {
         (model, @cmd.none)
       } else {
-        env_save_options({ ..model, env_inherit: next }, emit)
+        env_save_options({ ..model, env_inherit: next, }, emit)
       }
     EnvMergePicked(merge) =>
       if !model.env_options_known || (merge != "override" && merge != "append") {
         (model, @cmd.none)
       } else {
-        env_save_options({ ..model, env_merge: merge }, emit)
+        env_save_options({ ..model, env_merge: merge, }, emit)
       }
     _ => (model, @cmd.none)
   }
@@ -90,17 +97,27 @@ fn handle_env_options(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
 
 ///|
 /// EnvDraft：值输入框里的原文（还改没保存）。
-fn handle_env_draft(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_draft(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     EnvDraft(scope, key, text) =>
       match env_target_for_scope(model, scope) {
-        Some(target) => (
-          {
-            ..model,
-            env_draft: env_draft_put(model.env_draft, target.scope_id, key, text),
-          },
-          @cmd.none,
-        )
+        Some(target) =>
+          (
+            {
+              ..model,
+              env_draft: env_draft_put(
+                model.env_draft,
+                target.scope_id,
+                key,
+                text,
+              ),
+            },
+            @cmd.none,
+          )
         None => (model, @cmd.none)
       }
     _ => (model, @cmd.none)
@@ -111,7 +128,11 @@ fn handle_env_draft(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
 /// EnvCommit：改值即保存。与读数里的值一样就不发请求（点一下回车不该写一次文件）。
 ///
 /// 草稿先留着：保存回来之前控件上是刚填的那个值，读数跟上来之后由 env_prune_drafts 收掉。
-fn handle_env_commit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_commit(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     EnvCommit(scope, key, text) =>
       match env_target_for_scope(model, scope) {
@@ -122,7 +143,8 @@ fn handle_env_commit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
             return (notice_err(model, problem), @cmd.none)
           }
           let stored = env_entries_of(model, target)
-          let unchanged = match env_entry_of_scope(model, target.scope_id, key) {
+          let unchanged = match
+            env_entry_of_scope(model, target.scope_id, key) {
             Some(value) => value == text
             None => false
           }
@@ -140,7 +162,12 @@ fn handle_env_commit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
           }
           let next = {
             ..model,
-            env_draft: env_draft_put(model.env_draft, target.scope_id, key, text),
+            env_draft: env_draft_put(
+              model.env_draft,
+              target.scope_id,
+              key,
+              text,
+            ),
           }
           env_save(next, target, env_entries_with(stored, key, text), emit)
         }
@@ -151,14 +178,21 @@ fn handle_env_commit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
 
 ///|
 /// EnvDelete：删掉一行（整行从文件里消失）。
-fn handle_env_delete(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_delete(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     EnvDelete(scope, key) =>
       match env_target_for_scope(model, scope) {
         None => (model, @cmd.none)
         Some(target) =>
           if env_is_reserved(model, key) {
-            (notice_err(model, key + " 由控制台自己管，删不了"), @cmd.none)
+            (
+              notice_err(model, key + " 由控制台自己管，删不了"),
+              @cmd.none,
+            )
           } else {
             env_save(
               model,
@@ -174,7 +208,11 @@ fn handle_env_delete(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
 
 ///|
 /// EnvAdd：底部那两格输入 → 一行。已经在表里的键原位换值（不重复两行）。
-fn handle_env_add(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_add(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     EnvAdd(scope) =>
       match env_target_for_scope(model, scope) {
@@ -188,7 +226,11 @@ fn handle_env_add(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @c
           env_save(
             model,
             target,
-            env_entries_with(env_entries_of(model, target), key, model.env_add_value),
+            env_entries_with(
+              env_entries_of(model, target),
+              key,
+              model.env_add_value,
+            ),
             emit,
           )
         }
@@ -199,17 +241,25 @@ fn handle_env_add(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @c
 
 ///|
 /// 「添加一行」那两格输入。它们不属于任何一行，单独两格存。
-fn handle_env_add_input(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_add_input(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    EnvAddKeyInput(text) => ({ ..model, env_add_key: text }, @cmd.none)
-    EnvAddValueInput(text) => ({ ..model, env_add_value: text }, @cmd.none)
+    EnvAddKeyInput(text) => ({ ..model, env_add_key: text, }, @cmd.none)
+    EnvAddValueInput(text) => ({ ..model, env_add_value: text, }, @cmd.none)
     _ => (model, @cmd.none)
   }
 }
 
 ///|
 /// EnvReveal：显示 / 隐藏一个值。只改本地状态，一个字节都不写文件。
-fn handle_env_reveal(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_reveal(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     EnvReveal(scope, key) =>
       match env_target_for_scope(model, scope) {
@@ -233,7 +283,7 @@ fn handle_env_reveal(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
             }
           }
           shown.push(if now_shown { hidden_id } else { id })
-          ({ ..model, env_shown: shown }, @cmd.none)
+          ({ ..model, env_shown: shown, }, @cmd.none)
         }
       }
     _ => (model, @cmd.none)
@@ -243,24 +293,46 @@ fn handle_env_reveal(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
 ///|
 /// 打开抽屉里「这只 profile 的启动变量」：两格「添加一行」清空 ——
 /// 它们属于上一次摆着的那张表，带过来会让新对话框里凭空多半行输入。
-fn handle_env_profile_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_profile_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     // 解锁那一格跟着清（M）：只读是**每一次打开**的默认，不跟着上一只 profile 一起过去。
-    EnvProfileOpen(id) => (
-      { ..model, env_open: id, env_add_key: "", env_add_value: "", env_edit_unlocked: false },
-      @cmd.none,
-    )
+    EnvProfileOpen(id) =>
+      (
+        {
+          ..model,
+          env_open: id,
+          env_add_key: "",
+          env_add_value: "",
+          env_edit_unlocked: false,
+        },
+        @cmd.none,
+      )
     _ => (model, @cmd.none)
   }
 }
 
 ///|
-fn handle_env_profile_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_profile_close(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    EnvProfileClose => (
-      { ..model, env_open: "", env_add_key: "", env_add_value: "", env_edit_unlocked: false },
-      @cmd.none,
-    )
+    EnvProfileClose =>
+      (
+        {
+          ..model,
+          env_open: "",
+          env_add_key: "",
+          env_add_value: "",
+          env_edit_unlocked: false,
+        },
+        @cmd.none,
+      )
     _ => (model, @cmd.none)
   }
 }
@@ -271,12 +343,17 @@ fn handle_env_profile_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) ->
 /// 解锁之后表格切回**这一只覆盖的那张表**（可编辑那一份），焦点送到「添加一行」的
 /// 键名输入框 —— 解锁那一枪之后原来那颗按钮就没了，焦点不能掉到 body 上。
 /// 那一格渲染出来的 id 带作用域（dsh-env-add-key-profile / -global），见 view_env 的 env_add_row。
-fn handle_env_edit_unlock(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_edit_unlock(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    EnvEditUnlock => (
-      { ..model, env_edit_unlocked: true },
-      focus_after_render("dsh-env-add-key-profile"),
-    )
+    EnvEditUnlock =>
+      (
+        { ..model, env_edit_unlocked: true, },
+        focus_after_render("dsh-env-add-key-profile"),
+      )
     _ => (model, @cmd.none)
   }
 }
@@ -300,25 +377,40 @@ fn env_open_name(model : Model) -> String {
 /// 失败 → 常驻提示条，回执原文进悬停与审计；同一个作用域的草稿退回读数里的值。
 /// 另外**重读一次设置**：生效方式那两项是先翻界面再发的，不重读就会停在「看着改了、
 /// 其实没存下」的样子 —— 那正是这次重读要退回去的东西。
-fn handle_env_saved(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_saved(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     EnvSaved(scope, res) => {
       let (ok, note) = interpret_http(res)
-      let hint = if model.env_path == "" { "" } else { "落在 " + model.env_path }
+      let hint = if model.env_path == "" {
+        ""
+      } else {
+        "落在 " + model.env_path
+      }
       if ok {
         // 全局那句带生效方式（§62.3）；读不到 options 段的后端只说「下一次启动生效」——
         // 拼一个它其实没读到的模式进去，就成了一句凭缺省猜的话
         let text = if scope == "global" {
           if model.env_options_known {
-            "全局启动变量已保存（" + env_mode_text(model) + "），下一次启动生效"
+            "全局启动变量已保存（" +
+            env_mode_text(model) +
+            "），下一次启动生效"
           } else {
             "全局启动变量已保存，下一次启动生效"
           }
         } else {
-          env_open_name(model) + " 的启动变量已保存，下一次启动生效"
+          env_open_name(model) +
+          " 的启动变量已保存，下一次启动生效"
         }
         (
-          notice_ok({ ..model, env_add_key: "", env_add_value: "" }, text, hint),
+          notice_ok(
+            { ..model, env_add_key: "", env_add_value: "", },
+            text,
+            hint,
+          ),
           settings_get_cmd(emit),
         )
       } else {
@@ -329,7 +421,10 @@ fn handle_env_saved(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, 
           None => model.env_draft
         }
         (
-          notice_failed_action({ ..model, env_draft: drafts }, "启动变量没保存：" + note),
+          notice_failed_action(
+            { ..model, env_draft: drafts, },
+            "启动变量没保存：" + note,
+          ),
           settings_get_cmd(emit),
         )
       }
@@ -337,15 +432,21 @@ fn handle_env_saved(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, 
     _ => (model, @cmd.none)
   }
 }
+
 ///|
 /// N8：全局启动变量专窗 + 长值展开 + 「填入本机代理建议」。
-fn handle_env_dialog(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_env_dialog(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    EnvGlobalOpen => (
-      { ..model, env_global_open: true, env_expanded: [] },
-      focus_after_render("dsh-env-global-close"),
-    )
-    EnvGlobalClose => ({ ..model, env_global_open: false }, @cmd.none)
+    EnvGlobalOpen =>
+      (
+        { ..model, env_global_open: true, env_expanded: [], },
+        focus_after_render("dsh-env-global-close"),
+      )
+    EnvGlobalClose => ({ ..model, env_global_open: false, }, @cmd.none)
     EnvGotoProcess => {
       // handle_settings_group_picked 只改分组与路由，不切页：从总览打开框再点这条链接，
       // 于是只关了框、人还站在总览（§99 实测）。这里把页一起切到设置并推路由。
@@ -371,7 +472,7 @@ fn handle_env_dialog(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
       if !had {
         next.push(key)
       }
-      ({ ..model, env_expanded: next }, @cmd.none)
+      ({ ..model, env_expanded: next, }, @cmd.none)
     }
     _ => (model, @cmd.none)
   }

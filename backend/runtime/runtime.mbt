@@ -49,7 +49,6 @@ let via_shim : String = "顺 PATH 上的 dsh 命令解开包目录"
 /// 兜底那条：在全局根下按深度找。
 let via_scan : String = "在 pnpm 全局根下按深度 3 层找到包目录"
 
-
 ///|
 /// 用户指定过版本时的来源串。
 let via_pin : String = "按你指定的版本"
@@ -81,7 +80,7 @@ let pick_highest : String = "没有可参照的在跑实例，取版本最高"
 ///|
 /// 兜底扫描的深度上限。已知的三种布局都在这三层之内：
 /// <根>/node_modules/@deepseek-ai/dsh、<根>/<槽>/node_modules/…、<根>/<槽>/<哈希>/node_modules/…
-let scan_max_depth : Int = 3
+let scan_max_depth : Int32 = 3
 
 ///|
 /// pnpm 全局安装目录候选，逐个扫，不调外部命令（与 Node 版 globalRoots 一致，
@@ -165,7 +164,7 @@ async fn read_package(file : String) -> (String, String)? noraise {
 
 ///|
 /// 版本号按数字段比较（对应 Node 的 localeCompare(..., { numeric: true })）。
-fn compare_version(a : String, b : String) -> Int {
+fn compare_version(a : String, b : String) -> Int32 {
   let xs : Array[String] = a.split(".").map(fn(s) { s.to_owned() }).collect()
   let ys : Array[String] = b.split(".").map(fn(s) { s.to_owned() }).collect()
   let n = if xs.length() < ys.length() { xs.length() } else { ys.length() }
@@ -187,7 +186,7 @@ fn compare_version(a : String, b : String) -> Int {
 
 ///|
 /// 取版本段里的前导数字；没有数字按 0（"0.2.0-rc.2" 的 rc 段即按 0 处理）。
-fn parse_num_segment(seg : String) -> Int {
+fn parse_num_segment(seg : String) -> Int32 {
   let mut value = 0
   let mut digits = 0
   for ch in seg {
@@ -237,12 +236,16 @@ pub fn install_kind_of(dir : String) -> (String, String) {
       match first_path_mark(dir, ["/yarn/", "/.config/yarn/global/"]) {
         Some(mark) => ("yarn", "按路径认出：包目录里带 " + mark)
         None =>
-          match first_path_mark(dir, ["/npm-global/", "/lib/node_modules/", "/.npm/"]) {
+          match
+            first_path_mark(dir, [
+              "/npm-global/", "/lib/node_modules/", "/.npm/",
+            ]) {
             Some(mark) => ("npm", "按路径认出：包目录里带 " + mark)
-            None => (
-              "unknown",
-              "按路径认不出是哪个包管理器装的（" + dir + "）",
-            )
+            None =>
+              (
+                "unknown",
+                "按路径认不出是哪个包管理器装的（" + dir + "）",
+              )
           }
       }
   }
@@ -271,7 +274,7 @@ fn package_dir_of_path(token : String) -> String? {
 /// 从 at 往前退到这一段路径的开头（空白 / 引号 / 等号 / 左括号 / 反斜杠算分隔）。
 /// 用处：cmdline 被整条塞进一个 token 时（"node …/lib/bin.js --profile web"），
 /// 路径前面还挂着别的东西，不能从头数。
-fn token_start_before(text : String, at : Int) -> Int {
+fn token_start_before(text : String, at : Int32) -> Int32 {
   let mut start = at
   while start > 0 {
     let ch = text.unsafe_get(start - 1).unsafe_to_char()
@@ -294,8 +297,8 @@ fn token_start_before(text : String, at : Int) -> Int {
 
 ///|
 /// needle 在 haystack 里的全部出现位置（升序）。找不到给空数组。
-fn find_all(haystack : String, needle : String) -> Array[Int] {
-  let out : Array[Int] = []
+fn find_all(haystack : String, needle : String) -> Array[Int32] {
+  let out : Array[Int32] = []
   if needle == "" {
     return out
   }
@@ -417,7 +420,8 @@ async fn shim_candidate() -> DshPackage? noraise {
     match expand_shim_path(expr, shim_dir) {
       Some(dir) =>
         match read_package(@json.join_path(dir, "package.json")) {
-          Some((name, version)) => return Some({ name, version, dir, source: via_shim })
+          Some((name, version)) =>
+            return Some({ name, version, dir, source: via_shim, })
           None => ()
         }
       None => ()
@@ -453,10 +457,15 @@ async fn scan_root_for_dsh(root : String) -> Array[DshPackage] noraise {
 /// node_modules/@deepseek-ai 下）。那种副本算不算「这台机器上装了一份 dsh」是可疑的，
 /// 而且一旦它的版本比正装的那份高，自动挑就会挑中它 —— 用户没装过的版本被拿去起实例。
 /// 这里只认「pnpm 在全局槽里摆出来、能被 dsh 命令用到」的那些。
-async fn scan_into(dir : String, depth : Int, found : Array[DshPackage]) -> Unit noraise {
+async fn scan_into(
+  dir : String,
+  depth : Int32,
+  found : Array[DshPackage],
+) -> Unit noraise {
   let pkg_dir = @json.join_all([dir, "node_modules", "@deepseek-ai", "dsh"])
   match read_package(@json.join_path(pkg_dir, "package.json")) {
-    Some((name, version)) => found.push({ name, version, dir: pkg_dir, source: via_scan })
+    Some((name, version)) =>
+      found.push({ name, version, dir: pkg_dir, source: via_scan, })
     None => ()
   }
   if depth >= scan_max_depth {
@@ -484,7 +493,8 @@ async fn live_instance_packages() -> Array[DshPackage] noraise {
       Some(dir) =>
         if !found.any(fn(p) { p.dir == dir }) {
           match read_package(@json.join_path(dir, "package.json")) {
-            Some((name, version)) => found.push({ name, version, dir, source: "" })
+            Some((name, version)) =>
+              found.push({ name, version, dir, source: "", })
             None => ()
           }
         }
@@ -540,7 +550,9 @@ async fn push_candidate(
 /// 平手时保持候选顺序（shim 找到的那份在前），不靠哈希顺序碰运气。
 /// ①里「同一个包目录」按真实路径比（见 same_package_dir）：在跑实例的 argv 里
 /// 记的可能是哈希那个写法，而候选里留的是软链那个写法。
-async fn choose_installed(candidates : Array[DshPackage]) -> DshPackage? noraise {
+async fn choose_installed(
+  candidates : Array[DshPackage],
+) -> DshPackage? noraise {
   if candidates.length() == 0 {
     return None
   }
@@ -551,7 +563,7 @@ async fn choose_installed(candidates : Array[DshPackage]) -> DshPackage? noraise
   for c in candidates {
     for l in live {
       if same_package_dir(l.dir, c.dir) {
-        return Some({ ..c, source: c.source + "；" + pick_same_dir })
+        return Some({ ..c, source: c.source + "；" + pick_same_dir, })
       }
     }
   }
@@ -569,7 +581,7 @@ async fn choose_installed(candidates : Array[DshPackage]) -> DshPackage? noraise
       best = c
     }
   }
-  Some({ ..best, source: best.source + "；" + note })
+  Some({ ..best, source: best.source + "；" + note, })
 }
 
 ///|
@@ -630,7 +642,7 @@ async fn pinned_candidate(
 ) -> DshPackage? noraise {
   for c in candidates {
     if c.version == pin.version && same_package_dir(c.dir, pin.dir) {
-      return Some({ ..c, source: via_pin })
+      return Some({ ..c, source: via_pin, })
     }
   }
   None
@@ -639,8 +651,14 @@ async fn pinned_candidate(
 ///|
 /// 指定失效时那句人话。
 fn pin_missing_note(pin : @store.DshPin, pkg : DshPackage) -> String {
-  "你指定过 " + pin.version + "（" + pin.dir + "），现在这台机器上找不到它了；" +
-  "这一版按自动挑出来的 " + pkg.version + " 算"
+  "你指定过 " +
+  pin.version +
+  "（" +
+  pin.dir +
+  "），现在这台机器上找不到它了；" +
+  "这一版按自动挑出来的 " +
+  pkg.version +
+  " 算"
 }
 
 ///|
@@ -660,7 +678,7 @@ pub async fn resolve_dsh_selection() -> DshSelection? noraise {
   match @store.load_dsh_pin() {
     Some(pin) =>
       match pinned_candidate(candidates, pin) {
-        Some(pkg) => Some({ pkg, pin_state: pin_state_pinned, note: "" })
+        Some(pkg) => Some({ pkg, pin_state: pin_state_pinned, note: "", })
         None =>
           match choose_installed(candidates) {
             Some(pkg) =>
@@ -674,7 +692,7 @@ pub async fn resolve_dsh_selection() -> DshSelection? noraise {
       }
     None =>
       match choose_installed(candidates) {
-        Some(pkg) => Some({ pkg, pin_state: pin_state_auto, note: "" })
+        Some(pkg) => Some({ pkg, pin_state: pin_state_auto, note: "", })
         None => None
       }
   }
@@ -737,7 +755,11 @@ pub async fn kernel_release() -> String noraise {
   match @json.read_text_file("/proc/sys/kernel/osrelease") {
     Ok(text) => {
       let t = text.trim().to_owned()
-      if t == "" { "unknown" } else { t }
+      if t == "" {
+        "unknown"
+      } else {
+        t
+      }
     }
     Err(_) => "unknown"
   }
@@ -771,7 +793,10 @@ fn candidate_json(
 pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
   let (dsh_home, dsh_home_source) = resolve_dsh_home()
   if !@json.is_dir(dsh_home) {
-    @localapi.fail_read("dsh-home-missing", "DSH_HOME 不是可读目录：\{dsh_home}")
+    @localapi.fail_read(
+      "dsh-home-missing",
+      "DSH_HOME 不是可读目录：\{dsh_home}",
+    )
   }
   let candidates = installed_dsh_candidates()
   let selection = match resolve_dsh_selection() {
@@ -780,7 +805,8 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
       @localapi.fail_read(
         "dsh-package-missing",
         "没找到 @deepseek-ai/dsh：PATH 上的 dsh 命令解不出包目录，pnpm 全局根下（深度 " +
-        scan_max_depth.to_string() + " 层内）也没有 node_modules/@deepseek-ai/dsh",
+        scan_max_depth.to_string() +
+        " 层内）也没有 node_modules/@deepseek-ai/dsh",
       )
       abort("unreachable: fail_read always raises")
     }
@@ -796,9 +822,7 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
   let listed : Array[@json.JsonVal] = []
   for pkg in candidates {
     let key = real_dir(pkg.dir)
-    listed.push(
-      candidate_json(pkg, key == active_dir, live_dirs.contains(key)),
-    )
+    listed.push(candidate_json(pkg, key == active_dir, live_dirs.contains(key)))
   }
   // 安装方式：关于页那一行。判据只有包目录路径（见 install_kind_of），
   // 依据那句话进悬停 —— 说「pnpm 全局安装」时得能让人看见凭什么这么说。
@@ -814,7 +838,10 @@ pub async fn read_runtime() -> @json.JsonVal raise @localapi.ReadError {
     ("dshVersion", @json.JStr(dsh.version)),
     ("dshPackageName", @json.JStr(dsh.name)),
     ("dshPackageDir", @json.JStr(dsh.dir)),
-    ("dshSourceLabel", @json.JStr(dsh_source_label + "（" + dsh.source + "）")),
+    (
+      "dshSourceLabel",
+      @json.JStr(dsh_source_label + "（" + dsh.source + "）"),
+    ),
     // pnpm / npm / yarn / unknown（见 install_kind_of）。关于页那一行读这两格，
     // 前端不自己从 dshPackageDir 再推一次 —— 推两遍迟早推成两个答案。
     ("dshInstallKind", @json.JStr(install_kind)),

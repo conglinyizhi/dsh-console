@@ -21,22 +21,24 @@
 ///|
 /// 一个设置项的取值。接口里只有数字、布尔、字符串三种。
 enum SettingValue {
-  VInt(Int)
+  VInt(Int32)
   VBool(Bool)
   VText(String)
 } derive(Eq)
 
-pub extend SettingValue with Eq::{ not_equal, equal }
+///|
+pub extend SettingValue with Eq::{not_equal, equal}
 
 ///|
 /// 控件种类。数字给范围，开关给布尔，枚举给候选值。
 enum ControlKind {
-  CNum(Int, Int, String)
+  CNum(Int32, Int32, String)
   CBool
-  CList(Array[Int])
+  CList(Array[Int32])
 } derive(Eq)
 
-pub extend ControlKind with Eq::{ not_equal, equal }
+///|
+pub extend ControlKind with Eq::{not_equal, equal}
 
 ///|
 struct SettingDef {
@@ -48,7 +50,8 @@ struct SettingDef {
   fallback : SettingValue
 } derive(Eq)
 
-pub extend SettingDef with Eq::{ not_equal, equal }
+///|
+pub extend SettingDef with Eq::{not_equal, equal}
 
 ///|
 struct SettingGroup {
@@ -58,7 +61,8 @@ struct SettingGroup {
   note : String
 } derive(Eq)
 
-pub extend SettingGroup with Eq::{ not_equal, equal }
+///|
+pub extend SettingGroup with Eq::{not_equal, equal}
 
 ///|
 /// 左侧索引的分组（顺序即索引顺序）。
@@ -231,7 +235,7 @@ fn setting_is_switch(key : String) -> Bool {
 ///
 /// 只数键表：启动变量那张表挂在「进程」组里，不进这个数 —— 它没有固定条数，
 /// 数进去会让索引上的数字随变量增减而跳，而它说明的是「这一组有几项设置」。
-fn settings_group_count(model : Model, group_id : String) -> Int {
+fn settings_group_count(model : Model, group_id : String) -> Int32 {
   // 「dsh 版本」这一组数的是本机装着的候选版本数（读数还没到时是 0，不编）。
   if group_id == "version" {
     return match model.runtime {
@@ -249,7 +253,8 @@ struct SettingVal {
   value : SettingValue
 } derive(Eq)
 
-pub extend SettingVal with Eq::{ not_equal, equal }
+///|
+pub extend SettingVal with Eq::{not_equal, equal}
 
 ///|
 /// GET /api/local/settings 的三个表：当前值、缺省值、来源（文件 / 默认）。
@@ -259,18 +264,14 @@ struct SettingsFacts {
   sources : Array[SettingVal]
 } derive(Eq)
 
-pub extend SettingsFacts with Eq::{ not_equal, equal }
+///|
+pub extend SettingsFacts with Eq::{not_equal, equal}
 
 ///|
 fn setting_value_text(value : SettingValue) -> String {
   match value {
     VInt(n) => n.to_string()
-    VBool(b) =>
-      if b {
-        "开"
-      } else {
-        "关"
-      }
+    VBool(b) => if b { "开" } else { "关" }
     VText(t) => t
   }
 }
@@ -279,11 +280,11 @@ fn setting_value_text(value : SettingValue) -> String {
 /// 契约缺省值的显示口径（只用在悬停提示里）。
 fn setting_fallback_text(def : SettingDef) -> String {
   let range = match def.kind {
-    CNum(min, max, unit) => "，取值 " + min.to_string() + "–" + max.to_string() + unit
+    CNum(min, max, unit) =>
+      "，取值 " + min.to_string() + "–" + max.to_string() + unit
     CBool => ""
     CList(options) =>
-      "，候选 " +
-      join_with(options.map(fn(n) { n.to_string() }), " / ")
+      "，候选 " + join_with(options.map(fn(n) { n.to_string() }), " / ")
   }
   "出厂缺省 " + setting_value_text(def.fallback) + range
 }
@@ -332,7 +333,7 @@ fn read_setting_table(raw : Map[String, Json]) -> Array[SettingVal] {
     match raw.get(def.key) {
       Some(json) =>
         match read_setting_value(json) {
-          Some(value) => out.push({ key: def.key, value })
+          Some(value) => out.push({ key: def.key, value, })
           None => ()
         }
       None => ()
@@ -358,12 +359,7 @@ fn parse_settings(text : String) -> Result[SettingsFacts, String] {
 fn setting_value_json(value : SettingValue) -> String {
   match value {
     VInt(n) => n.to_string()
-    VBool(b) =>
-      if b {
-        "true"
-      } else {
-        "false"
-      }
+    VBool(b) => if b { "true" } else { "false" }
     VText(text) => json_text_literal(text)
   }
 }
@@ -371,12 +367,16 @@ fn setting_value_json(value : SettingValue) -> String {
 ///|
 /// PUT /api/local/settings 的请求体：一次一个键。
 fn settings_put_body(key : String, value : SettingValue) -> String {
-  "{\"values\":{" + json_text_literal(key) + ":" + setting_value_json(value) + "}}"
+  "{\"values\":{" +
+  json_text_literal(key) +
+  ":" +
+  setting_value_json(value) +
+  "}}"
 }
 
 ///|
 /// 整数文本解析：非数字、空、超长一律判不合法（不猜、不截断）。
-fn parse_int_text(text : String) -> Int? {
+fn parse_int_text(text : String) -> Int32? {
   let t = text.trim().to_owned()
   if t.length() == 0 {
     return None
@@ -396,7 +396,10 @@ fn parse_int_text(text : String) -> Int? {
 
 ///|
 /// 控件里的文本 → 取值。范围由本地的键表把关，越界不发请求，先说清哪里不对。
-fn setting_parse_input(def : SettingDef, text : String) -> Result[SettingValue, String] {
+fn setting_parse_input(
+  def : SettingDef,
+  text : String,
+) -> Result[SettingValue, String] {
   match def.kind {
     CNum(min, max, unit) =>
       match parse_int_text(text) {
@@ -404,7 +407,12 @@ fn setting_parse_input(def : SettingDef, text : String) -> Result[SettingValue, 
         Some(n) =>
           if n < min || n > max {
             Err(
-              "取值要在 " + min.to_string() + "–" + max.to_string() + unit + " 之间，收到 " +
+              "取值要在 " +
+              min.to_string() +
+              "–" +
+              max.to_string() +
+              unit +
+              " 之间，收到 " +
               n.to_string(),
             )
           } else {
@@ -490,6 +498,7 @@ fn setting_group_of(id : String) -> SettingGroup {
   }
   settings_groups[0]
 }
+
 ///|
 /// 启动变量（design/design-fixes.md §61 / §62）：global 一份 + 每只 profile 一份 + 一条
 /// 生效方式（options）。值可能含密钥：界面默认打码，审计只记键名与 options。
@@ -508,7 +517,8 @@ pub struct EnvFacts {
   merge : String
 } derive(Eq)
 
-pub extend EnvFacts with Eq::{ not_equal, equal }
+///|
+pub extend EnvFacts with Eq::{not_equal, equal}
 
 ///|
 /// 一份 JSON 对象 → 有序键值对（保持文件里的顺序，界面不重排）。
@@ -570,7 +580,11 @@ fn parse_env_facts(data : Map[String, Json]) -> EnvFacts {
 
 ///|
 /// 这份 profile 单独设的那张表（没有 = 空）。
-fn env_profile_pairs(facts : EnvFacts, home : String, profile : String) -> Array[(String, String)] {
+fn env_profile_pairs(
+  facts : EnvFacts,
+  home : String,
+  profile : String,
+) -> Array[(String, String)] {
   let key = home + "|" + profile
   for pair in facts.profiles {
     if pair.0 == key {
@@ -590,7 +604,7 @@ fn env_put_body(
   home : String,
   profile : String,
   entries : Array[(String, String)],
-  options? : String = "",
+  options~ : String = "",
 ) -> String {
   let fields : Array[String] = []
   for pair in entries {
@@ -598,11 +612,21 @@ fn env_put_body(
   }
   let tail = if options == "" { "" } else { ",\"options\":" + options }
   let params = if scope == "global" {
-    "{\"scope\":\"global\",\"entries\":{" + join_with(fields, ",") + "}" + tail + "}"
+    "{\"scope\":\"global\",\"entries\":{" +
+    join_with(fields, ",") +
+    "}" +
+    tail +
+    "}"
   } else {
-    "{\"scope\":\"profile\",\"home\":" + json_text_literal(home) +
-    ",\"profile\":" + json_text_literal(profile) + ",\"entries\":{" +
-    join_with(fields, ",") + "}" + tail + "}"
+    "{\"scope\":\"profile\",\"home\":" +
+    json_text_literal(home) +
+    ",\"profile\":" +
+    json_text_literal(profile) +
+    ",\"entries\":{" +
+    join_with(fields, ",") +
+    "}" +
+    tail +
+    "}"
   }
   "{\"action\":\"save-env\",\"params\":" + params + "}"
 }
@@ -610,7 +634,10 @@ fn env_put_body(
 ///|
 /// 合并后的启动环境（§61.3 第 6 条：复制开发指令里那一段）。
 /// 顺序：global 在前、profile 覆盖同键（键留在第一次出现的位置），值为空的不写。
-fn env_merged_pairs(global : Array[(String, String)], own : Array[(String, String)]) -> Array[(String, String)] {
+fn env_merged_pairs(
+  global : Array[(String, String)],
+  own : Array[(String, String)],
+) -> Array[(String, String)] {
   let order : Array[String] = []
   let values : Map[String, String] = Map([])
   let put = fn(list : Array[(String, String)]) {

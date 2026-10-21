@@ -41,7 +41,7 @@ fn trash_size_text(bytes : Double?) -> String {
 
 ///|
 /// 文件数那一格的值：数不出来写「读不到」，不写 0。
-fn trash_count_text(count : Int?) -> String {
+fn trash_count_text(count : Int32?) -> String {
   match count {
     Some(n) => n.to_string() + " 个文件"
     None => "文件数读不到"
@@ -68,7 +68,8 @@ fn trash_time_hint(item : ConsoleTrash) -> String {
       let iso = js_iso_time_ms(ms)
       "删除时刻（按浏览器本地时间显示" +
       (if iso == "" { "" } else { "，" + iso }) +
-      "）。来源：" + item.deleted_at_source
+      "）。来源：" +
+      item.deleted_at_source
     }
     None => "读不到删除时刻：" + item.deleted_at_source
   }
@@ -84,8 +85,11 @@ fn trash_row(item : ConsoleTrash, emit : @cmd.Emit[Msg]) -> @html.Html {
     [
       @html.span(
         class="dsh-trash-name",
-        attrs=mark("trash-name", ["trash", "list", item.dir, "name"])
-          .title("回收站里的目录名：" + item.dir + "（恢复与彻底删除都以它为目标）"),
+        attrs=mark("trash-name", ["trash", "list", item.dir, "name"]).title(
+          "回收站里的目录名：" +
+          item.dir +
+          "（恢复与彻底删除都以它为目标）",
+        ),
         item.profile,
       ),
       @html.span(class="dsh-trash-stamp", [
@@ -100,7 +104,9 @@ fn trash_row(item : ConsoleTrash, emit : @cmd.Emit[Msg]) -> @html.Html {
       ]),
       @html.span(
         class="dsh-trash-size",
-        attrs=mark("trash-size", ["trash", "list", item.dir, "size"]).title(item.size_source),
+        attrs=mark("trash-size", ["trash", "list", item.dir, "size"]).title(
+          item.size_source,
+        ),
         trash_count_text(item.file_count) + " | " + trash_size_text(item.bytes),
       ),
       @html.span(class="dsh-trash-spacer", @html.nothing),
@@ -147,9 +153,13 @@ fn trash_purge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let detail = match item {
     Some(entry) =>
-      "这一份是 " + trash_count_text(entry.file_count) + " | " + trash_size_text(entry.bytes) +
+      "这一份是 " +
+      trash_count_text(entry.file_count) +
+      " | " +
+      trash_size_text(entry.bytes) +
       "，删掉之后磁盘上就没有了，恢复的路径也同时消失，无法恢复。"
-    None => "这一份已经不在回收站读数里了，删掉之后无法恢复。"
+    None =>
+      "这一份已经不在回收站读数里了，删掉之后无法恢复。"
   }
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
@@ -207,9 +217,7 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       if pending {
         body.push(
           loading_block(
-            "trash-loading",
-            "正在读取回收站…",
-            "控制台自身状态的读数还在路上。这里先摆加载态。「回收站是空的」要等读数回来才敢说。",
+            "trash-loading", "正在读取回收站…", "控制台自身状态的读数还在路上。这里先摆加载态。「回收站是空的」要等读数回来才敢说。",
           ),
         )
       } else {
@@ -218,7 +226,9 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-empty",
             attrs=mark("trash-unreadable", ["trash", "unreadable"]),
             [
-              @html.span(class="dsh-empty-icon", [icon("shield-outline", size=26)]),
+              @html.span(class="dsh-empty-icon", [
+                icon("shield-outline", size=26),
+              ]),
               @html.p(class="dsh-empty-line", "回收站读数读取失败。"),
               @html.p(class="dsh-empty-sub", model.console_error),
             ],
@@ -233,8 +243,13 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-empty",
             attrs=mark("trash-missing-field", ["trash", "missing-field"]),
             [
-              @html.span(class="dsh-empty-icon", [icon("shield-outline", size=26)]),
-              @html.p(class="dsh-empty-line", "读不到回收站里有什么。"),
+              @html.span(class="dsh-empty-icon", [
+                icon("shield-outline", size=26),
+              ]),
+              @html.p(
+                class="dsh-empty-line",
+                "读不到回收站里有什么。",
+              ),
               @html.p(
                 class="dsh-empty-sub",
                 "这一版控制台还没有回收站读数。这与「回收站是空的」不是一回事。" +
@@ -249,7 +264,9 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-empty",
             attrs=mark("trash-empty", ["trash", "empty"]),
             [
-              @html.span(class="dsh-empty-icon", [icon("delete-outline", size=26)]),
+              @html.span(class="dsh-empty-icon", [
+                icon("delete-outline", size=26),
+              ]),
               @html.p(class="dsh-empty-line", "回收站是空的"),
               @html.p(
                 class="dsh-empty-sub",
@@ -270,7 +287,10 @@ fn trash_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.div(class="dsh-head-text", [
         @html.h1(class="dsh-page-title", "回收站"),
         source_badge(model.tag_archived, ["trash", "head", "source-badge"]),
-        @html.span(class="dsh-head-note", "删掉的 profile 在这里，能恢复也能彻底删掉"),
+        @html.span(
+          class="dsh-head-note",
+          "删掉的 profile 在这里，能恢复也能彻底删掉",
+        ),
       ]),
     ]),
   ]

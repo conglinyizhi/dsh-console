@@ -3,7 +3,6 @@
 // 2026-10-20 从 view_maintenance.mbt 拆出来：这一族是「选哪一份配置开工」的读侧，
 // 与作业状态机、版本表都不共用状态。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 本机全部 profile 的读数（读不到就是空表）。
 fn job_profile_facts(model : Model) -> Array[ProfileFact] {
@@ -45,7 +44,8 @@ fn job_profile_usable(profile : ProfileFact) -> (Bool, String) {
     Some(false) => (false, "读不到这只配置")
     _ =>
       match profile.web_app {
-        Some(false) => (false, "这只配置起的是命令行型，没有网页入口")
+        Some(false) =>
+          (false, "这只配置起的是命令行型，没有网页入口")
         _ => (true, "")
       }
   }
@@ -71,10 +71,7 @@ fn job_profile_default(model : Model) -> String {
     Some(got) =>
       for item in got.instances {
         match item.profile {
-          Some(name) =>
-            if usable.contains(name) {
-              return name
-            }
+          Some(name) => if usable.contains(name) { return name }
           None => ()
         }
       }
@@ -119,7 +116,11 @@ fn job_profile_fact_of(model : Model, name : String) -> ProfileFact? {
 /// 两边各缺一半时按有的那半说：行不在（读数里有、行里没有）就走 profile_light 判灯，
 /// 读数不在（行在、读数没配上）就不判可用性 —— 宁可让试跑自己去撞失败，也不凭一个
 /// 说不清的读数把一份其实能用的配置灰掉（与 job_profile_usable 同一口径）。
-fn job_profile_pick(row : Row?, fact : ProfileFact?, ignore_missing : Bool) -> ProfilePick {
+fn job_profile_pick(
+  row : Row?,
+  fact : ProfileFact?,
+  ignore_missing : Bool,
+) -> ProfilePick {
   let (usable, why) = match fact {
     Some(item) => job_profile_usable(item)
     None => (true, "")
@@ -130,7 +131,13 @@ fn job_profile_pick(row : Row?, fact : ProfileFact?, ignore_missing : Bool) -> P
         Some(n) => n
         None => item.name
       }
-      (name, item.light, item.light_reason, item.light_basis, item.status is Running)
+      (
+        name,
+        item.light,
+        item.light_reason,
+        item.light_basis,
+        item.status is Running,
+      )
     }
     None =>
       match fact {
@@ -142,7 +149,8 @@ fn job_profile_pick(row : Row?, fact : ProfileFact?, ignore_missing : Bool) -> P
       }
   }
   let (missing, missing_names) = match fact {
-    Some(item) => (item.bundles.missing.length(), join_with(item.bundles.missing, "、"))
+    Some(item) =>
+      (item.bundles.missing.length(), join_with(item.bundles.missing, "、"))
     None => (0, "")
   }
   let (note, note_source) = match row {
@@ -206,27 +214,33 @@ fn job_profile_picks(model : Model) -> (Array[ProfilePick], Array[ProfilePick]) 
   // 那种行（实例在别的 home 里跑着）照样出现在总览上，但这里不摆一个点了没用的卡。
   for row in running_rows {
     match row.profile_name {
-      Some(name) => match job_profile_fact_of(model, name) {
-        Some(fact) =>
-          if !seen.contains(name) {
-            running.push(job_profile_pick(Some(row), Some(fact), ignore_missing))
-            seen.push(name)
-          }
-        None => ()
-      }
+      Some(name) =>
+        match job_profile_fact_of(model, name) {
+          Some(fact) =>
+            if !seen.contains(name) {
+              running.push(
+                job_profile_pick(Some(row), Some(fact), ignore_missing),
+              )
+              seen.push(name)
+            }
+          None => ()
+        }
       None => ()
     }
   }
   for row in stopped_rows {
     match row.profile_name {
-      Some(name) => match job_profile_fact_of(model, name) {
-        Some(fact) =>
-          if !seen.contains(name) {
-            stopped.push(job_profile_pick(Some(row), Some(fact), ignore_missing))
-            seen.push(name)
-          }
-        None => ()
-      }
+      Some(name) =>
+        match job_profile_fact_of(model, name) {
+          Some(fact) =>
+            if !seen.contains(name) {
+              stopped.push(
+                job_profile_pick(Some(row), Some(fact), ignore_missing),
+              )
+              seen.push(name)
+            }
+          None => ()
+        }
       None => ()
     }
   }
@@ -283,13 +297,16 @@ fn job_profile_current(
   @html.div(class="dsh-job-current", [
     @html.span(
       class="dsh-job-current-label",
-      attrs=mark("job-profile-current-label", ["maintenance", "start", "profile-current-label"]),
+      attrs=mark("job-profile-current-label", [
+        "maintenance", "start", "profile-current-label",
+      ]),
       "当前配置",
     ),
     @html.span(
       class="dsh-job-current-value",
-      attrs=mark("job-profile-current", ["maintenance", "start", "profile-current"])
-        .data_set("state", if choice == "" { "empty" } else { "picked" }),
+      attrs=mark("job-profile-current", [
+        "maintenance", "start", "profile-current",
+      ]).data_set("state", if choice == "" { "empty" } else { "picked" }),
       value,
     ),
     @html.button(
@@ -297,8 +314,9 @@ fn job_profile_current(
       class="dsh-btn dsh-job-choose",
       type_="button",
       disabled~,
-      attrs=mark("job-profile-choose", ["maintenance", "start", "profile-choose"])
-        .aria_label("选择试跑用配置"),
+      attrs=mark("job-profile-choose", [
+        "maintenance", "start", "profile-choose",
+      ]).aria_label("选择试跑用配置"),
       on_click=emit(ProfileSidebarOpen),
       [@html.span("选择配置")],
     ),
@@ -310,17 +328,29 @@ fn job_profile_current(
 ///
 /// 画法在 view_parts.mbt 的 profile_card（§25）：这一处只决定点下去发什么、路径前缀、
 /// 挂不挂「当前配置」那枚标记、aria 那句话。
-fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn job_profile_card(
+  model : Model,
+  pick : ProfilePick,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let choice = job_profile_choice(model)
   let selected = pick.name == choice
   let ok = pick.usable
-  let aria = if ok { "试跑用 " + pick.name } else { pick.name + " 不可用：" + pick.why }
+  let aria = if ok {
+    "试跑用 " + pick.name
+  } else {
+    pick.name + " 不可用：" + pick.why
+  }
   profile_card(
     pick,
     job_profile_card_id(pick.name),
     "job-profile",
     ["maintenance", "profile-sidebar"],
-    if selected { "当前配置" } else { "" },
+    if selected {
+      "当前配置"
+    } else {
+      ""
+    },
     aria,
     aria,
     fn(name) { JobProfilePicked(name) },
@@ -333,7 +363,11 @@ fn job_profile_card(model : Model, pick : ProfilePick, emit : @cmd.Emit[Msg]) ->
 /// 与「选择配置」是**同一份画法**（view_parts.mbt 的 profile_card），只是换一套 data-name 与消息。
 fn promote_source_card(pick : ProfilePick, emit : @cmd.Emit[Msg]) -> @html.Html {
   let ok = pick.usable
-  let aria = if ok { "用 " + pick.name + " 的配置替换" } else { pick.name + " 不可用：" + pick.why }
+  let aria = if ok {
+    "用 " + pick.name + " 的配置替换"
+  } else {
+    pick.name + " 不可用：" + pick.why
+  }
   profile_card(
     pick,
     promote_card_id(pick.name),
@@ -365,17 +399,22 @@ fn job_profile_group(
   }
   @html.div(
     class="dsh-profile-sidebar-group",
-    attrs=mark("job-profile-group", ["maintenance", "profile-sidebar", "group", key])
-      .data_set("group", key),
+    attrs=mark("job-profile-group", [
+      "maintenance", "profile-sidebar", "group", key,
+    ]).data_set("group", key),
     [
       @html.h3(
         class="dsh-profile-sidebar-group-title",
-        attrs=mark("job-profile-group-title", ["maintenance", "profile-sidebar", "group", key, "title"]),
+        attrs=mark("job-profile-group-title", [
+          "maintenance", "profile-sidebar", "group", key, "title",
+        ]),
         title + " (" + picks.length().to_string() + ")",
       ),
       @html.div(
         class="dsh-profile-sidebar-list",
-        attrs=mark("job-profile-list", ["maintenance", "profile-sidebar", "list", key]),
+        attrs=mark("job-profile-list", [
+          "maintenance", "profile-sidebar", "list", key,
+        ]),
         cards,
       ),
     ],
@@ -395,24 +434,33 @@ fn job_profile_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     body.push(
       @html.p(
         class="dsh-empty-sub",
-        attrs=mark("job-profile-sidebar-empty", ["maintenance", "profile-sidebar", "empty"]),
+        attrs=mark("job-profile-sidebar-empty", [
+          "maintenance", "profile-sidebar", "empty",
+        ]),
         "还没读到 profile 读数，等读数回来再挑。",
       ),
     )
   } else {
     let (running, stopped) = job_profile_picks(model)
     if running.length() > 0 {
-      body.push(job_profile_group("running", "当前运行的实例", running, model, emit))
+      body.push(
+        job_profile_group(
+          "running", "当前运行的实例", running, model, emit,
+        ),
+      )
     }
     if stopped.length() > 0 {
-      body.push(job_profile_group("stopped", "已停止的实例", stopped, model, emit))
+      body.push(
+        job_profile_group("stopped", "已停止的实例", stopped, model, emit),
+      )
     }
   }
   @html.fragment([
     @html.div(
       class="dsh-drawer-scrim",
-      attrs=mark("job-profile-sidebar-scrim", ["maintenance", "profile-sidebar", "scrim"])
-        .data_set("state", "open"),
+      attrs=mark("job-profile-sidebar-scrim", [
+        "maintenance", "profile-sidebar", "scrim",
+      ]).data_set("state", "open"),
       on_click=emit(ProfileSidebarClose),
       @html.nothing,
     ),
@@ -435,15 +483,18 @@ fn job_profile_sidebar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-drawer-head", [
           @html.span(
             class="dsh-drawer-name",
-            attrs=mark("job-profile-sidebar-title", ["maintenance", "profile-sidebar", "title"]),
+            attrs=mark("job-profile-sidebar-title", [
+              "maintenance", "profile-sidebar", "title",
+            ]),
             "选择配置",
           ),
           @html.button(
             id=profile_sidebar_close_id(),
             class="dsh-btn icon-only",
             type_="button",
-            attrs=mark("job-profile-sidebar-close", ["maintenance", "profile-sidebar", "close"])
-              .aria_label("关闭选择配置"),
+            attrs=mark("job-profile-sidebar-close", [
+              "maintenance", "profile-sidebar", "close",
+            ]).aria_label("关闭选择配置"),
             on_click=emit(ProfileSidebarClose),
             [icon("close", size=16)],
           ),

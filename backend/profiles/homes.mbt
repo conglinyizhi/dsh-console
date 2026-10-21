@@ -47,6 +47,8 @@ pub let trash_homes_dir : String = "homes"
 ///|
 /// 读数里的两档归属。
 pub let home_kind_isolated : String = "isolated"
+
+///|
 pub let home_kind_shared : String = "shared"
 
 ///|
@@ -61,10 +63,7 @@ pub let home_kind_trial : String = "trial"
 ///|
 /// 从源 profile 复制的四份配置（有才复制，缺的文件不算错）。
 let profile_config_files : Array[String] = [
-  "cordis.yml",
-  "cordis.patch.yml",
-  "package.json",
-  "pnpm-workspace.yaml",
+  "cordis.yml", "cordis.patch.yml", "package.json", "pnpm-workspace.yaml",
 ]
 
 ///|
@@ -93,7 +92,12 @@ pub async fn homes_root() -> (String, String) noraise {
       if text.has_prefix("/") {
         (trim_tail_slash(text), homes_root_env + " 环境变量")
       } else {
-        (fallback, "默认 ~/.dsh-homes（" + homes_root_env + " 不是绝对路径，按未设置处理）")
+        (
+          fallback,
+          "默认 ~/.dsh-homes（" +
+          homes_root_env +
+          " 不是绝对路径，按未设置处理）",
+        )
       }
     }
     None => (fallback, "默认 ~/.dsh-homes")
@@ -162,7 +166,10 @@ pub async fn profile_location(name_in : String) -> (String, String) noraise {
     // 名字不合法时给共用那一档的拼法：调用方随后一定撞上 not-found，
     // 而不是被这里领到一个**看着像真的**路径上去动手。
     let (dsh_home, _) = @runtime.resolve_dsh_home()
-    return (@json.join_path(@json.join_path(dsh_home, "profiles"), name), dsh_home)
+    return (
+      @json.join_path(@json.join_path(dsh_home, "profiles"), name),
+      dsh_home,
+    )
   }
   match isolated_home_of(name) {
     Some(home) => (@json.join_all([home, "profiles", name]), home)
@@ -285,9 +292,17 @@ async fn home_created_at(home : String) -> (String?, String) noraise {
         Some(ms) =>
           (
             Some(@json.iso_from_epoch_ms(ms)),
-            "；createdAt 取 " + home + " 目录的 mtime（没有隔离记录文件）",
+            "；createdAt 取 " +
+            home +
+            " 目录的 mtime（没有隔离记录文件）",
           )
-        None => (None, "；createdAt 读不到（没有隔离记录文件，" + home + " 也读不到 mtime）")
+        None =>
+          (
+            None,
+            "；createdAt 读不到（没有隔离记录文件，" +
+            home +
+            " 也读不到 mtime）",
+          )
       }
   }
 }
@@ -317,8 +332,14 @@ pub async fn home_fact_in(
       path: home,
       profile_dir: pdir,
       created_at: created,
-      source: "隔离 home 在：" + pdir + "（homes root 来自 " + root_source + "：" + root +
-      "）" + created_source,
+      source: "隔离 home 在：" +
+      pdir +
+      "（homes root 来自 " +
+      root_source +
+      "：" +
+      root +
+      "）" +
+      created_source,
     }
   } else {
     {
@@ -326,15 +347,23 @@ pub async fn home_fact_in(
       path: dsh_home,
       profile_dir: @json.join_all([dsh_home, "profiles", name]),
       created_at: None,
-      source: "没有隔离 home（" + pdir + " 不存在），用控制台的 home " + dsh_home + "（" +
-      dsh_home_source + "）；createdAt 只在隔离 home 里有意义",
+      source: "没有隔离 home（" +
+      pdir +
+      " 不存在），用控制台的 home " +
+      dsh_home +
+      "（" +
+      dsh_home_source +
+      "）；createdAt 只在隔离 home 里有意义",
     }
   }
 }
 
 ///|
 /// 移动一个目录（rename：同一文件系统上只改目录项，与体积无关）。
-async fn move_dir(from : String, to : String) -> Result[Unit, (String, String)] noraise {
+async fn move_dir(
+  from : String,
+  to : String,
+) -> Result[Unit, (String, String)] noraise {
   match @fsx.rename_path(from, to) {
     Ok(_) => Ok(())
     Err(e) => Err(("io-error", "移动没完成：" + e))
@@ -363,12 +392,26 @@ async fn require_same_device(
       (
         "io-error",
         "两边不在同一个文件系统，移动会退化成复制：把 homes root 放到与 DSH_HOME 同一个盘上再试" +
-        "（" + a + " 的设备号 " + dev_a.to_string() + "，" + b + " 的设备号 " +
-        dev_b.to_string() + "）",
+        "（" +
+        a +
+        " 的设备号 " +
+        dev_a.to_string() +
+        "，" +
+        b +
+        " 的设备号 " +
+        dev_b.to_string() +
+        "）",
       ),
     )
   }
-  Ok("两边同一个文件系统（设备号 " + dev_a.to_string() + "）：" + a + " 与 " + b)
+  Ok(
+    "两边同一个文件系统（设备号 " +
+    dev_a.to_string() +
+    "）：" +
+    a +
+    " 与 " +
+    b,
+  )
 }
 
 ///|
@@ -411,7 +454,8 @@ async fn verify_isolated(pdir : String, nm_target : String) -> String? noraise {
   }
   let pkg = @json.join_path(pdir, "package.json")
   match @json.read_text_file(pkg) {
-    Err(e) => return Some("package.json 读不出来：" + pkg + "（" + e + "）")
+    Err(e) =>
+      return Some("package.json 读不出来：" + pkg + "（" + e + "）")
     Ok(text) =>
       match @json.json_parse(text) {
         Some(_) => ()
@@ -419,27 +463,34 @@ async fn verify_isolated(pdir : String, nm_target : String) -> String? noraise {
       }
   }
   let link = @json.join_path(pdir, "node_modules")
-  let kind = try {
-    @fs.kind(link, follow_symlink=false)
-  } catch {
-    _ => Unknown
-  }
+  let kind = @fs.kind(link, follow_symlink=false) catch { _ => Unknown }
   match kind {
     Directory => ()
     SymLink => {
       let target = match @json.read_link(link) {
-        Err(e) => return Some("node_modules 软链读不出目标：" + link + "（" + e + "）")
+        Err(e) =>
+          return Some(
+            "node_modules 软链读不出目标：" + link + "（" + e + "）",
+          )
         Ok(target) => target
       }
       if !@json.is_dir(link) {
-        return Some("node_modules 软链指不到目录：" + link + " -> " + target)
+        return Some(
+          "node_modules 软链指不到目录：" + link + " -> " + target,
+        )
       }
       if nm_target != "" && target != nm_target {
-        return Some("node_modules 软链指向 " + target + "，不是 " + nm_target)
+        return Some(
+          "node_modules 软链指向 " + target + "，不是 " + nm_target,
+        )
       }
     }
     Regular =>
-      return Some("node_modules 是个普通文件：" + link + "（既不是目录也不是软链）")
+      return Some(
+        "node_modules 是个普通文件：" +
+        link +
+        "（既不是目录也不是软链）",
+      )
     _ => ()
   }
   let patch = @json.join_path(pdir, "cordis.patch.yml")
@@ -452,7 +503,7 @@ async fn verify_isolated(pdir : String, nm_target : String) -> String? noraise {
 ///|
 /// 一次「铺 home」的结果：复制了几份配置、软链指向哪儿、凭证路径写成了什么。
 pub(all) struct HomeLayout {
-  files_copied : Int
+  files_copied : Int32
   node_modules_target : String
   skills_linked : Bool
   credentials_path : String
@@ -504,7 +555,9 @@ async fn layout_home(
     return Err(
       (
         "io-error",
-        "源 profile 与 " + hoisted_nm + " 都没有 node_modules，没法给这份 home 摆软链",
+        "源 profile 与 " +
+        hoisted_nm +
+        " 都没有 node_modules，没法给这份 home 摆软链",
       ),
     )
   }

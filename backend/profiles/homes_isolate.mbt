@@ -4,7 +4,6 @@
 // 2026-10-20 从 homes.mbt 拆出来：搬家是「动磁盘」的那一半，与 home 归属的读数（homes.mbt）
 // 分开读更安全。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 一次「移到独立 home」的结果（规格第 9 节：这是真移动，不是复制）。
 pub(all) struct IsolateOutcome {
@@ -29,11 +28,11 @@ pub(all) struct IsolateOutcome {
   credentials_key : String
   created_at : String?
   /// 搬家后重算的相对软链接条数（§48.1）
-  links_fixed : Int
+  links_fixed : Int32
   /// 跳过的链接条数：目标找不到（原本就坏），不猜（§48.1）
-  links_broken : Int
+  links_broken : Int32
   /// cordis.patch.yml / package.json 里换掉的旧目录前缀条数（§48.2）
-  refs_rewritten : Int
+  refs_rewritten : Int32
 }
 
 ///|
@@ -52,15 +51,15 @@ pub(all) struct DeisolateOutcome {
   /// 怎么移进去的、跳过了什么（人话，进悬停）
   trash_note : String
   /// 移进回收站那一份的文件数与字节数；数不到给 None + 原因
-  files : Int?
+  files : Int32?
   bytes : Int64?
   size_source : String
   /// 搬回来之后重算的相对软链接条数（§48.1）
-  links_fixed : Int
+  links_fixed : Int32
   /// 跳过的链接条数：目标找不到（原本就坏）
-  links_broken : Int
+  links_broken : Int32
   /// cordis.patch.yml / package.json 里换掉的旧目录前缀条数（§48.2）
-  refs_rewritten : Int
+  refs_rewritten : Int32
 }
 
 ///|
@@ -79,11 +78,22 @@ async fn put_back(
     Ok(_) =>
       match @fsx.remove_tree(home) {
         Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
-        Err(e) => "；移动没完成，已经放回原处（" + src_dir + "），但刚建的 " + home +
-          " 没能删掉：" + e
+        Err(e) =>
+          "；移动没完成，已经放回原处（" +
+          src_dir +
+          "），但刚建的 " +
+          home +
+          " 没能删掉：" +
+          e
       }
-    Err(e) => "；移动没完成，也没能放回原处：" + e + "（" + profile_dir +
-      " 现在还在那儿，要手动挪回 " + src_dir + "）"
+    Err(e) =>
+      "；移动没完成，也没能放回原处：" +
+      e +
+      "（" +
+      profile_dir +
+      " 现在还在那儿，要手动挪回 " +
+      src_dir +
+      "）"
   }
   Err((code, message + note))
 }
@@ -107,11 +117,18 @@ async fn move_remainder_to_trash(
   let stamp = @async.now().to_string()
   let dest = @json.join_path(bucket, name + "-" + stamp)
   if @json.exists(dest) {
-    return Err("回收站里已经有这一条了：" + dest + "（不覆盖）")
+    return Err(
+      "回收站里已经有这一条了：" + dest + "（不覆盖）",
+    )
   }
   match @fsx.rename_path(home, dest) {
-    Ok(_) => Ok((dest, "整份 rename 进回收站（同一文件系统，没复制内容）"))
-    Err(first) => {
+    Ok(_) =>
+      Ok(
+        (
+          dest, "整份 rename 进回收站（同一文件系统，没复制内容）",
+        ),
+      )
+    Err(first) =>
       match @fsx.copy_tree(home, dest, []) {
         Ok(stats) => {
           let skipped = if stats.skipped.length() > 0 {
@@ -124,18 +141,25 @@ async fn move_remainder_to_trash(
               Ok(
                 (
                   dest,
-                  first + "；退回复制再删（" + stats.files.to_string() + " 个文件" + skipped + "）",
+                  first +
+                  "；退回复制再删（" +
+                  stats.files.to_string() +
+                  " 个文件" +
+                  skipped +
+                  "）",
                 ),
               )
             Err(e) =>
               Err(
-                first + "；退回复制成功了，但删源头失败：" + e + "（这份东西在两处各有一份）",
+                first +
+                "；退回复制成功了，但删源头失败：" +
+                e +
+                "（这份东西在两处各有一份）",
               )
           }
         }
         Err(e) => Err(first + "；退回复制也失败：" + e)
       }
-    }
   }
 }
 
@@ -152,7 +176,10 @@ async fn move_remainder_to_trash(
 ///
 /// 源 patch 是空数组占位（只有注释与一个 []）时，那个 [] 要先去掉：
 /// 它已经是根节点，后面再接一条 entry 就不是同一个 YAML 文档了（headless 这类 profile 就是这样）。
-async fn add_credentials_patch(path : String, cred_path : String) -> Result[Unit, String] noraise {
+async fn add_credentials_patch(
+  path : String,
+  cred_path : String,
+) -> Result[Unit, String] noraise {
   let existing = match @json.read_text_file(path) {
     Ok(text) => text
     Err(_) => ""
@@ -171,10 +198,16 @@ async fn add_credentials_patch(path : String, cred_path : String) -> Result[Unit
   }
   let head = "# 隔离 home 的凭证只给路径：不复制、不软链（软链会被原子写换成明文副本，" +
     "每个 home 里就多一份密钥）。\n" +
-    "# 这一条由 dsh-console 的隔离动作写进来；密钥本身留在 " + cred_path + "。\n"
-  let block = "- id: " + credentials_entry_id + "\n" +
+    "# 这一条由 dsh-console 的隔离动作写进来；密钥本身留在 " +
+    cred_path +
+    "。\n"
+  let block = "- id: " +
+    credentials_entry_id +
+    "\n" +
     "  config:\n" +
-    "    path: " + yaml_quote(cred_path) + "\n"
+    "    path: " +
+    yaml_quote(cred_path) +
+    "\n"
   let text = if body == "" { head + block } else { body + "\n" + head + block }
   @fsx.write_text_atomic(path, text)
 }
@@ -197,7 +230,12 @@ pub async fn isolate_profile(
 ) -> Result[IsolateOutcome, (String, String)] noraise {
   let name = @json.trim_both(name_in)
   if !single_segment(name) {
-    return Err(("bad-params", "profile 名要是单段（不含 / 与 ..，非空）：" + name))
+    return Err(
+      (
+        "bad-params",
+        "profile 名要是单段（不含 / 与 ..，非空）：" + name,
+      ),
+    )
   }
   let (root, root_source) = homes_root()
   let (dsh_home, _dsh_home_source) = @runtime.resolve_dsh_home()
@@ -206,31 +244,57 @@ pub async fn isolate_profile(
     return Err(
       (
         "not-found",
-        "profile 目录不存在：" + src_dir + "（homes root 来自 " + root_source + "：" + root + "）",
+        "profile 目录不存在：" +
+        src_dir +
+        "（homes root 来自 " +
+        root_source +
+        "：" +
+        root +
+        "）",
       ),
     )
   }
   let home = isolated_home_dir(root, name)
   // 硬约束：目标必须正好是 <root>/<单段名字>，拼出来不是这一条就不动
   if home != root + "/" + name {
-    return Err(("bad-params", "隔离 home 路径不在 " + root + " 下：" + home))
+    return Err(
+      ("bad-params", "隔离 home 路径不在 " + root + " 下：" + home),
+    )
   }
   if @json.exists(home) {
     return Err(
-      ("conflict", "隔离 home 已经存在：" + home + "（不覆盖；要重建先移回共用 home）"),
+      (
+        "conflict",
+        "隔离 home 已经存在：" +
+        home +
+        "（不覆盖；要重建先移回共用 home）",
+      ),
     )
   }
   let src_parent = @json.join_all([dsh_home, "profiles"])
   let dst_parent = @json.join_all([home, "profiles"])
   match @fsx.ensure_dir(dst_parent) {
     Ok(_) => ()
-    Err(e) => return Err(("io-error", "建不了移动的落点 " + dst_parent + "：" + e))
+    Err(e) =>
+      return Err(
+        ("io-error", "建不了移动的落点 " + dst_parent + "：" + e),
+      )
   }
   // 落点目录已经建了：从这里往后任何一条不过，都要把 <root>/<名字> 收掉再报
   let device_note = match require_same_device(src_parent, dst_parent) {
     Err((code, message)) => {
       let _ = @fsx.remove_tree(home)
-      return Err((code, message + "；刚建的 " + home + " 已经删掉，" + src_dir + " 一个字都没动"))
+      return Err(
+        (
+          code,
+          message +
+          "；刚建的 " +
+          home +
+          " 已经删掉，" +
+          src_dir +
+          " 一个字都没动",
+        ),
+      )
     }
     Ok(note) => note
   }
@@ -238,7 +302,17 @@ pub async fn isolate_profile(
   match move_dir(src_dir, profile_dir) {
     Err((code, message)) => {
       let _ = @fsx.remove_tree(home)
-      return Err((code, message + "；刚建的 " + home + " 已经删掉，" + src_dir + " 一个字都没动"))
+      return Err(
+        (
+          code,
+          message +
+          "；刚建的 " +
+          home +
+          " 已经删掉，" +
+          src_dir +
+          " 一个字都没动",
+        ),
+      )
     }
     Ok(_) => ()
   }
@@ -249,7 +323,13 @@ pub async fn isolate_profile(
   // 所以只核对「指得通」，不比对目标。
   match verify_isolated(profile_dir, "") {
     Some(problem) =>
-      return put_back(home, src_dir, profile_dir, "io-error", "移动之后的核对没过：" + problem)
+      return put_back(
+        home,
+        src_dir,
+        profile_dir,
+        "io-error",
+        "移动之后的核对没过：" + problem,
+      )
     None => ()
   }
   // 铺其余部分：skills 软链（源里有才摆）、logs/、凭证路径那条 patch、隔离记录
@@ -258,18 +338,43 @@ pub async fn isolate_profile(
   if @json.is_dir(src_skills) {
     match @fsx.make_symlink(src_skills, @json.join_path(home, "skills")) {
       Ok(_) => skills_linked = true
-      Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "摆 skills 软链失败：" + e)
+      Err(e) =>
+        return put_back(
+          home,
+          src_dir,
+          profile_dir,
+          "io-error",
+          "摆 skills 软链失败：" + e,
+        )
     }
   }
   match @fsx.ensure_dir(@json.join_path(home, "logs")) {
     Ok(_) => ()
-    Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "建 logs/ 失败：" + e)
+    Err(e) =>
+      return put_back(
+        home,
+        src_dir,
+        profile_dir,
+        "io-error",
+        "建 logs/ 失败：" + e,
+      )
   }
   // 凭证：只写路径，不碰文件本身（@json.exists 只 stat，不读内容）
   let cred = @json.join_path(dsh_home, ".credentials.yaml")
-  match add_credentials_patch(@json.join_path(profile_dir, "cordis.patch.yml"), cred) {
+  match
+    add_credentials_patch(
+      @json.join_path(profile_dir, "cordis.patch.yml"),
+      cred,
+    ) {
     Ok(_) => ()
-    Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "写凭证路径失败：" + e)
+    Err(e) =>
+      return put_back(
+        home,
+        src_dir,
+        profile_dir,
+        "io-error",
+        "写凭证路径失败：" + e,
+      )
   }
   let created = @json.iso_from_epoch_ms(@async.now())
   let marker = @json.JObj([
@@ -283,12 +388,20 @@ pub async fn isolate_profile(
     ("credentialsPath", @json.JStr(cred)),
     ("credentialsKey", @json.JStr("credentials.config.path")),
   ])
-  match @fsx.write_text_atomic(
-    @json.join_path(home, isolation_marker),
-    @json.encode(marker) + "\n",
-  ) {
+  match
+    @fsx.write_text_atomic(
+      @json.join_path(home, isolation_marker),
+      @json.encode(marker) + "\n",
+    ) {
     Ok(_) => ()
-    Err(e) => return put_back(home, src_dir, profile_dir, "io-error", "写隔离记录失败：" + e)
+    Err(e) =>
+      return put_back(
+        home,
+        src_dir,
+        profile_dir,
+        "io-error",
+        "写隔离记录失败：" + e,
+      )
   }
   Ok({
     profile: name,
@@ -326,23 +439,43 @@ pub async fn deisolate_profile(
 ) -> Result[DeisolateOutcome, (String, String)] noraise {
   let name = @json.trim_both(name_in)
   if !single_segment(name) {
-    return Err(("bad-params", "profile 名要是单段（不含 / 与 ..，非空）：" + name))
+    return Err(
+      (
+        "bad-params",
+        "profile 名要是单段（不含 / 与 ..，非空）：" + name,
+      ),
+    )
   }
   let (root, root_source) = homes_root()
   let (dsh_home, _dsh_home_source) = @runtime.resolve_dsh_home()
   let home = isolated_home_dir(root, name)
   if home != root + "/" + name {
-    return Err(("bad-params", "隔离 home 路径不在 " + root + " 下：" + home))
+    return Err(
+      ("bad-params", "隔离 home 路径不在 " + root + " 下：" + home),
+    )
   }
   if !@json.is_dir(home) {
-    return Err(("not-found", "没有隔离 home：" + home + "（homes root 来自 " + root_source + "）"))
+    return Err(
+      (
+        "not-found",
+        "没有隔离 home：" +
+        home +
+        "（homes root 来自 " +
+        root_source +
+        "）",
+      ),
+    )
   }
   let src_dir = @json.join_all([home, "profiles", name])
   if !@json.is_dir(src_dir) {
     return Err(
       (
         "not-found",
-        "这份 home 里没有 profiles/" + name + "：" + src_dir + "（读数说它是隔离的，磁盘上不在）",
+        "这份 home 里没有 profiles/" +
+        name +
+        "：" +
+        src_dir +
+        "（读数说它是隔离的，磁盘上不在）",
       ),
     )
   }
@@ -352,21 +485,28 @@ pub async fn deisolate_profile(
     return Err(
       (
         "conflict",
-        "共用 home 里已经有同名 profile：" + dst + "（不覆盖；先给它改名或删掉，再移回）",
+        "共用 home 里已经有同名 profile：" +
+        dst +
+        "（不覆盖；先给它改名或删掉，再移回）",
       ),
     )
   }
   match @fsx.ensure_dir(dst_parent) {
     Ok(_) => ()
-    Err(e) => return Err(("io-error", "建不了移动的落点 " + dst_parent + "：" + e))
+    Err(e) =>
+      return Err(
+        ("io-error", "建不了移动的落点 " + dst_parent + "：" + e),
+      )
   }
   let src_parent = @json.join_all([home, "profiles"])
   match require_same_device(src_parent, dst_parent) {
-    Err((code, message)) => return Err((code, message + "；" + src_dir + " 还在原处"))
+    Err((code, message)) =>
+      return Err((code, message + "；" + src_dir + " 还在原处"))
     Ok(_) => ()
   }
   match move_dir(src_dir, dst) {
-    Err((code, message)) => return Err((code, message + "；" + src_dir + " 还在原处"))
+    Err((code, message)) =>
+      return Err((code, message + "；" + src_dir + " 还在原处"))
     Ok(_) => ()
   }
   // 搬回来也要重算（方向反了，深度变了同样会断，§48.1）
@@ -376,10 +516,17 @@ pub async fn deisolate_profile(
       let note = match @fsx.rename_path(dst, src_dir) {
         Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
         Err(e) =>
-          "；移动没完成，也没能放回原处：" + e + "（" + dst + " 现在在共用 home 里，要手动挪回 " +
-          src_dir + "）"
+          "；移动没完成，也没能放回原处：" +
+          e +
+          "（" +
+          dst +
+          " 现在在共用 home 里，要手动挪回 " +
+          src_dir +
+          "）"
       }
-      return Err(("io-error", "移动之后的核对没过：" + problem + note))
+      return Err(
+        ("io-error", "移动之后的核对没过：" + problem + note),
+      )
     }
     None => ()
   }
@@ -393,26 +540,30 @@ pub async fn deisolate_profile(
       return Err(
         (
           "io-error",
-          name + " 的目录已经移回共用 home（" + dst + "），但这份额外 home 里剩下的东西" +
-          "没能移进回收站：" + why,
+          name +
+          " 的目录已经移回共用 home（" +
+          dst +
+          "），但这份额外 home 里剩下的东西" +
+          "没能移进回收站：" +
+          why,
         ),
       )
-    Ok((trash_path, trash_note)) => Ok({
-      profile: name,
-      to: dst,
-      home,
-      trash_path,
-      trash_note,
-      files,
-      bytes,
-      size_source,
-      links_fixed: relink.links_fixed,
-      links_broken: relink.links_broken,
-      refs_rewritten: relink.refs_rewritten,
-    })
+    Ok((trash_path, trash_note)) =>
+      Ok({
+        profile: name,
+        to: dst,
+        home,
+        trash_path,
+        trash_note,
+        files,
+        bytes,
+        size_source,
+        links_fixed: relink.links_fixed,
+        links_broken: relink.links_broken,
+        refs_rewritten: relink.refs_rewritten,
+      })
   }
 }
-
 
 // ── 试跑用的一次性 home（design/deep-home-isolation.md 第 6 节、§9.4）────────
 //

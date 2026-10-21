@@ -84,7 +84,10 @@ pub async fn home_dir() -> String noraise {
     _ => ""
   }
   for line in passwd.split("\n") {
-    let fields : Array[String] = owned(line).split(":").map(fn(f) { owned(f) }).collect()
+    let fields : Array[String] = owned(line)
+      .split(":")
+      .map(fn(f) { owned(f) })
+      .collect()
     if fields.length() >= 6 {
       let ok = match user {
         Some(u) => fields[0] == u

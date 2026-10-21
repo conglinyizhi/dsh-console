@@ -15,14 +15,12 @@ pub let snapshots_dir_name : String = ".snapshots"
 
 ///|
 /// 保留最近多少份。超出的按 id（毫秒时间戳）从旧到新删。
-pub let snapshot_keep : Int = 20
+pub let snapshot_keep : Int32 = 20
 
 ///|
 /// 一份快照里要存的三个文件（有才存，缺的不算错）。
 pub let snapshot_file_names : Array[String] = [
-  "package.json",
-  "cordis.patch.yml",
-  "pnpm-workspace.yaml",
+  "package.json", "cordis.patch.yml", "pnpm-workspace.yaml",
 ]
 
 ///|
@@ -40,7 +38,7 @@ pub(all) struct SnapshotEntry {
   id : String
   at : String
   reason : String
-  files : Int
+  files : Int32
   bytes : Int64
 }
 
@@ -49,7 +47,7 @@ pub(all) struct SnapshotEntry {
 priv struct SnapshotMeta {
   at : String
   reason : String
-  files : Int
+  files : Int32
   bytes : Int64
 }
 
@@ -60,7 +58,7 @@ pub(all) struct SnapshotOutcome {
   dir : String
   at : String
   reason : String
-  files : Int
+  files : Int32
   bytes : Int64
   /// 真的存进去的文件名（快照目录里的那几份）
   copied : Array[String]
@@ -114,7 +112,7 @@ pub fn snapshot_path_checked(profile_dir : String, id : String) -> String? {
 
 ///|
 /// 从 Json 取整数：数字（整数值）或纯数字串都认；别的给 0。
-fn int_field(json : Json, key : String) -> Int {
+fn int_field(json : Json, key : String) -> Int32 {
   match @json.json_field(json, key) {
     Some(Number(d, ..)) =>
       if d == d.to_int().to_double() {
@@ -184,7 +182,7 @@ async fn read_meta(path : String) -> SnapshotMeta? noraise {
 ///
 /// **必须用 parse_dec64**：MoonBit 的 Int 是 32 位，13 位的毫秒时间戳塞进去会被截断，
 /// 截断之后排序与「最新是哪一份」都会悄悄错掉（实测拍出来的 id 只剩 10 位）。
-fn snapshot_desc(a : String, b : String) -> Int {
+fn snapshot_desc(a : String, b : String) -> Int32 {
   let x = @json.parse_dec64(a)
   let y = @json.parse_dec64(b)
   if x > y {
@@ -203,7 +201,9 @@ fn snapshot_desc(a : String, b : String) -> Int {
 /// 是两件事，来源串里分开说。单份 meta.json 读不出来时这一份照样列出
 /// （at 按目录名折算，reason 空、files / bytes 给 0），原因也进来源串：
 /// 那一条快照的文件还在，藏起来反而让人以为它没拍过。
-pub async fn read_snapshots(profile_dir : String) -> (Array[SnapshotEntry], String) noraise {
+pub async fn read_snapshots(
+  profile_dir : String,
+) -> (Array[SnapshotEntry], String) noraise {
   let dir = snapshots_dir_of(profile_dir)
   if !@json.is_dir(dir) {
     return ([], "还没有 " + dir + "（这只 profile 没拍过快照）")
@@ -222,14 +222,15 @@ pub async fn read_snapshots(profile_dir : String) -> (Array[SnapshotEntry], Stri
     if !@json.is_dir(snapshot_dir) {
       continue
     }
-    let (at, reason, files, bytes) = match read_meta(@json.join_path(snapshot_dir, "meta.json")) {
+    let (at, reason, files, bytes) = match
+      read_meta(@json.join_path(snapshot_dir, "meta.json")) {
       Some(meta) => (meta.at, meta.reason, meta.files, meta.bytes)
       None => {
         problems.push(name + "/meta.json 读不出来")
         (@json.iso_from_epoch_ms(@json.parse_dec64(name)), "", 0, 0L)
       }
     }
-    entries.push({ id: name, at, reason, files, bytes })
+    entries.push({ id: name, at, reason, files, bytes, })
   }
   entries.sort_by(fn(a, b) { snapshot_desc(a.id, b.id) })
   let count = entries.length().to_string()
@@ -251,7 +252,10 @@ pub async fn read_snapshots(profile_dir : String) -> (Array[SnapshotEntry], Stri
 /// 还原第一步会先拍一张「还原前」，要是那张把正被还原的这一份挤掉，
 /// 后面就会对着一个空目录读文件，回一句「快照里一个都没有」，而用户要的正是它。
 /// 跳过它、删下一份旧的，条数下一次拍照时自然收敛回上限。
-async fn prune_snapshots(dir : String, keep_id : String) -> Array[String] noraise {
+async fn prune_snapshots(
+  dir : String,
+  keep_id : String,
+) -> Array[String] noraise {
   let pruned : Array[String] = []
   let names = match @json.list_dir_result(dir) {
     Ok(list) => list
@@ -293,7 +297,7 @@ async fn prune_snapshots(dir : String, keep_id : String) -> Array[String] norais
 pub async fn create_snapshot(
   profile_dir : String,
   reason_in : String,
-  keep_id? : String = "",
+  keep_id~ : String = "",
 ) -> Result[SnapshotOutcome, String] noraise {
   let trimmed = @json.trim_both(reason_in)
   let reason = if trimmed == "" { default_snapshot_reason } else { trimmed }
@@ -348,7 +352,7 @@ pub async fn create_snapshot(
     Err(e) => return Err("meta.json 没写进去：" + e)
   }
   let pruned = prune_snapshots(dir, keep_id)
-  Ok({ id, dir: target, at, reason, files, bytes, copied, missing, pruned })
+  Ok({ id, dir: target, at, reason, files, bytes, copied, missing, pruned, })
 }
 
 ///|
@@ -363,16 +367,26 @@ pub async fn restore_snapshot(
 ) -> Result[RestoreOutcome, (String, String)] noraise {
   let snapshot_dir = match snapshot_path_checked(profile_dir, id) {
     Some(p) => p
-    None => {
-      return Err(("bad-params", "快照 id 只认数字，且必须正好在 .snapshots 下：收到了 " + id))
-    }
+    None =>
+      return Err(
+        (
+          "bad-params",
+          "快照 id 只认数字，且必须正好在 .snapshots 下：收到了 " +
+          id,
+        ),
+      )
   }
   if !@json.is_dir(snapshot_dir) {
     return Err(("not-found", "快照不存在：" + snapshot_dir))
   }
   let meta = read_meta(@json.join_path(snapshot_dir, "meta.json"))
   let at = match meta {
-    Some(m) => if m.at == "" { @json.iso_from_epoch_ms(@json.parse_dec64(id)) } else { m.at }
+    Some(m) =>
+      if m.at == "" {
+        @json.iso_from_epoch_ms(@json.parse_dec64(id))
+      } else {
+        m.at
+      }
     None => @json.iso_from_epoch_ms(@json.parse_dec64(id))
   }
   let reason = match meta {
@@ -382,11 +396,15 @@ pub async fn restore_snapshot(
   // keep_id：这一张不能把正在还原的那一份挤掉（见 prune_snapshots 的注释）
   let pre = match create_snapshot(profile_dir, pre_restore_reason, keep_id=id) {
     Ok(o) => o
-    Err(e) => {
+    Err(e) =>
       return Err(
-        ("io-error", "还原前那张快照没拍成（" + e + "），profile 里三个文件一个都没动"),
+        (
+          "io-error",
+          "还原前那张快照没拍成（" +
+          e +
+          "），profile 里三个文件一个都没动",
+        ),
       )
-    }
   }
   let restored : Array[String] = []
   let missing : Array[String] = []
@@ -398,28 +416,44 @@ pub async fn restore_snapshot(
     }
     let data = match @fsx.read_bytes(source) {
       Ok(d) => d
-      Err(e) => {
+      Err(e) =>
         return Err(
           (
             "io-error",
-            "读快照里的 " + name + " 失败（" + e + "）；已经写回：" + describe_files(restored),
+            "读快照里的 " +
+            name +
+            " 失败（" +
+            e +
+            "）；已经写回：" +
+            describe_files(restored),
           ),
         )
-      }
     }
     match @fsx.write_bytes(@json.join_path(profile_dir, name), data) {
       Ok(_) => restored.push(name)
-      Err(e) => {
+      Err(e) =>
         return Err(
           (
             "io-error",
-            "写回 " + name + " 失败（" + e + "）；已经写回：" + describe_files(restored),
+            "写回 " +
+            name +
+            " 失败（" +
+            e +
+            "）；已经写回：" +
+            describe_files(restored),
           ),
         )
-      }
     }
   }
-  Ok({ id, at, reason, dir: snapshot_dir, restored, missing_in_snapshot: missing, pre_snapshot: pre })
+  Ok({
+    id,
+    at,
+    reason,
+    dir: snapshot_dir,
+    restored,
+    missing_in_snapshot: missing,
+    pre_snapshot: pre,
+  })
 }
 
 ///|

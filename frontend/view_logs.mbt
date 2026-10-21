@@ -13,7 +13,7 @@ pub let fixed_sources : Array[(String, String)] = [
 ]
 
 ///|
-fn format_bytes(size : Int) -> String {
+fn format_bytes(size : Int32) -> String {
   if size < 1024 {
     size.to_string() + " B"
   } else if size < 1024 * 1024 {
@@ -27,7 +27,7 @@ fn format_bytes(size : Int) -> String {
 
 ///|
 /// 定点小数：只用于体积这类展示值，不做数值推导。
-fn format_decimal(value : Double, digits : Int) -> String {
+fn format_decimal(value : Double, digits : Int32) -> String {
   let scale = if digits == 1 { 10.0 } else { 100.0 }
   let scaled = (value * scale + 0.5).to_int()
   let unit = if digits == 1 { 10 } else { 100 }
@@ -148,7 +148,9 @@ fn logs_meta_full(model : Model) -> String {
     None => "大小未知"
   }
   let tail_part = if got.truncated {
-    "尾部 " + rows + " | " +
+    "尾部 " +
+    rows +
+    " | " +
     (match got.truncated_note {
       Some(note) => note
       None => "窗口已截断"
@@ -164,7 +166,15 @@ fn logs_meta_full(model : Model) -> String {
   } else {
     ""
   }
-  tail_part + " | " + size + " | " + head + home_part + " | 读于 " + model.log_time + " | 只读"
+  tail_part +
+  " | " +
+  size +
+  " | " +
+  head +
+  home_part +
+  " | 读于 " +
+  model.log_time +
+  " | 只读"
 }
 
 ///|
@@ -227,12 +237,11 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   //   还在读（这一份内容不属于当前来源）→ 加载态
   //   读回来了、确实一行都没有      → 空态
   //   读失败了                      → 空态 + 那个「读取失败」标记（既有行为，不混进加载态）
-  let reading = model.log_loading && (lines.length() == 0 || model.log_source_read != model.log_source)
+  let reading = model.log_loading &&
+    (lines.length() == 0 || model.log_source_read != model.log_source)
   let body = if reading {
     loading_block(
-      "log-loading",
-      "正在读取日志…",
-      "日志还在读，这里先摆加载态。",
+      "log-loading", "正在读取日志…", "日志还在读，这里先摆加载态。",
     )
   } else if lines.length() > 0 {
     @html.div(
@@ -250,10 +259,14 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       Some(tag) => tag.detail
       None => "这一份日志读到了，里面没有内容。"
     }
-    @html.div(class="dsh-log-empty", attrs=mark("log-empty", ["logs", "empty"]), [
-      @html.p(class="dsh-log-empty-title", "没有可显示的行"),
-      @html.p(class="dsh-log-empty-detail", detail),
-    ])
+    @html.div(
+      class="dsh-log-empty",
+      attrs=mark("log-empty", ["logs", "empty"]),
+      [
+        @html.p(class="dsh-log-empty-title", "没有可显示的行"),
+        @html.p(class="dsh-log-empty-detail", detail),
+      ],
+    )
   }
   let note = if model.instances_error.length() > 0 {
     @html.p(
@@ -263,39 +276,35 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   } else {
     @html.nothing
   }
-  @html.section(
-    class="dsh-logs",
-    attrs=mark("logs-page", ["logs", "page"]),
-    [
-      @html.header(class="dsh-logs-head", [
-        @html.h1(class="dsh-page-title", "日志"),
-        source_badge(model.log_tag, ["logs", "head", "source-badge"]),
-      ]),
-      @html.div(class="dsh-toolbar", [
-        @html.div(class="dsh-tool-left", [
-          @html.label(
-            class="dsh-log-label",
-            for_="log-source",
-            attrs=mark("log-source-label", ["logs", "source-label"]),
-            "来源",
-          ),
-          source_select(model, emit),
-        ]),
-        @html.span(
-          class="dsh-meta",
-          attrs=mark("logs-meta", ["logs", "meta"]).title(logs_meta_full(model)),
-          logs_meta(model),
+  @html.section(class="dsh-logs", attrs=mark("logs-page", ["logs", "page"]), [
+    @html.header(class="dsh-logs-head", [
+      @html.h1(class="dsh-page-title", "日志"),
+      source_badge(model.log_tag, ["logs", "head", "source-badge"]),
+    ]),
+    @html.div(class="dsh-toolbar", [
+      @html.div(class="dsh-tool-left", [
+        @html.label(
+          class="dsh-log-label",
+          for_="log-source",
+          attrs=mark("log-source-label", ["logs", "source-label"]),
+          "来源",
         ),
-        @html.button(
-          class="dsh-refresh",
-          type_="button",
-          attrs=mark("log-refresh", ["logs", "refresh"]),
-          on_click=emit(LogRefresh),
-          [icon("refresh", size=13), @html.span("刷新")],
-        ),
+        source_select(model, emit),
       ]),
-      note,
-      body,
-    ],
-  )
+      @html.span(
+        class="dsh-meta",
+        attrs=mark("logs-meta", ["logs", "meta"]).title(logs_meta_full(model)),
+        logs_meta(model),
+      ),
+      @html.button(
+        class="dsh-refresh",
+        type_="button",
+        attrs=mark("log-refresh", ["logs", "refresh"]),
+        on_click=emit(LogRefresh),
+        [icon("refresh", size=13), @html.span("刷新")],
+      ),
+    ]),
+    note,
+    body,
+  ])
 }

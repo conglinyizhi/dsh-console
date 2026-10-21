@@ -72,7 +72,9 @@ pub fn authorize(req : @moonback.Request) -> Unit raise ActionError {
   if !has_console_header(req) {
     fail(
       "not-authorized",
-      "缺少 " + header_dsh_console + ": 1 请求头；写动作只接受控制台前端发起的请求",
+      "缺少 " +
+      header_dsh_console +
+      ": 1 请求头；写动作只接受控制台前端发起的请求",
     )
   }
   match req.headers.get(header_origin) {
@@ -82,7 +84,8 @@ pub fn authorize(req : @moonback.Request) -> Unit raise ActionError {
       if !origin_allowed(origin) {
         fail(
           "not-authorized",
-          "Origin 不被信任：" + origin +
+          "Origin 不被信任：" +
+          origin +
           "；写动作只接受本机同源页面（http://127.0.0.1 / http://localhost / http://[::1]）",
         )
       }

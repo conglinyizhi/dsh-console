@@ -15,7 +15,7 @@
 /// 一个 inode 的持有者。
 pub struct Holder {
   inode : Int64
-  pid : Int
+  pid : Int32
   /// 该进程 fd 表里出现过的 …/.dsh/… 路径前缀（DSH_HOME 的候选线索，没有给 None）
   home_hint : String?
 }
@@ -24,15 +24,15 @@ pub struct Holder {
 /// 一次「谁持有这些 inode」扫描的结论与统计。
 pub struct HolderScan {
   holders : Array[Holder]
-  scanned_pids : Int
-  fd_denied : Int
+  scanned_pids : Int32
+  fd_denied : Int32
   note : String
 }
 
 ///|
 /// 进程事实 + 每一项的来源/原因。拿不到的值是 None，同时 source 里写清为什么。
 pub struct ProcFacts {
-  pid : Int?
+  pid : Int32?
   inode : Int64?
   profile : String?
   profile_source : String
@@ -42,7 +42,7 @@ pub struct ProcFacts {
   version : String?
   version_source : String
   started_at : String?
-  uptime_seconds : Int?
+  uptime_seconds : Int32?
   /// 进程级原因码：port-join / port-arg / process-gone / fd-unreadable / cmdline-unreadable / unscanned
   reason_code : String
   reason : String
@@ -90,9 +90,9 @@ fn is_denied(message : String) -> Bool {
 
 ///|
 /// /proc 下所有数字目录，按 pid 升序。
-async fn all_pids() -> Array[Int] noraise {
+async fn all_pids() -> Array[Int32] noraise {
   let names = @json.list_dir(proc_root)
-  let pids : Array[Int] = []
+  let pids : Array[Int32] = []
   for name in names {
     if @json.is_all_digits(name) {
       pids.push(@json.parse_dec(name))
@@ -160,21 +160,27 @@ pub async fn holders_for_inodes(inodes : Array[Int64]) -> HolderScan noraise {
       }
     }
     for inode in matched {
-      holders.push({ inode, pid, home_hint })
+      holders.push({ inode, pid, home_hint, })
     }
   }
   let note = if wanted.length() == 0 {
     "没有待查的 socket inode（/proc/net/tcp 读不到或没有 loopback LISTEN）"
   } else if found.length() >= wanted.length() {
-    "在 /proc/<pid>/fd 里对上了全部 " + wanted.length().to_string() + " 个 socket inode"
+    "在 /proc/<pid>/fd 里对上了全部 " +
+    wanted.length().to_string() +
+    " 个 socket inode"
   } else if fd_denied > 0 {
-    "有 " + fd_denied.to_string() + " 个进程的 /proc/<pid>/fd 读不了（权限不足），这些进程的 inode 无法对上"
+    "有 " +
+    fd_denied.to_string() +
+    " 个进程的 /proc/<pid>/fd 读不了（权限不足），这些进程的 inode 无法对上"
   } else {
-    "扫了 " + scanned.to_string() + " 个进程的 fd 表，有 " +
+    "扫了 " +
+    scanned.to_string() +
+    " 个进程的 fd 表，有 " +
     (wanted.length() - found.length()).to_string() +
     " 个 socket inode 没有任何可见进程持有（进程已退出，或它不在本 PID 命名空间里）"
   }
-  { holders, scanned_pids: scanned, fd_denied, note }
+  { holders, scanned_pids: scanned, fd_denied, note, }
 }
 
 ///|
@@ -192,13 +198,18 @@ pub fn holder_for(scan : HolderScan, inode : Int64) -> Holder? {
 /// 进程级原因码对应的人话。前后端共用同一套口径：前端按码给短标签，长说明照抄这里。
 pub fn reason_text(code : String) -> String {
   match code {
-    "port-join" => "端口对应的 socket inode 在 /proc/<pid>/fd 里对到了持有进程"
-    "port-arg" => "inode 对不上，退回按 cmdline 的 --port 匹配到的进程（证据比 inode 弱）"
+    "port-join" =>
+      "端口对应的 socket inode 在 /proc/<pid>/fd 里对到了持有进程"
+    "port-arg" =>
+      "inode 对不上，退回按 cmdline 的 --port 匹配到的进程（证据比 inode 弱）"
     "process-gone" =>
       "端口仍在 LISTEN，但没有可见进程持有该 socket：进程已退出，或它运行在别的 PID 命名空间、属于别的用户"
-    "fd-unreadable" => "/proc/<pid>/fd 读不到（权限不足或 hidepid），无法从 inode 找到进程"
-    "cmdline-unreadable" => "进程在，但 /proc/<pid>/cmdline 读不到（权限不足，或读的瞬间进程已退出）"
-    "unscanned" => "没有拿到该端口的 socket inode（/proc/net/tcp(6) 读不到或该端口不在其中）"
+    "fd-unreadable" =>
+      "/proc/<pid>/fd 读不到（权限不足或 hidepid），无法从 inode 找到进程"
+    "cmdline-unreadable" =>
+      "进程在，但 /proc/<pid>/cmdline 读不到（权限不足，或读的瞬间进程已退出）"
+    "unscanned" =>
+      "没有拿到该端口的 socket inode（/proc/net/tcp(6) 读不到或该端口不在其中）"
     _ => "原因未分类"
   }
 }
@@ -259,13 +270,18 @@ pub async fn read_entry_version(entry : String) -> (String?, String) noraise {
     None =>
       return (
         None,
-        "入口路径里没有 node_modules/@deepseek-ai/dsh 这一段，认不出包目录：" + entry,
+        "入口路径里没有 node_modules/@deepseek-ai/dsh 这一段，认不出包目录：" +
+        entry,
       )
   }
   let file = @json.join_path(dir, "package.json")
   let text = match @json.read_text_file(file) {
     Ok(t) => t
-    Err(e) => return (None, "入口包的 package.json 读不到：" + file + "（" + e + "）")
+    Err(e) =>
+      return (
+        None,
+        "入口包的 package.json 读不到：" + file + "（" + e + "）",
+      )
   }
   let parsed = match @json.json_parse(text) {
     Some(j) => j
@@ -274,8 +290,13 @@ pub async fn read_entry_version(entry : String) -> (String?, String) noraise {
   match @json.json_field(parsed, "version") {
     Some(v) =>
       match @json.json_string(v) {
-        Some(version) => (Some(version), "入口包 package.json 的 version 字段：" + file + via)
-        None => (None, "入口包 package.json 的 version 不是字符串：" + file)
+        Some(version) =>
+          (
+            Some(version),
+            "入口包 package.json 的 version 字段：" + file + via,
+          )
+        None =>
+          (None, "入口包 package.json 的 version 不是字符串：" + file)
       }
     None => (None, "入口包 package.json 里没有 version 字段：" + file)
   }
@@ -285,7 +306,7 @@ pub async fn read_entry_version(entry : String) -> (String?, String) noraise {
 /// 进程的四项事实：Profile / DSH_HOME / DSH 版本 / 运行时长，逐项带来源。
 /// profile 来自 cmdline，home 先看 environ 再看 fd 表，版本来自入口包，时长来自 stat + uptime。
 pub async fn facts_for_pid(
-  pid : Int,
+  pid : Int32,
   inode : Int64?,
   home_hint : String?,
   code : String,
@@ -298,7 +319,9 @@ pub async fn facts_for_pid(
       return absent_facts(
         inode,
         "cmdline-unreadable",
-        "找不到 PID " + pid_text + " 的 cmdline（读不到，或读的瞬间进程已退出）",
+        "找不到 PID " +
+        pid_text +
+        " 的 cmdline（读不到，或读的瞬间进程已退出）",
       )
   }
   let profile = read_option(argv, "--profile")
@@ -315,19 +338,25 @@ pub async fn facts_for_pid(
   }
   let (version, version_source) = match entry {
     Some(e) => read_entry_version(e)
-    None => (
-      None,
-      "未知：PID " + pid_text + " 的 cmdline 里没有 dsh 入口，认不出是哪个包",
-    )
+    None =>
+      (
+        None,
+        "未知：PID " +
+        pid_text +
+        " 的 cmdline 里没有 dsh 入口，认不出是哪个包",
+      )
   }
   let (dsh_home, dsh_home_source) = match read_env_of(pid, "DSH_HOME") {
-    Some(v) => (Some(v), "$DSH_HOME 环境变量（PID " + pid_text + " 的 environ）")
+    Some(v) =>
+      (Some(v), "$DSH_HOME 环境变量（PID " + pid_text + " 的 environ）")
     None =>
       match home_hint {
         Some(prefix) =>
           (
             Some(prefix),
-            "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID " + pid_text + "）",
+            "environ 里没有 DSH_HOME；取 fd 表里 …/.dsh/… 路径的前缀（PID " +
+            pid_text +
+            "）",
           )
         // 认不出就是认不出：不给 dsh_home，也不拿 $HOME/.dsh 顶替。
         // 自定义 home（比如 ~/.dsh-homes/<profile>/）在这一层本来就读不出来，
@@ -336,7 +365,8 @@ pub async fn facts_for_pid(
         None =>
           (
             None,
-            "未知：PID " + pid_text +
+            "未知：PID " +
+            pid_text +
             " 的 environ 里没有 DSH_HOME，fd 表里也没有 …/.dsh/… 这一段；认不出它的 home，" +
             "不按默认值 $HOME/.dsh 顶替",
           )
@@ -362,6 +392,10 @@ pub async fn facts_for_pid(
     started_at,
     uptime_seconds,
     reason_code: code,
-    reason: if detail == "" { reason_text(code) } else { detail },
+    reason: if detail == "" {
+      reason_text(code)
+    } else {
+      detail
+    },
   }
 }

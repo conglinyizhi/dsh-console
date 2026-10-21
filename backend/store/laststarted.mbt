@@ -46,19 +46,24 @@ fn looks_like_iso(s : String) -> Bool {
 
 ///|
 /// 往结果里放一条：同 id 已在的时候，只有新的 at 更大才替换。
-fn put_latest(list : Array[LastStarted], id : String, at : String, source : String) -> Unit {
+fn put_latest(
+  list : Array[LastStarted],
+  id : String,
+  at : String,
+  source : String,
+) -> Unit {
   if id == "" || !looks_like_iso(at) {
     return
   }
   for i = 0; i < list.length(); i = i + 1 {
     if list[i].id == id {
       if @json.compare_code_units(at, list[i].at) > 0 {
-        list[i] = { id, at, source }
+        list[i] = { id, at, source, }
       }
       return
     }
   }
-  list.push({ id, at, source })
+  list.push({ id, at, source, })
 }
 
 ///|
@@ -124,7 +129,7 @@ fn audit_start_entries(line : Json) -> Array[LastStarted] {
         }
       None => ""
     }
-    out.push({ id: profile_row_id(profile, home), at, source })
+    out.push({ id: profile_row_id(profile, home), at, source, })
   }
   let port = match field_of(params, "port") {
     Some(v) =>
@@ -151,7 +156,8 @@ fn audit_start_entries(line : Json) -> Array[LastStarted] {
       }
   }
   match port {
-    Some(n) => out.push({ id: order_id_port_prefix + n.to_string(), at, source })
+    Some(n) =>
+      out.push({ id: order_id_port_prefix + n.to_string(), at, source, })
     None => ()
   }
   out
@@ -171,7 +177,12 @@ pub async fn load_last_started() -> (Array[LastStarted], Array[String]) noraise 
       let source = "runtime.json 里这条登记的 startedAt"
       put_latest(list, port_row_id(r.port), r.started_at, source)
       if r.profile != "" {
-        put_latest(list, profile_row_id(r.profile, r.home), r.started_at, source)
+        put_latest(
+          list,
+          profile_row_id(r.profile, r.home),
+          r.started_at,
+          source,
+        )
       }
     }
   }
@@ -199,7 +210,11 @@ pub async fn load_last_started() -> (Array[LastStarted], Array[String]) noraise 
           }
         }
         if bad_lines > 0 {
-          notes.push("audit.jsonl 里有 " + bad_lines.to_string() + " 行解析不出来，已跳过")
+          notes.push(
+            "audit.jsonl 里有 " +
+            bad_lines.to_string() +
+            " 行解析不出来，已跳过",
+          )
         }
       }
       Err(e) => notes.push("读不动 " + paths.audit + "：" + e)
@@ -214,11 +229,13 @@ pub async fn load_last_started() -> (Array[LastStarted], Array[String]) noraise 
 pub fn last_started_json(items : Array[LastStarted]) -> @json.JsonVal {
   let out : Array[@json.JsonVal] = []
   for item in items {
-    out.push(@json.JObj([
-      ("id", @json.JStr(item.id)),
-      ("at", @json.JStr(item.at)),
-      ("source", @json.JStr(item.source)),
-    ]))
+    out.push(
+      @json.JObj([
+        ("id", @json.JStr(item.id)),
+        ("at", @json.JStr(item.at)),
+        ("source", @json.JStr(item.source)),
+      ]),
+    )
   }
   @json.JArr(out)
 }

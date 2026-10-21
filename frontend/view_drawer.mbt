@@ -11,9 +11,19 @@ fn drawer_button(
   danger : Bool,
   disabled : Bool,
   emit : @cmd.Emit[Msg],
-  elem_id? : String = "",
+  elem_id~ : String = "",
 ) -> @html.Html {
-  drawer_button_hint(row, key, icon_name, label, danger, disabled, "", emit, elem_id~)
+  drawer_button_hint(
+    row,
+    key,
+    icon_name,
+    label,
+    danger,
+    disabled,
+    "",
+    emit,
+    elem_id~,
+  )
 }
 
 ///|
@@ -27,13 +37,16 @@ fn drawer_button_hint(
   disabled : Bool,
   hint : String,
   emit : @cmd.Emit[Msg],
-  elem_id? : String = "",
+  elem_id~ : String = "",
 ) -> @html.Html {
   let name = action_name(key)
-  let mut attrs = mark(
-    "drawer-" + name,
-    ["overview", "drawer", row.id, "action", name],
-  ).data_set("action", name)
+  let mut attrs = mark("drawer-" + name, [
+    "overview",
+    "drawer",
+    row.id,
+    "action",
+    name,
+  ]).data_set("action", name)
   if hint != "" {
     attrs = attrs.title(hint)
   }
@@ -45,7 +58,7 @@ fn drawer_button_hint(
   @html.button(
     class=if danger { "dsh-btn danger" } else { "dsh-btn" },
     type_="button",
-    disabled=disabled,
+    disabled~,
     attrs~,
     on_click=emit(RowAction(row.id, key)),
     [icon(icon_name), @html.span(label)],
@@ -62,7 +75,11 @@ fn drawer_button_hint(
 ///   3. 点下去那一刻把模式读出来一起发（DeleteOpen 的第三格）—— 确认框与请求都照它走。
 ///
 /// 悬停两句：回收站开着时说「按住 Shift 是彻底删除」，关着时说「回收站没开，删除就是彻底删除」。
-fn drawer_delete_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn drawer_delete_button(
+  row : Row,
+  model : Model,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let hard_default = delete_to_trash_of(model) != Some(true)
   let hint = if hard_default {
     "回收站没开，删除就是彻底删除（删完无法恢复）"
@@ -75,7 +92,13 @@ fn drawer_delete_button(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @htm
     disabled=row.busy,
     // 模式在**这一拍**读（Attrs.on_click 挂的是 DOM 监听器，同步调用）：
     // Shift 是文档级标记，不进 model，也没法在渲染期读到一个「此刻」的值。
-    attrs=mark("drawer-delete", ["overview", "drawer", row.id, "action", "delete"])
+    attrs=mark("drawer-delete", [
+        "overview",
+        "drawer",
+        row.id,
+        "action",
+        "delete",
+      ])
       .data_set("action", "delete")
       .data_set("mode", if hard_default { "hard" } else { "soft" })
       .title(hint)
@@ -109,9 +132,17 @@ fn drawer_start_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     return @html.button(
       class="dsh-btn is-inert" + tone,
       type_="button",
-      attrs=mark("drawer-start-cli", ["overview", "drawer", row.id, "action", "start-cli"])
+      attrs=mark("drawer-start-cli", [
+          "overview",
+          "drawer",
+          row.id,
+          "action",
+          "start-cli",
+        ])
         .aria_disabled("true")
-        .title("命令行型 profile，起不成常驻实例；点一下看怎么用"),
+        .title(
+          "命令行型 profile，起不成常驻实例；点一下看怎么用",
+        ),
       on_click=emit(CliHelpOpen(row.id)),
       [icon("play", size=13), @html.span("启动")],
     )
@@ -139,20 +170,20 @@ fn drawer_start_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
 /// 回执随 StartClicked 一起进 model：开成没开成不许猜（被拦时 window.open 给 null）。
 fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
   mark("drawer-start", ["overview", "drawer", row.id, "action", "start"])
-    .data_set("action", "start")
-    .on_click(fn(_event) {
-      let profile = match row.profile_name {
-        Some(name) => name
-        None => ""
-      }
-      let tab = if profile == "" {
-        // 读数里连 profile 目录名都没有（演示数据）：这一枪本来就不会发请求，别开标页
-        ""
-      } else {
-        js_tab_hold(profile)
-      }
-      emit(StartClicked(row.id, profile, tab))
-    })
+  .data_set("action", "start")
+  .on_click(fn(_event) {
+    let profile = match row.profile_name {
+      Some(name) => name
+      None => ""
+    }
+    let tab = if profile == "" {
+      // 读数里连 profile 目录名都没有（演示数据）：这一枪本来就不会发请求，别开标页
+      ""
+    } else {
+      js_tab_hold(profile)
+    }
+    emit(StartClicked(row.id, profile, tab))
+  })
 }
 
 ///|
@@ -166,23 +197,35 @@ fn start_click(row : Row, emit : @cmd.Emit[Msg]) -> @html.Attrs {
 ///
 /// 焦点：展开落进菜单项（键盘 Enter 就是「强制启动」），收起回 chevron；
 /// 菜单项一撤，焦点落在被卸载的节点上会掉到 body。
-fn drawer_open_ui_split(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn drawer_open_ui_split(
+  row : Row,
+  model : Model,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let tone = match row.tone {
     Accent => " accent"
     Violet => " violet"
   }
   let open = model.split_menu_open
   let main_attrs = mark("drawer-open-web-ui", [
-    "overview", "drawer", row.id, "action", "open-ui",
-  ])
+      "overview",
+      "drawer",
+      row.id,
+      "action",
+      "open-ui",
+    ])
     .data_set("action", "open-ui")
     .title(
       open_ui_hint(row) +
       "；按住 Alt，或点右边的菜单：不管有没有 key，直接开裸地址（可能用不了）",
     )
   let toggle_attrs = mark("drawer-open-ui-menu", [
-    "overview", "drawer", row.id, "action", "open-ui-menu",
-  ])
+      "overview",
+      "drawer",
+      row.id,
+      "action",
+      "open-ui-menu",
+    ])
     .data_set("action", "open-ui-menu")
     .data_set("state", if open { "open" } else { "closed" })
     .aria_haspopup("menu")
@@ -210,7 +253,12 @@ fn drawer_open_ui_split(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @htm
     children.push(
       @html.div(
         class="dsh-split-menu",
-        attrs=mark("drawer-open-ui-menu-list", ["overview", "drawer", row.id, "menu"])
+        attrs=mark("drawer-open-ui-menu-list", [
+            "overview",
+            "drawer",
+            row.id,
+            "menu",
+          ])
           .role("menu")
           .aria_label("打开 Web UI 的其它方式"),
         [
@@ -219,11 +267,17 @@ fn drawer_open_ui_split(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @htm
             class="dsh-menu-item",
             type_="button",
             attrs=mark("drawer-open-ui-force", [
-              "overview", "drawer", row.id, "action", "open-ui-force",
-            ])
+                "overview",
+                "drawer",
+                row.id,
+                "action",
+                "open-ui-force",
+              ])
               .data_set("action", "open-ui-force")
               .role("menuitem")
-              .title("不管有没有 key，直接在新标签页打开裸地址；服务端没握手，可能用不了")
+              .title(
+                "不管有没有 key，直接在新标签页打开裸地址；服务端没握手，可能用不了",
+              )
               .on_click(fn(_event) {
                 // 两件事同一拍：开裸地址（同步，手势栈里）、收菜单（焦点回 chevron）
                 @cmd.batch([
@@ -241,7 +295,13 @@ fn drawer_open_ui_split(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @htm
     children.push(
       @html.div(
         class="dsh-split-scrim",
-        attrs=mark("drawer-open-ui-scrim", ["overview", "drawer", row.id, "menu", "scrim"]),
+        attrs=mark("drawer-open-ui-scrim", [
+          "overview",
+          "drawer",
+          row.id,
+          "menu",
+          "scrim",
+        ]),
         on_click=emit(SplitMenuClose),
         @html.nothing,
       ),
@@ -250,7 +310,11 @@ fn drawer_open_ui_split(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @htm
   @html.div(
     class="dsh-split" + tone,
     attrs=mark("drawer-open-ui-split", [
-      "overview", "drawer", row.id, "action", "open-ui-split",
+      "overview",
+      "drawer",
+      row.id,
+      "action",
+      "open-ui-split",
     ]).data_set("open", if open { "true" } else { "false" }),
     children,
   )
@@ -292,21 +356,31 @@ fn home_field_hint(row : Row) -> String {
   if row.home_kind == "" {
     if row.home_kind_source != "" {
       // 连实例的 home 都认不出：说清「两个来源都没有」，不拿默认值顶上
-      "这只实例的 home 与 profile 都认不出来（" + row.home_kind_source + "）"
+      "这只实例的 home 与 profile 都认不出来（" +
+      row.home_kind_source +
+      "）"
     } else {
       "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
     }
   } else if row.home_from_instance {
     // §33.1：profile 不在控制台的 DSH_HOME 里，按它跑着的那份 home 算
     "按实例的 home 认定的：这只 profile 不在控制台的 DSH_HOME 里，所以按它跑着的那份 home 算" +
-    "\n路径：" + row.home_path +
-    (if row.home_kind_source == "" { "" } else { "\n依据：" + row.home_kind_source })
+    "\n路径：" +
+    row.home_path +
+    (if row.home_kind_source == "" {
+      ""
+    } else {
+      "\n依据：" + row.home_kind_source
+    })
   } else {
     let kind_line = match row.home_kind {
-      "isolated" => "隔离：起实例用的是这份 home，与共用 DSH_HOME 分开"
+      "isolated" =>
+        "隔离：起实例用的是这份 home，与共用 DSH_HOME 分开"
       "shared" => "共用：与控制台自己的 DSH_HOME 是同一份"
-      "trial" => "试跑：维护作业开的一次性 home，作业收尾时删掉"
-      _ => "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
+      "trial" =>
+        "试跑：维护作业开的一次性 home，作业收尾时删掉"
+      _ =>
+        "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
     }
     let tail = if row.home_kind_source == "" {
       "（读数里没给判断依据）"
@@ -334,7 +408,8 @@ fn run_home_field(row : Row) -> @html.Html? {
   let hint = if row.home_hint == "" {
     "这只实例进程自己用的 DSH_HOME，与「配置 home」那一份不同"
   } else {
-    row.home_hint + "\n与上面「配置 home」不是同一份，所以单独列这一行"
+    row.home_hint +
+    "\n与上面「配置 home」不是同一份，所以单独列这一行"
   }
   Some(field("play", "run-home", row.id, "运行 home", row.home, hint))
 }
@@ -366,7 +441,11 @@ fn home_field_items(row : Row) -> Array[@html.Html] {
 /// 顺序照原来的菜单骨架：先主操作（打开 / 起停 / 重启），再「打开与复制」那一簇
 /// （开新标签、两条复制、复制开发指令），然后是会改本机状态的（重命名 / 备注 / 派生 /
 /// 归档 / 删除），最后是运维三项（查看日志 / 打开工作目录 / 编辑配置）。
-fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn drawer_controls(
+  row : Row,
+  model : Model,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let running = row.status is Running
   let busy = row.busy
   let main : Array[@html.Html] = []
@@ -379,11 +458,19 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         class="dsh-btn",
         type_="button",
         disabled=busy,
-        attrs=mark("drawer-stop", ["overview", "drawer", row.id, "action", "stop"])
-          .data_set("action", "stop"),
+        attrs=mark("drawer-stop", [
+          "overview",
+          "drawer",
+          row.id,
+          "action",
+          "stop",
+        ]).data_set("action", "stop"),
         on_click=emit(RowAction(row.id, Toggle)),
         // 红色方块：停止键的通行形状。圆形在别处是状态灯，混用会读成「这里有个红点」
-        [@html.span(class="dsh-stop-mark", [icon("stop", size=12)]), @html.span("停止")],
+        [
+          @html.span(class="dsh-stop-mark", [icon("stop", size=12)]),
+          @html.span("停止"),
+        ],
       ),
     )
   } else {
@@ -394,12 +481,23 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       class="dsh-btn",
       type_="button",
       disabled=model.restarting == row.id || busy,
-      attrs=mark("drawer-restart", ["overview", "drawer", row.id, "action", "restart"])
-        .data_set("action", "restart"),
+      attrs=mark("drawer-restart", [
+        "overview",
+        "drawer",
+        row.id,
+        "action",
+        "restart",
+      ]).data_set("action", "restart"),
       on_click=emit(RowAction(row.id, Restart)),
       [
         icon("refresh"),
-        @html.span(if model.restarting == row.id { "重启中…" } else { "重启" }),
+        @html.span(
+          if model.restarting == row.id {
+            "重启中…"
+          } else {
+            "重启"
+          },
+        ),
       ],
     ),
   )
@@ -429,14 +527,32 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
   // 带令牌的地址只有真读到时才有这一项：读不到令牌就不摆一个「复制空串」出来
   if row.web_url is Some(_) {
     take.push(
-      drawer_button(row, CopyTokenUrl, "key-variant", "复制带令牌的地址", false, false, emit),
+      drawer_button(
+        row,
+        CopyTokenUrl,
+        "key-variant",
+        "复制带令牌的地址",
+        false,
+        false,
+        emit,
+      ),
     )
   }
   // 「复制开发指令」认得出 profile 目录名才摆（见 copy_dev_entry 的原口径）
   match row.profile_name {
     Some(name) =>
       if name != "" {
-        take.push(drawer_button(row, CopyDev, "content-copy", "复制开发指令", false, false, emit))
+        take.push(
+          drawer_button(
+            row,
+            CopyDev,
+            "content-copy",
+            "复制开发指令",
+            false,
+            false,
+            emit,
+          ),
+        )
         // 这只 profile 的启动环境（§61.3）：**放在「操作」组**，因为它改的是「怎么起这一只」，
         // 不是「这份配置长什么样」——与复制开发指令同属「起它之前要的东西」。
         take.push(drawer_env_button(row, emit))
@@ -484,10 +600,30 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
       ),
     )
   } else {
-    mutate.push(drawer_button(row, Archive, "archive-outline", "归档", false, busy, emit))
+    mutate.push(
+      drawer_button(
+        row,
+        Archive,
+        "archive-outline",
+        "归档",
+        false,
+        busy,
+        emit,
+      ),
+    )
   }
   if row.archived_at is Some(_) {
-    mutate.push(drawer_button(row, Unarchive, "archive-arrow-up-outline", "取消归档", false, busy, emit))
+    mutate.push(
+      drawer_button(
+        row,
+        Unarchive,
+        "archive-arrow-up-outline",
+        "取消归档",
+        false,
+        busy,
+        emit,
+      ),
+    )
   }
   if row.deletable {
     mutate.push(drawer_delete_button(row, model, emit))
@@ -503,17 +639,30 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         class="dsh-btn danger",
         type_="button",
         disabled=busy || moving,
-        attrs=mark("drawer-deisolate-home", ["overview", "drawer", row.id, "action", "deisolate-home"])
+        attrs=mark("drawer-deisolate-home", [
+            "overview",
+            "drawer",
+            row.id,
+            "action",
+            "deisolate-home",
+          ])
           .data_set("action", "deisolate-home")
           .data_set("state", if moving { "moving" } else { "idle" })
           .title(
-            "把这份 profile 的目录移至共用 home（" + row.home_path +
+            "把这份 profile 的目录移至共用 home（" +
+            row.home_path +
             "/profiles），这份额外 home 里剩下的会话与插件状态移到回收站，可以捞回来",
           ),
         on_click=emit(RowAction(row.id, DeisolateHome)),
         [
           icon("home-outline"),
-          @html.span(if moving { "正在移动…" } else { "移至共用 home" }),
+          @html.span(
+            if moving {
+              "正在移动…"
+            } else {
+              "移至共用 home"
+            },
+          ),
         ],
       ),
     )
@@ -523,7 +672,13 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     home_items.push(
       @html.span(
         class="dsh-foot",
-        attrs=mark("drawer-home-trial", ["overview", "drawer", row.id, "action", "home-trial"]),
+        attrs=mark("drawer-home-trial", [
+          "overview",
+          "drawer",
+          row.id,
+          "action",
+          "home-trial",
+        ]),
         "试跑的一次性 home：作业收尾时删掉，这里不提供隔离与取消隔离",
       ),
     )
@@ -542,7 +697,13 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         class="dsh-btn",
         type_="button",
         disabled=busy || moving || !movable,
-        attrs=mark("drawer-isolate-home", ["overview", "drawer", row.id, "action", "isolate-home"])
+        attrs=mark("drawer-isolate-home", [
+            "overview",
+            "drawer",
+            row.id,
+            "action",
+            "isolate-home",
+          ])
           .data_set("action", "isolate-home")
           .data_set("state", if moving { "moving" } else { "idle" })
           .data_set("movable", if movable { "true" } else { "false" })
@@ -550,7 +711,13 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         on_click=emit(RowAction(row.id, IsolateHome)),
         [
           icon("folder-move-outline"),
-          @html.span(if moving { "正在移动…" } else { "移至隔离 home" }),
+          @html.span(
+            if moving {
+              "正在移动…"
+            } else {
+              "移至隔离 home"
+            },
+          ),
         ],
       ),
     )
@@ -564,15 +731,37 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     home_items.push(
       @html.span(
         class="dsh-foot",
-        attrs=mark("drawer-home-missing", ["overview", "drawer", row.id, "action", "home-missing"]),
+        attrs=mark("drawer-home-missing", [
+          "overview",
+          "drawer",
+          row.id,
+          "action",
+          "home-missing",
+        ]),
         why,
       ),
     )
   }
   // 运维三项：查看日志 / 打开工作目录 / 编辑配置（第三轮接上的那三项）
   let ops : Array[@html.Html] = [
-    drawer_button(row, Logs, "text-box-outline", "查看日志", false, busy, emit),
-    drawer_button(row, Dir, "folder-open-outline", "打开工作目录", false, busy, emit),
+    drawer_button(
+      row,
+      Logs,
+      "text-box-outline",
+      "查看日志",
+      false,
+      busy,
+      emit,
+    ),
+    drawer_button(
+      row,
+      Dir,
+      "folder-open-outline",
+      "打开工作目录",
+      false,
+      busy,
+      emit,
+    ),
     drawer_button(row, Config, "tune", "编辑配置", false, busy, emit),
   ]
   // ── 五组里的后三组（§29.1）：操作 / 这只 profile / 配置 ──
@@ -619,9 +808,25 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
 /// **判据怎么来的收进悬停**（哪一条握手应答命中、探测回来的是什么、profile 那一侧
 /// 怎么样）：正文一个字都不占。正文是给用这个工具的人看的，技术依据是给要核对
 /// 这个结论的人看的 —— 两个读者不是同一个人。
-fn drawer_state_block(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let mut why_attrs = mark("drawer-why", ["overview", "drawer", row.id, "state", "why"])
-  let mut dot_attrs = mark("drawer-light", ["overview", "drawer", row.id, "state", "light"])
+fn drawer_state_block(
+  row : Row,
+  model : Model,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let mut why_attrs = mark("drawer-why", [
+    "overview",
+    "drawer",
+    row.id,
+    "state",
+    "why",
+  ])
+  let mut dot_attrs = mark("drawer-light", [
+      "overview",
+      "drawer",
+      row.id,
+      "state",
+      "light",
+    ])
     .data_set("state", light_key(row.light))
     .role("img")
     .aria_label(light_label(row.light))
@@ -632,7 +837,11 @@ fn drawer_state_block(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.
   // §26.1：已停止那一档不画灯 —— 抽屉里也不画（这一行的标签与那句为什么照旧在）
   let light_line : Array[@html.Html] = if light_shown(row.light) {
     [
-      @html.span(class="dsh-dot " + light_class(row.light), attrs=dot_attrs, @html.nothing),
+      @html.span(
+        class="dsh-dot " + light_class(row.light),
+        attrs=dot_attrs,
+        @html.nothing,
+      ),
     ]
   } else {
     []
@@ -640,8 +849,13 @@ fn drawer_state_block(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.
   light_line.push(
     @html.span(
       class="dsh-drawer-light-label",
-      attrs=mark("drawer-light-label", ["overview", "drawer", row.id, "state", "label"])
-        .data_set("state", light_key(row.light)),
+      attrs=mark("drawer-light-label", [
+        "overview",
+        "drawer",
+        row.id,
+        "state",
+        "label",
+      ]).data_set("state", light_key(row.light)),
       light_label(row.light),
     ),
   )
@@ -654,8 +868,13 @@ fn drawer_state_block(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.
     if health_is_quiet(row) {
       @html.p(
         class="dsh-drawer-ok",
-        attrs=mark("drawer-health-ok", ["overview", "drawer", row.id, "health", "ok"])
-          .title(row.health_hint),
+        attrs=mark("drawer-health-ok", [
+          "overview",
+          "drawer",
+          row.id,
+          "health",
+          "ok",
+        ]).title(row.health_hint),
         row.health_text,
       )
     } else {
@@ -692,7 +911,9 @@ fn repair_action(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
     None => row.name
   }
   let dir = row.repair_home + "/profiles/" + dir_name
-  let log_hint = "输出写进状态目录的 logs/repair-" + dir_name + "-<毫秒>.log"
+  let log_hint = "输出写进状态目录的 logs/repair-" +
+    dir_name +
+    "-<毫秒>.log"
   let label = if repairing { "正在安装…" } else { "安装" }
   let note = if repairing {
     "正在安装…"
@@ -702,7 +923,12 @@ fn repair_action(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   @html.div(class="dsh-drawer-btns dsh-missing-row", [
     @html.span(
       class="dsh-foot",
-      attrs=mark("drawer-missing-note", ["overview", "drawer", row.id, "missing"]),
+      attrs=mark("drawer-missing-note", [
+        "overview",
+        "drawer",
+        row.id,
+        "missing",
+      ]),
       note,
     ),
     @html.button(
@@ -710,12 +936,22 @@ fn repair_action(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       class="dsh-btn",
       type_="button",
       disabled=row.busy || repairing,
-      attrs=mark("drawer-repair", ["overview", "drawer", row.id, "action", "repair"])
+      attrs=mark("drawer-repair", [
+          "overview",
+          "drawer",
+          row.id,
+          "action",
+          "repair",
+        ])
         .data_set("action", "repair-packages")
         .data_set("state", if repairing { "running" } else { "idle" })
         .title(
-          "在 " + dir + " 里跑 " + row.repair_command +
-          "；只动 node_modules，不改 package.json 与 cordis.patch.yml。" + log_hint,
+          "在 " +
+          dir +
+          " 里跑 " +
+          row.repair_command +
+          "；只动 node_modules，不改 package.json 与 cordis.patch.yml。" +
+          log_hint,
         ),
       on_click=emit(RepairOpen(id=row.id, return_id=drawer_repair_id())),
       [icon("cube-outline", size=13), @html.span(label)],
@@ -730,7 +966,8 @@ fn health_is_quiet(row : Row) -> Bool {
   if row.health_free || row.health_text == "" {
     return false
   }
-  row.health_text.has_prefix("声明的包都已安装") || row.health_text.has_prefix("cordis.patch.yml 也在")
+  row.health_text.has_prefix("声明的包都已安装") ||
+  row.health_text.has_prefix("cordis.patch.yml 也在")
 }
 
 ///|
@@ -739,11 +976,16 @@ fn health_is_quiet(row : Row) -> Bool {
 /// 五个组用同一套画法，data-name 的尾巴是组自己的键（state / readings / action /
 /// profile / config）—— 量「组间是组内的两倍」时按它取盒子，不看位置。
 /// 组内只有行，没有二级小标题：标题一多，那五组又会被读成九组。
-fn drawer_section(title : String, key : String, items : Array[@html.Html]) -> @html.Html {
+fn drawer_section(
+  title : String,
+  key : String,
+  items : Array[@html.Html],
+) -> @html.Html {
   @html.div(
     class="dsh-drawer-section",
-    attrs=mark("drawer-section", ["overview", "drawer", "section", key])
-      .data_set("section", key),
+    attrs=mark("drawer-section", ["overview", "drawer", "section", key]).data_set(
+      "section", key,
+    ),
     [@html.h3(class="dsh-drawer-section-title", title), @html.fragment(items)],
   )
 }
@@ -791,10 +1033,24 @@ fn detail_drawer(
   // 读数里仍然带着 alsoPorts，需要排查的人去 /api/local/instances 看得到。
   // 「配置 home」那一格不在这里：它跟着「配置」这一组走（§29.1）。
   field_items.push(
-    field("puzzle-outline", "plugin-count", row.id, "插件数量", row.plugin_count, row.plugin_detail),
+    field(
+      "puzzle-outline",
+      "plugin-count",
+      row.id,
+      "插件数量",
+      row.plugin_count,
+      row.plugin_detail,
+    ),
   )
   field_items.push(
-    field("clock-outline", "mtime", row.id, "最近改动", mtime_value(row), row.mtime_hint),
+    field(
+      "clock-outline",
+      "mtime",
+      row.id,
+      "最近改动",
+      mtime_value(row),
+      row.mtime_hint,
+    ),
   )
   let fields = @html.ul(class="dsh-fields", field_items)
   // 五组（§29.1）：状态（含 profile 健康）/ 读数 / 操作 / 这只 profile / 配置。
@@ -816,8 +1072,9 @@ fn detail_drawer(
         id=drawer_close_id(),
         class="dsh-btn icon-only",
         type_="button",
-        attrs=mark("drawer-close", ["overview", "drawer", row.id, "close"])
-          .aria_label("关闭详情"),
+        attrs=mark("drawer-close", ["overview", "drawer", row.id, "close"]).aria_label(
+          "关闭详情",
+        ),
         on_click=emit(DrawerClose),
         [icon("close", size=16)],
       ),
@@ -826,8 +1083,9 @@ fn detail_drawer(
   @html.fragment([
     @html.div(
       class="dsh-drawer-scrim",
-      attrs=mark("drawer-scrim", ["overview", "drawer", row.id, "scrim"])
-        .data_set("state", state),
+      attrs=mark("drawer-scrim", ["overview", "drawer", row.id, "scrim"]).data_set(
+        "state", state,
+      ),
       on_click=emit(DrawerClose),
       @html.nothing,
     ),
@@ -860,6 +1118,7 @@ fn detail_drawer(
 }
 
 // ── 归档区 ─────────────────────────────────────────────────
+
 ///|
 /// 「分发插件…」：把这一只里的本地插件发到别的 profile（design/backlog.md N）。
 fn drawer_merge_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
@@ -869,11 +1128,14 @@ fn drawer_merge_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     id="dsh-drawer-merge",
     attrs=mark("drawer-merge", ["overview", "drawer", row.id, "action", "merge"])
       .data_set("action", "merge")
-      .title("把这一只里的本地插件（node_modules/@local 与 file:/link: 依赖）分到别的 profile"),
+      .title(
+        "把这一只里的本地插件（node_modules/@local 与 file:/link: 依赖）分到别的 profile",
+      ),
     on_click=emit(MergeOpen(id=row.id, return_id="dsh-drawer-merge")),
     [icon("puzzle-outline", size=14), @html.span("分发插件…")],
   )
 }
+
 ///|
 /// N7：设置里的 beta 开关。读数是懒加载的，取不到就按关着处理。
 fn show_beta(model : Model) -> Bool {

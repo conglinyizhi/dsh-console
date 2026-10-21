@@ -46,9 +46,7 @@ pub async fn read_text_file(path : String) -> Result[String, String] noraise {
 ///|
 /// 路径是否存在（stat 一次，不列目录、不读内容）。
 pub async fn exists(path : String) -> Bool noraise {
-  try {
-    @fs.exists(path)
-  } catch {
+  @fs.exists(path) catch {
     _ => false
   }
 }
@@ -56,9 +54,7 @@ pub async fn exists(path : String) -> Bool noraise {
 ///|
 /// 是否是目录。
 pub async fn is_dir(path : String) -> Bool noraise {
-  try {
-    @fs.kind(path) is Directory
-  } catch {
+  try (@fs.kind(path) is Directory) catch {
     _ => false
   }
 }
@@ -66,9 +62,7 @@ pub async fn is_dir(path : String) -> Bool noraise {
 ///|
 /// 列出目录名；目录不存在或读不到返回空数组。
 pub async fn list_dir(path : String) -> Array[String] noraise {
-  try {
-    @fs.readdir(path)
-  } catch {
+  @fs.readdir(path) catch {
     _ => []
   }
 }
@@ -122,9 +116,7 @@ pub fn dirname(path : String) -> String {
 /// 本进程二进制文件的真实路径：读 /proc/self/exe 的链接目标（只读，不调外部命令）。
 /// 取不到给空串，调用方按「不知道」处理。
 pub async fn exe_path() -> String noraise {
-  try {
-    @fs.realpath("/proc/self/exe")
-  } catch {
+  @fs.realpath("/proc/self/exe") catch {
     _ => ""
   }
 }
@@ -133,9 +125,7 @@ pub async fn exe_path() -> String noraise {
 /// 解析路径上的软链，给出真实路径（realpath(2)）。解析不了给 None。
 /// 用途：pnpm 的 .bin/dsh 是指向真实包目录的软链，读入口包版本前要先落下实路径。
 pub async fn real_path(path : String) -> String? noraise {
-  try {
-    Some(@fs.realpath(path))
-  } catch {
+  Some(@fs.realpath(path)) catch {
     _ => None
   }
 }
@@ -156,21 +146,17 @@ pub fn join_all(parts : Array[String]) -> String {
 pub async fn read_some_at(
   path : String,
   position : Int64,
-  len : Int,
+  len : Int32,
 ) -> Result[Bytes, String] noraise {
   if is_sensitive_path(path) {
     return Err("拒绝读取敏感文件：" + basename(path))
   }
-  let file = try {
-    @fs.open(path, mode=ReadOnly)
-  } catch {
+  let file = @fs.open(path, mode=ReadOnly) catch {
     err => return Err("打不开文件：" + err.to_string())
   }
   defer file.close()
   let buf : FixedArray[Byte] = FixedArray::make(len, b'\x00')
-  let n = try {
-    file.read_at(buf, position~, offset=0, len~)
-  } catch {
+  let n = file.read_at(buf, position~, offset=0, len~) catch {
     err => return Err("读取失败：" + err.to_string())
   }
   let view = buf.unsafe_reinterpret_as_bytes()
@@ -183,7 +169,7 @@ pub async fn read_some_at(
 pub async fn read_text_at(
   path : String,
   position : Int64,
-  len : Int,
+  len : Int32,
 ) -> Result[String, String] noraise {
   match read_some_at(path, position, len) {
     Ok(bytes) => Ok(@utf8.decode_lossy(bytes, ignore_bom=true))
@@ -196,9 +182,7 @@ pub async fn read_text_at(
 /// 用途：起实例失败时只归因「本次启动新写出来的那段日志」，
 /// 上一次尝试留在同一个日志文件里的行不算这一次的证据。
 pub async fn file_size(path : String) -> Int64? noraise {
-  try {
-    Some(@fs.file_size(path))
-  } catch {
+  Some(@fs.file_size(path)) catch {
     _ => None
   }
 }
@@ -221,16 +205,16 @@ pub async fn mtime_ms(path : String) -> Int64? noraise {
 /// socket:[<inode>] 只以链接目标的形式存在，realpath 追不到它。
 /// 失败返回 Err（带 errno 名），调用方按「读不到」处理，不崩。
 #borrow(path, buf)
-extern "c" fn read_link_raw(path : Bytes, buf : Bytes, bufsiz : Int) -> Int = "dsh_console_readlink"
+extern "c" fn read_link_raw(path : Bytes, buf : Bytes, bufsiz : Int32) -> Int32 = "dsh_console_readlink"
 
 ///|
 /// 读链接目标的缓冲区：Linux 的 PATH_MAX。目标更长时 readlink 截断，这里明确报错，
 /// 不返回半个路径 —— 半个路径拿去比对 inode 会得出错结论。
-let read_link_cap : Int = 4096
+let read_link_cap : Int32 = 4096
 
 ///|
 /// errno 名。只列本工程会遇到的几个，其余给数字，不编名字。
-fn errno_text(code : Int) -> String {
+fn errno_text(code : Int32) -> String {
   match code {
     1 => "EPERM 不允许的操作"
     2 => "ENOENT 目标不存在"
@@ -256,7 +240,11 @@ pub fn read_link(path : String) -> Result[String, String] {
     return Err("readlink 失败：" + errno_text(-n))
   }
   if n >= read_link_cap {
-    return Err("readlink 失败：目标超过 " + read_link_cap.to_string() + " 字节，被截断")
+    return Err(
+      "readlink 失败：目标超过 " +
+      read_link_cap.to_string() +
+      " 字节，被截断",
+    )
   }
   Ok(@utf8.decode_lossy(buf[:n]))
 }
@@ -264,10 +252,10 @@ pub fn read_link(path : String) -> Result[String, String] {
 ///|
 /// 列目录并把失败原因带出来（list_dir 把失败吞成空数组，判断「空目录」与
 /// 「读不到」时不够用）。
-pub async fn list_dir_result(path : String) -> Result[Array[String], String] noraise {
-  try {
-    Ok(@fs.readdir(path))
-  } catch {
+pub async fn list_dir_result(
+  path : String,
+) -> Result[Array[String], String] noraise {
+  Ok(@fs.readdir(path)) catch {
     err => Err(err.to_string())
   }
 }

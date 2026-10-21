@@ -3,7 +3,6 @@
 // 2026-10-20 从 homes.mbt 拆出来：那一族寿命只有「一次作业」，与长期存在的隔离 home
 // 是两种东西。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 作业 id 能不能拿来拼一次性 home 的名字：只认小写字母 / 数字 / 连字符
 /// （与作业文件 id 同一把尺子，见 store 的 job_id_valid），且不以连字符开头。
@@ -58,7 +57,7 @@ pub(all) struct TrialHome {
   profile : String
   /// 复制过去的那份 profile 目录：<path>/profiles/<名字>
   profile_dir : String
-  files_copied : Int
+  files_copied : Int32
   node_modules_target : String
   skills_linked : Bool
   credentials_path : String
@@ -77,7 +76,11 @@ async fn clear_stale_trial_home(home : String) -> (String, String) noraise {
   }
   let size_text = match @fsx.measure_tree(home) {
     Ok((files, bytes)) =>
-      "（" + files.to_string() + " 个文件，" + bytes.to_string() + " 字节）"
+      "（" +
+      files.to_string() +
+      " 个文件，" +
+      bytes.to_string() +
+      " 字节）"
     Err(_) => "（体积读不到）"
   }
   match @fsx.remove_tree(home) {
@@ -85,7 +88,8 @@ async fn clear_stale_trial_home(home : String) -> (String, String) noraise {
     Err(e) =>
       (
         "",
-        "上次留下的一次性 home 删不掉，不能在建新的之前留着一份旧的：" + e,
+        "上次留下的一次性 home 删不掉，不能在建新的之前留着一份旧的：" +
+        e,
       )
   }
 }
@@ -102,7 +106,12 @@ pub async fn create_trial_home(
 ) -> Result[TrialHome, (String, String)] noraise {
   let name = @json.trim_both(name_in)
   if !single_segment(name) {
-    return Err(("bad-params", "profile 名要是单段（不含 / 与 ..，非空）：" + name))
+    return Err(
+      (
+        "bad-params",
+        "profile 名要是单段（不含 / 与 ..，非空）：" + name,
+      ),
+    )
   }
   let job_id = @json.trim_both(job_id_in)
   let (root, root_source) = homes_root()
@@ -112,8 +121,12 @@ pub async fn create_trial_home(
       return Err(
         (
           "bad-params",
-          "试跑 home 的路径拼不出来（作业 id 认不出）：" + job_id +
-          "；homes root 来自 " + root_source + "：" + root,
+          "试跑 home 的路径拼不出来（作业 id 认不出）：" +
+          job_id +
+          "；homes root 来自 " +
+          root_source +
+          "：" +
+          root,
         ),
       )
   }
@@ -129,7 +142,15 @@ pub async fn create_trial_home(
   let layout = match layout_home(home, name, src_dir, dsh_home) {
     Err((code, message)) => {
       let _ = @fsx.remove_tree(home)
-      return Err((code, message + "；刚建的 " + home + " 已经删掉，没有留下半成品"))
+      return Err(
+        (
+          code,
+          message +
+          "；刚建的 " +
+          home +
+          " 已经删掉，没有留下半成品",
+        ),
+      )
     }
     Ok(got) => got
   }
@@ -156,7 +177,14 @@ pub async fn create_trial_home(
     Err(e) => {
       let _ = @fsx.remove_tree(home)
       return Err(
-        ("io-error", "写一次性 home 的记录失败：" + e + "；刚建的 " + home + " 已经删掉"),
+        (
+          "io-error",
+          "写一次性 home 的记录失败：" +
+          e +
+          "；刚建的 " +
+          home +
+          " 已经删掉",
+        ),
       )
     }
   }
@@ -166,7 +194,11 @@ pub async fn create_trial_home(
       return Err(
         (
           "io-error",
-          "一次性 home 的核对没过：" + problem + "；刚建的 " + home + " 已经删掉",
+          "一次性 home 的核对没过：" +
+          problem +
+          "；刚建的 " +
+          home +
+          " 已经删掉",
         ),
       )
     }
@@ -202,14 +234,24 @@ pub async fn remove_trial_home(
   }
   let prefix = root + "/"
   if !home.has_prefix(prefix) {
-    return Err(("bad-params", "试跑 home 不在 " + root + " 下，没有动它：" + home))
+    return Err(
+      (
+        "bad-params",
+        "试跑 home 不在 " + root + " 下，没有动它：" + home,
+      ),
+    )
   }
   let name = @json.slice_from(home, prefix.length())
   if !single_segment(name) || !name.has_prefix(trial_home_prefix) {
     return Err(
       (
         "bad-params",
-        "只删 " + root + "/" + trial_home_prefix + "… 这一种目录，没有动它：" + home,
+        "只删 " +
+        root +
+        "/" +
+        trial_home_prefix +
+        "… 这一种目录，没有动它：" +
+        home,
       ),
     )
   }
@@ -218,7 +260,11 @@ pub async fn remove_trial_home(
   }
   let size_text = match @fsx.measure_tree(home) {
     Ok((files, bytes)) =>
-      "（" + files.to_string() + " 个文件，" + bytes.to_string() + " 字节）"
+      "（" +
+      files.to_string() +
+      " 个文件，" +
+      bytes.to_string() +
+      " 字节）"
     Err(_) => "（体积读不到）"
   }
   match @fsx.remove_tree(home) {

@@ -48,17 +48,26 @@ pub async fn run_action(
       ])
     }
     "stop-instance" => {
-      let target = resolve_target(optional_int(params, "pid"), optional_int(params, "port"))
+      let target = resolve_target(
+        optional_int(params, "pid"),
+        optional_int(params, "port"),
+      )
       let settings = @store.load_settings().values
       let stopped = stop_pid(target.pid, settings.process_stop_grace_ms)
       let _ = @store.remove_by_pid(target.pid)
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", stop_outcome_json(stopped, target, settings.process_stop_grace_ms)),
+        (
+          "outcome",
+          stop_outcome_json(stopped, target, settings.process_stop_grace_ms),
+        ),
       ])
     }
     "restart-instance" => {
-      let target = resolve_target(optional_int(params, "pid"), optional_int(params, "port"))
+      let target = resolve_target(
+        optional_int(params, "pid"),
+        optional_int(params, "port"),
+      )
       let settings = @store.load_settings().values
       let stopped = stop_pid(target.pid, settings.process_stop_grace_ms)
       let _ = @store.remove_by_pid(target.pid)
@@ -67,7 +76,9 @@ pub async fn run_action(
         None => {
           fail(
             "not-found",
-            "PID " + target.pid.to_string() + " 的 profile 认不出来，重启要先知道起哪个 profile",
+            "PID " +
+            target.pid.to_string() +
+            " 的 profile 认不出来，重启要先知道起哪个 profile",
           )
           abort("unreachable: fail 一定抛错")
         }
@@ -78,10 +89,16 @@ pub async fn run_action(
       let started = start_instance(profile, target.home, target.port)
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("stopped", stop_outcome_json(stopped, target, settings.process_stop_grace_ms)),
-          ("started", spawn_outcome_json(started)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            (
+              "stopped",
+              stop_outcome_json(stopped, target, settings.process_stop_grace_ms),
+            ),
+            ("started", spawn_outcome_json(started)),
+          ]),
+        ),
         ("note", @json.JStr(spawn_version_note(started))),
       ])
     }
@@ -99,34 +116,55 @@ pub async fn run_action(
         note_head = line.to_owned()
         break
       }
-      let mut copy_note = "已拷 " + outcome.files.to_string() +
+      let mut copy_note = "已拷 " +
+        outcome.files.to_string() +
         " 个文件，未拷 node_modules；新 profile 会显示缺包，装一次即可"
       let other_skipped = outcome.skipped.filter(fn(s) { s != "node_modules" })
       if other_skipped.length() > 0 {
-        copy_note = copy_note + "（另有跳过：" + other_skipped.join("、") + "）"
+        copy_note = copy_note +
+          "（另有跳过：" +
+          other_skipped.join("、") +
+          "）"
       }
       // 使用者的原话里有「那我点这个按钮呢是否有效」——所以提示要说清结果落在哪：
       // 新名字、它在列表最上面（口径是最近改动，不是创建时间）、以及备注写着从哪来。
-      let mut note_text = "新 profile「" + outcome.new_name + "」已派生，出现在列表最上面" +
+      let mut note_text = "新 profile「" +
+        outcome.new_name +
+        "」已派生，出现在列表最上面" +
         "（列表按最近改动排序，刚派生的一定最新）。"
       match outcome.note_error {
         Some(reason) =>
           note_text = note_text +
-            "备注没写进去（" + reason + "），派生本身成功；" +
-            "备注本该在 " + outcome.note_path + " 里写着从 " + outcome.profile + " 派生"
+            "备注没写进去（" +
+            reason +
+            "），派生本身成功；" +
+            "备注本该在 " +
+            outcome.note_path +
+            " 里写着从 " +
+            outcome.profile +
+            " 派生"
         None =>
           note_text = note_text +
-            "它的备注（" + outcome.note_path + "）第一行写着来历：" + note_head
+            "它的备注（" +
+            outcome.note_path +
+            "）第一行写着来历：" +
+            note_head
       }
       // 派生的 profile 默认隔离（规格第 8 节）：回执里点名说清落到哪，
       // 没建成也要说清「派生本身成功、隔离没成」—— 两件事不能混成一句。
       match outcome.home_path {
         Some(home) =>
-          note_text = note_text + "。已隔离到 " + home + "（以后用这只 profile 起的实例都在里面跑）"
+          note_text = note_text +
+            "。已隔离到 " +
+            home +
+            "（以后用这只 profile 起的实例都在里面跑）"
         None =>
           match outcome.home_error {
             Some(reason) =>
-              note_text = note_text + "。隔离 home 没建成（" + reason + "），派生本身成功；" +
+              note_text = note_text +
+                "。隔离 home 没建成（" +
+                reason +
+                "），派生本身成功；" +
                 "它现在与其它 profile 共用 DSH_HOME"
             None => ()
           }
@@ -156,12 +194,18 @@ pub async fn run_action(
         ),
         ("dirMtimeMs", @json.int64_or_null(outcome.dir_mtime_ms)),
         ("dirMtimeSource", @json.JStr(outcome.dir_mtime_source)),
-        ("listPosition", @json.JStr("第一个（列表按最近改动降序）")),
+        (
+          "listPosition",
+          @json.JStr("第一个（列表按最近改动降序）"),
+        ),
         // 派生顺手建的隔离 home：建成了给路径，没建成给原因（派生本身照旧成功）
-        ("home", @json.JObj([
-          ("path", @json.str_or_null(outcome.home_path)),
-          ("error", @json.str_or_null(outcome.home_error)),
-        ])),
+        (
+          "home",
+          @json.JObj([
+            ("path", @json.str_or_null(outcome.home_path)),
+            ("error", @json.str_or_null(outcome.home_error)),
+          ]),
+        ),
         ("note", @json.JStr(copy_note)),
       ]
       match outcome.started {
@@ -183,35 +227,56 @@ pub async fn run_action(
       let outcome = create_base_profile(require_string(params, "name"))
       let home_text = match outcome.home_path {
         Some(path) =>
-          "新 profile 默认隔离，已经落到 " + path + "（以后用这只 profile 起的实例都在里面跑）"
+          "新 profile 默认隔离，已经落到 " +
+          path +
+          "（以后用这只 profile 起的实例都在里面跑）"
         None =>
           match outcome.home_error {
             Some(reason) =>
-              "隔离 home 没建成（" + reason + "），它与别的 profile 共用 DSH_HOME"
-            None => "隔离 home 没建成，它与别的 profile 共用 DSH_HOME"
+              "隔离 home 没建成（" +
+              reason +
+              "），它与别的 profile 共用 DSH_HOME"
+            None =>
+              "隔离 home 没建成，它与别的 profile 共用 DSH_HOME"
           }
       }
-      let note_text = "用 dsh " + outcome.dsh_version + "（" + outcome.package_dir +
-        "）自带的基础模板 " + base_template_profile + " 新建；核对过三条：package.json 读得出、" +
-        "bundles 里有 " + @profiles.web_app_bundle + "、cordis.patch.yml 在；" +
-        "dsh 那一步用了 " + outcome.ms.to_string() + " 毫秒。" + home_text
+      let note_text = "用 dsh " +
+        outcome.dsh_version +
+        "（" +
+        outcome.package_dir +
+        "）自带的基础模板 " +
+        base_template_profile +
+        " 新建；核对过三条：package.json 读得出、" +
+        "bundles 里有 " +
+        @profiles.web_app_bundle +
+        "、cordis.patch.yml 在；" +
+        "dsh 那一步用了 " +
+        outcome.ms.to_string() +
+        " 毫秒。" +
+        home_text
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("name", @json.JStr(outcome.name)),
-          ("dir", @json.JStr(outcome.dir)),
-          // 建的是哪一份模板、用哪一份 dsh 跑的：核对时对得上号
-          ("template", @json.JStr(base_template_profile)),
-          ("dshVersion", @json.JStr(outcome.dsh_version)),
-          ("dshPackageDir", @json.JStr(outcome.package_dir)),
-          ("bundles", @json.jstr_array(outcome.bundles)),
-          ("ms", @json.jint(outcome.ms)),
-          // 隔离建成与没建成是两件事：建成了给路径，没建成给原因（建本身照旧成功）
-          ("home", @json.JObj([
-            ("path", @json.str_or_null(outcome.home_path)),
-            ("error", @json.str_or_null(outcome.home_error)),
-          ])),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("name", @json.JStr(outcome.name)),
+            ("dir", @json.JStr(outcome.dir)),
+            // 建的是哪一份模板、用哪一份 dsh 跑的：核对时对得上号
+            ("template", @json.JStr(base_template_profile)),
+            ("dshVersion", @json.JStr(outcome.dsh_version)),
+            ("dshPackageDir", @json.JStr(outcome.package_dir)),
+            ("bundles", @json.jstr_array(outcome.bundles)),
+            ("ms", @json.jint(outcome.ms)),
+            // 隔离建成与没建成是两件事：建成了给路径，没建成给原因（建本身照旧成功）
+            (
+              "home",
+              @json.JObj([
+                ("path", @json.str_or_null(outcome.home_path)),
+                ("error", @json.str_or_null(outcome.home_error)),
+              ]),
+            ),
+          ]),
+        ),
         ("note", @json.JStr(note_text)),
       ])
     }
@@ -222,34 +287,49 @@ pub async fn run_action(
       )
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("profile", @json.JStr(outcome.profile)),
-          ("newName", @json.JStr(outcome.new_name)),
-          ("from", @json.JStr(outcome.from)),
-          ("to", @json.JStr(outcome.to)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("profile", @json.JStr(outcome.profile)),
+            ("newName", @json.JStr(outcome.new_name)),
+            ("from", @json.JStr(outcome.from)),
+            ("to", @json.JStr(outcome.to)),
+          ]),
+        ),
       ])
     }
     "set-profile-note" => {
       // text 是用户原话，不 trim：前后空格是用户写的，不是噪声；空串是「删掉备注」的语义
-      let outcome = set_profile_note(require_string(params, "profile"), require_note_text(params))
+      let outcome = set_profile_note(
+        require_string(params, "profile"),
+        require_note_text(params),
+      )
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("profile", @json.JStr(outcome.profile)),
-          ("dir", @json.JStr(outcome.dir)),
-          ("path", @json.JStr(outcome.path)),
-          ("removed", @json.JBool(outcome.removed)),
-          ("chars", @json.jint(outcome.chars)),
-          ("maxChars", @json.jint(@profiles.note_max_chars)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("profile", @json.JStr(outcome.profile)),
+            ("dir", @json.JStr(outcome.dir)),
+            ("path", @json.JStr(outcome.path)),
+            ("removed", @json.JBool(outcome.removed)),
+            ("chars", @json.jint(outcome.chars)),
+            ("maxChars", @json.jint(@profiles.note_max_chars)),
+          ]),
+        ),
         (
           "note",
           @json.JStr(
             if outcome.removed {
-              "备注已清空（空串 = 删掉 " + @profiles.note_file_name + "）"
+              "备注已清空（空串 = 删掉 " +
+              @profiles.note_file_name +
+              "）"
             } else {
-              "备注写进 " + outcome.path + "（" + outcome.chars.to_string() + " 字符）"
+              "备注写进 " +
+              outcome.path +
+              "（" +
+              outcome.chars.to_string() +
+              " 字符）"
             },
           ),
         ),
@@ -267,18 +347,19 @@ pub async fn run_action(
     // ── 补包（design/design-fixes.md §39）──────────────────────────
     // 启动环境（§61）：整份替换 global 或某只 profile 的那张表
     "save-env" => {
-      ensure_action_params(
-        params,
-        "保存启动环境：",
-        ["scope", "home", "profile", "entries", "options"],
-      )
+      ensure_action_params(params, "保存启动环境：", [
+        "scope", "home", "profile", "entries", "options",
+      ])
       save_env_action(params, action)
     }
     // 插件合并（design/backlog.md 的 N 条）：{ profile, targets, confirm: "MERGE" }
     "merge-plugins" => merge_plugins_action(params)
     "repair-packages" => {
       ensure_only_keys(params, ["profile", "home"])
-      repair_packages(require_string(params, "profile"), optional_string(params, "home"))
+      repair_packages(
+        require_string(params, "profile"),
+        optional_string(params, "home"),
+      )
     }
     "open-path" => {
       // 这个动作的参数只有 profile 与 kind：多一个键就拒，免得有人塞个 path 还以为它生效了
@@ -289,24 +370,41 @@ pub async fn run_action(
       )
       let how = match outcome.exit_code {
         Some(code) =>
-          "；" + outcome.opener + "（pid " + outcome.pid.to_string() + "）已经退出，退出码 " +
+          "；" +
+          outcome.opener +
+          "（pid " +
+          outcome.pid.to_string() +
+          "）已经退出，退出码 " +
           code.to_string()
-        None => "；" + outcome.opener + "（pid " + outcome.pid.to_string() + "）还在跑，没等它"
+        None =>
+          "；" +
+          outcome.opener +
+          "（pid " +
+          outcome.pid.to_string() +
+          "）还在跑，没等它"
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("what", @json.JStr(outcome.what)),
-          ("path", @json.JStr(outcome.path)),
-          ("opener", @json.JStr(outcome.opener)),
-          ("pid", @json.jint(outcome.pid)),
-          ("exitCode", @json.int_or_null(outcome.exit_code)),
-          ("detail", @json.JStr(outcome.detail)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("what", @json.JStr(outcome.what)),
+            ("path", @json.JStr(outcome.path)),
+            ("opener", @json.JStr(outcome.opener)),
+            ("pid", @json.jint(outcome.pid)),
+            ("exitCode", @json.int_or_null(outcome.exit_code)),
+            ("detail", @json.JStr(outcome.detail)),
+          ]),
+        ),
         (
           "note",
           @json.JStr(
-            "用 " + outcome.opener + " 打开 " + outcome.path + "（直接 exec，不经 shell）" + how,
+            "用 " +
+            outcome.opener +
+            " 打开 " +
+            outcome.path +
+            "（直接 exec，不经 shell）" +
+            how,
           ),
         ),
       ])
@@ -331,8 +429,14 @@ pub async fn run_action(
           }
           fail(
             "conflict",
-            profile + " 正在跑（PID " + hit.pid.to_string() + "，" + port_text + "，home " +
-            home + "）；先停掉它再归档",
+            profile +
+            " 正在跑（PID " +
+            hit.pid.to_string() +
+            "，" +
+            port_text +
+            "，home " +
+            home +
+            "）；先停掉它再归档",
           )
         }
         None => ()
@@ -344,7 +448,11 @@ pub async fn run_action(
         if @store.archive_target_matches(r, home, profile) {
           fail(
             "conflict",
-            "profile " + profile + " 已经在归档区里了（home：" + home + "；先取消归档再归档）",
+            "profile " +
+            profile +
+            " 已经在归档区里了（home：" +
+            home +
+            "；先取消归档再归档）",
           )
         }
       }
@@ -361,14 +469,22 @@ pub async fn run_action(
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("profile", @json.JStr(profile)),
-          ("home", @json.JStr(record.home)),
-          ("archivedAt", @json.JStr(record.archived_at)),
-          ("archivePath", @json.JStr(paths.archive)),
-          ("diskUntouched", @json.JBool(true)),
-        ])),
-        ("note", @json.JStr("归档只记一条记录，磁盘上的 profile 目录一个字节都没动")),
+        (
+          "outcome",
+          @json.JObj([
+            ("profile", @json.JStr(profile)),
+            ("home", @json.JStr(record.home)),
+            ("archivedAt", @json.JStr(record.archived_at)),
+            ("archivePath", @json.JStr(paths.archive)),
+            ("diskUntouched", @json.JBool(true)),
+          ]),
+        ),
+        (
+          "note",
+          @json.JStr(
+            "归档只记一条记录，磁盘上的 profile 目录一个字节都没动",
+          ),
+        ),
       ])
     }
     "unarchive-profile" => {
@@ -387,7 +503,10 @@ pub async fn run_action(
         }
       }
       if !removed {
-        fail("not-found", "归档区里没有 " + profile + "（home：" + home + "）")
+        fail(
+          "not-found",
+          "归档区里没有 " + profile + "（home：" + home + "）",
+        )
       }
       match @store.save_archive(kept) {
         Ok(_) => ()
@@ -395,13 +514,16 @@ pub async fn run_action(
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("profile", @json.JStr(profile)),
-          ("home", @json.JStr(home)),
-          ("removed", @json.JBool(true)),
-          ("remaining", @json.jint(kept.length())),
-          ("archivePath", @json.JStr(paths.archive)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("profile", @json.JStr(profile)),
+            ("home", @json.JStr(home)),
+            ("removed", @json.JBool(true)),
+            ("remaining", @json.jint(kept.length())),
+            ("archivePath", @json.JStr(paths.archive)),
+          ]),
+        ),
       ])
     }
     // ── 配置 home（design/deep-home-isolation.md 第 3、9 节）──────────
@@ -422,33 +544,43 @@ pub async fn run_action(
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("profile", @json.JStr(outcome.profile)),
-          ("path", @json.JStr(outcome.path)),
-          ("profileDir", @json.JStr(outcome.profile_dir)),
-          // 移动是真的：从哪儿移到哪儿，两段路径都进回执（核对时不用自己拼）
-          ("movedFrom", @json.JStr(outcome.from)),
-          ("movedTo", @json.JStr(outcome.profile_dir)),
-          ("verified", @json.JBool(outcome.verified)),
-          ("deviceNote", @json.JStr(outcome.device_note)),
-          ("nodeModulesTarget", @json.JStr(outcome.node_modules_target)),
-          ("skillsLinked", @json.JBool(outcome.skills_linked)),
-          // 凭证只写路径：键与值都进回执，核对时不用猜用的是哪一个键
-          ("credentialsKey", @json.JStr(outcome.credentials_key)),
-          ("credentialsPath", @json.JStr(outcome.credentials_path)),
-          ("createdAt", @json.str_or_null(outcome.created_at)),
-          // 搬家后的 relink（§48）：重算了几条相对链接、跳过几条、换掉几处旧目录前缀
-          ("linksFixed", @json.jint(outcome.links_fixed)),
-          ("linksBroken", @json.jint(outcome.links_broken)),
-          ("refsRewritten", @json.jint(outcome.refs_rewritten)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("profile", @json.JStr(outcome.profile)),
+            ("path", @json.JStr(outcome.path)),
+            ("profileDir", @json.JStr(outcome.profile_dir)),
+            // 移动是真的：从哪儿移到哪儿，两段路径都进回执（核对时不用自己拼）
+            ("movedFrom", @json.JStr(outcome.from)),
+            ("movedTo", @json.JStr(outcome.profile_dir)),
+            ("verified", @json.JBool(outcome.verified)),
+            ("deviceNote", @json.JStr(outcome.device_note)),
+            ("nodeModulesTarget", @json.JStr(outcome.node_modules_target)),
+            ("skillsLinked", @json.JBool(outcome.skills_linked)),
+            // 凭证只写路径：键与值都进回执，核对时不用猜用的是哪一个键
+            ("credentialsKey", @json.JStr(outcome.credentials_key)),
+            ("credentialsPath", @json.JStr(outcome.credentials_path)),
+            ("createdAt", @json.str_or_null(outcome.created_at)),
+            // 搬家后的 relink（§48）：重算了几条相对链接、跳过几条、换掉几处旧目录前缀
+            ("linksFixed", @json.jint(outcome.links_fixed)),
+            ("linksBroken", @json.jint(outcome.links_broken)),
+            ("refsRewritten", @json.jint(outcome.refs_rewritten)),
+          ]),
+        ),
         (
           "note",
           @json.JStr(
-            "已把 " + outcome.from + " 移到 " + outcome.profile_dir + "（移动前核对：" +
-            outcome.device_note + "；移动后核对过三条：目录在、package.json 读得出、" +
+            "已把 " +
+            outcome.from +
+            " 移到 " +
+            outcome.profile_dir +
+            "（移动前核对：" +
+            outcome.device_note +
+            "；移动后核对过三条：目录在、package.json 读得出、" +
             "node_modules 有就指得通）；凭证只在 cordis.patch.yml 里写了路径（" +
-            outcome.credentials_key + " -> " + outcome.credentials_path +
+            outcome.credentials_key +
+            " -> " +
+            outcome.credentials_path +
             "），密钥本身没有复制、也没有软链过来",
           ),
         ),
@@ -478,30 +610,41 @@ pub async fn run_action(
         }
       }
       let size = match (outcome.files, outcome.bytes) {
-        (Some(files), Some(bytes)) => files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
+        (Some(files), Some(bytes)) =>
+          files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
         _ => "文件数读不到（" + outcome.size_source + "）"
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("profile", @json.JStr(outcome.profile)),
-          ("path", @json.JStr(outcome.home)),
-          // 移回哪儿、剩下的东西进了回收站哪一条：两件事分开报
-          ("movedTo", @json.JStr(outcome.to)),
-          ("trashPath", @json.JStr(outcome.trash_path)),
-          ("trashNote", @json.JStr(outcome.trash_note)),
-          ("files", @json.int_or_null(outcome.files)),
-          ("bytes", @json.int64_or_null(outcome.bytes)),
-          ("sizeSource", @json.JStr(outcome.size_source)),
-          ("linksFixed", @json.jint(outcome.links_fixed)),
-          ("linksBroken", @json.jint(outcome.links_broken)),
-          ("refsRewritten", @json.jint(outcome.refs_rewritten)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("profile", @json.JStr(outcome.profile)),
+            ("path", @json.JStr(outcome.home)),
+            // 移回哪儿、剩下的东西进了回收站哪一条：两件事分开报
+            ("movedTo", @json.JStr(outcome.to)),
+            ("trashPath", @json.JStr(outcome.trash_path)),
+            ("trashNote", @json.JStr(outcome.trash_note)),
+            ("files", @json.int_or_null(outcome.files)),
+            ("bytes", @json.int64_or_null(outcome.bytes)),
+            ("sizeSource", @json.JStr(outcome.size_source)),
+            ("linksFixed", @json.jint(outcome.links_fixed)),
+            ("linksBroken", @json.jint(outcome.links_broken)),
+            ("refsRewritten", @json.jint(outcome.refs_rewritten)),
+          ]),
+        ),
         (
           "note",
           @json.JStr(
-            "已把 " + outcome.to + " 移回共用 home；这份额外 home 里剩下的东西（会话、插件状态、日志）" +
-            "移到回收站 " + outcome.trash_path + "（" + size + "，可以捞回来）。" + outcome.trash_note,
+            "已把 " +
+            outcome.to +
+            " 移回共用 home；这份额外 home 里剩下的东西（会话、插件状态、日志）" +
+            "移到回收站 " +
+            outcome.trash_path +
+            "（" +
+            size +
+            "，可以捞回来）。" +
+            outcome.trash_note,
           ),
         ),
       ])
@@ -510,18 +653,21 @@ pub async fn run_action(
       let outcome = delete_profile(require_string(params, "profile"), confirm)
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("profile", @json.JStr(outcome.profile)),
-          ("dir", @json.JStr(outcome.dir)),
-          ("mode", @json.JStr(outcome.mode)),
-          ("trashPath", @json.JStr(outcome.trash_path)),
-          // 从哪个 home 删的：进回收站时这一条也会被记进 trash-origins.json，
-          // 恢复按它归位。记不上时 originError 给出原因（删除本身照旧算成功）。
-          ("home", @json.JStr(outcome.home)),
-          ("originError", @json.str_or_null(outcome.origin_error)),
-          ("confirm", @json.JStr(outcome.confirm)),
-          ("hardDeleted", @json.JBool(outcome.mode == "hard-delete")),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("profile", @json.JStr(outcome.profile)),
+            ("dir", @json.JStr(outcome.dir)),
+            ("mode", @json.JStr(outcome.mode)),
+            ("trashPath", @json.JStr(outcome.trash_path)),
+            // 从哪个 home 删的：进回收站时这一条也会被记进 trash-origins.json，
+            // 恢复按它归位。记不上时 originError 给出原因（删除本身照旧算成功）。
+            ("home", @json.JStr(outcome.home)),
+            ("originError", @json.str_or_null(outcome.origin_error)),
+            ("confirm", @json.JStr(outcome.confirm)),
+            ("hardDeleted", @json.JBool(outcome.mode == "hard-delete")),
+          ]),
+        ),
       ])
     }
     // ── 回收站（第六轮契约第一节）────────────────────────────
@@ -542,13 +688,23 @@ pub async fn run_action(
       //   · 别的 home → 本控制台的列表根本不列它，照旧说「回到列表里」就是一句谎。
       let (console_home, _) = @runtime.resolve_dsh_home()
       let landed = if outcome.home == console_home {
-        "「" + outcome.profile + "」已经回到 profile 列表里（" + outcome.to + "）"
+        "「" +
+        outcome.profile +
+        "」已经回到 profile 列表里（" +
+        outcome.to +
+        "）"
       } else if @profiles.isolated_home_of(outcome.profile) is Some(iso) &&
         iso == outcome.home {
-        "「" + outcome.profile + "」已经回到它自己那个隔离 home（" + outcome.to +
+        "「" +
+        outcome.profile +
+        "」已经回到它自己那个隔离 home（" +
+        outcome.to +
         "），总览里照样看得见它"
       } else {
-        "「" + outcome.profile + "」已经回到它自己那个 home（" + outcome.to +
+        "「" +
+        outcome.profile +
+        "」已经回到它自己那个 home（" +
+        outcome.to +
         "）。那不是本控制台的 home，列表里不会出现它"
       }
       let fallback = if outcome.home_recorded {
@@ -562,19 +718,25 @@ pub async fn run_action(
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("dir", @json.JStr(outcome.dir)),
-          ("profile", @json.JStr(outcome.profile)),
-          ("restoredTo", @json.JStr(outcome.to)),
-          ("home", @json.JStr(outcome.home)),
-          ("homeSource", @json.JStr(outcome.home_source)),
-          ("homeRecorded", @json.JBool(outcome.home_recorded)),
-          ("originError", @json.str_or_null(outcome.origin_error)),
-          ("files", @json.int_or_null(outcome.files)),
-          ("bytes", @json.int64_or_null(outcome.bytes)),
-          ("sizeSource", @json.JStr(outcome.size_source)),
-        ])),
-        ("note", @json.JStr(landed + "，这一份共 " + size + fallback + forget)),
+        (
+          "outcome",
+          @json.JObj([
+            ("dir", @json.JStr(outcome.dir)),
+            ("profile", @json.JStr(outcome.profile)),
+            ("restoredTo", @json.JStr(outcome.to)),
+            ("home", @json.JStr(outcome.home)),
+            ("homeSource", @json.JStr(outcome.home_source)),
+            ("homeRecorded", @json.JBool(outcome.home_recorded)),
+            ("originError", @json.str_or_null(outcome.origin_error)),
+            ("files", @json.int_or_null(outcome.files)),
+            ("bytes", @json.int64_or_null(outcome.bytes)),
+            ("sizeSource", @json.JStr(outcome.size_source)),
+          ]),
+        ),
+        (
+          "note",
+          @json.JStr(landed + "，这一份共 " + size + fallback + forget),
+        ),
       ])
     }
     // 彻底删除：与 delete-profile 的硬删同一风险等级，必须带 confirm = "PURGE"（缺了给 bad-params）。
@@ -582,25 +744,33 @@ pub async fn run_action(
       ensure_only_keys(params, ["dir"])
       let outcome = purge_trash_item(require_string(params, "dir"), confirm)
       let size = match (outcome.files, outcome.bytes) {
-        (Some(files), Some(bytes)) => files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
+        (Some(files), Some(bytes)) =>
+          files.to_string() + " 个文件 · " + bytes.to_string() + " 字节"
         _ => "文件数读不到（" + outcome.size_source + "）"
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("dir", @json.JStr(outcome.dir)),
-          ("profile", @json.JStr(outcome.profile)),
-          ("path", @json.JStr(outcome.path)),
-          ("originError", @json.str_or_null(outcome.origin_error)),
-          ("files", @json.int_or_null(outcome.files)),
-          ("bytes", @json.int64_or_null(outcome.bytes)),
-          ("sizeSource", @json.JStr(outcome.size_source)),
-          ("hardDeleted", @json.JBool(true)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("dir", @json.JStr(outcome.dir)),
+            ("profile", @json.JStr(outcome.profile)),
+            ("path", @json.JStr(outcome.path)),
+            ("originError", @json.str_or_null(outcome.origin_error)),
+            ("files", @json.int_or_null(outcome.files)),
+            ("bytes", @json.int64_or_null(outcome.bytes)),
+            ("sizeSource", @json.JStr(outcome.size_source)),
+            ("hardDeleted", @json.JBool(true)),
+          ]),
+        ),
         (
           "note",
           @json.JStr(
-            "回收站里的「" + outcome.profile + "」已经彻底删掉（" + size + "），无法恢复",
+            "回收站里的「" +
+            outcome.profile +
+            "」已经彻底删掉（" +
+            size +
+            "），无法恢复",
           ),
         ),
       ])
@@ -620,17 +790,24 @@ pub async fn run_action(
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("count", @json.jint(ids.length())),
-          ("orderPath", @json.JStr(paths.order)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("count", @json.jint(ids.length())),
+            ("orderPath", @json.JStr(paths.order)),
+          ]),
+        ),
         (
           "note",
           @json.JStr(
             if ids.length() == 0 {
               "顺序表已清空，列表回到自动排序"
             } else {
-              "顺序表已写入 " + paths.order + "（" + ids.length().to_string() + " 条）"
+              "顺序表已写入 " +
+              paths.order +
+              "（" +
+              ids.length().to_string() +
+              " 条）"
             },
           ),
         ),
@@ -645,15 +822,19 @@ pub async fn run_action(
       let outcome = pin_dsh(require_string(params, "dir"))
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("dir", @json.JStr(outcome.dir)),
-          ("version", @json.JStr(outcome.version)),
-          ("pinPath", @json.JStr(outcome.pin_path)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("dir", @json.JStr(outcome.dir)),
+            ("version", @json.JStr(outcome.version)),
+            ("pinPath", @json.JStr(outcome.pin_path)),
+          ]),
+        ),
         (
           "note",
           @json.JStr(
-            "以后起实例（启动 / 重启）用 dsh " + outcome.version +
+            "以后起实例（启动 / 重启）用 dsh " +
+            outcome.version +
             "；这一条不走系统上的 dsh 命令，也不动已经装好的东西",
           ),
         ),
@@ -675,11 +856,14 @@ pub async fn run_action(
       }
       @json.JObj([
         ("action", @json.JStr(action)),
-        ("outcome", @json.JObj([
-          ("removed", @json.JBool(outcome.removed)),
-          ("previousVersion", @json.JStr(outcome.previous_version)),
-          ("pinPath", @json.JStr(outcome.pin_path)),
-        ])),
+        (
+          "outcome",
+          @json.JObj([
+            ("removed", @json.JBool(outcome.removed)),
+            ("previousVersion", @json.JStr(outcome.previous_version)),
+            ("pinPath", @json.JStr(outcome.pin_path)),
+          ]),
+        ),
         ("note", @json.JStr(note)),
       ])
     }
@@ -763,7 +947,11 @@ pub async fn run_action(
 
 ///|
 /// POST /api/local/action 的处理。
-async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_at : String) -> Unit {
+async fn handle_action(
+  req : @moonback.Request,
+  res : @moonback.Responder,
+  read_at : String,
+) -> Unit {
   let verb = @localapi.method_name(req.meth)
   if verb != "POST" {
     send_method_not_allowed(res, "POST", verb, read_at)
@@ -776,7 +964,9 @@ async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_
       match j {
         Object(_) => j
         _ => {
-          send_write_error(res, "bad-params", "body 要是一个 JSON 对象", read_at)
+          send_write_error(
+            res, "bad-params", "body 要是一个 JSON 对象", read_at,
+          )
           return
         }
       }
@@ -803,7 +993,9 @@ async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_
         Object(_) => v
         Null => @json.empty_object()
         _ => {
-          send_write_error(res, "bad-params", "params 要是一个对象", read_at)
+          send_write_error(
+            res, "bad-params", "params 要是一个对象", read_at,
+          )
           return
         }
       }
@@ -823,7 +1015,14 @@ async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_
   }
   match auth_result {
     Err(pair) => {
-      let _ = audit(action, params_for_audit, false, Some(pair.0), Some(pair.1), @json.JNull)
+      let _ = audit(
+        action,
+        params_for_audit,
+        false,
+        Some(pair.0),
+        Some(pair.1),
+        @json.JNull,
+      )
       send_write_error(res, pair.0, pair.1, read_at)
       return
     }
@@ -833,15 +1032,20 @@ async fn handle_action(req : @moonback.Request, res : @moonback.Responder, read_
   // 放在守卫之后：没通过守卫的请求不去解目标，那一笔审计照旧用原始 params。
   let audit_params = audit_params_for(action, params)
   // run_action 返回的就是 data：{ action, outcome, note? }
-  let data = try {
-    run_action(action, params, confirm)
-  } catch {
+  let data = run_action(action, params, confirm) catch {
     ActionError(code~, message~) => {
       // 失败也尽量带上结构化细节（§39：补包失败那笔审计要有 command / exitCode /
       // durationMs / logPath / missingBefore / missingAfter）。ActionError 只装得下
       // code 与 message，所以动作在抛错之前把 outcome 放进 failure_outcome，
       // 这里取走并清空 —— 取走即清，下一笔失败不会捡到上一笔的细节。
-      let _ = audit(action, audit_params, false, Some(code), Some(message), take_failure_outcome())
+      let _ = audit(
+        action,
+        audit_params,
+        false,
+        Some(code),
+        Some(message),
+        take_failure_outcome(),
+      )
       send_write_error(res, code, message, read_at)
       return
     }
@@ -867,7 +1071,8 @@ fn with_note(data : @json.JsonVal, note : String) -> @json.JsonVal {
       for pair in fields {
         if pair.0 == "note" {
           match pair.1 {
-            @json.JStr(old) => out.push(("note", @json.JStr(old + "；" + note)))
+            @json.JStr(old) =>
+              out.push(("note", @json.JStr(old + "；" + note)))
             _ => out.push(("note", @json.JStr(note)))
           }
           merged = true
@@ -886,7 +1091,11 @@ fn with_note(data : @json.JsonVal, note : String) -> @json.JsonVal {
 
 ///|
 /// 写侧总入口。三个端点各按自己的方法表判定，别的路径不该走到这里。
-pub async fn dispatch(req : @moonback.Request, res : @moonback.Responder, read_at : String) -> Unit {
+pub async fn dispatch(
+  req : @moonback.Request,
+  res : @moonback.Responder,
+  read_at : String,
+) -> Unit {
   let path = path_of(req.path)
   match path {
     "/api/local/action" => handle_action(req, res, read_at)
@@ -894,6 +1103,12 @@ pub async fn dispatch(req : @moonback.Request, res : @moonback.Responder, read_a
     "/api/local/console" => handle_console(req, res, read_at)
     "/api/local/fork-progress" => handle_fork_progress(req, res, read_at)
     "/api/local/merge-preview" => handle_merge_preview(req, res, read_at)
-    _ => send_method_not_allowed(res, "GET", @localapi.method_name(req.meth), read_at)
+    _ =>
+      send_method_not_allowed(
+        res,
+        "GET",
+        @localapi.method_name(req.meth),
+        read_at,
+      )
   }
 }

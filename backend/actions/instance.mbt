@@ -24,11 +24,11 @@
 
 ///|
 /// 启动后等 LISTEN 的上限。dsh web 冷启动在本机是秒级，30s 是给足余量后的兜底值。
-pub let boot_timeout_ms : Int = 30000
+pub let boot_timeout_ms : Int32 = 30000
 
 ///|
 /// 轮询间隔。
-let poll_interval_ms : Int = 100
+let poll_interval_ms : Int32 = 100
 
 ///|
 /// 传下去的 argv 里，属于「服务型 app 才认」的那几个参数。
@@ -39,13 +39,8 @@ pub let service_args : Array[String] = ["--no-open", "--port"]
 /// 「这个 app 不认识我们的参数」在日志里的特征词（比对前先小写）。
 /// 认的是事实，不是 profile 名字。
 let arg_reject_markers : Array[String] = [
-  "unknown option",
-  "unknown argument",
-  "unrecognized option",
-  "unrecognized argument",
-  "unknown flag",
-  "unexpected argument",
-  "invalid option",
+  "unknown option", "unknown argument", "unrecognized option", "unrecognized argument",
+  "unknown flag", "unexpected argument", "invalid option",
 ]
 
 ///|
@@ -102,7 +97,11 @@ pub async fn resolve_dsh_command() -> DshCommand? noraise {
 
 ///|
 /// 等实例真的答得出 dsh web 签名。子进程中途退出就立刻返回 false，不白等满超时。
-pub async fn wait_ready(pid : Int, port : Int, timeout_ms : Int) -> Bool noraise {
+pub async fn wait_ready(
+  pid : Int32,
+  port : Int32,
+  timeout_ms : Int32,
+) -> Bool noraise {
   let began = @async.now()
   while (@async.now() - began).to_int() < timeout_ms {
     if dsh_signature_ready(port) {
@@ -120,13 +119,14 @@ pub async fn wait_ready(pid : Int, port : Int, timeout_ms : Int) -> Bool noraise
 /// 端口在听，且答出来的是 dsh web 的签名（401 + 认证文案，或页里有 __DSH_BOOT__）。
 /// 只判端口会踩一个真实的坑：服务先 bind、路由后挂载，中间那几百毫秒 GET / 是 404，
 /// 只读的 instances 接口这一刻扫过去就认不出这只实例。
-pub async fn dsh_signature_ready(port : Int) -> Bool noraise {
+pub async fn dsh_signature_ready(port : Int32) -> Bool noraise {
   let probe = @localapi.probe_port(port, 2000)
   if !probe.reached {
     return false
   }
   match probe.status {
-    Some(401) => @json.index_of(probe.body, "dsh web authentication required") is Some(_)
+    Some(401) =>
+      @json.index_of(probe.body, "dsh web authentication required") is Some(_)
     Some(_) => @json.index_of(probe.body, "__DSH_BOOT__") is Some(_)
     None => false
   }
@@ -155,7 +155,7 @@ async fn fresh_log_text(path : String, from : Int64) -> String noraise {
 
 ///|
 /// 文本末尾 n 个非空行，用 " / " 连起来（贴进失败信息用）。
-fn tail_text_lines(text : String, lines : Int) -> String {
+fn tail_text_lines(text : String, lines : Int32) -> String {
   let kept : Array[String] = []
   for line in text.split("\n") {
     let trimmed = @json.trim_both(@json.owned(line))
@@ -184,8 +184,11 @@ fn long_options_in(line : String) -> Array[String] {
       while j < n {
         let ch = line.unsafe_get(j).unsafe_to_char()
         let code = ch.to_int()
-        let is_word = (code >= 48 && code <= 57) || (code >= 65 && code <= 90) ||
-          (code >= 97 && code <= 122) || ch == '-' || ch == '_'
+        let is_word = (code >= 48 && code <= 57) ||
+          (code >= 65 && code <= 90) ||
+          (code >= 97 && code <= 122) ||
+          ch == '-' ||
+          ch == '_'
         if !is_word {
           break
         }
@@ -214,7 +217,9 @@ pub fn detect_arg_rejection(text : String) -> ArgRejection? {
   for line in text.split("\n") {
     let raw = @json.owned(line)
     let probe = @json.to_lower(raw)
-    let rejected = arg_reject_markers.any(fn(m) { @json.index_of(probe, m) is Some(_) })
+    let rejected = arg_reject_markers.any(fn(m) {
+      @json.index_of(probe, m) is Some(_)
+    })
     if !rejected {
       continue
     }
@@ -233,7 +238,7 @@ pub fn detect_arg_rejection(text : String) -> ArgRejection? {
     if foreign {
       continue
     }
-    return Some({ flags: named, evidence: @json.trim_both(raw) })
+    return Some({ flags: named, evidence: @json.trim_both(raw), })
   }
   None
 }
@@ -243,7 +248,7 @@ pub fn detect_arg_rejection(text : String) -> ArgRejection? {
 /// 不把日志尾巴当正文丢出去。
 pub fn arg_rejection_message(
   profile : String,
-  pid : Int,
+  pid : Int32,
   log_path : String,
   rejection : ArgRejection,
   detail : String,
@@ -253,10 +258,22 @@ pub fn arg_rejection_message(
   } else {
     "--no-open/--port"
   }
-  "profile " + profile + " 的 app 不接受服务参数（" + flags +
-  "），它不是服务型 profile，起不成常驻实例。" + detail + "（pid " + pid.to_string() + "，日志 " +
-  log_path + "）。日志里写着：" + rejection.evidence + "。要跑这种 profile，按它自己的用法跑一次" +
-  "（dsh --profile " + profile + " …），别拿它起常驻实例"
+  "profile " +
+  profile +
+  " 的 app 不接受服务参数（" +
+  flags +
+  "），它不是服务型 profile，起不成常驻实例。" +
+  detail +
+  "（pid " +
+  pid.to_string() +
+  "，日志 " +
+  log_path +
+  "）。日志里写着：" +
+  rejection.evidence +
+  "。要跑这种 profile，按它自己的用法跑一次" +
+  "（dsh --profile " +
+  profile +
+  " …），别拿它起常驻实例"
 }
 
 ///|
@@ -265,14 +282,8 @@ pub fn arg_rejection_message(
 /// EACCES 只在它跟 listen / bind 挨着时才认：单独一句 permission denied 可能来自文件操作，
 /// 不该算在 bind 头上（认错会把归因带到别处去）。
 let bind_failure_markers : Array[String] = [
-  "eaddrinuse",
-  "eaddrnotavail",
-  "address already in use",
-  "address in use",
-  "address not available",
-  "cannot assign requested address",
-  "listen eacces",
-  "bind eacces",
+  "eaddrinuse", "eaddrnotavail", "address already in use", "address in use", "address not available",
+  "cannot assign requested address", "listen eacces", "bind eacces",
 ]
 
 ///|
@@ -297,16 +308,27 @@ pub fn detect_bind_failure(text : String) -> String? {
 /// 与「参数被拒」那条一样，正文是证据，不是我们自己编的结论。
 pub fn bind_failure_message(
   profile : String,
-  port : Int,
-  pid : Int,
+  port : Int32,
+  pid : Int32,
   log_path : String,
   evidence : String,
   detail : String,
 ) -> String {
-  "端口 " + port.to_string() + " 起不来：这次 bind 没成，进程写下的原话是「" + evidence +
+  "端口 " +
+  port.to_string() +
+  " 起不来：这次 bind 没成，进程写下的原话是「" +
+  evidence +
   "」。这句话来自这次 bind（errno 与端口都在里面），不是我们按 /proc/net/tcp 猜的。" +
-  "换一个端口，或先腾出这个端口" + "（profile " + profile + "，pid " + pid.to_string() +
-  "，日志 " + log_path + "，" + detail + "）"
+  "换一个端口，或先腾出这个端口" +
+  "（profile " +
+  profile +
+  "，pid " +
+  pid.to_string() +
+  "，日志 " +
+  log_path +
+  "，" +
+  detail +
+  "）"
 }
 
 ///|
@@ -330,7 +352,8 @@ pub async fn command_of_package_dir(dir_in : String) -> DshCommand? noraise {
     Some(p) => p
     None => "node"
   }
-  let version = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let version = match
+    @json.read_text_file(@json.join_path(dir, "package.json")) {
     Ok(text) =>
       match @json.json_parse(text) {
         Some(json) =>
@@ -362,7 +385,7 @@ pub async fn command_of_package_dir(dir_in : String) -> DshCommand? noraise {
 pub async fn start_instance(
   profile : String,
   home : String?,
-  port : Int?
+  port : Int32?,
 ) -> SpawnOutcome raise ActionError {
   start_instance_with(profile, home, port, None, false)
 }
@@ -380,7 +403,7 @@ pub async fn start_instance(
 pub async fn start_instance_with(
   profile : String,
   home : String?,
-  port : Int?,
+  port : Int32?,
   package_dir : String?,
   allow_duplicate : Bool,
 ) -> SpawnOutcome raise ActionError {
@@ -425,8 +448,14 @@ pub async fn start_instance_with(
       }
       fail(
         "conflict",
-        "profile " + name + " 已经在跑（PID " + hit.pid.to_string() + "，" + port_text +
-        home_text + "）；同一个 home 里同一个 profile 只允许一只实例",
+        "profile " +
+        name +
+        " 已经在跑（PID " +
+        hit.pid.to_string() +
+        "，" +
+        port_text +
+        home_text +
+        "）；同一个 home 里同一个 profile 只允许一只实例",
       )
     }
     None => ()
@@ -447,8 +476,11 @@ pub async fn start_instance_with(
         None => {
           fail(
             "conflict",
-            "从 instance.basePort=" + settings.instance_base_port.to_string() +
-            " 起连续 " + port_scan_limit.to_string() + " 个端口都被占用，起不了新实例",
+            "从 instance.basePort=" +
+            settings.instance_base_port.to_string() +
+            " 起连续 " +
+            port_scan_limit.to_string() +
+            " 个端口都被占用，起不了新实例",
           )
           abort("unreachable: fail 一定抛错")
         }
@@ -471,8 +503,7 @@ pub async fn start_instance_with(
         Some(c) => c
         None => {
           fail(
-            "spawn-failed",
-            "找不到 dsh 入口：PATH 上的 dsh 命令解不出包目录，pnpm 全局根下也没有 @deepseek-ai/dsh/lib/bin.js",
+            "spawn-failed", "找不到 dsh 入口：PATH 上的 dsh 命令解不出包目录，pnpm 全局根下也没有 @deepseek-ai/dsh/lib/bin.js",
           )
           abort("unreachable: fail 一定抛错")
         }
@@ -501,16 +532,17 @@ pub async fn start_instance_with(
     Some(s) => s
     None => 0L
   }
-  let pid = match spawn_child(
-    command,
-    args,
-    target_home,
-    name,
-    profile_dir,
-    log_path,
-    settings.process_detach,
-    settings.process_stop_grace_ms,
-  ) {
+  let pid = match
+    spawn_child(
+      command,
+      args,
+      target_home,
+      name,
+      profile_dir,
+      log_path,
+      settings.process_detach,
+      settings.process_stop_grace_ms,
+    ) {
     Ok(p) => p
     Err(e) => {
       fail("spawn-failed", e)
@@ -554,13 +586,20 @@ pub async fn start_instance_with(
           Some(evidence) =>
             fail(
               "conflict",
-              bind_failure_message(name, chosen, pid, log_path, evidence, detail),
+              bind_failure_message(
+                name, chosen, pid, log_path, evidence, detail,
+              ),
             )
           None => {
             let tail = tail_text_lines(fresh, 5)
             fail(
               "spawn-failed",
-              "实例没起来（pid " + pid.to_string() + "，日志 " + log_path + "）：" + detail +
+              "实例没起来（pid " +
+              pid.to_string() +
+              "，日志 " +
+              log_path +
+              "）：" +
+              detail +
               (if tail == "" { "" } else { "；日志尾部：" + tail }),
             )
           }

@@ -17,7 +17,7 @@ pub(all) enum JsonVal {
 
 ///|
 /// 十进制整数转字符串。
-pub fn int_to_dec(n : Int) -> String {
+pub fn int_to_dec(n : Int32) -> String {
   if n == 0 {
     return "0"
   }
@@ -73,7 +73,7 @@ pub fn escape_json_string(s : String) -> String {
 
 ///|
 /// 4 位小写十六进制。
-fn int_to_hex4(n : Int) -> String {
+fn int_to_hex4(n : Int32) -> String {
   let digits = "0123456789abcdef"
   let out = StringBuilder()
   for i = 3; i >= 0; i = i - 1 {
@@ -138,7 +138,7 @@ pub fn str_or_null(s : String?) -> JsonVal {
 
 ///|
 /// 可空整数字段：None 给 null。
-pub fn int_or_null(n : Int?) -> JsonVal {
+pub fn int_or_null(n : Int32?) -> JsonVal {
   match n {
     Some(v) => JNum(v.to_double())
     None => JNull
@@ -156,7 +156,7 @@ pub fn int64_or_null(n : Int64?) -> JsonVal {
 
 ///|
 /// 整数字段。
-pub fn jint(n : Int) -> JsonVal {
+pub fn jint(n : Int32) -> JsonVal {
   JNum(n.to_double())
 }
 
@@ -209,7 +209,7 @@ extern "c" fn local_offset_seconds_raw(sec : Int64) -> Int64 = "dsh_console_loca
 ///|
 /// 本地时区缩写（C 侧写进缓冲区，返回字节数）。取不到返回 0。
 #borrow(buf)
-extern "c" fn local_zone_name_raw(buf : Bytes, cap : Int) -> Int = "dsh_console_local_zone_name"
+extern "c" fn local_zone_name_raw(buf : Bytes, cap : Int32) -> Int32 = "dsh_console_local_zone_name"
 
 ///|
 /// C 侧取不到偏移时的哨兵值（|真实偏移| 不可能到 86400 秒）。
@@ -262,7 +262,7 @@ pub fn local_zone_name() -> String? {
 }
 
 ///|
-fn pad_num(b : StringBuilder, value : Int64, width : Int) -> Unit {
+fn pad_num(b : StringBuilder, value : Int64, width : Int32) -> Unit {
   let s = int64_to_dec(value)
   let mut pad = width - s.length()
   while pad > 0 {
@@ -276,7 +276,7 @@ fn pad_num(b : StringBuilder, value : Int64, width : Int) -> Unit {
 /// 把一条完整 ISO8601 时间戳（形如 2026-10-14T11:12:05.680Z）取成时间部分 "11:12:05"。
 /// 判据与 Node 版 readLogs.mjs 的 `^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?)` 等价：
 /// 日期三段与时间三段必须是纯数字，小数部分 1..3 位。对不上返回 None。
-fn code_at(value : String, i : Int) -> Char {
+fn code_at(value : String, i : Int32) -> Char {
   value.unsafe_get(i).unsafe_to_char()
 }
 
@@ -287,7 +287,9 @@ pub fn iso_time_part(value : String) -> String? {
   if n < 19 {
     return None
   }
-  if code_at(value, 4) != '-' || code_at(value, 7) != '-' || code_at(value, 10) != 'T' {
+  if code_at(value, 4) != '-' ||
+    code_at(value, 7) != '-' ||
+    code_at(value, 10) != 'T' {
     return None
   }
   if code_at(value, 13) != ':' || code_at(value, 16) != ':' {
@@ -319,7 +321,7 @@ pub fn iso_time_part(value : String) -> String? {
 
 ///|
 /// 天数（自 1970-01-01）转公历。Howard Hinnant 的 civil_from_days 算法。
-fn civil_from_days(days : Int64) -> (Int64, Int, Int) {
+fn civil_from_days(days : Int64) -> (Int64, Int32, Int32) {
   let z = days + 719468L
   let era = (if z >= 0L { z } else { z - 146096L }) / 146097L
   let doe = z - era * 146097L

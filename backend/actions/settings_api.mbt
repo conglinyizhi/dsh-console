@@ -5,7 +5,9 @@
 
 ///|
 /// 设置响应体：values / defaults / sources 三件套（键序固定），外加存储路径与文件级提示。
-async fn settings_payload(extra : Array[(String, @json.JsonVal)]) -> @json.JsonVal noraise {
+async fn settings_payload(
+  extra : Array[(String, @json.JsonVal)],
+) -> @json.JsonVal noraise {
   let loaded = @store.load_settings()
   let paths = @store.state_paths()
   let defaults = @store.default_settings()
@@ -36,7 +38,10 @@ async fn settings_payload(extra : Array[(String, @json.JsonVal)]) -> @json.JsonV
 
 ///|
 /// GET /api/local/settings：纯只读，走只读外壳（readOnly: true）。
-async fn handle_settings_get(res : @moonback.Responder, read_at : String) -> Unit {
+async fn handle_settings_get(
+  res : @moonback.Responder,
+  read_at : String,
+) -> Unit {
   // 启动环境（§61）：与设置项分开存（env.json），但读的时候一起给界面，
   // 免得「设置页要发两次请求才凑齐一页」。
   let env = @store.load_env_file()
@@ -70,9 +75,7 @@ async fn handle_settings_put(
   res : @moonback.Responder,
   read_at : String,
 ) -> Unit {
-  try {
-    authorize(req)
-  } catch {
+  authorize(req) catch {
     ActionError(code~, message~) => {
       send_write_error(res, code, message, read_at)
       return
@@ -133,7 +136,11 @@ async fn handle_settings_put(
 
 ///|
 /// 设置端点的分发：GET 只读，PUT 写，别的方法 405。
-pub async fn handle_settings(req : @moonback.Request, res : @moonback.Responder, read_at : String) -> Unit {
+pub async fn handle_settings(
+  req : @moonback.Request,
+  res : @moonback.Responder,
+  read_at : String,
+) -> Unit {
   let verb = @localapi.method_name(req.meth)
   match verb {
     "GET" => handle_settings_get(res, read_at)

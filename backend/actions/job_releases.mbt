@@ -4,7 +4,6 @@
 // 2026-10-20 从 job.mbt 拆出来：「这一版是从哪来的」与「现在谁在用」是只读读数，
 // 与作业状态机不是一件事。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 包目录在路径里的那一段（与 runtime.mbt 同一个判据）。
 let package_marker : String = "/node_modules/@deepseek-ai/dsh"
@@ -12,8 +11,8 @@ let package_marker : String = "/node_modules/@deepseek-ai/dsh"
 ///|
 /// 一只在跑的实例：进程号 / 端口 / profile / home / 包目录 / 版本。
 priv struct RunningSnapshot {
-  pid : Int
-  port : Int?
+  pid : Int32
+  port : Int32?
   profile : String
   home : String
   dir : String

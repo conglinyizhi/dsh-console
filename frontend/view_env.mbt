@@ -34,11 +34,12 @@ struct EnvTarget {
   scope_id : String
 } derive(Eq)
 
-pub extend EnvTarget with Eq::{ not_equal, equal }
+///|
+pub extend EnvTarget with Eq::{not_equal, equal}
 
 ///|
 fn env_target_global() -> EnvTarget {
-  { scope: "global", home: "", profile: "", scope_id: "global" }
+  { scope: "global", home: "", profile: "", scope_id: "global", }
 }
 
 ///|
@@ -70,7 +71,7 @@ fn env_target_of_row(row : Row) -> EnvTarget? {
   if home == "" {
     return None
   }
-  Some({ scope: "profile", home, profile: name, scope_id: home + "|" + name })
+  Some({ scope: "profile", home, profile: name, scope_id: home + "|" + name, })
 }
 
 ///|
@@ -134,7 +135,10 @@ fn env_entries_of(model : Model, target : EnvTarget) -> Array[(String, String)] 
 
 ///|
 /// 按作用域 id 取那一份表（profile 那一档的 id 就是 env_profiles 的键）。
-fn env_entries_of_scope(model : Model, scope_id : String) -> Array[(String, String)] {
+fn env_entries_of_scope(
+  model : Model,
+  scope_id : String,
+) -> Array[(String, String)] {
   if scope_id == "global" {
     model.env_global
   } else {
@@ -148,7 +152,11 @@ fn env_entries_of_scope(model : Model, scope_id : String) -> Array[(String, Stri
 }
 
 ///|
-fn env_entry_of_scope(model : Model, scope_id : String, key : String) -> String? {
+fn env_entry_of_scope(
+  model : Model,
+  scope_id : String,
+  key : String,
+) -> String? {
   for pair in env_entries_of_scope(model, scope_id) {
     if pair.0 == key {
       return Some(pair.1)
@@ -182,6 +190,7 @@ fn env_shown_id(target : EnvTarget, key : String) -> String {
 }
 
 ///|
+
 ///|
 /// 默认打码的判据是**保守**的：宁可不泄露。键名命中敏感词、或值超过 60 字符，默认打码；
 /// 其余短值默认显示。用户点过「显示 / 隐藏」就以那次选择为准（env_shown 里记着）。
@@ -193,7 +202,11 @@ fn env_proxy_key(key : String) -> Bool {
 ///|
 fn env_sensitive_key(key : String) -> Bool {
   let lower = key.to_lower()
-  for word in ["key", "password", "passwd", "token", "secret", "credential", "auth", "cookie", "private"] {
+  for
+    word in [
+      "key", "password", "passwd", "token", "secret", "credential", "auth", "cookie",
+      "private",
+    ] {
     if lower.contains(word) {
       return true
     }
@@ -202,7 +215,12 @@ fn env_sensitive_key(key : String) -> Bool {
 }
 
 ///|
-fn env_revealed(model : Model, target : EnvTarget, key : String, value : String) -> Bool {
+fn env_revealed(
+  model : Model,
+  target : EnvTarget,
+  key : String,
+  value : String,
+) -> Bool {
   let id = env_shown_id(target, key)
   // 用户按过「显示」的记成 id；按过「隐藏」的记成 "!" + id（一份数组两种记号，
   // 免得再加一个字段 —— 两个方向都要能表达，否则短值默认可见就没法手动藏）。
@@ -230,7 +248,12 @@ fn env_draft_of(model : Model, target : EnvTarget, key : String) -> String? {
 
 ///|
 /// 控件里该显示的文本：草稿优先（正在敲的那一份），否则读数里的值。
-fn env_control_text(model : Model, target : EnvTarget, key : String, value : String) -> String {
+fn env_control_text(
+  model : Model,
+  target : EnvTarget,
+  key : String,
+  value : String,
+) -> String {
   match env_draft_of(model, target, key) {
     Some(text) => text
     None => value
@@ -244,8 +267,10 @@ fn env_draft_put(
   key : String,
   text : String,
 ) -> Array[EnvDraft] {
-  let out = drafts.filter(fn(draft) { draft.scope != scope_id || draft.key != key })
-  out.push({ scope: scope_id, key, text })
+  let out = drafts.filter(fn(draft) {
+    draft.scope != scope_id || draft.key != key
+  })
+  out.push({ scope: scope_id, key, text, })
   out
 }
 
@@ -319,11 +344,17 @@ fn env_value_cell(
   value : String,
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
-  if !env_revealed(model, target, key, env_control_text(model, target, key, value)) {
+  if !env_revealed(
+      model,
+      target,
+      key,
+      env_control_text(model, target, key, value),
+    ) {
     return @html.span(
       class="dsh-env-mask",
-      attrs=mark("env-mask", ["settings", "env", target.scope_id, key, "mask"])
-        .aria_label(key + " 的值已打码"),
+      attrs=mark("env-mask", ["settings", "env", target.scope_id, key, "mask"]).aria_label(
+        key + " 的值已打码",
+      ),
       "••••••",
     )
   }
@@ -331,7 +362,11 @@ fn env_value_cell(
   let expanded = model.env_expanded.contains(key)
   let input = @html.input(
     input_type=Text,
-    class=if long && expanded { "dsh-env-input is-wide" } else { "dsh-env-input" },
+    class=if long && expanded {
+      "dsh-env-input is-wide"
+    } else {
+      "dsh-env-input"
+    },
     value=env_control_text(model, target, key, value),
     attrs=mark("env-input", ["settings", "env", target.scope_id, key, "input"])
       .aria_label(key + " 的值")
@@ -347,9 +382,13 @@ fn env_value_cell(
     @html.button(
       class="dsh-env-btn",
       type_="button",
-      attrs=mark("env-expand", ["settings", "env", target.scope_id, key, "expand"]).title(
-        "值很长：展开成多行看全，改完失焦即存",
-      ),
+      attrs=mark("env-expand", [
+        "settings",
+        "env",
+        target.scope_id,
+        key,
+        "expand",
+      ]).title("值很长：展开成多行看全，改完失焦即存"),
       on_click=emit(EnvToggleExpand(key)),
       [@html.text(if expanded { "收起" } else { "展开" })],
     ),
@@ -370,7 +409,12 @@ fn env_scope_line(target : EnvTarget, emit : @cmd.Emit[Msg]) -> @html.Html {
     [
       @html.span(
         class="dsh-env-scope-text",
-        attrs=mark("env-scope-text", ["settings", "env", target.scope_id, "scope-text"]),
+        attrs=mark("env-scope-text", [
+          "settings",
+          "env",
+          target.scope_id,
+          "scope-text",
+        ]),
         text,
       ),
       // 全局那一份本来就在设置 → 进程里打开，再给「去设置 → 进程」是让用户原地转圈（§98）；
@@ -381,7 +425,12 @@ fn env_scope_line(target : EnvTarget, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.button(
           class="dsh-link-btn",
           type_="button",
-          attrs=mark("env-goto-process", ["settings", "env", target.scope_id, "goto-process"]),
+          attrs=mark("env-goto-process", [
+            "settings",
+            "env",
+            target.scope_id,
+            "goto-process",
+          ]),
           on_click=emit(EnvGotoProcess),
           [@html.text("去设置 → 进程")],
         )
@@ -400,12 +449,23 @@ fn env_row(
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
   let locked = env_is_reserved(model, key)
-  let revealed = env_revealed(model, target, key, env_control_text(model, target, key, value))
+  let revealed = env_revealed(
+    model,
+    target,
+    key,
+    env_control_text(model, target, key, value),
+  )
   let ops : Array[@html.Html] = if locked {
     [
       @html.span(
         class="dsh-env-locked",
-        attrs=mark("env-locked", ["settings", "env", target.scope_id, key, "locked"]),
+        attrs=mark("env-locked", [
+          "settings",
+          "env",
+          target.scope_id,
+          key,
+          "locked",
+        ]),
         "控制台自己管，不能改",
       ),
     ]
@@ -414,18 +474,35 @@ fn env_row(
       @html.button(
         class="dsh-env-btn",
         type_="button",
-        attrs=mark("env-reveal", ["settings", "env", target.scope_id, key, "reveal"])
+        attrs=mark("env-reveal", [
+            "settings",
+            "env",
+            target.scope_id,
+            key,
+            "reveal",
+          ])
           .data_set("shown", if revealed { "true" } else { "false" })
           .aria_pressed(if revealed { "true" } else { "false" })
-          .aria_label(if revealed { "隐藏 " + key + " 的值" } else { "显示 " + key + " 的值" }),
+          .aria_label(
+            if revealed {
+              "隐藏 " + key + " 的值"
+            } else {
+              "显示 " + key + " 的值"
+            },
+          ),
         on_click=emit(EnvReveal(target.scope, key)),
         [@html.text(if revealed { "隐藏" } else { "显示" })],
       ),
       @html.button(
         class="dsh-env-btn is-danger",
         type_="button",
-        attrs=mark("env-delete", ["settings", "env", target.scope_id, key, "delete"])
-          .aria_label("删掉 " + key),
+        attrs=mark("env-delete", [
+          "settings",
+          "env",
+          target.scope_id,
+          key,
+          "delete",
+        ]).aria_label("删掉 " + key),
         on_click=emit(EnvDelete(target.scope, key)),
         [@html.text("删除")],
       ),
@@ -439,7 +516,9 @@ fn env_row(
     [
       @html.span(
         class="dsh-env-key",
-        attrs=mark("env-key", ["settings", "env", target.scope_id, key, "key"]).title(key),
+        attrs=mark("env-key", ["settings", "env", target.scope_id, key, "key"]).title(
+          key,
+        ),
         key,
       ),
       @html.div(class="dsh-env-value", [
@@ -457,7 +536,11 @@ fn env_row(
 
 ///|
 /// 底部「添加一行」：两格输入 + 一颗「添加」。
-fn env_add_row(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn env_add_row(
+  model : Model,
+  target : EnvTarget,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   @html.div(
     class="dsh-env-add",
     attrs=mark("env-add", ["settings", "env", target.scope_id, "add"]),
@@ -468,7 +551,13 @@ fn env_add_row(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @htm
         class="dsh-env-add-key",
         value=model.env_add_key,
         placeholder="KEY",
-        attrs=mark("env-add-key", ["settings", "env", target.scope_id, "add", "key"])
+        attrs=mark("env-add-key", [
+            "settings",
+            "env",
+            target.scope_id,
+            "add",
+            "key",
+          ])
           .aria_label("新变量的键名")
           .spellcheck(false),
         on_input=emit.map(fn(text) { EnvAddKeyInput(text) }),
@@ -479,7 +568,13 @@ fn env_add_row(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @htm
         class="dsh-env-add-value",
         value=model.env_add_value,
         placeholder="值",
-        attrs=mark("env-add-value", ["settings", "env", target.scope_id, "add", "value"])
+        attrs=mark("env-add-value", [
+            "settings",
+            "env",
+            target.scope_id,
+            "add",
+            "value",
+          ])
           .aria_label("新变量的值")
           .spellcheck(false),
         on_input=emit.map(fn(text) { EnvAddValueInput(text) }),
@@ -487,7 +582,13 @@ fn env_add_row(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @htm
       @html.button(
         class="dsh-env-btn primary",
         type_="button",
-        attrs=mark("env-add-commit", ["settings", "env", target.scope_id, "add", "commit"]),
+        attrs=mark("env-add-commit", [
+          "settings",
+          "env",
+          target.scope_id,
+          "add",
+          "commit",
+        ]),
         on_click=emit(EnvAdd(target.scope)),
         [@html.text("添加")],
       ),
@@ -501,7 +602,8 @@ fn env_foot(model : Model) -> @html.Html {
   let reserved = if model.env_reserved.length() == 0 {
     ""
   } else {
-    "｜控制台自己管的键不能改：" + join_with(model.env_reserved, "、")
+    "｜控制台自己管的键不能改：" +
+    join_with(model.env_reserved, "、")
   }
   // 页脚只留一句短的（§63）：路径、权限、保留键名单全进悬停。
   // 这一段在设置页与对话框里各出现一次，长句子会把表格压得没地方站。
@@ -512,7 +614,9 @@ fn env_foot(model : Model) -> @html.Html {
         "落盘位置还没读到"
       } else {
         "落盘位置 " + model.env_path + "（权限 600）"
-      }) + "；改一行就存一次，下一次启动实例生效" + reserved,
+      }) +
+      "；改一行就存一次，下一次启动实例生效" +
+      reserved,
     ),
     "改一行就存一次",
   )
@@ -560,7 +664,12 @@ fn env_table(
     body.push(
       @html.p(
         class="dsh-env-empty",
-        attrs=mark("env-unavailable", ["settings", "env", target.scope_id, "unavailable"]),
+        attrs=mark("env-unavailable", [
+          "settings",
+          "env",
+          target.scope_id,
+          "unavailable",
+        ]),
         "读不到这只 profile 的目录名或 home，这一份存不了",
       ),
     )
@@ -594,7 +703,11 @@ fn env_merge_text(model : Model) -> String {
 /// inherit 关掉之后 merge 不再参与合并，但它的值仍然存在文件里（下次打开继承就用得上），
 /// 所以照样拼出来：这一句说的是「现在存的是什么」，不是替用户推断「现在有没有用」。
 fn env_mode_text(model : Model) -> String {
-  let inherit_text = if model.env_inherit { "继承系统环境" } else { "不继承系统环境" }
+  let inherit_text = if model.env_inherit {
+    "继承系统环境"
+  } else {
+    "不继承系统环境"
+  }
   inherit_text + "，" + env_merge_text(model)
 }
 
@@ -605,7 +718,12 @@ fn env_mode_text(model : Model) -> String {
 /// 后一半（profile 覆盖 global）是 §62.2 写死的语义，永远成立。
 fn env_mode_line(model : Model) -> String {
   if model.env_options_known {
-    (if model.env_inherit { "继承系统环境" } else { "不继承系统环境" }) + " · " +
+    (if model.env_inherit {
+      "继承系统环境"
+    } else {
+      "不继承系统环境"
+    }) +
+    " · " +
     env_merge_text(model) +
     " · 这一份覆盖全局"
   } else {
@@ -628,7 +746,9 @@ fn env_merge_radio(
   @html.button(
     class=if on { "dsh-env-radio on" } else { "dsh-env-radio" },
     type_="button",
-    attrs=mark("env-merge-" + value, ["settings", "env", "options", "merge", value])
+    attrs=mark("env-merge-" + value, [
+        "settings", "env", "options", "merge", value,
+      ])
       .title(hint)
       .role("radio")
       .data_set("checked", if on { "true" } else { "false" })
@@ -672,12 +792,16 @@ fn env_options_block(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-env-option-main", [
           @html.div(
             class="dsh-env-option-name",
-            attrs=mark("env-inherit-name", ["settings", "env", "options", "inherit", "name"]),
+            attrs=mark("env-inherit-name", [
+              "settings", "env", "options", "inherit", "name",
+            ]),
             "继承系统环境变量",
           ),
           @html.p(
             class="dsh-env-option-desc",
-            attrs=mark("env-inherit-desc", ["settings", "env", "options", "inherit", "desc"]),
+            attrs=mark("env-inherit-desc", [
+              "settings", "env", "options", "inherit", "desc",
+            ]),
             "起实例时带上控制台进程自己的环境变量；关掉之后子进程只有这张表与保留键",
           ),
         ]),
@@ -697,19 +821,25 @@ fn env_options_block(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-env-option-main", [
           @html.div(
             class="dsh-env-option-name",
-            attrs=mark("env-merge-name", ["settings", "env", "options", "merge", "name"]),
+            attrs=mark("env-merge-name", [
+              "settings", "env", "options", "merge", "name",
+            ]),
             "同名变量",
           ),
           @html.p(
             class="dsh-env-option-desc",
-            attrs=mark("env-merge-desc", ["settings", "env", "options", "merge", "desc"]),
+            attrs=mark("env-merge-desc", [
+              "settings", "env", "options", "merge", "desc",
+            ]),
             "与继承来的同名键撞上时，覆盖或把系统值接在前面（冒号分隔）",
           ),
         ]),
         @html.div(class="dsh-env-option-control", [
           @html.div(
             class="dsh-env-radios",
-            attrs=mark("env-merge-group", ["settings", "env", "options", "merge", "group"])
+            attrs=mark("env-merge-group", [
+                "settings", "env", "options", "merge", "group",
+              ])
               .role("radiogroup")
               .aria_label("同名变量"),
             [
@@ -742,10 +872,9 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-env-option-main", [
           @html.div(
             class="dsh-env-option-name",
-            attrs=mark("env-open-name", ["settings", "env", "open", "name"])
-              .title(
-                "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以在抽屉里再覆盖其中的键",
-              ),
+            attrs=mark("env-open-name", ["settings", "env", "open", "name"]).title(
+              "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以在抽屉里再覆盖其中的键",
+            ),
             "全局启动变量",
           ),
           @html.p(
@@ -758,8 +887,9 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.button(
             class="dsh-btn",
             type_="button",
-            attrs=mark("env-open", ["settings", "env", "global", "open"])
-              .title("打开全局启动变量编辑器：增删改、长值展开、预设"),
+            attrs=mark("env-open", ["settings", "env", "global", "open"]).title(
+              "打开全局启动变量编辑器：增删改、长值展开、预设",
+            ),
             on_click=emit(EnvGlobalOpen),
             [@html.text("编辑…")],
           ),
@@ -814,8 +944,15 @@ fn env_open_running(model : Model) -> Bool {
 ///   * 空值也留着 —— 进程里那个键确实存在，值是空的；开发指令要往 shell 里 export，
 ///     空值写进去没有意义，所以那边跳掉。这里说的是「进程绑了什么」，不能跳。
 ///   * 保留键剔掉 —— 它们不由这张表决定（后端 env_for_spawn 同一张名单跳过）。
-fn env_effective_pairs(model : Model, target : EnvTarget) -> Array[(String, String)] {
-  let own = env_profile_pairs(env_facts_of_model(model), target.home, target.profile)
+fn env_effective_pairs(
+  model : Model,
+  target : EnvTarget,
+) -> Array[(String, String)] {
+  let own = env_profile_pairs(
+    env_facts_of_model(model),
+    target.home,
+    target.profile,
+  )
   let order : Array[String] = []
   let values : Map[String, String] = Map([])
   let put = fn(list : Array[(String, String)]) {
@@ -855,15 +992,22 @@ fn env_readonly_value(
   if !env_revealed(model, target, key, value) {
     return @html.span(
       class="dsh-env-mask",
-      attrs=mark("env-mask", ["settings", "env", target.scope_id, key, "mask"])
-        .aria_label(key + " 的值已打码"),
+      attrs=mark("env-mask", ["settings", "env", target.scope_id, key, "mask"]).aria_label(
+        key + " 的值已打码",
+      ),
       "••••••",
     )
   }
   @html.span(
     class="dsh-env-key",
-    attrs=mark("env-plain", ["settings", "env", target.scope_id, key, "plain"]).title(value),
-    if value == "" { "（空值）" } else { value },
+    attrs=mark("env-plain", ["settings", "env", target.scope_id, key, "plain"]).title(
+      value,
+    ),
+    if value == "" {
+      "（空值）"
+    } else {
+      value
+    },
   )
 }
 
@@ -886,7 +1030,9 @@ fn env_readonly_row(
     [
       @html.span(
         class="dsh-env-key",
-        attrs=mark("env-key", ["settings", "env", target.scope_id, key, "key"]).title(key),
+        attrs=mark("env-key", ["settings", "env", target.scope_id, key, "key"]).title(
+          key,
+        ),
         key,
       ),
       @html.div(class="dsh-env-value", [
@@ -896,11 +1042,21 @@ fn env_readonly_row(
         @html.button(
           class="dsh-env-btn",
           type_="button",
-          attrs=mark("env-reveal", ["settings", "env", target.scope_id, key, "reveal"])
+          attrs=mark("env-reveal", [
+              "settings",
+              "env",
+              target.scope_id,
+              key,
+              "reveal",
+            ])
             .data_set("shown", if revealed { "true" } else { "false" })
             .aria_pressed(if revealed { "true" } else { "false" })
             .aria_label(
-              if revealed { "隐藏 " + key + " 的值" } else { "显示 " + key + " 的值" },
+              if revealed {
+                "隐藏 " + key + " 的值"
+              } else {
+                "显示 " + key + " 的值"
+              },
             ),
           on_click=emit(EnvReveal(target.scope, key)),
           [@html.text(if revealed { "隐藏" } else { "显示" })],
@@ -958,8 +1114,11 @@ fn env_readonly_table(
     @html.p(
       class="dsh-env-foot",
       attrs=mark("env-foot", ["settings", "env", "foot"]).title(
-        "全局 " + model.env_global.length().to_string() + " 条 · 这一只覆盖 " +
-        own_count.to_string() + " 条；保留键由控制台自己摆，不在这张表里",
+        "全局 " +
+        model.env_global.length().to_string() +
+        " 条 · 这一只覆盖 " +
+        own_count.to_string() +
+        " 条；保留键由控制台自己摆，不在这张表里",
       ),
       "以上是这只实例现在生效的变量：全局与这一份合并之后的结果",
     ),
@@ -1037,13 +1196,13 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         if locked {
           env_readonly_table(model, target, emit)
         } else {
-          env_table(model, target, "没有单独设置，跟着全局走", true, emit)
+          env_table(
+            model, target, "没有单独设置，跟着全局走", true, emit,
+          )
         }
       None =>
         env_dialog_note(
-          model,
-          "env-unavailable",
-          "读不到这只 profile 的目录名或 home，这一份存不了",
+          model, "env-unavailable", "读不到这只 profile 的目录名或 home，这一份存不了",
           "",
         )
     }
@@ -1127,10 +1286,15 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     card,
   )
 }
+
 ///|
 /// N8：设置页里的摘要行（已设置 N 条 · 前三个键名）+「编辑…」。
 /// 空态写「还没设置」，但「编辑…」照样在——入口不能因为没有条目就消失。
-fn env_summary(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn env_summary(
+  model : Model,
+  target : EnvTarget,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let entries = env_entries_of(model, target)
   let names : Array[String] = []
   for pair in entries {
@@ -1141,7 +1305,10 @@ fn env_summary(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @htm
   let text = if entries.length() == 0 {
     "还没设置"
   } else {
-    "已设置 " + entries.length().to_string() + " 条 · " + names.join("、") +
+    "已设置 " +
+    entries.length().to_string() +
+    " 条 · " +
+    names.join("、") +
     (if entries.length() > 3 { " …" } else { "" })
   }
   @html.div(
@@ -1150,14 +1317,20 @@ fn env_summary(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @htm
     [
       @html.span(
         class="dsh-env-summary-text",
-        attrs=mark("env-summary-text", ["settings", "env", target.scope_id, "summary-text"]),
+        attrs=mark("env-summary-text", [
+          "settings",
+          "env",
+          target.scope_id,
+          "summary-text",
+        ]),
         text,
       ),
       @html.button(
         class="dsh-btn",
         type_="button",
-        attrs=mark("env-open", ["settings", "env", target.scope_id, "open"])
-          .title("打开启动变量编辑器：增删改、长值展开、只补缺的建议"),
+        attrs=mark("env-open", ["settings", "env", target.scope_id, "open"]).title(
+          "打开启动变量编辑器：增删改、长值展开、只补缺的建议",
+        ),
         on_click=emit(EnvGlobalOpen),
         [@html.text("编辑…")],
       ),
@@ -1181,7 +1354,10 @@ fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       attrs=mark("env-dialog-message", ["settings", "env", "dialog", "message"]),
       "含 key / password / token 这类字样的变量默认打码，点显示可看。起实例时挂进子进程的变量；每只 profile 可以在抽屉里覆盖其中的键。值默认打码，点「显示」看原文。",
     ),
-    env_table(model, target, "还没有启动变量，加一行就会在起实例时带上", true, emit),
+    env_table(
+      model, target, "还没有启动变量，加一行就会在起实例时带上",
+      true, emit,
+    ),
     @html.div(class="dsh-dialog-foot", [
       @html.button(
         id="dsh-env-global-close",

@@ -6,13 +6,13 @@
 ///|
 /// 设置值。字段名是 MoonBit 的，JSON 里的键名见下面 key_* 常量。
 pub struct Settings {
-  probe_timeout_ms : Int
-  probe_concurrency : Int
-  probe_max_candidates : Int
-  instance_base_port : Int
+  probe_timeout_ms : Int32
+  probe_concurrency : Int32
+  probe_max_candidates : Int32
+  instance_base_port : Int32
   process_detach : Bool
-  process_stop_grace_ms : Int
-  logs_default_tail : Int
+  process_stop_grace_ms : Int32
+  logs_default_tail : Int32
   ui_archive_open_by_default : Bool
   /// 侧栏收起：宽屏下侧栏是展开成 190px，还是收成 56px 的图标栏（窄屏不看这一项，
   /// 那一档的侧栏从顶部汉堡滑出，不占位）。前端读它复原形态，后端只负责存取与回显。
@@ -67,18 +67,9 @@ pub let key_ui_show_beta : String = "ui.showBetaFeatures"
 /// 契约里的键序（响应的 values / defaults / sources 都按这个顺序出）。
 pub fn settings_keys() -> Array[String] {
   [
-    key_probe_timeout_ms,
-    key_probe_concurrency,
-    key_probe_max_candidates,
-    key_instance_base_port,
-    key_process_detach,
-    key_process_stop_grace_ms,
-    key_logs_default_tail,
-    key_ui_archive_open_by_default,
-    key_ui_sidebar_collapsed,
-    key_ui_show_beta,
-    key_safety_delete_to_trash,
-    key_profile_ignore_missing_bundles,
+    key_probe_timeout_ms, key_probe_concurrency, key_probe_max_candidates, key_instance_base_port,
+    key_process_detach, key_process_stop_grace_ms, key_logs_default_tail, key_ui_archive_open_by_default,
+    key_ui_sidebar_collapsed, key_ui_show_beta, key_safety_delete_to_trash, key_profile_ignore_missing_bundles,
   ]
 }
 
@@ -111,7 +102,7 @@ pub struct LoadedSettings {
 
 ///|
 /// 取值范围（含端点）。越界即 bad-params —— 不静默夹取，前端要看得到自己填错了。
-fn range_of(key : String) -> (Int, Int) {
+fn range_of(key : String) -> (Int32, Int32) {
   match key {
     "probe.timeoutMs" => (50, 60000)
     "probe.concurrency" => (1, 64)
@@ -125,40 +116,62 @@ fn range_of(key : String) -> (Int, Int) {
 
 ///|
 /// 一个键的取值校验 + 落到 Settings 上。失败给人话原因。
-fn apply_one(current : Settings, key : String, json : Json) -> Result[Settings, String] {
+fn apply_one(
+  current : Settings,
+  key : String,
+  json : Json,
+) -> Result[Settings, String] {
   match key {
-    "probe.timeoutMs" | "probe.concurrency" | "probe.maxCandidates" | "instance.basePort" |
-    "process.stopGraceMs" | "logs.defaultTail" => {
+    "probe.timeoutMs"
+    | "probe.concurrency"
+    | "probe.maxCandidates"
+    | "instance.basePort"
+    | "process.stopGraceMs"
+    | "logs.defaultTail" => {
       let value = match as_int(json) {
         Some(v) => v
         None => return Err("要整数，收到 " + describe(json))
       }
       let (lo, hi) = range_of(key)
       if value < lo || value > hi {
-        return Err("超出取值范围 " + lo.to_string() + ".." + hi.to_string() + "，收到 " + value.to_string())
+        return Err(
+          "超出取值范围 " +
+          lo.to_string() +
+          ".." +
+          hi.to_string() +
+          "，收到 " +
+          value.to_string(),
+        )
       }
       match key {
-        "probe.timeoutMs" => Ok({ ..current, probe_timeout_ms: value })
-        "probe.concurrency" => Ok({ ..current, probe_concurrency: value })
-        "probe.maxCandidates" => Ok({ ..current, probe_max_candidates: value })
-        "instance.basePort" => Ok({ ..current, instance_base_port: value })
-        "process.stopGraceMs" => Ok({ ..current, process_stop_grace_ms: value })
-        _ => Ok({ ..current, logs_default_tail: value })
+        "probe.timeoutMs" => Ok({ ..current, probe_timeout_ms: value, })
+        "probe.concurrency" => Ok({ ..current, probe_concurrency: value, })
+        "probe.maxCandidates" => Ok({ ..current, probe_max_candidates: value, })
+        "instance.basePort" => Ok({ ..current, instance_base_port: value, })
+        "process.stopGraceMs" =>
+          Ok({ ..current, process_stop_grace_ms: value, })
+        _ => Ok({ ..current, logs_default_tail: value, })
       }
     }
-    "process.detach" | "ui.archiveOpenByDefault" | "ui.sidebarCollapsed" |
-    "ui.showBetaFeatures" | "safety.deleteToTrash" | "profile.ignoreMissingBundles" => {
+    "process.detach"
+    | "ui.archiveOpenByDefault"
+    | "ui.sidebarCollapsed"
+    | "ui.showBetaFeatures"
+    | "safety.deleteToTrash"
+    | "profile.ignoreMissingBundles" => {
       let value = match as_bool(json) {
         Some(v) => v
         None => return Err("要布尔值，收到 " + describe(json))
       }
       match key {
-        "process.detach" => Ok({ ..current, process_detach: value })
-        "ui.archiveOpenByDefault" => Ok({ ..current, ui_archive_open_by_default: value })
-        "ui.sidebarCollapsed" => Ok({ ..current, ui_sidebar_collapsed: value })
-        "ui.showBetaFeatures" => Ok({ ..current, ui_show_beta: value })
-        "profile.ignoreMissingBundles" => Ok({ ..current, profile_ignore_missing_bundles: value })
-        _ => Ok({ ..current, safety_delete_to_trash: value })
+        "process.detach" => Ok({ ..current, process_detach: value, })
+        "ui.archiveOpenByDefault" =>
+          Ok({ ..current, ui_archive_open_by_default: value, })
+        "ui.sidebarCollapsed" => Ok({ ..current, ui_sidebar_collapsed: value, })
+        "ui.showBetaFeatures" => Ok({ ..current, ui_show_beta: value, })
+        "profile.ignoreMissingBundles" =>
+          Ok({ ..current, profile_ignore_missing_bundles: value, })
+        _ => Ok({ ..current, safety_delete_to_trash: value, })
       }
     }
     _ => Err("未知的设置键：" + key)
@@ -209,20 +222,32 @@ pub async fn load_settings() -> LoadedSettings noraise {
                     values = next
                     sources[key] = "文件"
                   }
-                  Err(reason) => sources[key] = "默认（" + paths.settings + " 里的值不可用：" + reason + "）"
+                  Err(reason) =>
+                    sources[key] = "默认（" +
+                      paths.settings +
+                      " 里的值不可用：" +
+                      reason +
+                      "）"
                 }
             }
           }
-        _ => note = Some("settings.json 顶层不是对象，全部按缺省：" + paths.settings)
+        _ =>
+          note = Some(
+            "settings.json 顶层不是对象，全部按缺省：" +
+            paths.settings,
+          )
       }
   }
-  { values, sources, note }
+  { values, sources, note, }
 }
 
 ///|
 /// 把 values 对象里的每个键校验后合并到 current 上。
 /// 返回 (新值, 错误)：错误是 (code, message)，code 一律 bad-params。
-pub fn apply_patch(current : Settings, values : Json) -> Result[Settings, (String, String)] {
+pub fn apply_patch(
+  current : Settings,
+  values : Json,
+) -> Result[Settings, (String, String)] {
   let entries = object_entries(values)
   match values {
     Object(_) => ()
@@ -260,7 +285,10 @@ pub fn settings_values_json(s : Settings) -> @json.JsonVal {
     (key_ui_sidebar_collapsed, @json.JBool(s.ui_sidebar_collapsed)),
     (key_ui_show_beta, @json.JBool(s.ui_show_beta)),
     (key_safety_delete_to_trash, @json.JBool(s.safety_delete_to_trash)),
-    (key_profile_ignore_missing_bundles, @json.JBool(s.profile_ignore_missing_bundles)),
+    (
+      key_profile_ignore_missing_bundles,
+      @json.JBool(s.profile_ignore_missing_bundles),
+    ),
   ])
 }
 
@@ -279,7 +307,8 @@ pub fn value_of(s : Settings, key : String) -> @json.JsonVal {
     "ui.sidebarCollapsed" => @json.JBool(s.ui_sidebar_collapsed)
     "ui.showBetaFeatures" => @json.JBool(s.ui_show_beta)
     "safety.deleteToTrash" => @json.JBool(s.safety_delete_to_trash)
-    "profile.ignoreMissingBundles" => @json.JBool(s.profile_ignore_missing_bundles)
+    "profile.ignoreMissingBundles" =>
+      @json.JBool(s.profile_ignore_missing_bundles)
     _ => @json.JNull
   }
 }
@@ -294,5 +323,8 @@ pub fn default_of(s : Settings, key : String) -> @json.JsonVal {
 /// 落盘（原子写）。
 pub async fn save_settings(s : Settings) -> Result[Unit, String] noraise {
   let paths = state_paths()
-  @fsx.write_text_atomic(paths.settings, @json.encode(settings_values_json(s)) + "\n")
+  @fsx.write_text_atomic(
+    paths.settings,
+    @json.encode(settings_values_json(s)) + "\n",
+  )
 }

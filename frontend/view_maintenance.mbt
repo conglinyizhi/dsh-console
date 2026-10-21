@@ -1,6 +1,10 @@
 ///|
 /// 「开始一条新作业」那一块。目标版本必须是使用者选/填的：留空就拦住，不猜一个版本。
-fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn job_start_panel(
+  model : Model,
+  has_unfinished : Bool,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let busy = model.job_busy != ""
   // 目标版本留空就禁用「开始」：版本侧栏里选的那一版，不替他挑一个装上
   let version_empty = model.job_version.trim() == ""
@@ -31,12 +35,16 @@ fn job_start_panel(model : Model, has_unfinished : Bool, emit : @cmd.Emit[Msg]) 
       @html.div(class="dsh-job-start-row", [
         @html.div(
           class="dsh-job-current-field",
-          attrs=mark("job-version-field", ["maintenance", "start", "version-field"]),
+          attrs=mark("job-version-field", [
+            "maintenance", "start", "version-field",
+          ]),
           job_version_current(model, busy || has_unfinished, emit),
         ),
         @html.div(
           class="dsh-job-current-field",
-          attrs=mark("job-profile-field", ["maintenance", "start", "profile-field"]),
+          attrs=mark("job-profile-field", [
+            "maintenance", "start", "profile-field",
+          ]),
           job_profile_current(model, busy || has_unfinished, emit),
         ),
         @html.button(
@@ -67,7 +75,9 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-empty",
             attrs=mark("jobs-unreadable", ["maintenance", "unreadable"]),
             [
-              @html.span(class="dsh-empty-icon", [icon("shield-outline", size=26)]),
+              @html.span(class="dsh-empty-icon", [
+                icon("shield-outline", size=26),
+              ]),
               @html.p(class="dsh-empty-line", "作业读数读取失败。"),
               @html.p(class="dsh-empty-sub", model.console_error),
             ],
@@ -76,9 +86,7 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       } else {
         body.push(
           loading_block(
-            "jobs-loading",
-            "正在读取作业…",
-            "读数还在路上；「还没有作业」要等读数回来才敢说。",
+            "jobs-loading", "正在读取作业…", "读数还在路上；「还没有作业」要等读数回来才敢说。",
           ),
         )
       }
@@ -89,11 +97,15 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-empty",
             attrs=mark("jobs-missing-field", ["maintenance", "missing-field"]),
             [
-              @html.span(class="dsh-empty-icon", [icon("shield-outline", size=26)]),
+              @html.span(class="dsh-empty-icon", [
+                icon("shield-outline", size=26),
+              ]),
               @html.p(class="dsh-empty-line", "读不到作业记录。"),
               @html.p(
                 class="dsh-empty-sub",
-                attrs=mark("jobs-missing-note", ["maintenance", "missing-field", "note"]).title(
+                attrs=mark("jobs-missing-note", [
+                  "maintenance", "missing-field", "note",
+                ]).title(
                   "这一版控制台还没有作业读数。这与「还没有作业」不是一回事。重启控制台之后再看一次。",
                 ),
                 "读不到作业读数（不是「没有作业」），重启控制台再看。",
@@ -123,8 +135,9 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
               @html.button(
                 class="dsh-empty-cta",
                 type_="button",
-                attrs=mark("jobs-empty-start", ["maintenance", "empty", "start"])
-                  .title("滚到上面的表单，焦点落在「当前版本」那一格（选目标版本）"),
+                attrs=mark("jobs-empty-start", ["maintenance", "empty", "start"]).title(
+                  "滚到上面的表单，焦点落在「当前版本」那一格（选目标版本）",
+                ),
                 on_click=emit(JobStartFocus),
                 [icon("tune", size=13), @html.span("开始一条作业")],
               ),

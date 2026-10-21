@@ -3,7 +3,6 @@
 // 2026-10-20 从 state.mbt 拆出来：提示是「一条盖一条」的唯一出口，把这些字段单独放一份，
 // 改提示条的形状时不必翻 Model 那一大段。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 一条通知历史（§36）：提示条与 toast 都是「一条盖一条」，连点几次动作前面那条就没了，
 /// 这一份是给它留的回看窗口。**只在内存里**，刷新页面就清空 —— 它不是审计
@@ -23,7 +22,8 @@ pub(all) struct NoticeRecord {
   audit : Bool
 } derive(Eq)
 
-pub extend NoticeRecord with Eq::{ not_equal, equal }
+///|
+pub extend NoticeRecord with Eq::{not_equal, equal}
 
 ///|
 /// 一条全局提示（design/ops-maintenance-jobs.md §14.1）。
@@ -33,7 +33,7 @@ pub extend NoticeRecord with Eq::{ not_equal, equal }
 struct Notice {
   /// 这是第几条。外壳按它认「到期消息说的还是不是当前这一条」——
   /// 号对不上就作废，不把一条新提示提前收掉。
-  seq : Int
+  seq : Int32
   /// 成功（toast，会自己走）还是失败（常驻）
   ok : Bool
   /// 正文：一句话说清这次动作的结果
@@ -48,4 +48,5 @@ struct Notice {
   audit : Bool
 } derive(Eq)
 
-pub extend Notice with Eq::{ not_equal, equal }
+///|
+pub extend Notice with Eq::{not_equal, equal}

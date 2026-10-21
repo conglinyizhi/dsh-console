@@ -93,7 +93,10 @@ pub async fn pin_dsh(dir_in : String) -> PinOutcome raise ActionError {
       }
       fail(
         "dsh-not-installed",
-        "这个目录不是这台机器上装了的一份 dsh：" + want + "；这台机器上装着：" + installed,
+        "这个目录不是这台机器上装了的一份 dsh：" +
+        want +
+        "；这台机器上装着：" +
+        installed,
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -111,7 +114,7 @@ pub async fn pin_dsh(dir_in : String) -> PinOutcome raise ActionError {
       abort("unreachable: fail 一定抛错")
     }
   }
-  { dir: pkg.dir, version: pkg.version, pin_path: paths.dsh_pin }
+  { dir: pkg.dir, version: pkg.version, pin_path: paths.dsh_pin, }
 }
 
 ///|
@@ -132,5 +135,5 @@ pub async fn unpin_dsh() -> UnpinOutcome raise ActionError {
       abort("unreachable: fail 一定抛错")
     }
   }
-  { removed, previous_version: previous, pin_path: paths.dsh_pin }
+  { removed, previous_version: previous, pin_path: paths.dsh_pin, }
 }

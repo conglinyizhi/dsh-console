@@ -10,9 +10,7 @@
 ///|
 /// 整体替换会写过去的三份配置文件（有才写，与快照存的那三份同一套名字）。
 pub let promote_config_files : Array[String] = [
-  "package.json",
-  "cordis.patch.yml",
-  "pnpm-workspace.yaml",
+  "package.json", "cordis.patch.yml", "pnpm-workspace.yaml",
 ]
 
 ///|
@@ -67,7 +65,7 @@ pub(all) struct PromotePatchDiff {
   changed : Array[PromotePatchChange]
   removed : Array[PromotePatchEntry]
   /// 没有 id 的条目条数（这类只能按整段原文比，界面上要说清）
-  anonymous : Int
+  anonymous : Int32
 }
 
 ///|
@@ -131,11 +129,7 @@ pub(all) struct PromoteOutcome {
 /// 路径在不在，**不跟随软链**：一条断掉的软链也算「在」。
 /// 目标里已经有这个名字就不覆盖，判断必须按这一条来（follow 之后断链会被当成不存在）。
 async fn path_present(path : String) -> Bool noraise {
-  let kind = try {
-    @fs.kind(path, follow_symlink=false)
-  } catch {
-    _ => Unknown
-  }
+  let kind = @fs.kind(path, follow_symlink=false) catch { _ => Unknown }
   match kind {
     Unknown => false
     _ => true
@@ -186,7 +180,10 @@ fn same_strings(a : Array[String], b : Array[String]) -> Bool {
 
 ///|
 /// 插件清单的差异。
-fn bundle_diff(from_order : Array[String], to_order : Array[String]) -> PromoteBundleDiff {
+fn bundle_diff(
+  from_order : Array[String],
+  to_order : Array[String],
+) -> PromoteBundleDiff {
   let added : Array[String] = []
   for name in from_order {
     if !to_order.contains(name) {
@@ -199,8 +196,10 @@ fn bundle_diff(from_order : Array[String], to_order : Array[String]) -> PromoteB
       removed.push(name)
     }
   }
-  let reordered = added.length() == 0 && removed.length() == 0 && !same_strings(from_order, to_order)
-  { added, removed, reordered, from_order, to_order }
+  let reordered = added.length() == 0 &&
+    removed.length() == 0 &&
+    !same_strings(from_order, to_order)
+  { added, removed, reordered, from_order, to_order, }
 }
 
 ///|
@@ -277,7 +276,7 @@ fn parse_patch_entries(text : String) -> (Array[PromotePatchEntry], String) {
         j = j + 1
       }
       let block = trim_block(body)
-      out.push({ id: patch_entry_id(block), text: block })
+      out.push({ id: patch_entry_id(block), text: block, })
       i = j
     } else {
       i = i + 1
@@ -296,7 +295,10 @@ fn parse_patch_entries(text : String) -> (Array[PromotePatchEntry], String) {
 
 ///|
 /// 按 id 找一条。
-fn find_patch_entry(entries : Array[PromotePatchEntry], id : String) -> PromotePatchEntry? {
+fn find_patch_entry(
+  entries : Array[PromotePatchEntry],
+  id : String,
+) -> PromotePatchEntry? {
   for entry in entries {
     if entry.id == id {
       return Some(entry)
@@ -320,7 +322,8 @@ fn patch_diff(
     if entry.id == "" {
       anonymous = anonymous + 1
       let found = target_entries.any(fn(other) {
-        other.id == "" && @json.trim_both(other.text) == @json.trim_both(entry.text)
+        other.id == "" &&
+        @json.trim_both(other.text) == @json.trim_both(entry.text)
       })
       if !found {
         added.push(entry)
@@ -330,7 +333,11 @@ fn patch_diff(
     match find_patch_entry(target_entries, entry.id) {
       Some(other) =>
         if @json.trim_both(other.text) != @json.trim_both(entry.text) {
-          changed.push({ id: entry.id, source_text: entry.text, target_text: other.text })
+          changed.push({
+            id: entry.id,
+            source_text: entry.text,
+            target_text: other.text,
+          })
         }
       None => added.push(entry)
     }
@@ -345,7 +352,7 @@ fn patch_diff(
       None => removed.push(other)
     }
   }
-  { added, changed, removed, anonymous }
+  { added, changed, removed, anonymous, }
 }
 
 ///|
@@ -400,7 +407,10 @@ async fn package_version(pkg_dir : String) -> String noraise {
 
 ///|
 /// 本地包的差异：源里有目标没有的（会被搬过去）、同名不同版本的（单独列出）。
-async fn package_diff(source_nm : String, target_nm : String) -> PromotePackageDiff noraise {
+async fn package_diff(
+  source_nm : String,
+  target_nm : String,
+) -> PromotePackageDiff noraise {
   let added : Array[String] = []
   let mismatch : Array[PromotePackageVersion] = []
   for name in package_names(source_nm) {
@@ -420,12 +430,15 @@ async fn package_diff(source_nm : String, target_nm : String) -> PromotePackageD
       })
     }
   }
-  { added, version_mismatch: mismatch }
+  { added, version_mismatch: mismatch, }
 }
 
 ///|
 /// 算一次预览的全部事实。**只读**：这里一个写调用都没有。
-pub async fn promote_facts(source_name : String, target_name : String) -> PromoteFacts noraise {
+pub async fn promote_facts(
+  source_name : String,
+  target_name : String,
+) -> PromoteFacts noraise {
   let source = promote_side(source_name)
   let target = promote_side(target_name)
   let notes : Array[String] = []
@@ -449,14 +462,22 @@ pub async fn promote_facts(source_name : String, target_name : String) -> Promot
     }
   }
   if files_write.length() == 0 {
-    notes.push("源 profile 的三份配置文件一份都没有，这一趟没有可写的")
+    notes.push(
+      "源 profile 的三份配置文件一份都没有，这一趟没有可写的",
+    )
   }
   // 插件清单从 package.json 的 dsh.profile.bundles 读（与读数那一侧同一个判据）
-  let bundles = bundle_diff(declared_bundles(source.dir), declared_bundles(target.dir))
+  let bundles = bundle_diff(
+    declared_bundles(source.dir),
+    declared_bundles(target.dir),
+  )
   // 覆盖项：两边各拆一次 cordis.patch.yml
-  let source_patch_entries = match read_config_text(source.dir, "cordis.patch.yml") {
+  let source_patch_entries = match
+    read_config_text(source.dir, "cordis.patch.yml") {
     None => {
-      notes.push("源 profile 里没有 cordis.patch.yml，覆盖项只能按目标那一边列")
+      notes.push(
+        "源 profile 里没有 cordis.patch.yml，覆盖项只能按目标那一边列",
+      )
       ([] : Array[PromotePatchEntry])
     }
     Some(text) => {
@@ -467,7 +488,8 @@ pub async fn promote_facts(source_name : String, target_name : String) -> Promot
       entries
     }
   }
-  let target_patch_entries = match read_config_text(target.dir, "cordis.patch.yml") {
+  let target_patch_entries = match
+    read_config_text(target.dir, "cordis.patch.yml") {
     None => ([] : Array[PromotePatchEntry])
     Some(text) => {
       let (entries, note) = parse_patch_entries(text)
@@ -480,7 +502,8 @@ pub async fn promote_facts(source_name : String, target_name : String) -> Promot
   let patches = patch_diff(source_patch_entries, target_patch_entries)
   if patches.anonymous > 0 {
     notes.push(
-      "覆盖项里有 " + patches.anonymous.to_string() +
+      "覆盖项里有 " +
+      patches.anonymous.to_string() +
       " 条没有 id 的条目：这几条按整段原文比，同 id 并排的那一套对它们不适用",
     )
   }
@@ -490,11 +513,20 @@ pub async fn promote_facts(source_name : String, target_name : String) -> Promot
   let packages = if @json.is_dir(source_nm) {
     package_diff(source_nm, target_nm)
   } else {
-    notes.push("源 profile 里没有 node_modules，这一趟没有本地包要搬")
-    ({ added: ([] : Array[String]), version_mismatch: ([] : Array[PromotePackageVersion]) } : PromotePackageDiff)
+    notes.push(
+      "源 profile 里没有 node_modules，这一趟没有本地包要搬",
+    )
+    (
+      {
+        added: ([] : Array[String]),
+        version_mismatch: ([] : Array[PromotePackageVersion]),
+      } : PromotePackageDiff)
   }
   if !@json.is_dir(target_nm) && packages.added.length() > 0 {
-    notes.push("目标 profile 里没有 node_modules，搬包时会把这一层建出来：" + target_nm)
+    notes.push(
+      "目标 profile 里没有 node_modules，搬包时会把这一层建出来：" +
+      target_nm,
+    )
   }
   {
     source,
@@ -526,17 +558,15 @@ async fn move_package(
     Ok(_) => ()
     Err(e) => return Err(e)
   }
-  let kind = try {
-    @fs.kind(source_pkg, follow_symlink=false)
-  } catch {
-    _ => Unknown
-  }
+  let kind = @fs.kind(source_pkg, follow_symlink=false) catch { _ => Unknown }
   match kind {
     Directory =>
       match @fsx.copy_tree(source_pkg, target_pkg, []) {
         Ok(stats) =>
           if stats.skipped.length() > 0 {
-            notes.push("包里的非普通文件跳过了：" + stats.skipped.join("、"))
+            notes.push(
+              "包里的非普通文件跳过了：" + stats.skipped.join("、"),
+            )
           }
         Err(e) => return Err(e)
       }
@@ -549,14 +579,19 @@ async fn move_package(
         Ok(_) => ()
         Err(e) => return Err(e)
       }
-      notes.push("这是一条软链，按原样重建（指向 " + link_target + "）")
+      notes.push(
+        "这是一条软链，按原样重建（指向 " + link_target + "）",
+      )
     }
     Regular =>
       match @fsx.copy_file(source_pkg, target_pkg) {
         Ok(_) => ()
         Err(e) => return Err(e)
       }
-    _ => return Err("这一条既不是目录也不是软链，没有搬：" + source_pkg)
+    _ =>
+      return Err(
+        "这一条既不是目录也不是软链，没有搬：" + source_pkg,
+      )
   }
   Ok(notes)
 }
@@ -576,7 +611,14 @@ async fn apply_promote_inner(
   let source = promote_side(source_name)
   let target = promote_side(target_name)
   if !source.config_ok {
-    return Err(("conflict", "源这只读不到配置：" + source.dir + " 的 package.json 读不出来"))
+    return Err(
+      (
+        "conflict",
+        "源这只读不到配置：" +
+        source.dir +
+        " 的 package.json 读不出来",
+      ),
+    )
   }
   if !@json.is_dir(target.dir) {
     return Err(("not-found", "目标 profile 目录不存在：" + target.dir))
@@ -594,7 +636,14 @@ async fn apply_promote_inner(
       Ok(data) => payloads.push((name, data))
       Err(e) =>
         return Err(
-          ("io-error", "读源 profile 的 " + name + " 失败（" + e + "）；目标里一个文件都没动"),
+          (
+            "io-error",
+            "读源 profile 的 " +
+            name +
+            " 失败（" +
+            e +
+            "）；目标里一个文件都没动",
+          ),
         )
     }
   }
@@ -603,7 +652,12 @@ async fn apply_promote_inner(
     Ok(o) => o
     Err(e) =>
       return Err(
-        ("io-error", "替换前那张快照没拍成（" + e + "）；目标里一个文件都没动"),
+        (
+          "io-error",
+          "替换前那张快照没拍成（" +
+          e +
+          "）；目标里一个文件都没动",
+        ),
       )
   }
   // 3. 写三份配置
@@ -616,8 +670,14 @@ async fn apply_promote_inner(
         return Err(
           (
             "io-error",
-            "写 " + name + " 失败（" + e + "）；已经写了：" + describe_files(written) +
-            "；替换前快照 " + snapshot.id,
+            "写 " +
+            name +
+            " 失败（" +
+            e +
+            "）；已经写了：" +
+            describe_files(written) +
+            "；替换前快照 " +
+            snapshot.id,
           ),
         )
     }
@@ -647,8 +707,16 @@ async fn apply_promote_inner(
           return Err(
             (
               "io-error",
-              "搬包 " + name + " 失败（" + e + "）；已经搬了：" + describe_files(moved) +
-              "；跳过了：" + describe_files(skipped) + "；替换前快照 " + snapshot.id,
+              "搬包 " +
+              name +
+              " 失败（" +
+              e +
+              "）；已经搬了：" +
+              describe_files(moved) +
+              "；跳过了：" +
+              describe_files(skipped) +
+              "；替换前快照 " +
+              snapshot.id,
             ),
           )
       }
@@ -676,7 +744,15 @@ pub async fn apply_promote(
   let source = @json.trim_both(source_name)
   let target = @json.trim_both(target_name)
   if !single_segment(source) || !single_segment(target) {
-    return Err(("bad-params", "源与目标都要是单段的 profile 名：" + source + " / " + target))
+    return Err(
+      (
+        "bad-params",
+        "源与目标都要是单段的 profile 名：" +
+        source +
+        " / " +
+        target,
+      ),
+    )
   }
   apply_promote_inner(source, target)
 }

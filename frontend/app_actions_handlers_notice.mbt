@@ -2,14 +2,18 @@
 
 ///|
 /// NoticePanelOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_notice_panel_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_notice_panel_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    NoticePanelOpen => 
+    NoticePanelOpen =>
       if model.notice_panel {
         (model, @cmd.none)
       } else {
         (
-          { ..model, notice_panel: true, notice_unread: 0 },
+          { ..model, notice_panel: true, notice_unread: 0, },
           focus_after_render(notice_panel_close_id()),
         )
       }
@@ -21,11 +25,18 @@ fn handle_notice_panel_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) ->
 
 ///|
 /// NoticePanelClose 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_notice_panel_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_notice_panel_close(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    NoticePanelClose => 
+    NoticePanelClose =>
       if model.notice_panel {
-        ({ ..model, notice_panel: false }, focus_after_render(notice_bell_id()))
+        (
+          { ..model, notice_panel: false, },
+          focus_after_render(notice_bell_id()),
+        )
       } else {
         (model, @cmd.none)
       }
@@ -42,7 +53,11 @@ fn handle_notice_panel_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -
 
 ///|
 /// NoticeOpenLogs 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_notice_open_logs(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_notice_open_logs(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     NoticeOpenLogs => {
       let (next, read) = start_logs(
@@ -76,16 +91,20 @@ fn handle_notice_open_logs(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (
 
 ///|
 /// NoticeOpenUi 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_notice_open_ui(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_notice_open_ui(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    NoticeOpenUi => 
+    NoticeOpenUi =>
       match model.notice_url {
         None => (model, @cmd.none)
         Some(url) => {
           let (ok, tail) = open_outcome_text(js_open_url(url))
           let text = "Web UI " + tail + "。" + url
           (
-            { ..notice_put(model, ok, text, ""), notice_url_notice: text },
+            { ..notice_put(model, ok, text, ""), notice_url_notice: text, },
             @cmd.none,
           )
         }
@@ -96,9 +115,13 @@ fn handle_notice_open_ui(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (M
 
 ///|
 /// FlashExpire 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_flash_expire(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_flash_expire(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    FlashExpire(serial) => 
+    FlashExpire(serial) =>
       match model.notice {
         None => (model, @cmd.none)
         Some(n) =>
@@ -109,7 +132,7 @@ fn handle_flash_expire(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
             (model, @cmd.delay(emit(FlashExpire(serial)), flash_ms))
           } else {
             (
-              { ..model, flash_fading: true },
+              { ..model, flash_fading: true, },
               @cmd.delay(emit(FlashRemove(serial)), flash_fade_ms),
             )
           }
@@ -120,12 +143,21 @@ fn handle_flash_expire(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
 
 ///|
 /// FlashRemove 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_flash_remove(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_flash_remove(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    FlashRemove(serial) => 
+    FlashRemove(serial) =>
       match model.notice {
         None => (model, @cmd.none)
-        Some(n) => if n.seq == serial { (notice_clear(model), @cmd.none) } else { (model, @cmd.none) }
+        Some(n) =>
+          if n.seq == serial {
+            (notice_clear(model), @cmd.none)
+          } else {
+            (model, @cmd.none)
+          }
       }
     _ => (model, @cmd.none)
   }
@@ -133,9 +165,13 @@ fn handle_flash_remove(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mod
 
 ///|
 /// FlashHover 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_flash_hover(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_flash_hover(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    FlashHover(on) => ({ ..model, flash_hover: on }, @cmd.none)
+    FlashHover(on) => ({ ..model, flash_hover: on, }, @cmd.none)
     // 关于页：把某一份 dsh 指定成起实例用的那一版 / 撤掉指定回到自动
     _ => (model, @cmd.none)
   }
@@ -143,10 +179,13 @@ fn handle_flash_hover(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mode
 
 ///|
 /// Noop 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_noop(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_noop(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     Noop => (model, @cmd.none)
     _ => (model, @cmd.none)
   }
 }
-

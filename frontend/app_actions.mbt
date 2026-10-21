@@ -54,7 +54,10 @@ fn profile_pairs(row : Row) -> Array[(String, String)] {
       if home == "" {
         [("profile", json_text_literal(name))]
       } else {
-        [("profile", json_text_literal(name)), ("home", json_text_literal(home))]
+        [
+          ("profile", json_text_literal(name)),
+          ("home", json_text_literal(home)),
+        ]
       }
     }
     None => []
@@ -76,7 +79,10 @@ fn archive_pairs(row : Row) -> Array[(String, String)] {
       if home == "" {
         [("profile", json_text_literal(name))]
       } else {
-        [("profile", json_text_literal(name)), ("home", json_text_literal(home))]
+        [
+          ("profile", json_text_literal(name)),
+          ("home", json_text_literal(home)),
+        ]
       }
     }
     None => []
@@ -124,18 +130,21 @@ fn send_action(
   verb : String,
   params : String,
   emit : @cmd.Emit[Msg],
-  confirm? : String = "",
+  confirm~ : String = "",
 ) -> (Model, @cmd.Cmd) {
   if params == "" {
     (
       notice_err(
         model,
-        name + " " + verb + "没执行：这一行的读数里没有可用的目标（profile 目录名或端口读不到）",
+        name +
+        " " +
+        verb +
+        "没执行：这一行的读数里没有可用的目标（profile 目录名或端口读不到）",
       ),
       @cmd.none,
     )
   } else {
-    let busy = map_rows(model, id, fn(row) { { ..row, busy: true } })
+    let busy = map_rows(model, id, fn(row) { { ..row, busy: true, } })
     (
       notice_clear(busy),
       action_cmd(
@@ -224,7 +233,11 @@ fn reset_drag(model : Model) -> Model {
 }
 
 ///|
-fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn update_inner(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     RuntimeText(_) => handle_runtime_text(model, msg, emit)
     ProfilesText(_) => handle_profiles_text(model, msg, emit)
@@ -244,7 +257,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     HomeDeisolateConfirm => handle_home_deisolate_confirm(model, msg, emit)
     HomeDeisolateCancel => handle_home_deisolate_cancel(model, msg, emit)
     SnapshotCreate(_) => handle_snapshot_create(model, msg, emit)
-    SnapshotRestoreOpen(_, _, _) => handle_snapshot_restore_open(model, msg, emit)
+    SnapshotRestoreOpen(_, _, _) =>
+      handle_snapshot_restore_open(model, msg, emit)
     SnapshotRestoreConfirm => handle_snapshot_restore_confirm(model, msg, emit)
     SnapshotRestoreCancel => handle_snapshot_restore_cancel(model, msg, emit)
     PromoteOpen(_) => handle_promote_open(model, msg, emit)
@@ -276,11 +290,11 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     MergePreviewText(_) => handle_merge_preview(model, msg, emit)
     MergePluginToggle(_) => handle_merge_plugin_toggle(model, msg, emit)
     MergeTargetToggle(_) => handle_merge_toggle(model, msg, emit)
-    MergeSlideStart => handle_merge_slide(model, msg, emit)
+    MergeSlideStart(_) => handle_merge_slide(model, msg, emit)
     MergeStepNext => handle_merge_step(model, msg, emit)
     MergeStepPrev => handle_merge_step(model, msg, emit)
     MergeSlide(_) => handle_merge_slide(model, msg, emit)
-    MergeSlideRelease => handle_merge_slide(model, msg, emit)
+    MergeSlideRelease(_) => handle_merge_slide(model, msg, emit)
     MergeSlideKey(_) => handle_merge_slide(model, msg, emit)
     MergeSubmit => handle_merge_submit(model, msg, emit)
     MergeCancel => handle_merge_cancel(model, msg, emit)
@@ -309,10 +323,12 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     NoteCancel => handle_note_cancel(model, msg, emit)
     NewInstanceOpen => handle_new_instance_open(model, msg, emit)
     NewInstanceClose => handle_new_instance_close(model, msg, emit)
-    NewInstanceStatePicked(_) => handle_new_instance_state_picked(model, msg, emit)
+    NewInstanceStatePicked(_) =>
+      handle_new_instance_state_picked(model, msg, emit)
     NewInstanceNameInput(_) => handle_new_instance_name_input(model, msg, emit)
     NewInstanceConfirm => handle_new_instance_confirm(model, msg, emit)
-    NewInstanceBaseToggled(_) => handle_new_instance_base_toggled(model, msg, emit)
+    NewInstanceBaseToggled(_) =>
+      handle_new_instance_base_toggled(model, msg, emit)
     NewInstanceDone(_) => handle_new_instance_done(model, msg, emit)
     NewInstanceBaseDone(_) => handle_new_instance_base_done(model, msg, emit)
     DeleteConfirm => handle_delete_confirm(model, msg, emit)

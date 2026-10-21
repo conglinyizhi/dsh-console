@@ -22,7 +22,7 @@ pub let dist_env_name : String = "DSH_CONSOLE_DIST"
 ///|
 /// 上溯层数上限。覆盖 _build/native/<profile>/build/<exe> 这种布局绰绰有余，
 /// 与 json 包找前端目录时用的 8 层一致。
-let max_walk_up : Int = 8
+let max_walk_up : Int32 = 8
 
 ///|
 /// SPA 回退的落点。写成 "/index.html" 是必须的：中间件内部的 normalize_relative_path
@@ -75,7 +75,10 @@ pub async fn locate_dist_dir() -> String? noraise {
   let mut steps = 0
   while steps < max_walk_up {
     steps = steps + 1
-    let new_stack = @json.join_path(@json.join_path(current, "frontend"), "dist")
+    let new_stack = @json.join_path(
+      @json.join_path(current, "frontend"),
+      "dist",
+    )
     if is_dist_dir(new_stack) {
       return Some(new_stack)
     }
@@ -118,10 +121,15 @@ pub async fn resolve_dist_root() -> (String?, String) noraise {
       } else if @json.is_dir(v) {
         return (
           None,
-          dist_env_name + " 环境变量指向的目录里没有 index.html 与静态资源（assets/ 目录或同层 .js/.css）：" + v,
+          dist_env_name +
+          " 环境变量指向的目录里没有 index.html 与静态资源（assets/ 目录或同层 .js/.css）：" +
+          v,
         )
       } else {
-        return (None, dist_env_name + " 环境变量指向的目录不存在：" + v)
+        return (
+          None,
+          dist_env_name + " 环境变量指向的目录不存在：" + v,
+        )
       }
     None => ()
   }
@@ -129,7 +137,9 @@ pub async fn resolve_dist_root() -> (String?, String) noraise {
     Some(dir) =>
       (
         Some(dir),
-        "相对可执行文件位置 " + exe_note(exe) + " 上溯找到含 index.html 与静态资源的目录",
+        "相对可执行文件位置 " +
+        exe_note(exe) +
+        " 上溯找到含 index.html 与静态资源的目录",
       )
     None =>
       (
@@ -331,15 +341,14 @@ fn gzip_middleware(root : String) -> @moonback.Middleware {
       // 前端产物是同名文件（assets/app.css、assets/app.js）：重新构建后名字不变，
       // 不给缓存指令时浏览器会自己猜着缓存，出过「新 JS 配旧 CSS」的混合页面。
       // 所以 assets/ 这一层自己发，带 no-cache；其它路径原样交给下一层。
-      guard relative.starts_with(asset_prefix) && is_regular_file(original) else {
+      guard relative.has_prefix(asset_prefix) && is_regular_file(original) else {
         next(req, res)
         return
       }
       let packed = original + gzip_suffix
-      if accepts_gzip(req.headers.get("Accept-Encoding")) && is_regular_file(packed) {
-        let file = try {
-          @fs.open(packed, mode=ReadOnly)
-        } catch {
+      if accepts_gzip(req.headers.get("Accept-Encoding")) &&
+        is_regular_file(packed) {
+        let file = @fs.open(packed, mode=ReadOnly) catch {
           _ => {
             next(req, res)
             return
@@ -361,9 +370,7 @@ fn gzip_middleware(root : String) -> @moonback.Middleware {
         }
         return
       }
-      let file = try {
-        @fs.open(original, mode=ReadOnly)
-      } catch {
+      let file = @fs.open(original, mode=ReadOnly) catch {
         _ => {
           next(req, res)
           return
@@ -390,7 +397,10 @@ fn gzip_middleware(root : String) -> @moonback.Middleware {
 /// 建静态中间件。根解析成功就用 unstable_static（目录服务 + 尾斜杠 index + SPA 回退），
 /// 失败就交给 unavailable_middleware 如实报错。
 /// 预压缩层（gzip_middleware）挂在外层：命中就自己发 .gz，没命中原样放行给下一层。
-pub fn static_middleware(root : String?, source : String) -> @moonback.Middleware {
+pub fn static_middleware(
+  root : String?,
+  source : String,
+) -> @moonback.Middleware {
   match root {
     Some(dir) =>
       gzip_middleware(dir).compose(
@@ -412,9 +422,14 @@ pub fn startup_note(root : String?, source : String) -> String {
       "- 静态根：\{dir}\n" +
       "- 静态根来源：\{source}\n" +
       "- SPA 回退：\{history_fallback_path}（history_fallback；实体文件与静态目录都命中不了时回落到它）\n" +
-      "- 预压缩：Accept-Encoding 含 gzip 且同名 " + gzip_suffix +
-      " 在时发 " + gzip_suffix + "（Content-Encoding: gzip + Vary: Accept-Encoding），" +
-      "其余照旧发原文件；" + gzip_suffix + " 缺失不是错误，不会变成 404\n" +
+      "- 预压缩：Accept-Encoding 含 gzip 且同名 " +
+      gzip_suffix +
+      " 在时发 " +
+      gzip_suffix +
+      "（Content-Encoding: gzip + Vary: Accept-Encoding），" +
+      "其余照旧发原文件；" +
+      gzip_suffix +
+      " 缺失不是错误，不会变成 404\n" +
       "- 优先级：/api/local 与 /api/local/* 由最外层闸门先接走，静态文件抢不到\n"
     None =>
       "- 静态根未解析：\{source}\n" +

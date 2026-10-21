@@ -2,14 +2,25 @@
 
 ///|
 /// PromoteOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    PromoteOpen(id) => 
+    PromoteOpen(id) =>
       match find_row(model.rows, id) {
         None => (model, @cmd.none)
         Some(row) =>
           match row.profile_name {
-            None => (notice_err(model, row.name + " 的目录名读不到，没法替换配置"), @cmd.none)
+            None =>
+              (
+                notice_err(
+                  model,
+                  row.name + " 的目录名读不到，没法替换配置",
+                ),
+                @cmd.none,
+              )
             Some(_) =>
               (
                 {
@@ -35,14 +46,25 @@ fn handle_promote_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mod
 
 ///|
 /// PromoteSourcePicked 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_source_picked(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_source_picked(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    PromoteSourcePicked(name) => 
+    PromoteSourcePicked(name) =>
       match find_row(model.rows, model.promote_row) {
         None => (model, @cmd.none)
         Some(row) =>
           match row.profile_name {
-            None => (notice_err(model, row.name + " 的目录名读不到，没法替换配置"), @cmd.none)
+            None =>
+              (
+                notice_err(
+                  model,
+                  row.name + " 的目录名读不到，没法替换配置",
+                ),
+                @cmd.none,
+              )
             Some(target) =>
               (
                 {
@@ -64,7 +86,11 @@ fn handle_promote_source_picked(model : Model, msg : Msg, emit : @cmd.Emit[Msg])
 
 ///|
 /// PromotePreviewDone 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_preview_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_preview_done(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     PromotePreviewDone(res) => {
       let next = match res {
@@ -73,7 +99,9 @@ fn handle_promote_preview_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg])
             ..model,
             promote_loading: false,
             promote_preview: None,
-            promote_preview_error: "这一步没发出去（" + describe(err) + "）",
+            promote_preview_error: "这一步没发出去（" +
+            describe(err) +
+            "）",
           }
         Ok(text) =>
           match parse_promote_preview(text) {
@@ -112,15 +140,22 @@ fn handle_promote_preview_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg])
 
 ///|
 /// PromoteConfirmOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_confirm_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_confirm_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    PromoteConfirmOpen => 
+    PromoteConfirmOpen =>
       match model.promote_preview {
         Some(preview) =>
           if preview.blockers.length() > 0 {
             (model, @cmd.none)
           } else {
-            ({ ..model, promote_confirm: true }, focus_after_render(promote_confirm_ok_id()))
+            (
+              { ..model, promote_confirm: true, },
+              focus_after_render(promote_confirm_ok_id()),
+            )
           }
         None => (model, @cmd.none)
       }
@@ -130,12 +165,17 @@ fn handle_promote_confirm_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg])
 
 ///|
 /// PromoteConfirmCancel 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_confirm_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_confirm_cancel(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    PromoteConfirmCancel => (
-      { ..model, promote_confirm: false },
-      focus_after_render("dsh-promote-apply"),
-    )
+    PromoteConfirmCancel =>
+      (
+        { ..model, promote_confirm: false, },
+        focus_after_render("dsh-promote-apply"),
+      )
     // 真的替换：body 顶层带 confirm: PROMOTE；回执走 HttpDone（成功后重读读数）
     _ => (model, @cmd.none)
   }
@@ -143,24 +183,38 @@ fn handle_promote_confirm_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg
 
 ///|
 /// PromoteConfirm 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_confirm(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    PromoteConfirm => 
+    PromoteConfirm =>
       match find_row(model.rows, model.promote_row) {
         None => (model, @cmd.none)
         Some(row) =>
           match row.profile_name {
-            None => (notice_err(model, row.name + " 的目录名读不到，没法替换配置"), @cmd.none)
+            None =>
+              (
+                notice_err(
+                  model,
+                  row.name + " 的目录名读不到，没法替换配置",
+                ),
+                @cmd.none,
+              )
             Some(target) =>
               if model.promote_source == "" {
-                (notice_err(model, "还没选源，替换没发出去"), @cmd.none)
+                (
+                  notice_err(model, "还没选源，替换没发出去"),
+                  @cmd.none,
+                )
               } else {
                 let pairs : Array[(String, String)] = [
                   ("from", json_text_literal(model.promote_source)),
                   ("to", json_text_literal(target)),
                 ]
                 let (next, cmd) = send_action(
-                  { ..model, promote_confirm: false },
+                  { ..model, promote_confirm: false, },
                   model.promote_row,
                   "promote-profile",
                   target,
@@ -180,27 +234,36 @@ fn handle_promote_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (M
 
 ///|
 /// PromoteBack 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_back(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_back(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    PromoteBack => (
-      {
-        ..model,
-        promote_preview: None,
-        promote_preview_error: "",
-        promote_loading: false,
-        promote_source: "",
-      },
-      focus_after_render(promote_close_id()),
-    )
+    PromoteBack =>
+      (
+        {
+          ..model,
+          promote_preview: None,
+          promote_preview_error: "",
+          promote_loading: false,
+          promote_source: "",
+        },
+        focus_after_render(promote_close_id()),
+      )
     _ => (model, @cmd.none)
   }
 }
 
 ///|
 /// PromoteClose 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_promote_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_promote_close(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    PromoteClose => 
+    PromoteClose =>
       if model.promote_row == "" {
         (model, @cmd.none)
       } else {
@@ -226,25 +289,38 @@ fn handle_promote_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mo
 
 ///|
 /// CliHelpOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_cli_help_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_cli_help_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    CliHelpOpen(id) => ({ ..model, cli_help_id: id }, focus_after_render("dsh-cli-help-ok"))
+    CliHelpOpen(id) =>
+      ({ ..model, cli_help_id: id, }, focus_after_render("dsh-cli-help-ok"))
     _ => (model, @cmd.none)
   }
 }
 
 ///|
 /// CliHelpClose 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_cli_help_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_cli_help_close(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    CliHelpClose => ({ ..model, cli_help_id: "" }, @cmd.none)
+    CliHelpClose => ({ ..model, cli_help_id: "", }, @cmd.none)
     _ => (model, @cmd.none)
   }
 }
 
 ///|
 /// NewInstanceOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     NewInstanceOpen => {
       let first = new_instance_first_usable(model)
@@ -255,7 +331,11 @@ fn handle_new_instance_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) ->
           new_open: true,
           new_source: "",
           new_base: default_base,
-          new_name_draft: if default_base { new_instance_base_name(model) } else { "" },
+          new_name_draft: if default_base {
+            new_instance_base_name(model)
+          } else {
+            ""
+          },
           new_name_dirty: false,
           new_error: "",
           new_busy: false,
@@ -280,9 +360,13 @@ fn handle_new_instance_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) ->
 
 ///|
 /// NewInstanceClose 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_close(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    NewInstanceClose => 
+    NewInstanceClose =>
       if model.new_busy {
         (model, @cmd.none)
       } else {
@@ -307,7 +391,11 @@ fn handle_new_instance_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -
 
 ///|
 /// NewInstanceStatePicked 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_state_picked(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_state_picked(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     NewInstanceStatePicked(name) => {
       let draft = model.new_name_draft.trim().to_owned()
@@ -318,7 +406,11 @@ fn handle_new_instance_state_picked(model : Model, msg : Msg, _emit : @cmd.Emit[
         new_source: name,
         // 选了具体的源就走派生：从基础模板那一档退出来
         new_base: false,
-        new_name_draft: if keep { model.new_name_draft } else { name + "-dev" },
+        new_name_draft: if keep {
+          model.new_name_draft
+        } else {
+          name + "-dev"
+        },
         new_error: "",
       }
       // 焦点与光标送进名字那一格，默认那段选上：接着打字就是改名
@@ -332,12 +424,17 @@ fn handle_new_instance_state_picked(model : Model, msg : Msg, _emit : @cmd.Emit[
 
 ///|
 /// NewInstanceNameInput 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_name_input(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_name_input(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    NewInstanceNameInput(text) => (
-      { ..model, new_name_draft: text, new_name_dirty: true, new_error: "" },
-      @cmd.none,
-    )
+    NewInstanceNameInput(text) =>
+      (
+        { ..model, new_name_draft: text, new_name_dirty: true, new_error: "", },
+        @cmd.none,
+      )
     // 创建：走既有 fork-profile（新副本默认隔离）。名字按输入框的原话发，
     // 空名字不带 newName —— 后端自己会按 <源>-dev 起一个。
     _ => (model, @cmd.none)
@@ -346,7 +443,11 @@ fn handle_new_instance_name_input(model : Model, msg : Msg, _emit : @cmd.Emit[Ms
 
 ///|
 /// NewInstanceConfirm 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_confirm(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     NewInstanceConfirm => {
       let source = model.new_source
@@ -366,7 +467,7 @@ fn handle_new_instance_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) 
         )
       } else {
         (
-          { ..model, new_busy: true, new_error: "" },
+          { ..model, new_busy: true, new_error: "", },
           if base {
             // 源是基础模板：不派生，直接用 dsh 自带的基础模板新建一份
             base_profile_cmd(draft, emit)
@@ -385,9 +486,13 @@ fn handle_new_instance_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) 
 
 ///|
 /// NewInstanceBaseToggled 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_base_toggled(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_base_toggled(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    NewInstanceBaseToggled(on) => 
+    NewInstanceBaseToggled(on) =>
       if model.new_busy {
         (model, @cmd.none)
       } else if on {
@@ -413,7 +518,7 @@ fn handle_new_instance_base_toggled(model : Model, msg : Msg, _emit : @cmd.Emit[
           },
         )
       } else {
-        ({ ..model, new_base: false, new_error: "" }, @cmd.none)
+        ({ ..model, new_base: false, new_error: "", }, @cmd.none)
       }
     _ => (model, @cmd.none)
   }
@@ -421,13 +526,20 @@ fn handle_new_instance_base_toggled(model : Model, msg : Msg, _emit : @cmd.Emit[
 
 ///|
 /// NewInstanceDone 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_done(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_done(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     NewInstanceDone(res) => {
       let (next, cmd) = new_instance_settled(model, res, emit)
       // 失败时把焦点拉回名字那一格：要改的就是那里
       if next.new_error != "" {
-        (next, @cmd.batch([cmd, focus_select_after_render(new_instance_name_id())]))
+        (
+          next,
+          @cmd.batch([cmd, focus_select_after_render(new_instance_name_id())]),
+        )
       } else {
         (next, cmd)
       }
@@ -438,13 +550,20 @@ fn handle_new_instance_done(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> 
 
 ///|
 /// NewInstanceBaseDone 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_new_instance_base_done(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_new_instance_base_done(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     NewInstanceBaseDone(res) => {
       let (next, cmd) = base_profile_settled(model, res, emit)
       // 失败同样不关框、焦点回名字格（同名 conflict 就是在那儿改）
       if next.new_error != "" {
-        (next, @cmd.batch([cmd, focus_select_after_render(new_instance_name_id())]))
+        (
+          next,
+          @cmd.batch([cmd, focus_select_after_render(new_instance_name_id())]),
+        )
       } else {
         (next, cmd)
       }
@@ -458,7 +577,11 @@ fn handle_new_instance_base_done(model : Model, msg : Msg, emit : @cmd.Emit[Msg]
 
 ///|
 /// TrashRestore 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_trash_restore(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_trash_restore(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     TrashRestore(dir) => {
       let params = params_of([("dir", json_text_literal(dir))])
@@ -479,12 +602,17 @@ fn handle_trash_restore(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mod
 
 ///|
 /// TrashPurgeOpen 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_trash_purge_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_trash_purge_open(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    TrashPurgeOpen(dir, return_id) => (
-      { ..model, trash_purge_dir: dir, trash_purge_return: return_id },
-      focus_after_render("dsh-purge-ok"),
-    )
+    TrashPurgeOpen(dir, return_id) =>
+      (
+        { ..model, trash_purge_dir: dir, trash_purge_return: return_id, },
+        focus_after_render("dsh-purge-ok"),
+      )
     // 彻底删除：confirm 走顶层（缺了后端给 bad-params），与硬删同一风险等级
     _ => (model, @cmd.none)
   }
@@ -492,7 +620,11 @@ fn handle_trash_purge_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> 
 
 ///|
 /// TrashPurgeConfirm 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_trash_purge_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_trash_purge_confirm(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
     TrashPurgeConfirm => {
       let dir = model.trash_purge_dir
@@ -502,7 +634,7 @@ fn handle_trash_purge_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -
       } else {
         let params = params_of([("dir", json_text_literal(dir))])
         let (next, cmd) = send_action(
-          { ..model, trash_purge_dir: "" },
+          { ..model, trash_purge_dir: "", },
           trash_row_id(dir),
           "purge-trash-item",
           trash_profile_of(model, dir),
@@ -520,12 +652,17 @@ fn handle_trash_purge_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -
 
 ///|
 /// TrashPurgeCancel 的回执落地（从 update_inner 的分支体原样搬出来）。
-fn handle_trash_purge_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_trash_purge_cancel(
+  model : Model,
+  msg : Msg,
+  _emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   match msg {
-    TrashPurgeCancel => (
-      { ..model, trash_purge_dir: "" },
-      focus_after_render(model.trash_purge_return),
-    )
+    TrashPurgeCancel =>
+      (
+        { ..model, trash_purge_dir: "", },
+        focus_after_render(model.trash_purge_return),
+      )
     // ── 维护页（作业台） ──
     // 打开版本侧栏（§12.1）：清空搜索框、焦点进搜索框，并再读一次缓存。
     // 那一条接口现在只读后端进程内的缓存（秒回），所以「每次打开都读」不再是一笔等待。
@@ -533,4 +670,3 @@ fn handle_trash_purge_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -
     _ => (model, @cmd.none)
   }
 }
-

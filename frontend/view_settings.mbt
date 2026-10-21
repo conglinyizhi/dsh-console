@@ -71,13 +71,18 @@ fn setting_control_text(model : Model, def : SettingDef) -> String {
 }
 
 ///|
-fn setting_input_attrs(model : Model, def : SettingDef, unit : String) -> @html.Attrs {
+fn setting_input_attrs(
+  model : Model,
+  def : SettingDef,
+  unit : String,
+) -> @html.Attrs {
   mark("setting-input", ["settings", "row", def.key, "input"])
-    .aria_label(def.label)
-    .title(
-      setting_fallback_text(def) + (if unit == "" { "" } else { " | 单位" + unit }),
-    )
-    .disabled(model.settings_saving == def.key)
+  .aria_label(def.label)
+  .title(
+    setting_fallback_text(def) +
+    (if unit == "" { "" } else { " | 单位" + unit }),
+  )
+  .disabled(model.settings_saving == def.key)
 }
 
 ///|
@@ -85,8 +90,8 @@ fn setting_input_attrs(model : Model, def : SettingDef, unit : String) -> @html.
 fn setting_number_control(
   model : Model,
   def : SettingDef,
-  min : Int,
-  max : Int,
+  min : Int32,
+  max : Int32,
   unit : String,
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
@@ -137,7 +142,7 @@ fn setting_select_control(
   model : Model,
   def : SettingDef,
   current : SettingValue?,
-  options : Array[Int],
+  options : Array[Int32],
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
   let current_int = match current {
@@ -153,30 +158,23 @@ fn setting_select_control(
     match current_int {
       Some(n) =>
         items.push(
-          @html.option(
-            value=n.to_string(),
-            selected=true,
-            [@html.text(n.to_string() + " 行（这个值不在候选项里）")],
-          ),
+          @html.option(value=n.to_string(), selected=true, [
+            @html.text(n.to_string() + " 行（这个值不在候选项里）"),
+          ]),
         )
       None =>
         items.push(
-          @html.option(
-            value="",
-            selected=true,
-            disabled=true,
-            [@html.text("没读到")],
-          ),
+          @html.option(value="", selected=true, disabled=true, [
+            @html.text("没读到"),
+          ]),
         )
     }
   }
   for n in options {
     items.push(
-      @html.option(
-        value=n.to_string(),
-        selected=current_int == Some(n),
-        [@html.text(n.to_string() + " 行")],
-      ),
+      @html.option(value=n.to_string(), selected=current_int == Some(n), [
+        @html.text(n.to_string() + " 行"),
+      ]),
     )
   }
   @html.select(
@@ -198,7 +196,11 @@ fn setting_select_control(
 /// 当前值在右边的控件里本来就看得见，而「来源」「缺省」是给改这个工具的人看的东西，
 /// 用它的人不需要知道。需要退回去的时候，那颗「恢复默认」只在**真被改过**时才出现
 /// （见 setting_reset_button）—— 没改过的项上，它一个节点都不产出。
-fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn setting_row(
+  model : Model,
+  def : SettingDef,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let facts = model.settings
   let current = match facts {
     Some(got) => setting_current(got, def)
@@ -213,7 +215,8 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
     None => "没读到"
   }
   let control = match def.kind {
-    CNum(min, max, unit) => setting_number_control(model, def, min, max, unit, emit)
+    CNum(min, max, unit) =>
+      setting_number_control(model, def, min, max, unit, emit)
     CBool => setting_switch_control(model, def, current, emit)
     CList(options) => setting_select_control(model, def, current, options, emit)
   }
@@ -247,7 +250,9 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
           attrs=if setting_hint(def.key) == "" {
             mark("setting-desc", ["settings", "row", def.key, "desc"])
           } else {
-            mark("setting-desc", ["settings", "row", def.key, "desc"]).title(setting_hint(def.key))
+            mark("setting-desc", ["settings", "row", def.key, "desc"]).title(
+              setting_hint(def.key),
+            )
           },
           def.desc,
         ),
@@ -282,11 +287,15 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
 fn setting_hint(key : String) -> String {
   match key {
     "probe.timeoutMs" => "调大能容下慢实例，代价是扫描变慢"
-    "probe.concurrency" => "调大扫得快，瞬时占用的文件描述符也更多"
-    "process.stopGraceMs" => "0 表示不留宽限：SIGTERM 之后立刻 SIGKILL"
+    "probe.concurrency" =>
+      "调大扫得快，瞬时占用的文件描述符也更多"
+    "process.stopGraceMs" =>
+      "0 表示不留宽限：SIGTERM 之后立刻 SIGKILL"
     "logs.defaultTail" => "日志页自己写着实际读到了多少行"
-    "ui.sidebarCollapsed" => "窄屏不看这一项：那一档的侧栏从顶部汉堡滑出，不占位"
-    "profile.ignoreMissingBundles" => "缺的包仍然可以在抽屉里安装；关掉这一项，缺包会重新算作警告"
+    "ui.sidebarCollapsed" =>
+      "窄屏不看这一项：那一档的侧栏从顶部汉堡滑出，不占位"
+    "profile.ignoreMissingBundles" =>
+      "缺的包仍然可以在抽屉里安装；关掉这一项，缺包会重新算作警告"
     _ => ""
   }
 }
@@ -309,7 +318,11 @@ fn setting_is_default(facts : SettingsFacts, def : SettingDef) -> Bool {
 ///
 /// 缺省值取的是后端给的 defaults，不是本地契约表：两边不一致时，该写回去的是后端的口径。
 /// 缺省值多少收进悬停，正文不占 —— 那是「想退回去」的时候才需要读的一句话。
-fn setting_reset_button(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn setting_reset_button(
+  model : Model,
+  def : SettingDef,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   @html.button(
     class="dsh-setting-reset",
     type_="button",
@@ -334,7 +347,11 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     let active = group.id == current.id
     items.push(
       @html.button(
-        class=if active { "dsh-settings-tab active" } else { "dsh-settings-tab" },
+        class=if active {
+          "dsh-settings-tab active"
+        } else {
+          "dsh-settings-tab"
+        },
         type_="button",
         id=settings_row_dom_id(group.id),
         attrs=mark("settings-tab", ["settings", "tab", group.id])
@@ -349,7 +366,9 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             settings_group_count(model, group.id).to_string(),
           ),
           // 「这一行后面还有内容」的提示：窄屏靠它说清「点进去」是下一步
-          @html.span(class="dsh-settings-tab-arrow", [icon("chevron-right", size=16)]),
+          @html.span(class="dsh-settings-tab-arrow", [
+            icon("chevron-right", size=16),
+          ]),
         ],
       ),
     )
@@ -379,7 +398,10 @@ fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let children : Array[@html.Html] = [
     @html.h2(class="dsh-settings-panel-title", attrs=title_attrs, group.label),
-    @html.div(class="dsh-settings-rows", defs.map(fn(def) { setting_row(model, def, emit) })),
+    @html.div(
+      class="dsh-settings-rows",
+      defs.map(fn(def) { setting_row(model, def, emit) }),
+    ),
   ]
   // §62.1：表格接在「进程」组那两条设置项后面（不单独占一组）
   if group.id == "process" {
@@ -465,8 +487,9 @@ fn settings_back_row(emit : @cmd.Emit[Msg]) -> @html.Html {
       class="dsh-settings-back",
       type_="button",
       id=settings_back_dom_id(),
-      attrs=mark("settings-back", ["settings", "back"])
-        .aria_label("返回设置分区列表"),
+      attrs=mark("settings-back", ["settings", "back"]).aria_label(
+        "返回设置分区列表",
+      ),
       on_click=emit(SettingsBack),
       [@html.span("‹ 设置")],
     ),

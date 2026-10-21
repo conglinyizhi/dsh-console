@@ -16,7 +16,7 @@
 ///
 /// 摆格子那一步（dom.mbt 的 js_grid_cells）拿的就是这个数，它也是落点；
 /// 这里只是把它变成「第几位」好播报。
-fn drag_position(model : Model) -> Int {
+fn drag_position(model : Model) -> Int32 {
   if model.drag_at_index >= 0 {
     model.drag_at_index + 1
   } else {
@@ -33,7 +33,7 @@ fn drag_position(model : Model) -> Int {
 /// 状态灯摘掉（灯说的是**现在**在不在跑，一块预览摆一颗灯是拿将来冒充现在）。
 ///
 /// 静态信息，不是装饰：prefers-reduced-motion 下让位那一段过渡会撤掉，这一块留着。
-fn drop_slot(row : Row, slot_index : Int) -> @html.Html {
+fn drop_slot(row : Row, slot_index : Int32) -> @html.Html {
   // slot_index 只写进 DOM 供验收探针对号（真正摆格子的是 js_grid_cells）
   @html.div(
     class="dsh-case dsh-drop-slot ghost-tile",
@@ -47,7 +47,9 @@ fn drop_slot(row : Row, slot_index : Int) -> @html.Html {
       .aria_hidden("true"),
     [
       // 图标位：形状要占着，但里面什么都不画（真图标是这一条的标识，预览不该冒充它）
-      @html.span(class="dsh-tile-slot", [@html.span(class="dsh-tile", @html.nothing)]),
+      @html.span(class="dsh-tile-slot", [
+        @html.span(class="dsh-tile", @html.nothing),
+      ]),
       @html.div(class="dsh-case-body", [
         @html.div(class="dsh-case-head", [
           @html.span(class="dsh-name", card_name_text(row)),
@@ -68,7 +70,9 @@ fn drop_slot(row : Row, slot_index : Int) -> @html.Html {
 fn drop_tail(group : String) -> @html.Html {
   @html.div(
     class="dsh-drop-tail",
-    attrs=mark("drop-tail", ["overview", "drop-tail", group]).aria_hidden("true"),
+    attrs=mark("drop-tail", ["overview", "drop-tail", group]).aria_hidden(
+      "true",
+    ),
     [@html.nothing],
   )
 }
@@ -88,12 +92,18 @@ fn drag_ghost_view(row : Row, model : Model) -> @html.Html {
       "width: " + model.drag_ghost_w.to_string() + "px",
       "height: " + model.drag_ghost_h.to_string() + "px",
     ],
-    attrs=mark("drag-ghost", ["overview", "drag-ghost", row.id]).aria_hidden("true"),
+    attrs=mark("drag-ghost", ["overview", "drag-ghost", row.id]).aria_hidden(
+      "true",
+    ),
     [
       @html.article(class="dsh-case ghost-card", [
         @html.span(class="dsh-tile-slot", [
           @html.span(
-            class=if row.tone is Accent { "dsh-tile accent" } else { "dsh-tile violet" },
+            class=if row.tone is Accent {
+              "dsh-tile accent"
+            } else {
+              "dsh-tile violet"
+            },
             @html.nothing,
           ),
           status_light(row),
@@ -177,9 +187,11 @@ fn row_group(
   // 占位块里放的是被拖那一条自己的名字：一眼看出「是它要落到这儿」
   let dragged_row = match find_row(model.rows, model.drag_id) {
     Some(row) => row
-    None => return @html.div(class="dsh-rows dsh-card-grid", attrs=attrs, kids)
+    None => return @html.div(class="dsh-rows dsh-card-grid", attrs~, kids)
   }
-  let previewing = model.drag_active && model.drag_group == group && model.drag_at_index >= 0
+  let previewing = model.drag_active &&
+    model.drag_group == group &&
+    model.drag_at_index >= 0
   if previewing {
     // **占位块挂在末尾**，不插进中间：虚拟 DOM 那一层是按位置比对孩子序列的，
     // 中间插一个会让它把后面那些节点错位对齐 —— 实测「插在第 0 位的占位块」
@@ -191,9 +203,9 @@ fn row_group(
     kids.push(drop_tail(group))
   }
   if model.drag_active {
-    @html.div(class="dsh-rows dsh-card-grid dsh-drag-active", attrs=attrs, kids)
+    @html.div(class="dsh-rows dsh-card-grid dsh-drag-active", attrs~, kids)
   } else {
-    @html.div(class="dsh-rows dsh-card-grid", attrs=attrs, kids)
+    @html.div(class="dsh-rows dsh-card-grid", attrs~, kids)
   }
 }
 
@@ -207,7 +219,11 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let body : Array[@html.Html] = []
   if model.archived_open {
-    body.push(source_badge(model.tag_archived, ["overview", "section", "archived", "source-badge"]))
+    body.push(
+      source_badge(model.tag_archived, [
+        "overview", "section", "archived", "source-badge",
+      ]),
+    )
     for row in items {
       body.push(archived_row(row, model, emit))
     }
@@ -221,7 +237,13 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           attrs=mark("archived-toggle", ["overview", "archive", "toggle"]),
           on_click=emit(ToggleArchived),
           [
-            icon(if model.archived_open { "chevron-down" } else { "chevron-right" }),
+            icon(
+              if model.archived_open {
+                "chevron-down"
+              } else {
+                "chevron-right"
+              },
+            ),
             @html.span("已归档 (" + items.length().to_string() + ")"),
           ],
         ),
@@ -247,16 +269,14 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let pending = readings_pending(model)
   // 一组里的每一条都带上自己的行 id（见 DragItem）：拖动预览要按 id 找锚点
   let running_list : Array[DragItem] = running.map(fn(row) {
-    { id: row.id, node: instance_card(row, model, emit) }
+    { id: row.id, node: instance_card(row, model, emit), }
   })
   if running.length() == 0 {
     if pending {
       running_list.push({
         id: "",
         node: card_loading(
-          "running-loading",
-          "正在读取实例读数…",
-          "实例与 profile 的读数还在路上。这里先摆加载态。「确实一个都没有」要等读数回来才敢说。",
+          "running-loading", "正在读取实例读数…", "实例与 profile 的读数还在路上。这里先摆加载态。「确实一个都没有」要等读数回来才敢说。",
         ),
       })
     } else {
@@ -272,20 +292,18 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     }
   }
   let stopped_list : Array[DragItem] = stopped.map(fn(row) {
-    { id: row.id, node: instance_card(row, model, emit) }
+    { id: row.id, node: instance_card(row, model, emit), }
   })
   if stopped.length() == 0 {
     if pending {
       stopped_list.push({
         id: "",
         node: card_loading(
-          "stopped-loading",
-          "正在读取 profile 读数…",
-          "profile 的读数还在路上，这里先摆加载态。",
+          "stopped-loading", "正在读取 profile 读数…", "profile 的读数还在路上，这里先摆加载态。",
         ),
       })
     } else {
-      stopped_list.push({ id: "", node: stopped_empty() })
+      stopped_list.push({ id: "", node: stopped_empty(), })
     }
   }
   let dialogs : Array[@html.Html] = []
@@ -349,14 +367,22 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       section_head(
         "running",
         "当前运行的实例",
-        if pending { "…" } else { running.length().to_string() },
+        if pending {
+          "…"
+        } else {
+          running.length().to_string()
+        },
         model.tag_instances,
       ),
       row_group("running", running_list, model, emit),
       section_head(
         "stopped",
         "已停止的实例",
-        if pending { "…" } else { stopped.length().to_string() },
+        if pending {
+          "…"
+        } else {
+          stopped.length().to_string()
+        },
         model.tag_profiles,
       ),
       row_group("stopped", stopped_list, model, emit),
@@ -387,11 +413,10 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 虚影挂在最外层、不进任何一页的栅格：它是 position: fixed 的，不占文档流，
   // 也就不动任何一条的位置（落点算法量的是格子，多一个盒子就会量错）。
   match find_row(model.rows, model.drag_id) {
-    Some(dragged) => {
+    Some(dragged) =>
       if model.drag_ghost {
         body.push(drag_ghost_view(dragged, model))
       }
-    }
     None => ()
   }
   // 读屏播报：只在拖动态存在时才有一个节点（它是提醒，不是常驻状态）
@@ -413,7 +438,10 @@ fn running_summary(model : Model) -> String {
   match model.instances {
     None => "监听端口扫描还没返回结果"
     Some(facts) =>
-      "扫了本机 " + facts.candidate_count.to_string() + " 个 loopback 监听端口，其中 " +
-      facts.probe_hits.to_string() + " 个命中 DSH 签名"
+      "扫了本机 " +
+      facts.candidate_count.to_string() +
+      " 个 loopback 监听端口，其中 " +
+      facts.probe_hits.to_string() +
+      " 个命中 DSH 签名"
   }
 }

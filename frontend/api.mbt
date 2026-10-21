@@ -11,13 +11,14 @@
 ///|
 /// 一次调用的结果。status = 0 表示请求根本没发出去（原因在 transport_error）。
 struct HttpResult {
-  status : Int
+  status : Int32
   status_text : String
   body : String
   transport_error : String
 } derive(Eq)
 
-pub extend HttpResult with Eq::{ not_equal, equal }
+///|
+pub extend HttpResult with Eq::{not_equal, equal}
 
 ///|
 /// 唯一的传输原语。响应收敛成一段 JSON 文本回来，
@@ -49,7 +50,7 @@ extern "js" fn js_http_call(
 
 ///|
 fn parse_http_result(text : String) -> HttpResult {
-  let root = try @json.parse(text) catch {
+  let root = @json.parse(text) catch {
     _ =>
       return {
         status: 0,
@@ -117,9 +118,18 @@ fn action_body(action : String, params : String) -> String {
 /// confirm 在**顶层**：契约第一节写的是「body 里还必须带 "confirm":"DELETE"」，
 /// 后端也是从顶层读的（handle_action 里的 json_field(json, "confirm")）。
 /// 塞进 params 里后端读不到，硬删与彻底删除都会以 bad-params 告终 ✗。
-fn action_body_with_confirm(action : String, params : String, confirm : String) -> String {
-  "{\"action\":" + json_text_literal(action) + ",\"params\":" + params + ",\"confirm\":" +
-  json_text_literal(confirm) + "}"
+fn action_body_with_confirm(
+  action : String,
+  params : String,
+  confirm : String,
+) -> String {
+  "{\"action\":" +
+  json_text_literal(action) +
+  ",\"params\":" +
+  params +
+  ",\"confirm\":" +
+  json_text_literal(confirm) +
+  "}"
 }
 
 ///|
@@ -133,27 +143,32 @@ fn write_headers() -> String {
 /// GET /api/local/settings。要状态码的那种读法：404 / 501 得如实显示出来，
 /// 不能像 @http 那样只留一句「HTTP 404」把响应体丢掉。
 fn settings_get_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(SettingsText(res)) },
-    async fn() {
-      let text : String = js_http_call("GET", "/api/local/settings", "", "{}").wait().cast()
-      text
-    },
-  )
+  @cmd.attempt(fn(res : Result[String, Error]) { emit(SettingsText(res)) }, async fn() {
+    let text : String = js_http_call("GET", "/api/local/settings", "", "{}")
+      .wait()
+      .cast()
+    text
+  })
 }
 
 ///|
 /// PUT /api/local/settings。
-fn settings_put_cmd(key : String, body : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+fn settings_put_cmd(
+  key : String,
+  body : String,
+  emit : @cmd.Emit[Msg],
+) -> @cmd.Cmd {
   @cmd.attempt(
     fn(res : Result[String, Error]) { emit(SettingsSaved(key, res)) },
     async fn() {
       let text : String = js_http_call(
-        "PUT",
-        "/api/local/settings",
-        body,
-        write_headers(),
-      ).wait().cast()
+          "PUT",
+          "/api/local/settings",
+          body,
+          write_headers(),
+        )
+        .wait()
+        .cast()
       text
     },
   )
@@ -165,19 +180,22 @@ fn settings_put_cmd(key : String, body : String, emit : @cmd.Emit[Msg]) -> @cmd.
 /// 单开一条而不是复用 action_cmd：它的回执要重读设置那份读数（env 段），
 /// 而不是刷新 profiles / instances —— 改的是起实例前挂的变量，实例列表一个字节都没变。
 /// 回执里也只带 scope，不带任何值。
-fn env_save_cmd(scope : String, body : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(EnvSaved(scope, res)) },
-    async fn() {
-      let text : String = js_http_call(
+fn env_save_cmd(
+  scope : String,
+  body : String,
+  emit : @cmd.Emit[Msg],
+) -> @cmd.Cmd {
+  @cmd.attempt(fn(res : Result[String, Error]) { emit(EnvSaved(scope, res)) }, async fn() {
+    let text : String = js_http_call(
         "POST",
         "/api/local/action",
         body,
         write_headers(),
-      ).wait().cast()
-      text
-    },
-  )
+      )
+      .wait()
+      .cast()
+    text
+  })
 }
 
 ///|
@@ -192,14 +210,18 @@ fn action_cmd(
   emit : @cmd.Emit[Msg],
 ) -> @cmd.Cmd {
   @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(HttpDone(row_id, action, name, verb, res)) },
+    fn(res : Result[String, Error]) {
+      emit(HttpDone(row_id, action, name, verb, res))
+    },
     async fn() {
       let text : String = js_http_call(
-        "POST",
-        "/api/local/action",
-        body,
-        write_headers(),
-      ).wait().cast()
+          "POST",
+          "/api/local/action",
+          body,
+          write_headers(),
+        )
+        .wait()
+        .cast()
       text
     },
   )
@@ -215,11 +237,13 @@ fn refresh_releases_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
     fn(res : Result[String, Error]) { emit(ReleasesRefreshDone(res)) },
     async fn() {
       let text : String = js_http_call(
-        "POST",
-        "/api/local/action",
-        action_body("refresh-releases", "{}"),
-        write_headers(),
-      ).wait().cast()
+          "POST",
+          "/api/local/action",
+          action_body("refresh-releases", "{}"),
+          write_headers(),
+        )
+        .wait()
+        .cast()
       text
     },
   )
@@ -230,17 +254,27 @@ fn refresh_releases_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 ///
 /// 单开一条而不是复用 action_cmd：预览是**只读**的，它的回执不该碰那一行的忙碌态，
 /// 也不该写进总览那条动作提示（那一条说的是「改了什么」）。预览读失败的原因摆在侧栏里原位。
-fn promote_preview_cmd(from : String, to : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  let params = "{\"from\":" + json_text_literal(from) + ",\"to\":" + json_text_literal(to) + "}"
+fn promote_preview_cmd(
+  from : String,
+  to : String,
+  emit : @cmd.Emit[Msg],
+) -> @cmd.Cmd {
+  let params = "{\"from\":" +
+    json_text_literal(from) +
+    ",\"to\":" +
+    json_text_literal(to) +
+    "}"
   @cmd.attempt(
     fn(res : Result[String, Error]) { emit(PromotePreviewDone(res)) },
     async fn() {
       let text : String = js_http_call(
-        "POST",
-        "/api/local/action",
-        action_body("promote-preview", params),
-        write_headers(),
-      ).wait().cast()
+          "POST",
+          "/api/local/action",
+          action_body("promote-preview", params),
+          write_headers(),
+        )
+        .wait()
+        .cast()
       text
     },
   )
@@ -254,21 +288,27 @@ fn promote_preview_cmd(from : String, to : String, emit : @cmd.Emit[Msg]) -> @cm
 ///   ① 新名字与它隔离到哪儿，要拼成一句「已创建 <名字>（已隔离到 <路径>）」；
 ///   ② 失败的原因要**写进那个还开着的框**里，而不是挂到全局提示条上。
 /// 复用通用回执的话，这两种去处都没有位置。
-fn new_instance_cmd(source : String, name : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  let params = "{\"profile\":" + json_text_literal(source) + ",\"newName\":" +
-    json_text_literal(name) + "}"
-  @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(NewInstanceDone(res)) },
-    async fn() {
-      let text : String = js_http_call(
+fn new_instance_cmd(
+  source : String,
+  name : String,
+  emit : @cmd.Emit[Msg],
+) -> @cmd.Cmd {
+  let params = "{\"profile\":" +
+    json_text_literal(source) +
+    ",\"newName\":" +
+    json_text_literal(name) +
+    "}"
+  @cmd.attempt(fn(res : Result[String, Error]) { emit(NewInstanceDone(res)) }, async fn() {
+    let text : String = js_http_call(
         "POST",
         "/api/local/action",
         action_body("fork-profile", params),
         write_headers(),
-      ).wait().cast()
-      text
-    },
-  )
+      )
+      .wait()
+      .cast()
+    text
+  })
 }
 
 ///|
@@ -283,11 +323,13 @@ fn base_profile_cmd(name : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
     fn(res : Result[String, Error]) { emit(NewInstanceBaseDone(res)) },
     async fn() {
       let text : String = js_http_call(
-        "POST",
-        "/api/local/action",
-        action_body("create-base-profile", params),
-        write_headers(),
-      ).wait().cast()
+          "POST",
+          "/api/local/action",
+          action_body("create-base-profile", params),
+          write_headers(),
+        )
+        .wait()
+        .cast()
       text
     },
   )
@@ -300,26 +342,22 @@ fn base_profile_cmd(name : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 /// 单开一条而不是复用别的读法：这一枪只回答「答不答、多快答」，
 /// 它的回执**不碰任何读数** —— profiles / instances / console 那几份各有各的请求。
 fn health_ping_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(HealthDone(res)) },
-    async fn() {
-      let text : String = js_health_ping("/api/local/console", health_timeout_ms).wait().cast()
-      text
-    },
-  )
+  @cmd.attempt(fn(res : Result[String, Error]) { emit(HealthDone(res)) }, async fn() {
+    let text : String = js_health_ping("/api/local/console", health_timeout_ms)
+      .wait()
+      .cast()
+    text
+  })
 }
 
 ///|
 /// 等页面重新可见（隐藏期间挂一次）。回执是 HealthVisible：那边清掉「在等」的标记，
 /// 并立刻补一次检查 —— 这正是 §31.1 要求的「恢复可见立刻查一次」。
 fn listen_visible(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(_res : Result[String, Error]) { emit(HealthVisible) },
-    async fn() {
-      let text : String = js_next_visible().wait().cast()
-      text
-    },
-  )
+  @cmd.attempt(fn(_res : Result[String, Error]) { emit(HealthVisible) }, async fn() {
+    let text : String = js_next_visible().wait().cast()
+    text
+  })
 }
 
 ///|
@@ -335,18 +373,17 @@ fn order_action_cmd(ids : Array[String], emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   let items = ids.map(fn(id) { json_text_literal(id) })
   let params = "{\"order\":[" + join_with(items, ",") + "]}"
   let body = action_body("set-row-order", params)
-  @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(OrderDone(res)) },
-    async fn() {
-      let text : String = js_http_call(
+  @cmd.attempt(fn(res : Result[String, Error]) { emit(OrderDone(res)) }, async fn() {
+    let text : String = js_http_call(
         "POST",
         "/api/local/action",
         body,
         write_headers(),
-      ).wait().cast()
-      text
-    },
-  )
+      )
+      .wait()
+      .cast()
+    text
+  })
 }
 
 ///|
@@ -354,13 +391,21 @@ fn order_action_cmd(ids : Array[String], emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
 fn fork_progress_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
   @cmd.attempt(
     fn(res : Result[String, Error]) {
-      emit(ForkProgressText(match res {
-        Ok(text) => text
-        Err(_) => ""
-      }))
+      emit(
+        ForkProgressText(
+          match res {
+            Ok(text) => text
+            Err(_) => ""
+          },
+        ),
+      )
     },
     async fn() {
-      let text : String = js_http_call("GET", "/api/local/fork-progress", "", "{}").wait().cast()
+      let text : String = js_http_call(
+          "GET", "/api/local/fork-progress", "", "{}",
+        )
+        .wait()
+        .cast()
       text
     },
   )

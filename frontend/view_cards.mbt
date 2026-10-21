@@ -4,7 +4,6 @@
 // 2026-10-20 从 view_overview.mbt 拆出来：那个文件 3369 行，卡片与抽屉、对话框挤在一起，
 // 改一张卡的样式得在三个方向的文件里翻。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 动作名：抽屉里每颗按钮的 data-action，与契约里的 action 名一一对应。
 fn action_name(key : ActionKey) -> String {
@@ -62,11 +61,13 @@ fn status_light(row : Row) -> @html.Html {
       // 悬停给两样：先是那句人话，再是技术依据（哪一条握手应答命中）。
       // 档位标签不再重挂一遍：那会变成「运行中：运行中：…」（实测踩过）。
       .aria_label(light_label(row.light))
-      .title(if row.light_basis == "" {
-        row.light_reason
-      } else {
-        row.light_reason + "\n" + row.light_basis
-      }),
+      .title(
+        if row.light_basis == "" {
+          row.light_reason
+        } else {
+          row.light_reason + "\n" + row.light_basis
+        },
+      ),
     @html.nothing,
   )
 }
@@ -114,7 +115,12 @@ fn card_attrs(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Attrs {
     // 焦点落在一个看不见的节点上，键盘用户就找不着自己在哪儿了。
     .tabindex(if model.drag_active && model.drag_id == row.id { -1 } else { 0 })
     .aria_haspopup("dialog")
-    .aria_label(row.name + "，点开看读数与控制（" + light_label(row.light) + "）")
+    .aria_label(
+      row.name +
+      "，点开看读数与控制（" +
+      light_label(row.light) +
+      "）",
+    )
     .on_click(fn(_event) { emit(DrawerOpen(row.id)) })
     // 指针按下只是**记住起点**：位移过阈值才算拖动（判在 update_inner 的 DragDown）。
     // 这里**不 preventDefault**：掐掉默认行为会把随后的 click 一起掐掉，
@@ -184,11 +190,12 @@ fn card_name_text(row : Row) -> String {
 /// 标签是 label（.dsh-card-port-label，比数字淡一档，颜色见 app.scss），
 /// 数字才是内容。两者同在一个等宽字行里，中间不加空白 —— 这一格的 DOM 文本
 /// 读出来就是「端口：3080」，探针取到的也是这一串。
-fn card_port(row : Row, port : Int) -> @html.Html {
+fn card_port(row : Row, port : Int32) -> @html.Html {
   @html.span(
     class="dsh-card-port",
-    attrs=mark("card-port", ["overview", "card", row.id, "port"])
-      .title("监听端口 " + port.to_string()),
+    attrs=mark("card-port", ["overview", "card", row.id, "port"]).title(
+      "监听端口 " + port.to_string(),
+    ),
     [
       // 「端口：」三个字在窄卡上会把名字挤成省略号（§69）。这里只留一个冒号，
       // 完整说法进悬停；端口号本身仍原样显示。
@@ -274,7 +281,6 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   )
 }
 
-
 ///|
 /// 一组里的一条：卡片节点 + 它的行 id。
 ///
@@ -297,7 +303,11 @@ fn card_class(row : Row, model : Model) -> String {
   // 被隔离的 profile 多一档：金色描边（样式在 app.scss 的「独立 home」那一段，
   // 它排在状态色相关规则之后、且选择器更重，状态怎么变都盖不掉它）。
   // 描边不是唯一信号：卡上还有一个「独立 home」小金标（见 card_home_badge）。
-  let isolated = if row.home_kind == "isolated" { " dsh-case-home-isolated" } else { "" }
+  let isolated = if row.home_kind == "isolated" {
+    " dsh-case-home-isolated"
+  } else {
+    ""
+  }
   if model.drag_active && model.drag_id == row.id {
     "dsh-case drag-image" + isolated
   } else {
@@ -331,7 +341,11 @@ fn card_home_badge(row : Row) -> @html.Html {
   if row.home_kind != "isolated" {
     return @html.nothing
   }
-  let where_text = if row.home_path == "" { "它自己的目录" } else { row.home_path }
+  let where_text = if row.home_path == "" {
+    "它自己的目录"
+  } else {
+    row.home_path
+  }
   @html.span(
     class="dsh-home-badge",
     attrs=mark("card-home-badge", ["overview", "card", row.id, "home"])
@@ -339,7 +353,8 @@ fn card_home_badge(row : Row) -> @html.Html {
       .role("img")
       .aria_label("隔离")
       .title(
-        "隔离：这只 profile 的目录在 " + where_text +
+        "隔离：这只 profile 的目录在 " +
+        where_text +
         " 里，它起的实例用自己的 sessions / storages / logs，炸也炸不到别的 profile。" +
         "状态灯的颜色照旧只看运行状态，与这一道金边无关",
       ),
@@ -374,7 +389,8 @@ fn card_stamp(row : Row, short : String) -> @html.Html {
   @html.div(
     class="dsh-card-stamp",
     attrs=mark("card-started", ["overview", "card", row.id, "started"]).title(
-      "上次启动：" + short +
+      "上次启动：" +
+      short +
       (if row.last_started_source == "" {
         ""
       } else {
@@ -415,9 +431,13 @@ fn card_note(row : Row) -> @html.Html {
 /// **不提令牌** —— 带令牌的地址走「打开 Web UI」与「复制带令牌的地址」。
 fn url_hint(row : Row) -> String {
   match row.status {
-    Stopped => "这只 profile 现在没有在跑，所以没有可访问的地址"
+    Stopped =>
+      "这只 profile 现在没有在跑，所以没有可访问的地址"
     Starting => "实例正在起来，端口还没开始监听"
-    Running => "这只实例正在 " + row.url + " 上监听（要进去用「打开 Web UI」）"
+    Running =>
+      "这只实例正在 " +
+      row.url +
+      " 上监听（要进去用「打开 Web UI」）"
   }
 }
 
@@ -425,12 +445,17 @@ fn url_hint(row : Row) -> String {
 /// 「打开 Web UI」按钮的悬停：点下去会发生什么，先说在前面。
 fn open_ui_hint(row : Row) -> String {
   match row.web_url {
-    Some(_) => "在新标签页打开带令牌的地址（" + row.url + " 这条裸地址打开是 401）"
+    Some(_) =>
+      "在新标签页打开带令牌的地址（" +
+      row.url +
+      " 这条裸地址打开是 401）"
     None =>
       if row.web_url_source == "" {
         "读不到握手令牌，点了不会打开标签页"
       } else {
-        "读不到握手令牌（" + row.web_url_source + "），点了不会打开标签页"
+        "读不到握手令牌（" +
+        row.web_url_source +
+        "），点了不会打开标签页"
       }
   }
 }

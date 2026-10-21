@@ -12,12 +12,12 @@
 
 ///|
 /// 单个响应最多读多少字节。
-pub let body_limit_bytes : Int = 8192
+pub let body_limit_bytes : Int32 = 8192
 
 ///|
 /// 单个端口的探测超时缺省值（毫秒），与 Node 版 PROBE_TIMEOUT_MS 一致。
 /// 真正生效的值来自设置 probe.timeoutMs，这里只是缺省与回退。
-pub let probe_timeout_ms : Int = 500
+pub let probe_timeout_ms : Int32 = 500
 
 ///|
 /// 探测并发缺省值：8 路，与 Node 版 PROBE_CONCURRENCY 取同一个数。
@@ -27,19 +27,19 @@ pub let probe_timeout_ms : Int = 500
 /// 换不来什么好处——探测目标写死 127.0.0.1，不存在把别人的端口打满的问题。
 /// 真实并发 = min(concurrency, 候选端口数)，响应里如实回生效的那个上限。
 /// 真正生效的值来自设置 probe.concurrency，这里只是缺省与回退。
-pub let probe_concurrency : Int = 8
+pub let probe_concurrency : Int32 = 8
 
 ///|
 /// 一次探测的结论。字段与 Node 版 probePort 的返回一一对应。
 /// pub(all) 是必须的：instances 包要能读出字段，也要能构造「未执行」这一条。
 pub(all) struct Probe {
-  port : Int
+  port : Int32
   url : String
   reached : Bool
-  status : Int?
+  status : Int32?
   content_type : String?
   body : String
-  ms : Int
+  ms : Int32
   error : String?
 }
 
@@ -77,23 +77,23 @@ fn describe_error(err : Error) -> String {
 /// 谁先回来不影响谁排第几。
 /// timeout_ms / concurrency 由调用方从设置（probe.timeoutMs / probe.concurrency）传进来。
 pub async fn probe_ports(
-  ports : Array[Int],
-  timeout_ms : Int,
-  concurrency : Int,
+  ports : Array[Int32],
+  timeout_ms : Int32,
+  concurrency : Int32,
 ) -> Array[Probe] noraise {
   let tasks : Array[async () -> Probe] = []
   for port in ports {
     let target = port
-    tasks.push(async fn () { probe_port(target, timeout_ms) })
+    tasks.push(async fn() { probe_port(target, timeout_ms) })
   }
-  try @async.all(tasks[:], max_concurrent=concurrency) catch {
+  @async.all(tasks[:], max_concurrent=concurrency) catch {
     err => {
       // 单个 probe_port 是 noraise，批量本身只会在被取消（客户端断开）时走到这里。
       // 那就如实标成「没探测」，端口顺序照旧，不编造任何结论。
       let reason = "批量探测中断：" + describe_error(err)
       let out : Array[Probe] = []
       for port in ports {
-        out.push({ ..empty_probe(reason), port })
+        out.push({ ..empty_probe(reason), port, })
       }
       out
     }
@@ -103,7 +103,7 @@ pub async fn probe_ports(
 ///|
 /// 探测一个端口。任何异常都收敛成 reached=false + error 文本，不向外抛。
 /// timeout_ms 来自设置 probe.timeoutMs。
-pub async fn probe_port(port : Int, timeout_ms : Int) -> Probe noraise {
+pub async fn probe_port(port : Int32, timeout_ms : Int32) -> Probe noraise {
   let url = "http://127.0.0.1:\{port}/"
   let started_at = @async.now()
   let base : Probe = {
@@ -116,7 +116,7 @@ pub async fn probe_port(port : Int, timeout_ms : Int) -> Probe noraise {
     ms: 0,
     error: None,
   }
-  let attempt : async () -> Probe raise = async fn () {
+  let attempt : async () -> Probe = async fn() {
     let response = fetch_root(port, body_limit_bytes)
     {
       ..base,
@@ -126,17 +126,20 @@ pub async fn probe_port(port : Int, timeout_ms : Int) -> Probe noraise {
       body: response.body,
     }
   }
-  let result = try {
-    @async.with_timeout_opt(timeout_ms, attempt)
-  } catch {
+  let result = @async.with_timeout_opt(timeout_ms, attempt) catch {
     err => {
       let spent = (@async.now() - started_at).to_int()
-      return { ..base, ms: spent, error: Some(describe_error(err)) }
+      return { ..base, ms: spent, error: Some(describe_error(err)), }
     }
   }
   let spent = (@async.now() - started_at).to_int()
   match result {
-    Some(p) => { ..p, ms: spent }
-    None => { ..base, ms: spent, error: Some("The operation was aborted due to timeout") }
+    Some(p) => { ..p, ms: spent, }
+    None =>
+      {
+        ..base,
+        ms: spent,
+        error: Some("The operation was aborted due to timeout"),
+      }
   }
 }

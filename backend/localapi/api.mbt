@@ -13,8 +13,11 @@ pub struct Api {
 
 ///|
 /// 构造一条路由。
-pub fn api(path : String, handler : async () -> @json.JsonVal raise ReadError) -> Api {
-  { path, handler }
+pub fn api(
+  path : String,
+  handler : async () -> @json.JsonVal raise ReadError,
+) -> Api {
+  { path, handler, }
 }
 
 ///|
@@ -30,7 +33,7 @@ pub fn query_api(
   path : String,
   handler : async (@moonback.Request) -> @json.JsonVal raise ReadError,
 ) -> QueryApi {
-  { path, handler }
+  { path, handler, }
 }
 
 ///|
@@ -54,7 +57,10 @@ pub fn fail_read(code : String, message : String) -> Unit raise ReadError {
 
 ///|
 /// 从路由表里找 handler。
-fn find_api(apis : Array[Api], path : String) -> (async () -> @json.JsonVal raise ReadError)? {
+fn find_api(
+  apis : Array[Api],
+  path : String,
+) -> (async () -> @json.JsonVal raise ReadError)? {
   for r in apis {
     if r.path == path {
       return Some(r.handler)
@@ -132,9 +138,22 @@ pub async fn dispatch(
       } catch {
         ReadError(code~, message~) => {
           let code = if code == "" { "read-failed" } else { code }
-          send_error(res, status_for(code), code, message, read_at=Some(read_at))
+          send_error(
+            res,
+            status_for(code),
+            code,
+            message,
+            read_at=Some(read_at),
+          )
         }
-        err => send_error(res, 500, "read-failed", err.to_string(), read_at=Some(read_at))
+        err =>
+          send_error(
+            res,
+            500,
+            "read-failed",
+            err.to_string(),
+            read_at=Some(read_at),
+          )
       }
       return
     }
@@ -151,9 +170,22 @@ pub async fn dispatch(
       } catch {
         ReadError(code~, message~) => {
           let code = if code == "" { "read-failed" } else { code }
-          send_error(res, status_for(code), code, message, read_at=Some(read_at))
+          send_error(
+            res,
+            status_for(code),
+            code,
+            message,
+            read_at=Some(read_at),
+          )
         }
-        err => send_error(res, 500, "read-failed", err.to_string(), read_at=Some(read_at))
+        err =>
+          send_error(
+            res,
+            500,
+            "read-failed",
+            err.to_string(),
+            read_at=Some(read_at),
+          )
       }
   }
 }
@@ -193,7 +225,7 @@ pub fn api_gate(handler : @moonback.Handler) -> @moonback.Middleware {
 
 ///|
 /// 与 Node 版一致的 HTTP 状态映射：只有 source/tail 类参数错误是 400，其余 500。
-fn status_for(code : String) -> Int {
+fn status_for(code : String) -> Int32 {
   match code {
     "unknown-source" | "bad-tail" | "missing-source" => 400
     _ => 500

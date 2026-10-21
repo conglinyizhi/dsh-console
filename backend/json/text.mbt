@@ -11,7 +11,12 @@ pub fn owned(view : StringView) -> String {
 ///|
 /// JS 正则 \s 认的空白字符（含 \f \v），日志切词时按它对齐。
 pub fn is_space(ch : Char) -> Bool {
-  ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\u{000C}' || ch == '\u{000B}'
+  ch == ' ' ||
+  ch == '\t' ||
+  ch == '\n' ||
+  ch == '\r' ||
+  ch == '\u{000C}' ||
+  ch == '\u{000B}'
 }
 
 ///|
@@ -75,7 +80,7 @@ pub fn collapse_ws(s : String) -> String {
 
 ///|
 /// 子串位置，找不到返回 None。
-pub fn index_of(haystack : String, needle : String) -> Int? {
+pub fn index_of(haystack : String, needle : String) -> Int32? {
   haystack.find(needle)
 }
 
@@ -114,13 +119,13 @@ pub fn to_lower(s : String) -> String {
 
 ///|
 /// 大小写不敏感的子串查找，返回原串里的下标。
-pub fn index_of_ci(haystack : String, needle : String) -> Int? {
+pub fn index_of_ci(haystack : String, needle : String) -> Int32? {
   index_of(to_lower(haystack), to_lower(needle))
 }
 
 ///|
 /// 取切片，下标自动收进 [0, length] 区间（比 String::get 安全，不会因为越界 panic）。
-pub fn slice(s : String, start : Int, end : Int) -> String {
+pub fn slice(s : String, start : Int32, end : Int32) -> String {
   let n = s.length()
   let mut a = if start < 0 { 0 } else { start }
   if a > n {
@@ -139,19 +144,19 @@ pub fn slice(s : String, start : Int, end : Int) -> String {
 
 ///|
 /// 从下标处取到末尾。
-pub fn slice_from(s : String, start : Int) -> String {
+pub fn slice_from(s : String, start : Int32) -> String {
   slice(s, start, s.length())
 }
 
 ///|
 /// UTF-8 字节长度。
-pub fn utf8_len(text : String) -> Int {
+pub fn utf8_len(text : String) -> Int32 {
   @utf8.encode(text).length()
 }
 
 ///|
 /// 按 UTF-8 字节上限截前缀（截断点一定落在字符边界上）。
-pub fn utf8_prefix(text : String, limit : Int) -> String {
+pub fn utf8_prefix(text : String, limit : Int32) -> String {
   let encoded = @utf8.encode(text)
   if encoded.length() <= limit {
     return text
@@ -207,7 +212,7 @@ pub fn is_all_digits(s : String) -> Bool {
 
 ///|
 /// 十进制字符串转 Int（只喂 is_all_digits 通过的串）。
-pub fn parse_dec(s : String) -> Int {
+pub fn parse_dec(s : String) -> Int32 {
   let mut value = 0
   for ch in s {
     value = value * 10 + (ch.to_int() - 48)
@@ -232,7 +237,7 @@ pub fn parse_dec64(s : String) -> Int64 {
 /// 按 UTF-16 码元逐位比较，等同 JS 的 `a < b` 字符串序。
 /// 不能用 String::compare：core 的实现先比长度再比字符，
 /// 对 "web" / "headless" 会给出与 JS 相反的顺序。
-pub fn compare_code_units(a : String, b : String) -> Int {
+pub fn compare_code_units(a : String, b : String) -> Int32 {
   let n = if a.length() < b.length() { a.length() } else { b.length() }
   for i = 0; i < n; i = i + 1 {
     let x = a.unsafe_get(i).to_int()
@@ -253,7 +258,7 @@ pub fn compare_code_units(a : String, b : String) -> Int {
 ///|
 /// 把若干字节块拼起来解码成 UTF-8 文本（非法字节按替换字符处理），可选截断到 limit 字节。
 /// 探测只读前 8KB 靠它；解码在整段上做，多字节字符不会被块边界切断。
-pub fn read_head(chunks : Array[BytesView], limit : Int) -> String {
+pub fn read_head(chunks : Array[BytesView], limit : Int32) -> String {
   let kept : Array[BytesView] = []
   let mut size = 0
   for chunk in chunks {
@@ -277,7 +282,7 @@ pub fn read_head(chunks : Array[BytesView], limit : Int) -> String {
 
 ///|
 /// 子串出现次数。
-pub fn count_occurrences(haystack : String, needle : String) -> Int {
+pub fn count_occurrences(haystack : String, needle : String) -> Int32 {
   if needle == "" {
     return 0
   }

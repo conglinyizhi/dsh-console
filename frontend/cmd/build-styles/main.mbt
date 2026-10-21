@@ -15,12 +15,15 @@
 let app_sources : Array[String] = ["styles/app.scss"]
 
 ///|
-async fn compile(paths : Array[String], output_path : String) -> Result[Unit, String] {
+async fn compile(
+  paths : Array[String],
+  output_path : String,
+) -> Result[Unit, String] {
   // 先把源文件读完放进内存，再构造同步 reader 交给 compile_many ——
   // precss 的核心不碰 IO，读取函数由调用方注入。
   let sources : Map[String, String] = Map([])
   for path in paths {
-    let data = try @fs.read_file(path) catch {
+    let data = @fs.read_file(path) catch {
       _ => return Err("样式源读不到: " + path)
     }
     sources[path] = data.text()
@@ -36,10 +39,10 @@ async fn compile(paths : Array[String], output_path : String) -> Result[Unit, St
     }
   }
   let inputs = paths.map(path => @core.Input::File(path))
-  let css = try @precss.compile_many(inputs, read) catch {
+  let css = @precss.compile_many(inputs, read) catch {
     e => return Err("编译失败 " + output_path + ": " + e.to_string())
   }
-  let _ = try @fs.write_file(output_path, css) catch {
+  let _ = @fs.write_file(output_path, css) catch {
     e => return Err("写不进去 " + output_path + ": " + e.to_string())
   }
   println("wrote " + output_path + " (" + css.length().to_string() + " bytes)")

@@ -118,7 +118,7 @@ pub fn as_string(json : Json) -> String? {
 
 ///|
 /// 从 Json 取整数；非整数（含小数、字符串）给 None。
-pub fn as_int(json : Json) -> Int? {
+pub fn as_int(json : Json) -> Int32? {
   match json {
     Number(d, ..) =>
       if d == d.to_int().to_double() {

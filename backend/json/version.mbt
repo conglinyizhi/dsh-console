@@ -22,9 +22,7 @@ pub let backend_package_name : String = "conglinyizhi/dsh-console-backend"
 ///|
 /// 允许用来定位前端目录的环境变量，按顺序试。
 let frontend_env_names : Array[String] = [
-  "DSH_CONSOLE_DIR",
-  "DSH_CONSOLE_ROOT",
-  "DSH_CONSOLE_HOME",
+  "DSH_CONSOLE_DIR", "DSH_CONSOLE_ROOT", "DSH_CONSOLE_HOME",
 ]
 
 ///|
@@ -68,8 +66,18 @@ pub async fn resolve_frontend_dir() -> (String?, String) noraise {
   let exe = exe_path()
   let shown = if exe == "" { "（读不到 /proc/self/exe）" } else { exe }
   match locate_frontend_dir() {
-    Some(dir) => (Some(dir), "相对二进制位置上溯找到含 package.json + src/ 的目录")
-    None => (None, "既没有 DSH_CONSOLE_DIR 等环境变量，也没能从二进制位置 " + shown + " 上溯找到前端目录")
+    Some(dir) =>
+      (
+        Some(dir),
+        "相对二进制位置上溯找到含 package.json + src/ 的目录",
+      )
+    None =>
+      (
+        None,
+        "既没有 DSH_CONSOLE_DIR 等环境变量，也没能从二进制位置 " +
+        shown +
+        " 上溯找到前端目录",
+      )
   }
 }
 
@@ -116,7 +124,11 @@ pub async fn read_console_version() -> (String?, String) noraise {
             (Some(v), "仓库根的 VERSION 文件")
           }
         }
-        Err(e) => (None, "仓库根的 VERSION 文件读不到：" + f + "（" + e + "）")
+        Err(e) =>
+          (
+            None,
+            "仓库根的 VERSION 文件读不到：" + f + "（" + e + "）",
+          )
       }
     None => {
       let (dir, src) = resolve_frontend_dir()

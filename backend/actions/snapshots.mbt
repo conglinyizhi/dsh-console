@@ -14,10 +14,7 @@ async fn config_write_guard(profile : String) -> Unit raise ActionError {
   let (console_home, _) = @runtime.resolve_dsh_home()
   let homes : Array[String] = [console_home]
   match @profiles.isolated_home_of(profile) {
-    Some(isolated) =>
-      if isolated != console_home {
-        homes.push(isolated)
-      }
+    Some(isolated) => if isolated != console_home { homes.push(isolated) }
     None => ()
   }
   for home in homes {
@@ -29,8 +26,15 @@ async fn config_write_guard(profile : String) -> Unit raise ActionError {
         }
         fail(
           "conflict",
-          "profile " + profile + " 正在跑（PID " + hit.pid.to_string() + "，" + port_text +
-          "，home " + home + "）；先停掉它再动配置",
+          "profile " +
+          profile +
+          " 正在跑（PID " +
+          hit.pid.to_string() +
+          "，" +
+          port_text +
+          "，home " +
+          home +
+          "）；先停掉它再动配置",
         )
       }
       None => ()
@@ -40,7 +44,10 @@ async fn config_write_guard(profile : String) -> Unit raise ActionError {
 
 ///|
 /// 一次拍照的 outcome。
-fn snapshot_outcome_json(profile : String, o : @profiles.SnapshotOutcome) -> @json.JsonVal {
+fn snapshot_outcome_json(
+  profile : String,
+  o : @profiles.SnapshotOutcome,
+) -> @json.JsonVal {
   @json.JObj([
     ("profile", @json.JStr(profile)),
     ("id", @json.JStr(o.id)),
@@ -59,21 +66,38 @@ fn snapshot_outcome_json(profile : String, o : @profiles.SnapshotOutcome) -> @js
 ///|
 /// 拍照那一句回执：存了几份、落在哪、这次淘汰了几份旧的。
 fn snapshot_note(profile : String, o : @profiles.SnapshotOutcome) -> String {
-  let mut text = "已给 " + profile + " 拍了一张快照：" + o.files.to_string() + " 个文件 · " +
-    o.bytes.to_string() + " 字节，存在 " + o.dir
+  let mut text = "已给 " +
+    profile +
+    " 拍了一张快照：" +
+    o.files.to_string() +
+    " 个文件 · " +
+    o.bytes.to_string() +
+    " 字节，存在 " +
+    o.dir
   if o.missing.length() > 0 {
-    text = text + "（这只 profile 里没有：" + o.missing.join("、") + "）"
+    text = text +
+      "（这只 profile 里没有：" +
+      o.missing.join("、") +
+      "）"
   }
   if o.pruned.length() > 0 {
-    text = text + "；超过 " + @profiles.snapshot_keep.to_string() + " 份，淘汰了最旧的 " +
-      o.pruned.length().to_string() + " 份（" + o.pruned.join("、") + "）"
+    text = text +
+      "；超过 " +
+      @profiles.snapshot_keep.to_string() +
+      " 份，淘汰了最旧的 " +
+      o.pruned.length().to_string() +
+      " 份（" +
+      o.pruned.join("、") +
+      "）"
   }
   text
 }
 
 ///|
 /// snapshot-profile：拍一张。reason 空则写「手动快照」。
-pub async fn snapshot_profile_action(params : Json) -> @json.JsonVal raise ActionError {
+pub async fn snapshot_profile_action(
+  params : Json,
+) -> @json.JsonVal raise ActionError {
   ensure_action_params(params, "创建快照：", ["profile", "reason"])
   let profile = require_string(params, "profile")
   validate_profile_name(profile)
@@ -112,7 +136,11 @@ pub async fn restore_snapshot_action(
   validate_profile_name(profile)
   let id = require_string(params, "snapshot")
   if !@json.is_all_digits(id) {
-    fail("bad-params", "快照 id 只认数字，并且必须正好在 .snapshots 下：收到了 " + id)
+    fail(
+      "bad-params",
+      "快照 id 只认数字，并且必须正好在 .snapshots 下：收到了 " +
+      id,
+    )
   }
   let given = match confirm {
     Some(v) => @json.trim_both(v)
@@ -120,8 +148,7 @@ pub async fn restore_snapshot_action(
   }
   if given != "RESTORE" {
     fail(
-      "bad-params",
-      "还原会用快照里的三个文件覆盖现在的内容；这是破坏性动作，body 顶层必须带 confirm 字段，值是 RESTORE",
+      "bad-params", "还原会用快照里的三个文件覆盖现在的内容；这是破坏性动作，body 顶层必须带 confirm 字段，值是 RESTORE",
     )
   }
   config_write_guard(profile)
@@ -131,7 +158,10 @@ pub async fn restore_snapshot_action(
   }
   match @profiles.snapshot_path_checked(dir, id) {
     None => {
-      fail("bad-params", "快照 id 拼出来的路径不在 .snapshots 下：" + id)
+      fail(
+        "bad-params",
+        "快照 id 拼出来的路径不在 .snapshots 下：" + id,
+      )
       abort("unreachable: fail 一定抛错")
     }
     Some(_) => ()
@@ -148,25 +178,37 @@ pub async fn restore_snapshot_action(
   } else {
     outcome.restored.join("、")
   }
-  let mut note = "已先把当前状态拍成一张快照（" + outcome.pre_snapshot.id + "，原因「" +
-    @profiles.pre_restore_reason + "」），再把 " + outcome.at + " 那一份写回去；恢复了 " +
-    outcome.restored.length().to_string() + " 个文件：" + restored
+  let mut note = "已先把当前状态拍成一张快照（" +
+    outcome.pre_snapshot.id +
+    "，原因「" +
+    @profiles.pre_restore_reason +
+    "」），再把 " +
+    outcome.at +
+    " 那一份写回去；恢复了 " +
+    outcome.restored.length().to_string() +
+    " 个文件：" +
+    restored
   if outcome.missing_in_snapshot.length() > 0 {
-    note = note + "。快照里本来就没有：" + outcome.missing_in_snapshot.join("、") +
+    note = note +
+      "。快照里本来就没有：" +
+      outcome.missing_in_snapshot.join("、") +
       "（profile 里这几份没动）"
   }
   @json.JObj([
     ("action", @json.JStr("restore-snapshot")),
-    ("outcome", @json.JObj([
-      ("profile", @json.JStr(profile)),
-      ("id", @json.JStr(outcome.id)),
-      ("at", @json.JStr(outcome.at)),
-      ("reason", @json.JStr(outcome.reason)),
-      ("dir", @json.JStr(outcome.dir)),
-      ("restored", @json.jstr_array(outcome.restored)),
-      ("missingInSnapshot", @json.jstr_array(outcome.missing_in_snapshot)),
-      ("preSnapshot", snapshot_outcome_json(profile, outcome.pre_snapshot)),
-    ])),
+    (
+      "outcome",
+      @json.JObj([
+        ("profile", @json.JStr(profile)),
+        ("id", @json.JStr(outcome.id)),
+        ("at", @json.JStr(outcome.at)),
+        ("reason", @json.JStr(outcome.reason)),
+        ("dir", @json.JStr(outcome.dir)),
+        ("restored", @json.jstr_array(outcome.restored)),
+        ("missingInSnapshot", @json.jstr_array(outcome.missing_in_snapshot)),
+        ("preSnapshot", snapshot_outcome_json(profile, outcome.pre_snapshot)),
+      ]),
+    ),
     ("note", @json.JStr(note)),
   ])
 }

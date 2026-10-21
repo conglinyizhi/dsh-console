@@ -3,7 +3,14 @@
 
 ///|
 /// 第一步行：一只插件。
-fn merge_plugin_row(model : Model, name : String, version : String, kind : String, description : String, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn merge_plugin_row(
+  model : Model,
+  name : String,
+  version : String,
+  kind : String,
+  description : String,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let picked = model.merge_plugin_picked.contains(name)
   let kind_label = match kind {
     "local-link" => "软链"
@@ -33,7 +40,9 @@ fn merge_plugin_row(model : Model, name : String, version : String, kind : Strin
       // 开关只是这一段的状态显示（整行才是可点的那个）；id 带行名，不重复
       @html.span(
         class=if picked { "dsh-switch small on" } else { "dsh-switch small" },
-        attrs=mark("merge-plugin-switch", ["dialog", "merge", "plugin-switch", name])
+        attrs=mark("merge-plugin-switch", [
+            "dialog", "merge", "plugin-switch", name,
+          ])
           .id("dsh-merge-plugin-switch-" + name)
           .aria_hidden("true"),
         @html.nothing,
@@ -44,7 +53,11 @@ fn merge_plugin_row(model : Model, name : String, version : String, kind : Strin
 
 ///|
 /// 第二步行：一只目标。
-fn merge_target_row(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn merge_target_row(
+  model : Model,
+  row : Row,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let name = match row.profile_name {
     Some(n) => n
     None => row.name
@@ -70,7 +83,9 @@ fn merge_target_row(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> @html.Ht
       ]),
       @html.span(
         class=if picked { "dsh-switch small on" } else { "dsh-switch small" },
-        attrs=mark("merge-target-switch", ["dialog", "merge", "target-switch", name])
+        attrs=mark("merge-target-switch", [
+            "dialog", "merge", "target-switch", name,
+          ])
           .id("dsh-merge-target-switch-" + name)
           .aria_hidden("true"),
         @html.nothing,
@@ -89,7 +104,9 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let step = model.merge_step
   let step1 : Array[@html.Html] = []
   if model.merge_loading {
-    step1.push(@html.p(class="dsh-merge-empty", "正在读这一只的插件…"))
+    step1.push(
+      @html.p(class="dsh-merge-empty", "正在读这一只的插件…"),
+    )
   } else if model.merge_plugins.length() == 0 {
     step1.push(
       @html.p(
@@ -137,7 +154,9 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   let step2 : Array[@html.Html] = []
   if !picked_plugins {
-    step2.push(@html.p(class="dsh-merge-empty", "先回到上一步选插件。"))
+    step2.push(
+      @html.p(class="dsh-merge-empty", "先回到上一步选插件。"),
+    )
   } else {
     let source_name = match find_row(model.rows, model.merge_source) {
       Some(r) => merge_row_name(r)
@@ -156,7 +175,10 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     }
   }
   let step3 : Array[@html.Html] = [
-    @html.p(class="dsh-merge-bullet", "插件会整份复制到目标（不是建软链），目标里同名的先删再拷"),
+    @html.p(
+      class="dsh-merge-bullet",
+      "插件会整份复制到目标（不是建软链），目标里同名的先删再拷",
+    ),
     @html.p(
       class="dsh-merge-bullet",
       "cordis.patch.yml 先备份到快照目录，再同名覆盖合并，写回后重新解析校验；不过就回滚",
@@ -239,7 +261,10 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     @html.div(
       class="dsh-merge-list",
-      attrs=mark("merge-step", ["dialog", "merge", "step"]).data_set("step", step.to_string()),
+      attrs=mark("merge-step", ["dialog", "merge", "step"]).data_set(
+        "step",
+        step.to_string(),
+      ),
       if step == 1 {
         step1
       } else if step == 2 {
@@ -256,12 +281,16 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         [
           @html.p(
             class="dsh-merge-summary-line",
-            "将复制 " + model.merge_plugin_picked.length().to_string() + " 个插件：" +
+            "将复制 " +
+            model.merge_plugin_picked.length().to_string() +
+            " 个插件：" +
             join_with(model.merge_plugin_picked, "、"),
           ),
           @html.p(
             class="dsh-merge-summary-line",
-            "分发到 " + model.merge_targets.length().to_string() + " 只：" +
+            "分发到 " +
+            model.merge_targets.length().to_string() +
+            " 只：" +
             join_with(model.merge_targets, "、"),
           ),
         ],
@@ -281,13 +310,23 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           .tabindex(0)
           .data_set("slide", model.merge_slide.to_string())
           .aria_label("向右滑动分发")
-          .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
-// 拖动只从球开始（§90）：轨道上别处按下不启动，pointerdown 挂在球上（见下）
+          .title(
+            "拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回",
+          )
+          // 拖动只从球开始（§90）：轨道上别处按下不启动，pointerdown 挂在球上（见下）
           .on_pointermove(fn(event) {
-            emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+            emit(
+              MergeSlide(
+                js_slide_percent("dsh-merge-slide", event.get_client_x()),
+              ),
+            )
           })
           .on_pointerup(fn(event) {
-            emit(MergeSlideRelease(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+            emit(
+              MergeSlideRelease(
+                js_slide_percent("dsh-merge-slide", event.get_client_x()),
+              ),
+            )
           })
           .on_keydown(fn(event) {
             let key = event.key()
@@ -310,14 +349,19 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-merge-slide-knob",
             // 两端都夹住（§89）：100% 时减去球宽，0% 留 2px，球不再越出轨道
             style=[
-              "left: clamp(2px, calc(" + model.merge_slide.to_string() + "% - " +
-              (model.merge_slide * 36 / 100).to_string() + "px), calc(100% - 38px))",
+              "left: clamp(2px, calc(" +
+              model.merge_slide.to_string() +
+              "% - " +
+              (model.merge_slide * 36 / 100).to_string() +
+              "px), calc(100% - 38px))",
             ],
-            attrs=mark("merge-knob", ["dialog", "merge", "knob"])
-              .on_pointerdown(fn(_event) {
+            attrs=mark("merge-knob", ["dialog", "merge", "knob"]).on_pointerdown(fn(
+                _event,
+              ) {
                 js_slide_capture("dsh-merge-slide")
                 emit(MergeSlideStart(js_slide_zone_pct("dsh-merge-slide", 72)))
-              }),
+              },
+            ),
             [icon("chevron-right", size=14)],
           ),
         ],
@@ -327,10 +371,15 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     },
     @html.p(
       class="dsh-merge-why",
-      attrs=mark("merge-dialog-preview", ["dialog", "merge", "preview"]).data_set("why", why),
+      attrs=mark("merge-dialog-preview", ["dialog", "merge", "preview"]).data_set(
+        "why", why,
+      ),
       if why == "" {
-        "选了 " + model.merge_plugin_picked.length().to_string() + " 只插件，分发到 " +
-        model.merge_targets.length().to_string() + " 只；拖到底才分发"
+        "选了 " +
+        model.merge_plugin_picked.length().to_string() +
+        " 只插件，分发到 " +
+        model.merge_targets.length().to_string() +
+        " 只；拖到底才分发"
       } else {
         why
       },

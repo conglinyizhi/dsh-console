@@ -50,28 +50,37 @@ pub async fn load_trash_origins() -> LoadedTrashOrigins noraise {
           }
           if dropped > 0 {
             note = Some(
-              "trash-origins.json 里有 " + dropped.to_string() +
+              "trash-origins.json 里有 " +
+              dropped.to_string() +
               " 条认不出来的来源 home，已跳过（那几条恢复时落回控制台自己的 home）",
             )
           }
         }
         _ =>
-          note = Some("trash-origins.json 顶层不是对象，按空表处理：" + paths.trash_origins)
+          note = Some(
+            "trash-origins.json 顶层不是对象，按空表处理：" +
+            paths.trash_origins,
+          )
       }
   }
-  { origins, note }
+  { origins, note, }
 }
 
 ///|
 /// 整表落盘（原子写）。失败原样回原因：这一步失败意味着「这一条回收站条目记不住从哪来的」，
 /// 调用方要把这件事说出来，不能吞掉 —— 吞掉的表现就是删隔离那份、恢复却落到主线上。
-pub async fn save_trash_origins(origins : Map[String, String]) -> Result[Unit, String] noraise {
+pub async fn save_trash_origins(
+  origins : Map[String, String],
+) -> Result[Unit, String] noraise {
   let paths = state_paths()
   let fields : Array[(String, @json.JsonVal)] = []
   for dir, home in origins {
     fields.push((dir, @json.JStr(home)))
   }
-  @fsx.write_text_atomic(paths.trash_origins, @json.encode(@json.JObj(fields)) + "\n")
+  @fsx.write_text_atomic(
+    paths.trash_origins,
+    @json.encode(@json.JObj(fields)) + "\n",
+  )
 }
 
 ///|
@@ -79,10 +88,17 @@ pub async fn save_trash_origins(origins : Map[String, String]) -> Result[Unit, S
 ///
 /// home 认不出来（不是绝对路径之类）直接报错、不落盘：宁可不记，也不记一个假的来源 ——
 /// 假的来源会让「恢复到哪里」这一步去动一个不该动的目录。
-pub async fn put_trash_origin(dir : String, home : String) -> Result[Unit, String] noraise {
+pub async fn put_trash_origin(
+  dir : String,
+  home : String,
+) -> Result[Unit, String] noraise {
   let normalized = match normalize_home(home) {
     Some(v) => v
-    None => return Err("来源 home 认不出来（要绝对路径、不含 . 与 .. 段）：" + home)
+    None =>
+      return Err(
+        "来源 home 认不出来（要绝对路径、不含 . 与 .. 段）：" +
+        home,
+      )
   }
   let loaded = load_trash_origins()
   let origins = loaded.origins

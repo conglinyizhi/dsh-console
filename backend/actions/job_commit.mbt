@@ -3,7 +3,6 @@
 // 2026-10-20 从 job.mbt 拆出来：这三条都会动磁盘且都要写审计，是最该单独读的一族。
 // 只搬位置，函数体一个字没改。
 
-
 ///|
 /// 切到新版本：**verdict=good 且已经停在 commit 那一步**才允许。
 /// 改 dsh-pin.json（复用 pin_dsh 的校验与写法），已经装好的东西一个字节都不动。
@@ -19,7 +18,9 @@ pub async fn job_commit(id : String) -> JobOutcome raise ActionError {
   if verdict_value != "good" || job.step != "commit" {
     fail(
       "conflict",
-      "还没到「切到新版本」这一步（当前：" + job.step + "，结论：" +
+      "还没到「切到新版本」这一步（当前：" +
+      job.step +
+      "，结论：" +
       (if verdict_value == "" { "还没给" } else { verdict_value }) +
       "）；要先「好用，切到新版」把结论记下来",
     )
@@ -48,7 +49,9 @@ pub async fn job_commit(id : String) -> JobOutcome raise ActionError {
     return {
       job,
       fields: [("version", @json.JStr(target.version))],
-      note: "目标包目录不在了（" + target.dir + "），没有动 dsh-pin.json",
+      note: "目标包目录不在了（" +
+      target.dir +
+      "），没有动 dsh-pin.json",
     }
   }
   let pin_before_content = pin_file_text()
@@ -79,14 +82,19 @@ pub async fn job_commit(id : String) -> JobOutcome raise ActionError {
   match @store.save_job(job) {
     Ok(_) => ()
     Err(e) => {
-      fail("io-error", "已经改了指派，但作业没能写进磁盘：" + e)
+      fail(
+        "io-error",
+        "已经改了指派，但作业没能写进磁盘：" + e,
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
   {
     job,
     fields,
-    note: "已经切到 " + pinned.version + "；起实例会用这一版。旧版本留着当回滚锚，确认稳定后再清理",
+    note: "已经切到 " +
+    pinned.version +
+    "；起实例会用这一版。旧版本留着当回滚锚，确认稳定后再清理",
   }
 }
 
@@ -114,14 +122,19 @@ pub async fn job_cleanup_preview(id : String) -> JobOutcome raise ActionError {
   let anchor = match job.rollback_anchor {
     Some(a) => a
     None => {
-      fail("not-found", "这条作业里没有回滚锚（旧版本包目录），没有可清理的东西")
+      fail(
+        "not-found", "这条作业里没有回滚锚（旧版本包目录），没有可清理的东西",
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
   let dir = match anchor_dir_of(job) {
     Some(d) => d
     None => {
-      fail("conflict", "回滚锚里记的不是一份 dsh 包目录：" + anchor.dir)
+      fail(
+        "conflict",
+        "回滚锚里记的不是一份 dsh 包目录：" + anchor.dir,
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -139,14 +152,17 @@ pub async fn job_cleanup_preview(id : String) -> JobOutcome raise ActionError {
     Some(t) => t.dir
     None => ""
   }
-  let same_as_target = target_dir != "" && job_real_dir(target_dir) == job_real_dir(dir)
+  let same_as_target = target_dir != "" &&
+    job_real_dir(target_dir) == job_real_dir(dir)
   let safe = exists && users.length() == 0 && !same_as_target
   let reason = if !exists {
     "旧版本包目录已经不在了，清理时没有可删的"
   } else if same_as_target {
     "回滚锚与目标版本指的是同一份包目录，不许删"
   } else if users.length() > 0 {
-    "还有 " + users.length().to_string() + " 只实例在跑这份 dsh，先停掉再清理"
+    "还有 " +
+    users.length().to_string() +
+    " 只实例在跑这份 dsh，先停掉再清理"
   } else {
     "没有实例在跑这一份，可以清理"
   }
@@ -167,8 +183,14 @@ pub async fn job_cleanup_preview(id : String) -> JobOutcome raise ActionError {
       ("sameAsTarget", @json.JBool(same_as_target)),
       ("safe", @json.JBool(safe)),
     ],
-    note: "清理会删掉旧版本的包目录 " + dir + "（" + size_text + "，" + reason + "）。" +
-      "清理删的是旧版本的包目录，删掉不能再装回来。确认之后再点执行。",
+    note: "清理会删掉旧版本的包目录 " +
+    dir +
+    "（" +
+    size_text +
+    "，" +
+    reason +
+    "）。" +
+    "清理删的是旧版本的包目录，删掉不能再装回来。确认之后再点执行。",
   }
 }
 
@@ -178,32 +200,44 @@ pub async fn job_cleanup_preview(id : String) -> JobOutcome raise ActionError {
 /// 必须带 params.confirm = "DELETE"（§4）；没带一律 bad-params。
 /// 拒绝执行的情形：还有实例在跑这一份、锚与目标版本是同一份、目录形状不是 dsh 包目录。
 /// 目录本来就不在了算目标状态已成立（passed，并在 note 里说清没有可删的）。
-pub async fn job_cleanup(id : String, confirm : String?) -> JobOutcome raise ActionError {
+pub async fn job_cleanup(
+  id : String,
+  confirm : String?,
+) -> JobOutcome raise ActionError {
   let given = match confirm {
     Some(v) => @json.trim_both(v)
     None => ""
   }
   if given != "DELETE" {
     fail(
-      "bad-params",
-      "清理旧版本要再带一次确认：params.confirm 必须是 \"DELETE\"（这一下之后包目录就没了）",
+      "bad-params", "清理旧版本要再带一次确认：params.confirm 必须是 \"DELETE\"（这一下之后包目录就没了）",
     )
   }
   let job = require_job(id)
   if job.step != "cleanup" {
-    fail("conflict", "这条作业现在不在「清理旧版本」这一步（当前：" + job.step + "）")
+    fail(
+      "conflict",
+      "这条作业现在不在「清理旧版本」这一步（当前：" +
+      job.step +
+      "）",
+    )
   }
   let anchor = match job.rollback_anchor {
     Some(a) => a
     None => {
-      fail("conflict", "这条作业里没有回滚锚，不知道该删哪一份")
+      fail(
+        "conflict", "这条作业里没有回滚锚，不知道该删哪一份",
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
   let dir = match anchor_dir_of(job) {
     Some(d) => d
     None => {
-      fail("conflict", "回滚锚里记的不是一份 dsh 包目录：" + anchor.dir)
+      fail(
+        "conflict",
+        "回滚锚里记的不是一份 dsh 包目录：" + anchor.dir,
+      )
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -212,8 +246,11 @@ pub async fn job_cleanup(id : String, confirm : String?) -> JobOutcome raise Act
   if users.length() > 0 {
     fail(
       "conflict",
-      "旧版本还有 " + users.length().to_string() + " 只实例在跑（PID " +
-      users[0].pid.to_string() + "）；先停掉再清理",
+      "旧版本还有 " +
+      users.length().to_string() +
+      " 只实例在跑（PID " +
+      users[0].pid.to_string() +
+      "）；先停掉再清理",
     )
   }
   let target_dir = match job.target {
@@ -221,7 +258,9 @@ pub async fn job_cleanup(id : String, confirm : String?) -> JobOutcome raise Act
     None => ""
   }
   if target_dir != "" && job_real_dir(target_dir) == job_real_dir(dir) {
-    fail("conflict", "回滚锚与目标版本指的是同一份包目录；删了它等于删掉刚切过去的新版")
+    fail(
+      "conflict", "回滚锚与目标版本指的是同一份包目录；删了它等于删掉刚切过去的新版",
+    )
   }
   if !@json.is_dir(dir) {
     @store.mark_step(
@@ -245,7 +284,9 @@ pub async fn job_cleanup(id : String, confirm : String?) -> JobOutcome raise Act
         ("files", @json.JNull),
         ("bytes", @json.JNull),
       ],
-      note: "旧版本包目录 " + dir + " 已经不在了，没有可删的；作业收尾。",
+      note: "旧版本包目录 " +
+      dir +
+      " 已经不在了，没有可删的；作业收尾。",
     }
   }
   let (files, bytes, size_source) = match @fsx.measure_tree(dir) {
@@ -267,14 +308,20 @@ pub async fn job_cleanup(id : String, confirm : String?) -> JobOutcome raise Act
           ("dir", dir),
           ("version", anchor.version),
           ("deleted", "true"),
-          ("files", match files {
-            Some(n) => n.to_string()
-            None => ""
-          }),
-          ("bytes", match bytes {
-            Some(n) => n.to_string()
-            None => ""
-          }),
+          (
+            "files",
+            match files {
+              Some(n) => n.to_string()
+              None => ""
+            },
+          ),
+          (
+            "bytes",
+            match bytes {
+              Some(n) => n.to_string()
+              None => ""
+            },
+          ),
           ("sizeSource", size_source),
         ],
         now,
@@ -283,7 +330,10 @@ pub async fn job_cleanup(id : String, confirm : String?) -> JobOutcome raise Act
       match @store.save_job(job) {
         Ok(_) => ()
         Err(e) => {
-          fail("io-error", "目录已经删了，但作业没能写进磁盘：" + e)
+          fail(
+            "io-error",
+            "目录已经删了，但作业没能写进磁盘：" + e,
+          )
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -296,7 +346,11 @@ pub async fn job_cleanup(id : String, confirm : String?) -> JobOutcome raise Act
           ("bytes", @json.int64_or_null(bytes)),
           ("sizeSource", @json.JStr(size_source)),
         ],
-        note: "旧版本包目录已删掉：" + dir + "（" + size_text + "）。只删了这一份包目录，别处没动。",
+        note: "旧版本包目录已删掉：" +
+        dir +
+        "（" +
+        size_text +
+        "）。只删了这一份包目录，别处没动。",
       }
     }
     Err(e) => {

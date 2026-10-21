@@ -47,7 +47,12 @@ fn source_badge(tag : SourceTag?, parts : Array[String]) -> @html.Html {
 ///
 /// group 是这一组自己的键（running / stopped），语义路径靠它把两个分组的
 /// 同名徽标与同名标题分开。
-fn section_head(group : String, title : String, count : String, tag : SourceTag?) -> @html.Html {
+fn section_head(
+  group : String,
+  title : String,
+  count : String,
+  tag : SourceTag?,
+) -> @html.Html {
   @html.div(class="dsh-section-head", [
     @html.h2(
       class="dsh-section-title",
@@ -71,21 +76,37 @@ fn section_head(group : String, title : String, count : String, tag : SourceTag?
 /// 重读一次就能分辨。新建一份 profile 与「一个实例都没在跑」不是同一件事，
 /// 那件事由页头那颗「＋新建实例」负责（design/design-fixes.md §19.1 起它会开框）。
 /// 这一颗是现成动作：点一下两份读数都重发，骨架屏立刻立起来，读完再落回列表或空态。
-fn running_empty(summary : String, detail : String, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn running_empty(
+  summary : String,
+  detail : String,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let lines : Array[@html.Html] = [
     @html.span(class="dsh-empty-icon", [icon("server", size=26)]),
-    @html.p(class="dsh-empty-line", "当前没有检测到正在运行的 dsh 实例。"),
+    @html.p(
+      class="dsh-empty-line",
+      "当前没有检测到正在运行的 dsh 实例。",
+    ),
     @html.p(class="dsh-empty-sub", summary),
   ]
   if detail != "" {
-    lines.push(@html.p(class="dsh-empty-sub", attrs=@html.Attrs::build().title(detail), detail))
+    lines.push(
+      @html.p(
+        class="dsh-empty-sub",
+        attrs=@html.Attrs::build().title(detail),
+        detail,
+      ),
+    )
   }
   lines.push(
     @html.button(
       class="dsh-empty-cta",
       type_="button",
-      attrs=mark("running-empty-refresh", ["overview", "section", "running", "empty", "refresh"])
-        .title("重新读一遍实例与 profile 的读数，读完还空就还是这一张"),
+      attrs=mark("running-empty-refresh", [
+        "overview", "section", "running", "empty", "refresh",
+      ]).title(
+        "重新读一遍实例与 profile 的读数，读完还空就还是这一张",
+      ),
       on_click=emit(RefreshReadings),
       [icon("refresh", size=13), @html.span("刷新读数")],
     ),
@@ -248,7 +269,7 @@ fn problem_hint(
     } else {
       "dsh-drawer-health dsh-problem"
     },
-    attrs=attrs,
+    attrs~,
     [@html.span(class="dsh-problem-text", text)],
   )
 }
@@ -270,18 +291,23 @@ fn field(
 ) -> @html.Html {
   @html.li(
     class="dsh-field",
-    attrs=mark("drawer-field", ["overview", "drawer", card, "field", key])
-      .data_set("field", key),
+    attrs=mark("drawer-field", ["overview", "drawer", card, "field", key]).data_set(
+      "field", key,
+    ),
     [
       @html.span(class="dsh-field-icon", [icon(icon_name)]),
       @html.span(
         class="dsh-field-label",
-        attrs=mark("field-label", ["overview", "drawer", card, "field", key, "label"]),
+        attrs=mark("field-label", [
+          "overview", "drawer", card, "field", key, "label",
+        ]),
         label,
       ),
       @html.span(
         class="dsh-field-value",
-        attrs=mark("field-value", ["overview", "drawer", card, "field", key, "value"]).title(hint),
+        attrs=mark("field-value", [
+          "overview", "drawer", card, "field", key, "value",
+        ]).title(hint),
         value,
       ),
     ],
@@ -305,7 +331,9 @@ fn kv_row(label : String, value : String, hint : String) -> @html.Html {
       ),
       @html.span(
         class="dsh-value",
-        attrs=mark("kv-value", ["about", "version-row", label, "value"]).title(hint),
+        attrs=mark("kv-value", ["about", "version-row", label, "value"]).title(
+          hint,
+        ),
         value,
       ),
     ],
@@ -327,7 +355,7 @@ priv struct ProfilePick {
   light : Light
   light_reason : String
   light_basis : String
-  missing : Int
+  missing : Int32
   missing_names : String
   home_kind : String
   home_path : String
@@ -351,9 +379,9 @@ fn switch_control(
   label : String,
   title : String,
   on_click : @cmd.Cmd,
-  small? : Bool = false,
-  key? : String = "",
-  elem_id? : String = "",
+  small~ : Bool = false,
+  key~ : String = "",
+  elem_id~ : String = "",
 ) -> @html.Html {
   let path = if key == "" { label } else { key }
   let mut cls = "dsh-switch"
@@ -367,23 +395,23 @@ fn switch_control(
     id=elem_id,
     class=cls,
     type_="button",
-    disabled=disabled,
+    disabled~,
     attrs=mark("switch", ["switch", path])
       .role("switch")
       .aria_checked(if on { "true" } else { "false" })
       .aria_label(label)
       .data_set("state", if on { "on" } else { "off" })
       .title(title),
-    on_click=on_click,
+    on_click~,
     [
       // 轨道里只有圆点：开/关文字已经撤掉，状态由位置与颜色表达（§51.1）
-      @html.span(
-        class="dsh-switch-track",
-        [@html.span(class="dsh-switch-thumb", @html.nothing)],
-      ),
+      @html.span(class="dsh-switch-track", [
+        @html.span(class="dsh-switch-thumb", @html.nothing),
+      ]),
     ],
   )
 }
+
 ///|
 /// 一条 data-name 路径：前缀 + 这一格的尾巴。
 /// 三张卡（新建实例框 / 选择配置 / 替换用源）共用一份画法，差别之一就是前缀，所以路径得拼。
@@ -427,12 +455,15 @@ fn profile_card(
   aria_bad : String,
   picked : (String) -> Msg,
   emit : @cmd.Emit[Msg],
-  chosen? : Bool = false,
+  chosen~ : Bool = false,
 ) -> @html.Html {
   let usable = pick.usable
   let why = pick.why
   // 状态灯：挂在图标右上角。悬停给两样 —— 先是那句人话，再是技术依据。
-  let light_attrs = mark(mark_prefix + "-card-light", mark_path(marks, [pick.name, "light"]))
+  let light_attrs = mark(
+      mark_prefix + "-card-light",
+      mark_path(marks, [pick.name, "light"]),
+    )
     .data_set("state", light_key(pick.light))
     .role("img")
     .aria_label(light_label(pick.light))
@@ -445,12 +476,18 @@ fn profile_card(
   let head : Array[@html.Html] = [
     @html.span(
       class="dsh-name",
-      attrs=mark(mark_prefix + "-card-name", mark_path(marks, [pick.name, "name"])).title(pick.name),
+      attrs=mark(
+        mark_prefix + "-card-name",
+        mark_path(marks, [pick.name, "name"]),
+      ).title(pick.name),
       pick.name,
     ),
     @html.span(
       class="dsh-dot-state " + light_key(pick.light),
-      attrs=mark(mark_prefix + "-card-state", mark_path(marks, [pick.name, "state"]))
+      attrs=mark(
+          mark_prefix + "-card-state",
+          mark_path(marks, [pick.name, "state"]),
+        )
         .data_set("state", light_key(pick.light))
         .title(pick.light_reason),
       light_label(pick.light),
@@ -460,7 +497,10 @@ fn profile_card(
     head.push(
       @html.span(
         class="dsh-profile-card-mark selected",
-        attrs=mark(mark_prefix + "-card-mark", mark_path(marks, [pick.name, "mark"])),
+        attrs=mark(
+          mark_prefix + "-card-mark",
+          mark_path(marks, [pick.name, "mark"]),
+        ),
         selected_text,
       ),
     )
@@ -470,7 +510,10 @@ fn profile_card(
   let note_line = if pick.note != "" {
     @html.span(
       class="dsh-card-note",
-      attrs=mark(mark_prefix + "-card-note", mark_path(marks, [pick.name, "note"])).title(
+      attrs=mark(
+        mark_prefix + "-card-note",
+        mark_path(marks, [pick.name, "note"]),
+      ).title(
         if pick.note_source == "" {
           pick.note
         } else {
@@ -482,20 +525,29 @@ fn profile_card(
   } else {
     @html.span(
       class="dsh-profile-card-sub dsh-profile-card-nonote",
-      attrs=mark(mark_prefix + "-card-nonote", mark_path(marks, [pick.name, "nonote"])),
+      attrs=mark(
+        mark_prefix + "-card-nonote",
+        mark_path(marks, [pick.name, "nonote"]),
+      ),
       "没有备注",
     )
   }
   // 第 3 行：可用时是「缺 N 个包」+「配置 home：<档>」两个短标记（各挂各的悬停）；
   // 不可用时换成原因一行。缺包清单与 home 路径只进悬停，正文一个字都不占。
   let missing_text = "缺 " + pick.missing.to_string() + " 个包"
-  let missing_attrs = mark(mark_prefix + "-card-missing", mark_path(marks, [pick.name, "missing"]))
+  let missing_attrs = mark(
+    mark_prefix + "-card-missing",
+    mark_path(marks, [pick.name, "missing"]),
+  )
   let missing_attrs = if pick.missing_names == "" {
     missing_attrs
   } else {
     missing_attrs.title("缺的包：" + pick.missing_names)
   }
-  let home_attrs = mark(mark_prefix + "-card-home", mark_path(marks, [pick.name, "home"]))
+  let home_attrs = mark(
+    mark_prefix + "-card-home",
+    mark_path(marks, [pick.name, "home"]),
+  )
   let home_attrs = if pick.home_path == "" {
     home_attrs
   } else {
@@ -503,23 +555,34 @@ fn profile_card(
   }
   let meta = if usable {
     @html.div(class="dsh-profile-card-meta", [
-      @html.span(class="dsh-profile-card-missing", attrs=missing_attrs, missing_text),
-      @html.span(class="dsh-profile-card-home", attrs=home_attrs, job_pick_home_text(pick)),
+      @html.span(
+        class="dsh-profile-card-missing",
+        attrs=missing_attrs,
+        missing_text,
+      ),
+      @html.span(
+        class="dsh-profile-card-home",
+        attrs=home_attrs,
+        job_pick_home_text(pick),
+      ),
     ])
   } else {
     // 完整句进悬停：三行钉死之后这一行会被省略号截，被截掉的半句得能读回来。
     @html.span(
       class="dsh-profile-card-sub unusable",
-      attrs=mark(mark_prefix + "-card-why", mark_path(marks, [pick.name, "why"])).title(why),
+      attrs=mark(
+        mark_prefix + "-card-why",
+        mark_path(marks, [pick.name, "why"]),
+      ).title(why),
       why,
     )
   }
-  let lines : Array[@html.Html] = [@html.div(class="dsh-case-head", head), note_line, meta]
-  let click = if usable {
-    emit(picked(pick.name))
-  } else {
-    @cmd.none
-  }
+  let lines : Array[@html.Html] = [
+    @html.div(class="dsh-case-head", head),
+    note_line,
+    meta,
+  ]
+  let click = if usable { emit(picked(pick.name)) } else { @cmd.none }
   // 选中那一条整张卡再亮一层（底色 + 左侧一道主色竖条）：卡上那枚「已选 / 当前配置」
   // 是文字通道，这里补的是色块通道 —— 不是只靠颜色，也不是只靠一个字。
   let base_class = if usable {
@@ -527,7 +590,11 @@ fn profile_card(
   } else {
     "dsh-case dsh-profile-card disabled"
   }
-  let card_class = if chosen && usable { base_class + " chosen" } else { base_class }
+  let card_class = if chosen && usable {
+    base_class + " chosen"
+  } else {
+    base_class
+  }
   @html.article(
     id=card_id,
     class=card_class,
@@ -556,7 +623,11 @@ fn profile_card(
         // §26.1：已停止不显示灯。这一档不产出节点（见 state.mbt 的 light_shown），
         // 状态词「已停止」照旧在第一行 —— 颜色不是唯一信号，不画灯也不会少信息。
         if light_shown(pick.light) {
-          @html.span(class="dsh-dot " + light_class(pick.light), attrs=light_attrs, @html.nothing)
+          @html.span(
+            class="dsh-dot " + light_class(pick.light),
+            attrs=light_attrs,
+            @html.nothing,
+          )
         } else {
           @html.nothing
         },
@@ -584,7 +655,7 @@ fn dialog(
   on_scrim : @cmd.Cmd,
   on_keydown : @cmd.Emit[@html.Keyboard],
   card : @html.Html,
-  on_pointerup? : @cmd.Cmd = @cmd.none,
+  on_pointerup~ : @cmd.Cmd = @cmd.none,
 ) -> @html.Html {
   @html.fragment([
     @html.div(

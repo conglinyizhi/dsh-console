@@ -198,12 +198,11 @@ fn map_row(rows : Array[Row], id : String, f : (Row) -> Row) -> Array[Row] {
   rows.map(fn(row) { if row.id == id { f(row) } else { row } })
 }
 
-
 // ── 真实读数 → 卡片 ─────────────────────────────────────────
 
 ///|
 /// 一个行 id 在顺序表里排第几。-1 = 表里没有这一条。
-fn order_rank(order : Array[String], id : String) -> Int {
+fn order_rank(order : Array[String], id : String) -> Int32 {
   for i = 0; i < order.length(); i = i + 1 {
     if order[i] == id {
       return i
@@ -249,7 +248,10 @@ fn apply_order(rows : Array[Row], order : Array[String]) -> Array[Row] {
 
 ///|
 /// 按 id 去控制台的「上次启动」表里查一条。查不到给 ("", "")。
-fn last_started_lookup(console : ConsoleFacts?, id : String) -> (String, String) {
+fn last_started_lookup(
+  console : ConsoleFacts?,
+  id : String,
+) -> (String, String) {
   match console {
     None => ("", "")
     Some(facts) => {
@@ -295,7 +297,9 @@ fn row_last_started(
   match instance_started {
     Some(at) =>
       if at != "" {
-        return (at, "这只实例的启动时刻：后端从进程起始时间读出来的")
+        return (
+          at, "这只实例的启动时刻：后端从进程起始时间读出来的",
+        )
       }
     None => ()
   }
@@ -346,15 +350,14 @@ fn current_group_ids(model : Model, group : String) -> Array[String] {
 /// `index` 是**这一组按屏幕顺序数**的格子序号（0 起）：指针压在哪张卡上就占哪一格。
 /// 取不到（指针横向出了这一组的栅格 / 进到另一组 / JSON 不合形状）给 ("", "", -1)，
 /// 调用方据此既不画占位块也不落位。
-fn drop_target_of(x : Double, y : Double) -> (String, String, Int) {
+fn drop_target_of(x : Double, y : Double) -> (String, String, Int32) {
   let text = js_drop_target(x, y)
   if text == "" {
     return ("", "", -1)
   }
-  let json = try @json.parse(text) catch {
+  let json = @json.parse(text) catch {
     // 解析不出来就当没有落点：宁可这一次拖动不落位，也不拿一个猜的位置去插
-    _ =>
-      return ("", "", -1)
+    _ => return ("", "", -1)
   }
   match json {
     Json::Object(fields) =>
@@ -379,7 +382,7 @@ fn drop_target_of(x : Double, y : Double) -> (String, String, Int) {
 /// 所以「占位块画在第几格」与「松手落在第几格」不可能分叉。
 ///
 /// 边界：小于 0 落到最前（0）；大于 n-1 落到最后（n-1）。
-fn drop_cell(n : Int, index : Int) -> Int {
+fn drop_cell(n : Int32, index : Int32) -> Int32 {
   if n <= 1 {
     return 0
   }
@@ -397,7 +400,11 @@ fn drop_cell(n : Int, index : Int) -> Int {
 ///
 /// k 由 drop_cell 收口，所以这里的 k 就是**格子序号**：结果数组的第 k 个元素
 /// 就是被拖的那一条。占位块也摆在同一个 k 上 —— 预览与结果因此逐格一致。
-fn insert_row_at(ids : Array[String], dragged : String, k : Int) -> Array[String] {
+fn insert_row_at(
+  ids : Array[String],
+  dragged : String,
+  k : Int32,
+) -> Array[String] {
   let rest : Array[String] = []
   for id in ids {
     if id != dragged {
@@ -438,7 +445,7 @@ fn same_order(a : Array[String], b : Array[String]) -> Bool {
 
 ///|
 /// 被拖的那一条现在排在第几格（0 起）；不在组里给 -1。
-fn index_of_row(ids : Array[String], id : String) -> Int {
+fn index_of_row(ids : Array[String], id : String) -> Int32 {
   let mut at = -1
   for i = 0; i < ids.length(); i = i + 1 {
     if ids[i] == id {
@@ -457,7 +464,7 @@ fn index_of_row(ids : Array[String], id : String) -> Int {
 /// 同理插在最后一条前面 = 落在它那一格，也就是最后一格。
 ///
 /// k 越界（理论上不会）给空串：视图拿到空串就不插占位块，宁可不画也不画错一格。
-fn anchor_at(ids : Array[String], k : Int) -> String {
+fn anchor_at(ids : Array[String], k : Int32) -> String {
   if k < 0 || k >= ids.length() {
     return ""
   }
@@ -475,9 +482,7 @@ fn lift_sizes_of(id : String) -> (Double, Double) {
   if text == "" {
     return (0.0, 0.0)
   }
-  let json = try @json.parse(text) catch {
-    _ => return (0.0, 0.0)
-  }
+  let json = @json.parse(text) catch { _ => return (0.0, 0.0) }
   match json {
     Json::Object(fields) =>
       (
@@ -497,7 +502,12 @@ fn lift_sizes_of(id : String) -> (Double, Double) {
 ///|
 /// 位移过没过阈值。**用平方比，不开方**：这一步每次指针移动都要算一遍，
 /// 而开方在这里没有任何意义（阈值只是个手感数）。
-fn drag_past_threshold(x0 : Double, y0 : Double, x1 : Double, y1 : Double) -> Bool {
+fn drag_past_threshold(
+  x0 : Double,
+  y0 : Double,
+  x1 : Double,
+  y1 : Double,
+) -> Bool {
   let dx = x1 - x0
   let dy = y1 - y0
   dx * dx + dy * dy > drag_threshold_px * drag_threshold_px
@@ -508,7 +518,11 @@ fn drag_past_threshold(x0 : Double, y0 : Double, x1 : Double, y1 : Double) -> Bo
 ///
 /// k < 0 = 没有落点，作废。**k 与占位块用的是同一个数**（见 drag_drop_index），
 /// 所以「看到的」与「落到的」是同一件事，不可能差一格。
-fn moved_group_ids(model : Model, dragged : String, k : Int) -> Array[String]? {
+fn moved_group_ids(
+  model : Model,
+  dragged : String,
+  k : Int32,
+) -> Array[String]? {
   let group = group_of_row_id(model, dragged)
   if group == "" || k < 0 {
     return None
@@ -541,7 +555,11 @@ fn group_of_row_id(model : Model, id : String) -> String {
 /// 为什么整份提交：后端的 set-row-order 收的就是整份 —— 增量式接口要后端先读一份
 /// 当前顺序再算，两次并发拖动会互相覆盖。组内顺序换了的那一组用新的，
 /// 另一组保持它现在显示的顺序（不因为动了一组就把另一组也重写一遍）。
-fn compose_order(model : Model, group : String, moved : Array[String]) -> Array[String] {
+fn compose_order(
+  model : Model,
+  group : String,
+  moved : Array[String],
+) -> Array[String] {
   let out : Array[String] = []
   if group == "running" {
     for id in moved {
@@ -575,7 +593,7 @@ fn commit_order(
 ) -> (Model, @cmd.Cmd) {
   let group = group_of_row_id(model, dragged)
   let full = compose_order(model, group, moved)
-  let next = { ..model, order_before: model.order, order: full }
+  let next = { ..model, order_before: model.order, order: full, }
   // 焦点跟着**被挪的那一条**走：列表是按位置打补丁的，不补这一下，
   // 键盘用户按完 Ctrl+↓ 焦点还停在原来那一格上，而那一格现在是别的条目了。
   (
@@ -594,7 +612,9 @@ fn commit_order(
 ///|
 /// patch 行数 / lock 时刻这一行：档案的健康读数，运行中卡与停止卡共用同一口径。
 fn patch_lock_note(fact : ProfileFact) -> String {
-  "cordis.patch.yml " + fact.patch_lines.to_string() + " 行 | " +
+  "cordis.patch.yml " +
+  fact.patch_lines.to_string() +
+  " 行 | " +
   (if fact.lock_exists {
     match fact.lock_mtime {
       Some(mtime) =>
@@ -614,7 +634,11 @@ fn patch_lock_note(fact : ProfileFact) -> String {
 ///
 /// 判据是 **(名字, home)**：一份档案的身份是两段，同名不同 home 是两份。
 /// 只按名字比是错的 —— 多 home 之后，另一 home 的同名实例在跑就会把这一行整条藏掉 ✗
-fn in_use_by(fact : ProfileFact, running : Array[InstanceFact], profiles_home : String) -> Bool {
+fn in_use_by(
+  fact : ProfileFact,
+  running : Array[InstanceFact],
+  profiles_home : String,
+) -> Bool {
   for inst in running {
     match inst.profile {
       Some(used) =>

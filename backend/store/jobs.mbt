@@ -78,8 +78,8 @@ pub(all) struct JobPinBefore {
 /// 它现在到底还活不活着，由读数那一侧看进程说了算（见 console_api 的 trialAlive）——
 /// 这里记的任何一格都不该冒充「还活着」或「已经没了」。
 pub(all) struct JobTrial {
-  pid : Int
-  port : Int
+  pid : Int32
+  port : Int32
   url : String
   profile : String
   /// 试跑用的 home（design/deep-home-isolation.md 第 6 节：一次性 home）。
@@ -136,7 +136,9 @@ pub(all) struct BadJob {
 
 ///|
 /// 五档状态，唯一的合法取值表。
-pub let job_states : Array[String] = ["running", "passed", "failed", "skipped", "not-run"]
+pub let job_states : Array[String] = [
+  "running", "passed", "failed", "skipped", "not-run",
+]
 
 ///|
 /// 状态词是不是五档里的一档。
@@ -187,8 +189,11 @@ pub fn new_job(
   let steps : Array[JobStep] = []
   // 七个步骤全摆出来：trial / verdict / rollback 是这一版新增的三个
   // （trial 只负责把新版跑起来，verdict 才是使用者的结论，rollback 是回滚那一下）。
-  for key in ["lock", "install", "trial", "verdict", "commit", "rollback", "cleanup"] {
-    steps.push({ key, state: "not-run", at: "", note: "", evidence: [] })
+  for
+    key in [
+      "lock", "install", "trial", "verdict", "commit", "rollback", "cleanup",
+    ] {
+    steps.push({ key, state: "not-run", at: "", note: "", evidence: [], })
   }
   let before : JobPinBefore? = Some(pin_before)
   {
@@ -200,7 +205,7 @@ pub fn new_job(
     step: "lock",
     steps,
     rollback_anchor: Some(anchor),
-    target: Some({ version: target_version, dir: "" }),
+    target: Some({ version: target_version, dir: "", }),
     profile,
     pin_before: before,
     trial: None,
@@ -316,12 +321,19 @@ pub fn job_json(job : Job) -> @json.JsonVal {
   }
   let anchor = match job.rollback_anchor {
     None => @json.JNull
-    Some(a) => @json.JObj([("dir", @json.JStr(a.dir)), ("version", @json.JStr(a.version))])
+    Some(a) =>
+      @json.JObj([
+        ("dir", @json.JStr(a.dir)),
+        ("version", @json.JStr(a.version)),
+      ])
   }
   let target = match job.target {
     None => @json.JNull
     Some(t) =>
-      @json.JObj([("version", @json.JStr(t.version)), ("dir", @json.JStr(t.dir))])
+      @json.JObj([
+        ("version", @json.JStr(t.version)),
+        ("dir", @json.JStr(t.dir)),
+      ])
   }
   let commands : Array[@json.JsonVal] = []
   for c in job.commands {
@@ -400,10 +412,15 @@ fn field_text(json : Json, key : String) -> String? {
 fn parse_evidence(json : Json) -> Array[(String, String)] {
   let out : Array[(String, String)] = []
   for pair in object_entries(json) {
-    out.push((pair.0, match as_string(pair.1) {
-      Some(s) => s
-      None => ""
-    }))
+    out.push(
+      (
+        pair.0,
+        match as_string(pair.1) {
+          Some(s) => s
+          None => ""
+        },
+      ),
+    )
   }
   out
 }
@@ -432,7 +449,7 @@ fn parse_step(json : Json) -> Result[JobStep, String] {
     Some(v) => parse_evidence(v)
     None => []
   }
-  Ok({ key, state, at, note, evidence })
+  Ok({ key, state, at, note, evidence, })
 }
 
 ///|
@@ -480,10 +497,11 @@ fn parse_job(json : Json) -> Result[Job, String] {
   }
   let anchor = match field_of(json, "rollbackAnchor") {
     Some(anchor_json) =>
-      match (field_text(anchor_json, "dir"), field_text(anchor_json, "version")) {
+      match
+        (field_text(anchor_json, "dir"), field_text(anchor_json, "version")) {
         (Some(dir), Some(version)) =>
           if dir != "" && version != "" {
-            let parsed : JobAnchor = { dir, version }
+            let parsed : JobAnchor = { dir, version, }
             Some(parsed)
           } else {
             None
@@ -560,7 +578,7 @@ fn parse_job(json : Json) -> Result[Job, String] {
         Some(v) => @json.trim_both(v)
         None => ""
       }
-      let parsed : JobPinBefore = { existed, dir, version, pinned_at }
+      let parsed : JobPinBefore = { existed, dir, version, pinned_at, }
       Some(parsed)
     }
     None => None
@@ -728,13 +746,15 @@ pub async fn load_jobs() -> (Array[Job], Array[BadJob], Array[String]) noraise {
       Some(loaded) => jobs.push(loaded)
       None =>
         match reason {
-          Some(why) => bad.push({ id, reason: why })
+          Some(why) => bad.push({ id, reason: why, })
           None => ()
         }
     }
   }
   // 最近的在前。createdAt 是 ISO8601（同一时区、定长），按字符串比就是按时间比。
-  jobs.sort_by(fn(a, b) { -@json.compare_code_units(a.created_at, b.created_at) })
+  jobs.sort_by(fn(a, b) {
+    -@json.compare_code_units(a.created_at, b.created_at)
+  })
   bad.sort_by(fn(a, b) { @json.compare_code_units(a.id, b.id) })
   (jobs, bad, [])
 }

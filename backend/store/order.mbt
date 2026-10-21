@@ -39,11 +39,11 @@ pub let order_id_home_sep : String = "@"
 ///
 /// 上限不是为了省地方：一份几万条的 id 表只可能来自调用方写错了，而这种错
 /// 在写盘之后才被发现就晚了（页面加载时每次都要读它）。超了直接拒。
-pub let order_max_ids : Int = 5000
+pub let order_max_ids : Int32 = 5000
 
 ///|
 /// 运行中那一组的行 id：只有端口，不带 home（端口本来就是全机唯一的）。
-pub fn port_row_id(port : Int) -> String {
+pub fn port_row_id(port : Int32) -> String {
   order_id_port_prefix + port.to_string()
 }
 
@@ -152,15 +152,20 @@ pub async fn load_order() -> LoadedOrder noraise {
           }
           if dropped > 0 {
             note = Some(
-              "order.json 里有 " + dropped.to_string() + " 条认不出的行 id，已跳过：" +
+              "order.json 里有 " +
+              dropped.to_string() +
+              " 条认不出的行 id，已跳过：" +
               paths.order,
             )
           }
         }
-        _ => note = Some("order.json 顶层不是数组，按空表处理：" + paths.order)
+        _ =>
+          note = Some(
+            "order.json 顶层不是数组，按空表处理：" + paths.order,
+          )
       }
   }
-  { ids, note }
+  { ids, note, }
 }
 
 ///|

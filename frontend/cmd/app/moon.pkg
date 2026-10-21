@@ -6,6 +6,7 @@ import {
 }
 
 // 浏览器应用：只编 js。
+
 supported_targets = "js"
 
 pkgtype(kind: "executable")

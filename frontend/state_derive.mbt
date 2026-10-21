@@ -4,7 +4,6 @@
 // 2026-10-20 从 state.mbt 拆出来：这一族全是「读数 → 一句话 + 一个颜色」的纯函数，
 // 与 Model 的状态转移不是一件事；拆开之后改判据只看这一份。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 卡片图标右上角那颗实心圆的档位（design/design-fixes.md §26.1：四档 + 一档「没读到」）。
 ///
@@ -30,7 +29,8 @@ enum Light {
   LightUnknown
 } derive(Eq)
 
-pub extend Light with Eq::{ not_equal, equal }
+///|
+pub extend Light with Eq::{not_equal, equal}
 
 ///|
 /// 运行行配不上自家 profile 读数（它来自别处 home）时，插件数量 / 最近改动两格的悬停
@@ -40,10 +40,10 @@ pub let not_in_console_home_note : String = "这只 profile 不在控制台的 D
 ///|
 /// 页脚那颗灯的轮询间隔（毫秒）与单次探测的超时（design/design-fixes.md §31.1）：
 /// 每 5 秒查一次，单次超过 3 秒没有应答就算这一次失败。
-pub let health_poll_ms : Int = 3000
+pub let health_poll_ms : Int32 = 3000
 
 ///|
-pub let health_timeout_ms : Int = 3000
+pub let health_timeout_ms : Int32 = 3000
 
 ///|
 /// 灯的状态词。**颜色之外的第二条通道**：三档各有自己的说法，
@@ -73,14 +73,20 @@ pub fn health_hint(model : Model) -> String {
   match model.health_state {
     HealthChecking => "正在检查服务端：还没有第一次结果"
     HealthOnline =>
-      "最近一次响应 " + model.health_ms.to_string() + " ms，检查于 " + model.health_at
+      "最近一次响应 " +
+      model.health_ms.to_string() +
+      " ms，检查于 " +
+      model.health_at
     HealthOffline => {
       let reason = if model.health_reason == "" {
         "没给出原因"
       } else {
         model.health_reason
       }
-      "连续失败 " + model.health_fails.to_string() + " 次，最近一次：" + reason +
+      "连续失败 " +
+      model.health_fails.to_string() +
+      " 次，最近一次：" +
+      reason +
       (if model.health_at == "" { "" } else { "（" + model.health_at + "）" })
     }
   }
@@ -154,7 +160,8 @@ fn process_note(fact : InstanceFact) -> String {
         ""
       }
     "port-arg" => "进程是按 --port 匹配的，证据弱于 socket inode"
-    "process-gone" => "进程不可见：已退出，或不在本 PID 命名空间"
+    "process-gone" =>
+      "进程不可见：已退出，或不在本 PID 命名空间"
     "fd-unreadable" => "/proc/<pid>/fd 读不到（权限不足）"
     "cmdline-unreadable" => "进程在，但 cmdline 读不到"
     "unscanned" => "没拿到该端口的 socket inode"
@@ -165,7 +172,7 @@ fn process_note(fact : InstanceFact) -> String {
 ///|
 /// 这一条是不是本控制台起的：runtime.json 的登记里有同一个端口，且那个 pid 还活着。
 /// 只看端口不够 —— 登记过、后来那个 pid 退了端口被别人接走的情况也长得一样。
-fn console_started(console : ConsoleFacts?, port : Int) -> Bool {
+fn console_started(console : ConsoleFacts?, port : Int32) -> Bool {
   match console {
     None => false
     Some(facts) => {
@@ -315,7 +322,10 @@ fn ignore_missing_bundles(model : Model) -> Bool {
 /// 实例的健康读数：先用实例自己带的那一份，没带就用同一只 profile 的读数顶上
 /// （同一个目录，说的是同一件事）。两处都没有才是 None —— 不拿「0 个缺包」顶上：
 /// 「读了、一个都不缺」与「没读到」不是一件事。
-fn instance_health_facts(fact : InstanceFact, profile_fact : ProfileFact?) -> InstanceHealth? {
+fn instance_health_facts(
+  fact : InstanceFact,
+  profile_fact : ProfileFact?,
+) -> InstanceHealth? {
   match fact.profile_health {
     Some(health) => Some(health)
     None =>
@@ -373,7 +383,8 @@ fn instance_light(
           "它正在 :" + port + " 上应答，但" + trouble,
           "判据：握手应答通过了" +
           (if signature == "" { "" } else { "（" + signature + "）" }) +
-          "，但 profile 那一侧有一条已知隐患：" + trouble +
+          "，但 profile 那一侧有一条已知隐患：" +
+          trouble +
           "。绿灯只给「在跑且没有已知隐患」的那一档；有隐患归黄（§26.1）。",
         )
       }
@@ -393,7 +404,7 @@ fn instance_light(
         "读数把这一档判成有警告，但这一版界面读不出具体是哪一条"
       } else {
         join_with(parts, "；")
-}
+      }
       let basis = if handshake_failed {
         "判据：这个端口在监听，但探测时没有命中 dsh 的应答" +
         (if fact.http_status > 0 {
@@ -404,7 +415,7 @@ fn instance_light(
         "。这一档不是红灯：红灯只给「上一次启动失败且之后没成功过」的那一只（§26.1）。"
       } else {
         "判据：握手应答是通的，这一档的隐患在 profile 那一侧。"
-}
+      }
       (LightWarn, reason, basis)
     }
     Some("starting") =>
@@ -413,7 +424,8 @@ fn instance_light(
         "正在起来，端口还没开始应答",
         "启动动作还没收尾：实例应答之后这一档会变成「运行中」。",
       )
-    Some("stopped") => (LightStop, "没有在跑", "这个端口上现在没有实例在跑。")
+    Some("stopped") =>
+      (LightStop, "没有在跑", "这个端口上现在没有实例在跑。")
     Some(_) =>
       (
         LightUnknown,
@@ -428,7 +440,9 @@ fn instance_light(
         (if signature == "" {
           "已有的探测结论：这个端口没有命中 dsh 的应答。"
         } else {
-          "已有的探测结论：这个端口命中了 dsh 的应答（" + signature + "）。"
+          "已有的探测结论：这个端口命中了 dsh 的应答（" +
+          signature +
+          "）。"
         }),
       )
   }
@@ -444,7 +458,10 @@ fn instance_light(
 /// 优先级：红灯（上次启动失败）> 黄（有警告）> 已停止（不画灯）。
 /// 红灯排在最前：一只上一次起不来、之后也没起来过的 profile，缺包只是它的成因之一，
 /// 说成「有警告」会把真正的那件事（它起不来）压过去。
-fn profile_light(fact : ProfileFact, ignore_missing : Bool) -> (Light, String, String) {
+fn profile_light(
+  fact : ProfileFact,
+  ignore_missing : Bool,
+) -> (Light, String, String) {
   let missing = fact.bundles.missing
   let source = if fact.last_start_source == "" {
     ""
@@ -455,15 +472,26 @@ fn profile_light(fact : ProfileFact, ignore_missing : Bool) -> (Light, String, S
     Some(attempt) =>
       if !attempt.ok {
         let when = js_short_time(attempt.at)
-        let codes = if attempt.code == "" { "" } else { "（" + attempt.code + "）" }
-        let why = if attempt.message == "" { "" } else { "：" + attempt.message }
+        let codes = if attempt.code == "" {
+          ""
+        } else {
+          "（" + attempt.code + "）"
+        }
+        let why = if attempt.message == "" {
+          ""
+        } else {
+          "：" + attempt.message
+        }
         return (
           LightFault,
           "上一次启动失败" +
           (if when == "" { "" } else { "（" + when + "）" }) +
           "，之后没有成功启动过",
           "判据：audit.jsonl 里这只 profile 最近一条启动的结局是失败（action 是 start-instance 或 restart-instance）" +
-          codes + why + "；它之后没有成功启动的记录，所以这一只是红灯。" + source,
+          codes +
+          why +
+          "；它之后没有成功启动的记录，所以这一只是红灯。" +
+          source,
         )
       }
     None => ()
@@ -476,9 +504,13 @@ fn profile_light(fact : ProfileFact, ignore_missing : Bool) -> (Light, String, S
   if missing.length() > 0 && !ignore_missing {
     (
       LightWarn,
-      "没有在跑，但这只 profile 缺 " + missing.length().to_string() + " 个包",
-      "判据：这只 profile 声明的包里有这些没装上：" + join_with(missing, "、") +
-      "。缺包归黄，不是红：红灯只给「上一次启动失败且之后没成功过」（§26.1）。" + source,
+      "没有在跑，但这只 profile 缺 " +
+      missing.length().to_string() +
+      " 个包",
+      "判据：这只 profile 声明的包里有这些没装上：" +
+      join_with(missing, "、") +
+      "。缺包归黄，不是红：红灯只给「上一次启动失败且之后没成功过」（§26.1）。" +
+      source,
     )
   } else if !fact.patch_exists {
     (
@@ -492,11 +524,15 @@ fn profile_light(fact : ProfileFact, ignore_missing : Bool) -> (Light, String, S
       LightStop,
       "没有在跑",
       (if ignore_missing && missing.length() > 0 {
-        "这只 profile 缺 " + missing.length().to_string() +
+        "这只 profile 缺 " +
+        missing.length().to_string() +
         " 个包（按设置不参与判灯，可以在抽屉里装）、cordis.patch.yml 也在，"
       } else {
         "这只 profile 的包都装上了、cordis.patch.yml 也在，"
-      }) + start_note + "；只是现在没有实例在用它。" + source,
+      }) +
+      start_note +
+      "；只是现在没有实例在用它。" +
+      source,
     )
   }
 }
@@ -514,10 +550,12 @@ fn instance_health(
 ) -> HealthNote {
   match fact.profile_health {
     Some(health) =>
-      health_note_of(health.has_patch, health.missing_bundles, matching_names(
-        profile_fact,
+      health_note_of(
+        health.has_patch,
         health.missing_bundles,
-      ), ignore_missing)
+        matching_names(profile_fact, health.missing_bundles),
+        ignore_missing,
+      )
     None =>
       match profile_fact {
         Some(item) =>
@@ -534,7 +572,7 @@ fn instance_health(
 
 ///|
 /// profiles 读数里的包名清单，仅当它的个数与手上这个数目一致时才用（见 instance_health）。
-fn matching_names(profile_fact : ProfileFact?, count : Int) -> String {
+fn matching_names(profile_fact : ProfileFact?, count : Int32) -> String {
   match profile_fact {
     Some(item) =>
       if item.bundles.missing.length() == count {
@@ -567,7 +605,7 @@ priv struct HealthNote {
 /// （为什么没有名字是这一版怎么实现的，不写在给使用者看的那句话里）。
 fn health_note_of(
   has_patch : Bool,
-  missing_count : Int,
+  missing_count : Int32,
   names : String,
   ignore_missing : Bool,
 ) -> HealthNote {
@@ -592,7 +630,7 @@ fn health_note_of(
 ///|
 /// 一句话说完、没什么可补的已知项（悬停就不挂了：与正文逐字相同的一句不留）。
 fn settled_note(text : String) -> HealthNote {
-  { text, hint: "", free: false }
+  { text, hint: "", free: false, }
 }
 
 ///|
@@ -689,7 +727,11 @@ fn archive_home_of(row : Row) -> String {
 ///   · 记录没带 home —— 本次改动之前的旧记录，那时只有一个 home 口径，说的就是它；
 ///   · 这一行给不出 home —— 没有可比的东西，硬比只会把该标成已归档的那一行漏掉。
 /// 除了这两种，home 必须相等：同名两份档案在两个 home 里时，正是靠它分开。
-fn archive_record_matches_row(record : ConsoleArchive, name : String, home : String) -> Bool {
+fn archive_record_matches_row(
+  record : ConsoleArchive,
+  name : String,
+  home : String,
+) -> Bool {
   if record.profile != name {
     return false
   }
@@ -720,7 +762,7 @@ fn mtime_missing_hint(source : String) -> String {
 
 ///|
 /// 降序比较「最近改动」。None **不是 0**：读不到的要沉到最后，不许跟真有值的混在一起比 ✗
-fn mtime_desc(a : Double?, b : Double?) -> Int {
+fn mtime_desc(a : Double?, b : Double?) -> Int32 {
   match (a, b) {
     (Some(x), Some(y)) => if x > y { -1 } else if x < y { 1 } else { 0 }
     (Some(_), None) => -1
@@ -737,6 +779,6 @@ fn mtime_desc(a : Double?, b : Double?) -> Int {
 /// （7 < 8），排出来是「短的在前」，不是人说的「名字升序」。
 /// lexical_compare 才是逐字符的字典序（同 Java 的 String.compareTo）。
 /// 实测踩过：三张卡按名字升序排成了 web-dev / headless / review-dev。
-fn name_asc(a : String, b : String) -> Int {
+fn name_asc(a : String, b : String) -> Int32 {
   a.lexical_compare(b)
 }

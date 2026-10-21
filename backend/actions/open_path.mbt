@@ -26,7 +26,7 @@ pub let config_file_name : String = "cordis.patch.yml"
 /// spawn 之后看它是不是立刻就挂了的时间窗。
 /// 这不是「等它干活」：xdg-open 打不开时是毫秒级退出，打得开时要么把活交出去自己退出（0），
 /// 要么留着跑。这个窗口只用来分辨这几种情况。
-let open_probe_ms : Int = 600
+let open_probe_ms : Int32 = 600
 
 ///|
 /// 一次打开的结果。
@@ -38,23 +38,28 @@ pub struct OpenPathOutcome {
   /// 实际用的 opener 绝对路径
   opener : String
   /// xdg-open 的 pid
-  pid : Int
+  pid : Int32
   /// 探测窗内就退出时它的退出码；还在跑给 None
-  exit_code : Int?
+  exit_code : Int32?
   /// 探测窗内退出时它 stderr 的尾部（掏空给空串）
   detail : String
 }
 
 ///|
 /// params 里只许出现这些键。多一个就拒（open-path 没有路径参数这回事）。
-fn ensure_only_keys(params : Json, allowed : Array[String]) -> Unit raise ActionError {
+fn ensure_only_keys(
+  params : Json,
+  allowed : Array[String],
+) -> Unit raise ActionError {
   match params {
     Object(fields) =>
       for key, _ in fields {
         if !allowed.contains(key) {
           fail(
             "bad-params",
-            "open-path 不接受参数 " + key + "：目标只由 profile 与 kind 决定，没有路径参数",
+            "open-path 不接受参数 " +
+            key +
+            "：目标只由 profile 与 kind 决定，没有路径参数",
           )
         }
       }
@@ -64,7 +69,7 @@ fn ensure_only_keys(params : Json, allowed : Array[String]) -> Unit raise Action
 
 ///|
 /// 取文本的最后 n 个非空行（贴进失败信息用）。
-fn tail_lines(text : String, lines : Int) -> String {
+fn tail_lines(text : String, lines : Int32) -> String {
   let kept : Array[String] = []
   for line in text.split("\n") {
     let trimmed = @json.trim_both(@json.owned(line))
@@ -78,7 +83,10 @@ fn tail_lines(text : String, lines : Int) -> String {
 
 ///|
 /// 执行一次 open-path。目标不存在 -> not-found；打不开 -> io-error。
-pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome raise ActionError {
+pub async fn open_path(
+  profile : String,
+  kind : String?,
+) -> OpenPathOutcome raise ActionError {
   let name = @json.trim_both(profile)
   validate_profile_name(name)
   // 「工作目录 / 配置」指的是这只 profile **自己现在那一份**：隔离的那一只在它的 home 里。
@@ -118,7 +126,10 @@ pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome rais
     None => {
       fail(
         "io-error",
-        "PATH 里找不到 " + open_program + "（这台机器上没装 xdg-utils），打不开 " + path,
+        "PATH 里找不到 " +
+        open_program +
+        "（这台机器上没装 xdg-utils），打不开 " +
+        path,
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -135,7 +146,8 @@ pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome rais
   if !on_x && !on_wayland {
     fail(
       "io-error",
-      "没有图形环境：DISPLAY 与 WAYLAND_DISPLAY 都没设置，xdg-open 打不开 " + path +
+      "没有图形环境：DISPLAY 与 WAYLAND_DISPLAY 都没设置，xdg-open 打不开 " +
+      path +
       "（控制台要把窗口交出去，得有个桌面会话接着）",
     )
   }
@@ -148,14 +160,18 @@ pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome rais
   // 它的话（stderr）落到状态目录下一个一次性文件里：探测窗过了就读出来、随即删掉。
   // 建不了这个文件就退回 /dev/null —— 记不下它说的话，不该让「打开目录」直接失败。
   let mut captured = true
-  let out = try {
-    @process.redirect_to_file(capture, create_mode=OpenOrCreate, permission=0o600)
-  } catch {
+  let out = @process.redirect_to_file(
+    capture,
+    create_mode=OpenOrCreate,
+    permission=0o600,
+  ) catch {
     _ => {
       captured = false
-      try {
-        @process.redirect_to_file("/dev/null", create_mode=OpenOrCreate, permission=0o600)
-      } catch {
+      @process.redirect_to_file(
+        "/dev/null",
+        create_mode=OpenOrCreate,
+        permission=0o600,
+      ) catch {
         err => {
           fail("io-error", "打不开 /dev/null：" + err.to_string())
           abort("unreachable: fail 一定抛错")
@@ -163,18 +179,20 @@ pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome rais
       }
     }
   }
-  let input = try {
-    @process.redirect_from_file("/dev/null")
-  } catch {
+  let input = @process.redirect_from_file("/dev/null") catch {
     err => {
       fail("io-error", "打不开 /dev/null：" + err.to_string())
       abort("unreachable: fail 一定抛错")
     }
   }
   // argv 就是 opener 与目标两项，没有 shell、没有拼串：目标里有什么字符都只是这一项的字面量
-  let pid = try {
-    @process.spawn_orphan(opener, [path], stdin=input, stdout=out, stderr=out)
-  } catch {
+  let pid = @process.spawn_orphan(
+    opener,
+    [path],
+    stdin=input,
+    stdout=out,
+    stderr=out,
+  ) catch {
     err => {
       let _ = @fsx.remove_file(capture)
       fail("io-error", "起 " + opener + " 失败：" + err.to_string())
@@ -189,13 +207,9 @@ pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome rais
     }
     @async.sleep(50)
   }
-  let mut exit_code : Int? = None
+  let mut exit_code : Int32? = None
   if !process_alive(pid) {
-    exit_code = try {
-      Some(@process.wait_pid(pid))
-    } catch {
-      _ => None
-    }
+    exit_code = Some(@process.wait_pid(pid)) catch { _ => None }
   } else {
     // 它活得比探测窗长，这会儿还收不了。挂一只后台协程等它退出 ——
     // 不然后来它退出时没人 wait，会在控制台名下留一只僵尸（detach 实例那条路同理）。
@@ -223,11 +237,20 @@ pub async fn open_path(profile : String, kind : String?) -> OpenPathOutcome rais
       if code != 0 {
         fail(
           "io-error",
-          opener + " 起来就退出了（退出码 " + code.to_string() + "），" + path + " 没打开" +
-          (if detail == "" { "；它没有输出" } else { "；它说：" + detail }),
+          opener +
+          " 起来就退出了（退出码 " +
+          code.to_string() +
+          "），" +
+          path +
+          " 没打开" +
+          (if detail == "" {
+            "；它没有输出"
+          } else {
+            "；它说：" + detail
+          }),
         )
       }
     None => ()
   }
-  { what, path, opener, pid, exit_code, detail }
+  { what, path, opener, pid, exit_code, detail, }
 }

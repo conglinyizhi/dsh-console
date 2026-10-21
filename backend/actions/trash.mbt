@@ -39,7 +39,7 @@ pub struct TrashEntry {
   /// 上面那个 home 的来源，或没有它的原因（人话）
   home_source : String
   /// 递归数出来的普通文件个数；数不动给 None
-  file_count : Int?
+  file_count : Int32?
   /// 递归求和的字节数；数不动给 None
   bytes : Int64?
   /// 文件数与体积的来源，或数不动的原因
@@ -54,8 +54,8 @@ pub async fn trash_root() -> String noraise {
 
 ///|
 /// 目录名里最后一个 '-' 的下标。没有给 None。
-fn last_dash_index(text : String) -> Int? {
-  let mut found : Int? = None
+fn last_dash_index(text : String) -> Int32? {
+  let mut found : Int32? = None
   let mut i = 0
   for ch in text {
     if ch == '-' {
@@ -77,7 +77,11 @@ pub fn split_trash_name(dir : String) -> (String, Int64?, String) {
   match last_dash_index(dir) {
     Some(idx) =>
       if idx <= 0 || idx + 1 >= dir.length() {
-        (dir, None, "目录名里没有 <profile>-<epochMs> 这样的时间戳（'-' 的位置切不出两段），按原目录名当 profile")
+        (
+          dir,
+          None,
+          "目录名里没有 <profile>-<epochMs> 这样的时间戳（'-' 的位置切不出两段），按原目录名当 profile",
+        )
       } else {
         let tail = @json.slice(dir, idx + 1, dir.length())
         if @json.is_all_digits(tail) {
@@ -90,23 +94,31 @@ pub fn split_trash_name(dir : String) -> (String, Int64?, String) {
           (
             dir,
             None,
-            "目录名末段「" + tail + "」不是纯数字，读不出删除时刻，按原目录名当 profile",
+            "目录名末段「" +
+            tail +
+            "」不是纯数字，读不出删除时刻，按原目录名当 profile",
           )
         }
       }
-    None => (dir, None, "目录名里没有 '-'，读不出删除时刻，按原目录名当 profile")
+    None =>
+      (
+        dir,
+        None,
+        "目录名里没有 '-'，读不出删除时刻，按原目录名当 profile",
+      )
   }
 }
 
 ///|
 /// 数一份回收站条目：给 (文件数, 字节数, 来源说明)。数不出来两个都给 None 并写明原因。
-async fn measure_entry(path : String) -> (Int?, Int64?, String) noraise {
+async fn measure_entry(path : String) -> (Int32?, Int64?, String) noraise {
   match @fsx.measure_tree(path) {
-    Ok(pair) => (
-      Some(pair.0),
-      Some(pair.1),
-      "递归数了这一份里的普通文件（软链等非普通文件不计入）",
-    )
+    Ok(pair) =>
+      (
+        Some(pair.0),
+        Some(pair.1),
+        "递归数了这一份里的普通文件（软链等非普通文件不计入）",
+      )
     Err(reason) => (None, None, reason)
   }
 }
@@ -141,11 +153,13 @@ pub async fn list_trash() -> Array[TrashEntry] noraise {
     let (file_count, bytes, size_source) = measure_entry(path)
     // 来源 home 是按**目录名**查的（不是路径）：查不到就说查不到，不拿控制台自己的 home 冒充
     let (home, home_source) = match origin_file.origins.get(name) {
-      Some(h) => (h, "删除那一刻记下的来源 home（" + origins_path + "）")
+      Some(h) =>
+        (h, "删除那一刻记下的来源 home（" + origins_path + "）")
       None => {
         let reason = match origin_file.note {
           Some(why) => "这一条没有来源 home 记录（" + why + "）"
-          None => "这一条没有来源 home 记录：本次改动之前删的条目，那时还记不了 home"
+          None =>
+            "这一条没有来源 home 记录：本次改动之前删的条目，那时还记不了 home"
         }
         ("", reason)
       }
@@ -202,7 +216,9 @@ pub async fn resolve_trash_dir(dir : String) -> String raise ActionError {
   if is_trash_bucket(name) {
     fail(
       "bad-params",
-      "「" + name + "」是回收站里放整份额外 home 的那一格，不是一条可恢复的条目：" +
+      "「" +
+      name +
+      "」是回收站里放整份额外 home 的那一格，不是一条可恢复的条目：" +
       "恢复 / 彻底删除都不对它下手",
     )
   }
@@ -217,7 +233,9 @@ pub async fn resolve_trash_dir(dir : String) -> String raise ActionError {
     if !ok {
       fail(
         "bad-params",
-        "dir 里有不允许的字符：" + ch.to_string() + "（只允许字母数字与 . _ -，回收站条目名就是这两样拼的）",
+        "dir 里有不允许的字符：" +
+        ch.to_string() +
+        "（只允许字母数字与 . _ -，回收站条目名就是这两样拼的）",
       )
     }
   }
@@ -246,7 +264,7 @@ pub struct RestoreOutcome {
   home_recorded : Bool
   /// 恢复之后没能把来源记录清掉的原因（None = 清掉了 / 本来就没有）
   origin_error : String?
-  files : Int?
+  files : Int32?
   bytes : Int64?
   /// 文件数 / 体积的来源或读不到的原因
   size_source : String
@@ -262,7 +280,9 @@ pub struct RestoreOutcome {
 ///   ① 删的时候记下了来源（trash-origins.json）→ 回它那儿；
 ///   ② 没记下来源（本次改动之前删的旧条目）→ 落回控制台自己的 home，并把这件事写进
 ///      home_source，界面上说得出来「这一份不是回到它原来的地方，而是回到这儿」。
-pub async fn restore_from_trash(dir : String) -> RestoreOutcome raise ActionError {
+pub async fn restore_from_trash(
+  dir : String,
+) -> RestoreOutcome raise ActionError {
   let name = @json.trim_both(dir)
   let path = resolve_trash_dir(name)
   if !@json.is_dir(path) {
@@ -272,12 +292,19 @@ pub async fn restore_from_trash(dir : String) -> RestoreOutcome raise ActionErro
   validate_profile_name(profile)
   let origin_file = @store.load_trash_origins()
   let (home, home_recorded, home_source) = match origin_file.origins.get(name) {
-    Some(recorded) => (recorded, true, "这一条删的时候记下了来源 home，恢复就回它那儿")
+    Some(recorded) =>
+      (
+        recorded, true, "这一条删的时候记下了来源 home，恢复就回它那儿",
+      )
     None => {
       let (console_home, _) = @runtime.resolve_dsh_home()
       let reason = match origin_file.note {
-        Some(why) => "这一条没有来源 home 记录（" + why + "），只能落回控制台自己的 home"
-        None => "这一条没有来源 home 记录（本次改动之前删的条目），只能落回控制台自己的 home"
+        Some(why) =>
+          "这一条没有来源 home 记录（" +
+          why +
+          "），只能落回控制台自己的 home"
+        None =>
+          "这一条没有来源 home 记录（本次改动之前删的条目），只能落回控制台自己的 home"
       }
       (console_home, false, reason)
     }
@@ -285,27 +312,35 @@ pub async fn restore_from_trash(dir : String) -> RestoreOutcome raise ActionErro
   let root = @json.join_path(home, "profiles")
   let target = @json.join_path(root, profile)
   if !target.has_prefix(root + "/") || target == root {
-    fail("bad-params", "恢复目标解析到了这个 home 的 profiles 之外：" + target)
+    fail(
+      "bad-params",
+      "恢复目标解析到了这个 home 的 profiles 之外：" + target,
+    )
   }
   if @json.exists(target) {
     fail(
       "conflict",
-      "已经有同名的 profile 了（" + target + "），先给它改名或删掉它，再恢复这一份",
+      "已经有同名的 profile 了（" +
+      target +
+      "），先给它改名或删掉它，再恢复这一份",
     )
   }
   let (files, bytes, size_source) = measure_entry(path)
   match @fsx.rename_path(path, target) {
     Ok(_) => ()
-    Err(first) => {
+    Err(first) =>
       match @fsx.copy_tree(path, target, []) {
         Ok(_) =>
           match @fsx.remove_tree(path) {
             Ok(_) => ()
-            Err(e) => fail("io-error", first + "；退回复制之后删源头也失败：" + e)
+            Err(e) =>
+              fail(
+                "io-error",
+                first + "；退回复制之后删源头也失败：" + e,
+              )
           }
         Err(e) => fail("io-error", first + "；退回复制也失败：" + e)
       }
-    }
   }
   // 这一条已经不在回收站里了，来源记录跟着清掉。清不掉不算恢复失败（那一份确实回去了），
   // 但原因要带出去：留着一条指向已不存在目录的记录不会误导谁，可不说就是瞒。
@@ -336,14 +371,17 @@ pub struct PurgeOutcome {
   path : String
   /// 删完之后没能把来源记录清掉的原因（None = 清掉了 / 本来就没有）
   origin_error : String?
-  files : Int?
+  files : Int32?
   bytes : Int64?
   size_source : String
 }
 
 ///|
 /// 真删掉回收站里的一份。**必须带 confirm = "PURGE"**（与 delete-profile 的硬删同一风险等级）。
-pub async fn purge_trash_item(dir : String, confirm : String?) -> PurgeOutcome raise ActionError {
+pub async fn purge_trash_item(
+  dir : String,
+  confirm : String?,
+) -> PurgeOutcome raise ActionError {
   let path = resolve_trash_dir(dir)
   let given = match confirm {
     Some(v) => @json.trim_both(v)
@@ -351,8 +389,7 @@ pub async fn purge_trash_item(dir : String, confirm : String?) -> PurgeOutcome r
   }
   if given != "PURGE" {
     fail(
-      "bad-params",
-      "彻底删除不可恢复，body 里必须再带 \"confirm\":\"PURGE\"",
+      "bad-params", "彻底删除不可恢复，body 里必须再带 \"confirm\":\"PURGE\"",
     )
   }
   if !@json.is_dir(path) {
@@ -371,5 +408,5 @@ pub async fn purge_trash_item(dir : String, confirm : String?) -> PurgeOutcome r
     Ok(_) => None
     Err(e) => Some(e)
   }
-  { dir: name, profile, path, origin_error, files, bytes, size_source }
+  { dir: name, profile, path, origin_error, files, bytes, size_source, }
 }

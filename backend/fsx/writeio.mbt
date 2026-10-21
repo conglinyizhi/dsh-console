@@ -11,15 +11,15 @@
 
 ///|
 /// kill(2)：给 PID 发信号。
-extern "c" fn kill_raw(pid : Int, sig : Int) -> Int = "dsh_console_kill"
+extern "c" fn kill_raw(pid : Int32, sig : Int32) -> Int32 = "dsh_console_kill"
 
 ///|
 /// kill(pid, 0)：只做存在性与权限判断，不真发信号。
-extern "c" fn pid_alive_raw(pid : Int) -> Int = "dsh_console_pid_alive"
+extern "c" fn pid_alive_raw(pid : Int32) -> Int32 = "dsh_console_pid_alive"
 
 ///|
 /// getpid(2)：原子写的临时文件名用它区分不同进程。
-extern "c" fn getpid_raw() -> Int = "dsh_console_getpid"
+extern "c" fn getpid_raw() -> Int32 = "dsh_console_getpid"
 
 ///|
 /// stat(2) 的 st_dev：移动目录之前判「两边在不在同一个文件系统」。
@@ -29,21 +29,21 @@ extern "c" fn dev_raw(path : Bytes) -> Int64 = "dsh_console_dev"
 
 ///|
 /// SIGTERM：先礼。
-pub let sigterm : Int = 15
+pub let sigterm : Int32 = 15
 
 ///|
 /// SIGKILL：后兵。
-pub let sigkill : Int = 9
+pub let sigkill : Int32 = 9
 
 ///|
 /// 本进程 PID。
-pub fn os_pid() -> Int {
+pub fn os_pid() -> Int32 {
   getpid_raw()
 }
 
 ///|
 /// errno 名。只列这条路径上会遇到的几个，其余给数字，不编名字。
-fn errno_name(code : Int) -> String {
+fn errno_name(code : Int32) -> String {
   match code {
     1 => "EPERM 不允许的操作"
     2 => "ENOENT 目标不存在"
@@ -63,7 +63,7 @@ fn errno_name(code : Int) -> String {
 
 ///|
 /// 给人发信号。成功 Ok，失败带 errno 名。
-pub fn send_signal(pid : Int, sig : Int) -> Result[Unit, String] {
+pub fn send_signal(pid : Int32, sig : Int32) -> Result[Unit, String] {
   if pid <= 0 {
     return Err("PID 非法：" + pid.to_string())
   }
@@ -71,13 +71,20 @@ pub fn send_signal(pid : Int, sig : Int) -> Result[Unit, String] {
   if code == 0 {
     Ok(())
   } else {
-    Err("kill(" + pid.to_string() + ", " + sig.to_string() + ") 失败：" + errno_name(-code))
+    Err(
+      "kill(" +
+      pid.to_string() +
+      ", " +
+      sig.to_string() +
+      ") 失败：" +
+      errno_name(-code),
+    )
   }
 }
 
 ///|
 /// 进程还在不在（权限不足按「在」算，不误报成退出）。
-pub fn pid_alive(pid : Int) -> Bool {
+pub fn pid_alive(pid : Int32) -> Bool {
   pid > 0 && pid_alive_raw(pid) == 1
 }
 
@@ -89,7 +96,12 @@ pub fn pid_alive(pid : Int) -> Bool {
 pub fn dev_of(path : String) -> Result[Int64, String] {
   let code = dev_raw(@utf8.encode(path))
   if code < 0 {
-    Err("读不到 " + path + " 所在文件系统的设备号：" + errno_name(-code.to_int()))
+    Err(
+      "读不到 " +
+      path +
+      " 所在文件系统的设备号：" +
+      errno_name(-code.to_int()),
+    )
   } else {
     Ok(code)
   }
@@ -98,8 +110,8 @@ pub fn dev_of(path : String) -> Result[Int64, String] {
 ///|
 /// 一次目录复制的统计。
 pub struct CopyStats {
-  mut files : Int
-  mut dirs : Int
+  mut files : Int32
+  mut dirs : Int32
   /// 被跳过的名字（每个名字只记一次）
   skipped : Array[String]
 }
@@ -134,11 +146,11 @@ pub async fn ensure_dir(path : String) -> Result[Unit, String] noraise {
 ///
 /// Ref 是模块级可变量的载体（actions/instance.mbt 的 console_group 同款写法）：
 /// MoonBit 的顶层 `let mut` 不作为全局可变量，要可变量得用 Ref。
-let tmp_seq : Ref[Int] = { val: 0 }
+let tmp_seq : Ref[Int32] = { val: 0, }
 
 ///|
 /// 取下一个序号。调用点在 write_text_atomic 的第一个 await 之前，不存在交错。
-fn next_tmp_seq() -> Int {
+fn next_tmp_seq() -> Int32 {
   tmp_seq.val = tmp_seq.val + 1
   tmp_seq.val
 }
@@ -146,7 +158,10 @@ fn next_tmp_seq() -> Int {
 ///|
 /// 原子写文本：先写同目录的临时文件，再 rename 覆盖。
 /// 临时文件与目标同目录是有意的 —— 跨文件系统的 rename 不是原子的，也会 EXDEV。
-pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, String] noraise {
+pub async fn write_text_atomic(
+  path : String,
+  text : String,
+) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
   match ensure_dir(dir) {
     Ok(_) => ()
@@ -159,10 +174,11 @@ pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, Str
     @async.now().to_string() +
     "-" +
     next_tmp_seq().to_string()
-  try {
-    @fs.write_file(tmp, text, create_mode=CreateOrTruncate, permission=0o600)
-  } catch {
-    err => return Err("写临时文件失败：" + tmp + "（" + err.to_string() + "）")
+  @fs.write_file(tmp, text, create_mode=CreateOrTruncate, permission=0o600) catch {
+    err =>
+      return Err(
+        "写临时文件失败：" + tmp + "（" + err.to_string() + "）",
+      )
   }
   try {
     @fs.rename(tmp, path, replace=true)
@@ -170,11 +186,7 @@ pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, Str
   } catch {
     err => {
       // 留着临时文件就是脏数据，先尽力收掉
-      let _ = try {
-        @fs.remove(tmp)
-      } catch {
-        _ => ()
-      }
+      let _ = @fs.remove(tmp) catch { _ => () }
       Err("rename 到目标失败：" + path + "（" + err.to_string() + "）")
     }
   }
@@ -182,14 +194,23 @@ pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, Str
 
 ///|
 /// 追加一行到文件（audit.jsonl 用）。文件不存在就建。
-pub async fn append_text(path : String, text : String) -> Result[Unit, String] noraise {
+pub async fn append_text(
+  path : String,
+  text : String,
+) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
   match ensure_dir(dir) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
   try {
-    @fs.write_file(path, text, create_mode=OpenOrCreate, append=true, permission=0o600)
+    @fs.write_file(
+      path,
+      text,
+      create_mode=OpenOrCreate,
+      append=true,
+      permission=0o600,
+    )
     Ok(())
   } catch {
     err => Err("追加写失败：" + path + "（" + err.to_string() + "）")
@@ -198,7 +219,10 @@ pub async fn append_text(path : String, text : String) -> Result[Unit, String] n
 
 ///|
 /// 覆盖写文本（非原子）。给不需要原子性的场景用；settings / runtime / archive 一律走原子版。
-pub async fn write_text(path : String, text : String) -> Result[Unit, String] noraise {
+pub async fn write_text(
+  path : String,
+  text : String,
+) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
   match ensure_dir(dir) {
     Ok(_) => ()
@@ -215,9 +239,7 @@ pub async fn write_text(path : String, text : String) -> Result[Unit, String] no
 ///|
 /// 读原始字节。复制文件用 —— 不经过 UTF-8 解码，二进制不会被改写。
 pub async fn read_bytes(path : String) -> Result[Bytes, String] noraise {
-  try {
-    Ok(@fs.read_file(path).binary())
-  } catch {
+  Ok(@fs.read_file(path).binary()) catch {
     err => Err("读不到 " + path + "：" + err.to_string())
   }
 }
@@ -227,7 +249,7 @@ pub async fn read_bytes(path : String) -> Result[Bytes, String] noraise {
 pub async fn write_bytes(
   path : String,
   data : Bytes,
-  permission? : Int = 0o600,
+  permission~ : Int32 = 0o600,
 ) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
   match ensure_dir(dir) {
@@ -253,13 +275,16 @@ pub async fn path_exists(path : String) -> Bool noraise {
 pub async fn rename_path(
   from : String,
   to : String,
-  replace? : Bool = false,
+  replace~ : Bool = false,
 ) -> Result[Unit, String] noraise {
   try {
     @fs.rename(from, to, replace~)
     Ok(())
   } catch {
-    err => Err("改名失败：" + from + " -> " + to + "（" + err.to_string() + "）")
+    err =>
+      Err(
+        "改名失败：" + from + " -> " + to + "（" + err.to_string() + "）",
+      )
   }
 }
 
@@ -279,7 +304,10 @@ pub async fn remove_file(path : String) -> Result[Unit, String] noraise {
 ///
 /// 隔离 home 用它摆 node_modules 与 skills（规格第 2 节：软链，不复制）。
 /// 已存在同名路径时算失败 —— 覆盖一条别人摆的软链不是这一次要做的事。
-pub async fn make_symlink(target : String, path : String) -> Result[Unit, String] noraise {
+pub async fn make_symlink(
+  target : String,
+  path : String,
+) -> Result[Unit, String] noraise {
   if target == "" || path == "" {
     return Err("建软链失败：目标或链接路径为空")
   }
@@ -287,7 +315,16 @@ pub async fn make_symlink(target : String, path : String) -> Result[Unit, String
     @fs.symlink(target~, path)
     Ok(())
   } catch {
-    err => Err("建软链失败：" + path + " -> " + target + "（" + err.to_string() + "）")
+    err =>
+      Err(
+        "建软链失败：" +
+        path +
+        " -> " +
+        target +
+        "（" +
+        err.to_string() +
+        "）",
+      )
   }
 }
 
@@ -298,7 +335,8 @@ pub async fn remove_tree(path : String) -> Result[Unit, String] noraise {
     @fs.rmdir(path, recursive=true)
     Ok(())
   } catch {
-    err => Err("递归删目录失败：" + path + "（" + err.to_string() + "）")
+    err =>
+      Err("递归删目录失败：" + path + "（" + err.to_string() + "）")
   }
 }
 
@@ -310,7 +348,9 @@ pub async fn remove_tree(path : String) -> Result[Unit, String] noraise {
 ///
 /// 任何一步读不到就给 Err —— 数不全的时候宁可让调用方写「读不到」，
 /// 也不给一个偏小的数冒充这一份的真实体积。
-pub async fn measure_tree(root : String) -> Result[(Int, Int64), String] noraise {
+pub async fn measure_tree(
+  root : String,
+) -> Result[(Int32, Int64), String] noraise {
   let mut files = 0
   let mut bytes : Int64 = 0
   let queue : Array[String] = [root]
@@ -324,11 +364,7 @@ pub async fn measure_tree(root : String) -> Result[(Int, Int64), String] noraise
     }
     for name in names {
       let path = @json.join_path(dir, name)
-      let kind = try {
-        @fs.kind(path, follow_symlink=false)
-      } catch {
-        _ => Unknown
-      }
+      let kind = @fs.kind(path, follow_symlink=false) catch { _ => Unknown }
       match kind {
         Directory => queue.push(path)
         Regular =>
@@ -348,7 +384,10 @@ pub async fn measure_tree(root : String) -> Result[(Int, Int64), String] noraise
 
 ///|
 /// 复制一个普通文件（保留原始字节）。
-pub async fn copy_file(from : String, to : String) -> Result[Unit, String] noraise {
+pub async fn copy_file(
+  from : String,
+  to : String,
+) -> Result[Unit, String] noraise {
   match read_bytes(from) {
     Ok(data) => write_bytes(to, data)
     Err(e) => Err(e)
@@ -363,9 +402,9 @@ pub async fn copy_tree(
   from : String,
   to : String,
   skip : Array[String],
-  on_progress? : (CopyStats) -> Unit = fn(_stats) { () },
+  on_progress~ : (CopyStats) -> Unit = fn(_stats) { () },
 ) -> Result[CopyStats, String] noraise {
-  let stats : CopyStats = { files: 0, dirs: 0, skipped: [] }
+  let stats : CopyStats = { files: 0, dirs: 0, skipped: [], }
   let queue : Array[(String, String)] = [(from, to)]
   let mut cursor = 0
   while cursor < queue.length() {
@@ -392,11 +431,7 @@ pub async fn copy_tree(
       }
       let s = @json.join_path(src, name)
       let d = @json.join_path(dst, name)
-      let kind = try {
-        @fs.kind(s, follow_symlink=false)
-      } catch {
-        _ => Unknown
-      }
+      let kind = @fs.kind(s, follow_symlink=false) catch { _ => Unknown }
       match kind {
         Directory => queue.push((s, d))
         Regular =>
@@ -418,9 +453,13 @@ pub async fn copy_tree(
   }
   Ok(stats)
 }
+
 ///|
 /// 改文件权限（env.json 要 600：里面可能含密钥）。
-pub async fn chmod_path(path : String, mode : Int) -> Result[Unit, String] noraise {
+pub async fn chmod_path(
+  path : String,
+  mode : Int32,
+) -> Result[Unit, String] noraise {
   try {
     @fs.chmod(path, mode)
     Ok(())
@@ -431,7 +470,10 @@ pub async fn chmod_path(path : String, mode : Int) -> Result[Unit, String] norai
 
 ///|
 /// 数一遍目录树里有多少普通文件与目录（不跟软链）。派生前的进度分母靠它。
-pub async fn count_tree(from : String, skip : Array[String]) -> (Int, Int) noraise {
+pub async fn count_tree(
+  from : String,
+  skip : Array[String],
+) -> (Int32, Int32) noraise {
   let mut files = 0
   let mut dirs = 0
   let queue : Array[String] = [from]
@@ -449,11 +491,7 @@ pub async fn count_tree(from : String, skip : Array[String]) -> (Int, Int) norai
         continue
       }
       let s = @json.join_path(src, name)
-      let kind = try {
-        @fs.kind(s, follow_symlink=false)
-      } catch {
-        _ => Unknown
-      }
+      let kind = @fs.kind(s, follow_symlink=false) catch { _ => Unknown }
       match kind {
         Directory => queue.push(s)
         Regular => files = files + 1

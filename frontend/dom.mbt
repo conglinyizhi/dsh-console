@@ -102,7 +102,10 @@ extern "js" fn js_set_control_value(id : String, value : String) -> Unit =
 
 ///|
 fn set_control_after_render(id : String, value : String) -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { js_set_control_value(id, value) }, kind=@cmd.after_render)
+  @cmd.custom_cmd(
+    fn(_scheduler) { js_set_control_value(id, value) },
+    kind=@cmd.after_render,
+  )
 }
 
 ///|
@@ -134,7 +137,7 @@ extern "js" fn js_next_visible() -> @js.Promise =
 /// - 超时用 AbortController 掐掉：不掐的话一个不答的请求会一直挂着，灯停在上一档，
 ///   看不出「它已经不答了」；
 /// - 带一个 X-DSH-Health 头：这条与页面读数那几枪走同一个端点，留个记号才好单独拦它做验收。
-extern "js" fn js_health_ping(url : String, timeout_ms : Int) -> @js.Promise =
+extern "js" fn js_health_ping(url : String, timeout_ms : Int32) -> @js.Promise =
   #| (url, timeoutMs) => {
   #|   const started = performance.now()
   #|   const ctrl = new AbortController()
@@ -280,6 +283,7 @@ extern "js" fn js_tab_close(profile : String) -> String =
 /// 先 navigator.clipboard（唯一「知道成没成」的正路：它 reject 就说得出原因），
 /// 它不在或拒了就退到 execCommand 那条老路 —— 两条都失败时如实回 ok:false，
 /// **不假装复制成功**（提示条上那句「已复制」必须对应真写进去的东西）。
+
 ///|
 /// 去掉一段提示文字末尾的空白与标点。
 ///
@@ -290,6 +294,7 @@ extern "js" fn js_tab_close(profile : String) -> String =
 extern "js" fn js_trim_tail_period(text : String) -> String =
   #| (s) => String(s).replace(/[\s。.！!？?；;，,、：:]+$/u, '')
 
+///|
 extern "js" fn js_copy_text(text : String) -> @js.Promise =
   #| text => (async () => {
   #|   let clipboardError = ''
@@ -324,18 +329,11 @@ extern "js" fn js_copy_text(text : String) -> @js.Promise =
 
 ///|
 /// 复制这一枪：回执走 CopyDone（成功与失败都要有话说，不吞）。
-fn copy_cmd(
-  label : String,
-  text : String,
-  emit : @cmd.Emit[Msg],
-) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(CopyDone(label, res)) },
-    async fn() {
-      let text : String = js_copy_text(text).wait().cast()
-      text
-    },
-  )
+fn copy_cmd(label : String, text : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.attempt(fn(res : Result[String, Error]) { emit(CopyDone(label, res)) }, async fn() {
+    let text : String = js_copy_text(text).wait().cast()
+    text
+  })
 }
 
 ///|
@@ -387,7 +385,7 @@ extern "js" fn js_iso_time_ms(ms : Double) -> String =
 /// 节点当场撤掉，而不是留着等一段看不见的动画走完（留着的这段时间它还盖着页面）。
 /// 样式里有同一条 media query 把动画关掉（开的那一半归它管）；这里问一遍是为了
 /// 连节点都不留。返回 Int 而不是 Bool：FFI 的数值边界最不容易出岔子。
-extern "js" fn js_reduced_motion() -> Int =
+extern "js" fn js_reduced_motion() -> Int32 =
   #| () => (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 1 : 0
 
 ///|
@@ -401,7 +399,7 @@ fn prefers_reduced_motion() -> Bool {
 /// 拖动排序要按它判「窄屏不响应」：单列那一档（< 726px）里，纵向拖动与页面滚动
 /// 会互相打架 —— 拖一次条目，页面跟着滚。断点用的是与样式里那条 media query
 /// 同一个数（.dsh-rows.dsh-card-grid 的 2 列起点），两处必须一起改。
-extern "js" fn js_viewport_width() -> Int =
+extern "js" fn js_viewport_width() -> Int32 =
   #| () => Math.round(window.innerWidth || 0)
 
 ///|
@@ -451,7 +449,7 @@ extern "js" fn js_drop_freeze(dragged : String) -> String =
 ///|
 /// 这一次拖动期间，坐标有没有被滚动搅掉（滚过 = true）。
 /// 上层据此把拖动收掉：冻着的那份坐标已经在说别处的格子了。
-extern "js" fn js_drop_scrolled() -> Int =
+extern "js" fn js_drop_scrolled() -> Int32 =
   #| () => (globalThis.__dshDropArmed ? 1 : 0)
 
 ///|
@@ -562,7 +560,11 @@ extern "js" fn js_drag_ghost_move(x : Double, y : Double) -> Unit =
 /// 810 宽的两列、1280 宽的四列，都走同一份代码。
 /// 谁在哪一格：占位块在第 k 格、被拖的那一条在最后一格、其余各条按现在的次序填满
 /// 剩下的格子 —— 与「真把它抽走、再插进第 k 格」的终局逐格相同。
-extern "js" fn js_grid_cells(group : String, dragged : String, k : Int) -> Int =
+extern "js" fn js_grid_cells(
+  group : String,
+  dragged : String,
+  k : Int32,
+) -> Int32 =
   #| (group, dragged, k) => {
   #|   const grid = document.querySelector('[data-name="row-group"][data-group="' + group + '"]');
   #|   if (!grid) return -1;
@@ -625,6 +627,7 @@ extern "js" fn js_grid_cells_clear() -> Unit =
   #|     n.style.gridRow = '';
   #|   }
   #| }
+
 ///|
 /// 让位那一段：把「刚发生的格子变化」演出来。
 ///
@@ -640,7 +643,7 @@ extern "js" fn js_grid_cells_clear() -> Unit =
 ///
 /// 时长 180 与 state.mbt 的 reorder_ms 是同一个数（改一处得改另一处）：
 /// 那边那份是给读代码的人看的，真正生效的是这里这一行。
-extern "js" fn js_drop_flip() -> Int =
+extern "js" fn js_drop_flip() -> Int32 =
   #| () => {
   #|   if (!globalThis.__dshDropRef) return 0;
   #|   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 0;
@@ -670,22 +673,34 @@ extern "js" fn js_drop_flip() -> Int =
 ///|
 /// 让位那一段排在渲染之后跑（见 dom.mbt 顶上的说明：AfterRender 时 DOM 才刚补完）。
 fn reorder_after_render() -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { ignore(js_drop_flip()) }, kind=@cmd.after_render)
+  @cmd.custom_cmd(
+    fn(_scheduler) { ignore(js_drop_flip()) },
+    kind=@cmd.after_render,
+  )
 }
 
 ///|
 /// 摆格子：把这一组的每一条直接放进它该在的那一格（见 js_grid_cells）。
 /// 排在渲染之后 —— 节点得先在文档里，量列数、找占位块才有对象。
-fn preview_cells_after_render(group : String, dragged : String, k : Int) -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { ignore(js_grid_cells(group, dragged, k)) }, kind=@cmd.after_render)
+fn preview_cells_after_render(
+  group : String,
+  dragged : String,
+  k : Int32,
+) -> @cmd.Cmd {
+  @cmd.custom_cmd(
+    fn(_scheduler) { ignore(js_grid_cells(group, dragged, k)) },
+    kind=@cmd.after_render,
+  )
 }
 
 ///|
 /// 撤掉摆过的格子（落位 / 作废之后）。
 fn clear_cells_after_render() -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { js_grid_cells_clear() }, kind=@cmd.after_render)
+  @cmd.custom_cmd(
+    fn(_scheduler) { js_grid_cells_clear() },
+    kind=@cmd.after_render,
+  )
 }
-
 
 ///|
 /// 渲染完成之后再聚焦：菜单打开要落到第一项，关闭要把焦点还给触发元素。
@@ -696,28 +711,39 @@ fn focus_after_render(id : String) -> @cmd.Cmd {
 
 ///|
 fn focus_select_after_render(id : String) -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { js_focus_select_id(id) }, kind=@cmd.after_render)
+  @cmd.custom_cmd(
+    fn(_scheduler) { js_focus_select_id(id) },
+    kind=@cmd.after_render,
+  )
 }
 
 ///|
 fn focus_end_after_render(id : String) -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { js_focus_end_id(id) }, kind=@cmd.after_render)
+  @cmd.custom_cmd(
+    fn(_scheduler) { js_focus_end_id(id) },
+    kind=@cmd.after_render,
+  )
 }
-
-
 
 ///|
 fn scroll_bottom_after_render(id : String) -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { js_scroll_bottom_id(id) }, kind=@cmd.after_render)
+  @cmd.custom_cmd(
+    fn(_scheduler) { js_scroll_bottom_id(id) },
+    kind=@cmd.after_render,
+  )
 }
 
 ///|
 fn scroll_into_view_after_render(id : String) -> @cmd.Cmd {
-  @cmd.custom_cmd(fn(_scheduler) { js_scroll_into_view_id(id) }, kind=@cmd.after_render)
+  @cmd.custom_cmd(
+    fn(_scheduler) { js_scroll_into_view_id(id) },
+    kind=@cmd.after_render,
+  )
 }
+
 ///|
 /// 滑动确认：指针在轨道里的百分比（0..100，按轨道宽度算）。
-extern "js" fn js_slide_percent(track_id : String, client_x : Double) -> Int =
+extern "js" fn js_slide_percent(track_id : String, client_x : Double) -> Int32 =
   #| (track_id, client_x) => {
   #|   const el = document.getElementById(track_id);
   #|   if (!el) return 0;
@@ -726,9 +752,10 @@ extern "js" fn js_slide_percent(track_id : String, client_x : Double) -> Int =
   #|   const pct = Math.round(((client_x - r.left) / r.width) * 100);
   #|   return Math.max(0, Math.min(100, pct));
   #| }
+
 ///|
 /// 提交区起点百分比：(宽度 - zone_px) / 宽度 × 100。轨道宽度随视口变，别写死 90。
-extern "js" fn js_slide_zone_pct(track_id : String, zone_px : Int) -> Int =
+extern "js" fn js_slide_zone_pct(track_id : String, zone_px : Int32) -> Int32 =
   #| (track_id, zone_px) => {
   #|   const el = document.getElementById(track_id);
   #|   if (!el) return 90;

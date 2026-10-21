@@ -4,7 +4,6 @@
 // 2026-10-20 从 app.mbt 拆出来：提示的出口只有一个，那段文案逻辑却横跨文件头部与中部，
 // 与动作处理纠缠；拆成一份之后「一句话怎么说」只在这一个文件里找。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 成功回执里的 outcome 对象。回执不是约定的形状就给 None ——
 /// 拿不到结构就退回通用说法，不猜、也不编一个结果出来。
@@ -55,7 +54,10 @@ fn outcome_size_text(outcome : Map[String, Json]) -> String {
 ///
 /// 读不出 mode 就退回一句通用的（name 是这一行在界面上的名字），
 /// 不拿一个空 mode 去编「这一版认不出这个值」。
-fn delete_receipt(name : String, outcome : Map[String, Json]?) -> (String, String) {
+fn delete_receipt(
+  name : String,
+  outcome : Map[String, Json]?,
+) -> (String, String) {
   let outcome = match outcome {
     None => return (name + " 已删除。", "")
     Some(outcome) => outcome
@@ -74,17 +76,35 @@ fn delete_receipt(name : String, outcome : Map[String, Json]?) -> (String, Strin
   } else if mode == "hard-delete" {
     who + " 已删除，无法恢复。"
   } else {
-    who + " 已删除（回执里的 mode 是「" + mode + "」，这一版认不出这个值）。"
+    who +
+    " 已删除（回执里的 mode 是「" +
+    mode +
+    "」，这一版认不出这个值）。"
   }
   // home = 这一份是从哪个 home 删的；进回收站时它会连条目一起记下来，恢复按它归位。
   // 记不上时 originError 给原因 —— 那句话必须露出来，不然恢复落到别处时没人知道为什么。
   let home = str_field(outcome, "home")
   let origin_error = str_field(outcome, "originError")
-  let hint = "profile=" + profile + " | dir=" + dir + " | mode=" + mode + " | trashPath=" +
-    (if trash_path == "" { "（硬删，没有回收站落点）" } else { trash_path }) +
-    " | hardDeleted=" + (if hard { "true" } else { "false" }) +
+  let hint = "profile=" +
+    profile +
+    " | dir=" +
+    dir +
+    " | mode=" +
+    mode +
+    " | trashPath=" +
+    (if trash_path == "" {
+      "（硬删，没有回收站落点）"
+    } else {
+      trash_path
+    }) +
+    " | hardDeleted=" +
+    (if hard { "true" } else { "false" }) +
     (if home == "" { "" } else { " | home=" + home }) +
-    (if origin_error == "" { "" } else { " | 来源 home 没记住：" + origin_error })
+    (if origin_error == "" {
+      ""
+    } else {
+      " | 来源 home 没记住：" + origin_error
+    })
   (text, hint)
 }
 
@@ -106,11 +126,13 @@ fn trash_receipt(
   let who = if profile == "" { name } else { profile }
   if action == "restore-from-trash" {
     let to = str_field(outcome, "restoredTo")
-    let hint = outcome_size_text(outcome) + (if to == "" { "" } else { " | 恢复到 " + to })
+    let hint = outcome_size_text(outcome) +
+      (if to == "" { "" } else { " | 恢复到 " + to })
     (who + " 已恢复，回到 profile 列表里。", hint)
   } else {
     let path = str_field(outcome, "path")
-    let hint = outcome_size_text(outcome) + (if path == "" { "" } else { " | 原路径 " + path })
+    let hint = outcome_size_text(outcome) +
+      (if path == "" { "" } else { " | 原路径 " + path })
     (who + " 已彻底删除。", hint)
   }
 }
@@ -137,7 +159,10 @@ fn action_receipt(
   // 所以正文只说「本机默认程序」，不猜一个具体的名字出来 ✗
   // 真正用了哪个（opener + pid）在后端回执里，照旧收进悬停。
   if action == "open-path" {
-    return (name + " 已用本机默认程序" + verb + "。", backend_hint(note))
+    return (
+      name + " 已用本机默认程序" + verb + "。",
+      backend_hint(note),
+    )
   }
   // 补包（design/design-fixes.md §39.3）：正文就要后端那一句短的
   //（「<名> 的包已装齐（pnpm install --prefer-offline，3 秒）」），
@@ -154,9 +179,13 @@ fn action_receipt(
         (if str_field(outcome, "command") == "" {
           ""
         } else {
-          "\n命令：" + str_field(outcome, "command") + "（退出码 " +
-          int_or(outcome, "exitCode", -1).to_string() + "，" +
-          (int_or(outcome, "durationMs", 0) / 1000).to_string() + " 秒）"
+          "\n命令：" +
+          str_field(outcome, "command") +
+          "（退出码 " +
+          int_or(outcome, "exitCode", -1).to_string() +
+          "，" +
+          (int_or(outcome, "durationMs", 0) / 1000).to_string() +
+          " 秒）"
         })
       None => backend_hint(note)
     }
@@ -166,17 +195,22 @@ fn action_receipt(
   // 光说「已隔离」的话，使用者还得自己翻读数去确认那份目录现在在哪。
   if action == "isolate-profile" {
     let (from, to) = match outcome {
-      Some(outcome) => (str_field(outcome, "movedFrom"), str_field(outcome, "movedTo"))
+      Some(outcome) =>
+        (str_field(outcome, "movedFrom"), str_field(outcome, "movedTo"))
       None => ("", "")
     }
     let text = if to == "" {
       name + " 已经移至隔离 home。"
     } else {
-      name + " 已经移至隔离 home：" + to + "（原来那份不再留在共用 home 里）。"
+      name +
+      " 已经移至隔离 home：" +
+      to +
+      "（原来那份不再留在共用 home 里）。"
     }
     let hint = match outcome {
       Some(outcome) =>
-        backend_hint(note) + (if from == "" { "" } else { "\n移动：" + from + " -> " + to }) +
+        backend_hint(note) +
+        (if from == "" { "" } else { "\n移动：" + from + " -> " + to }) +
         (if str_field(outcome, "deviceNote") == "" {
           ""
         } else {
@@ -208,7 +242,8 @@ fn action_receipt(
       ""
     } else {
       "这份额外 home 里剩下的会话与插件状态移到了回收站" +
-      (if size == "" { "" } else { "（" + size + "）" }) + "，可以捞回来。"
+      (if size == "" { "" } else { "（" + size + "）" }) +
+      "，可以捞回来。"
     }
     return (head + tail, backend_hint(note))
   }
@@ -217,16 +252,29 @@ fn action_receipt(
   if action == "snapshot-profile" {
     let (files, bytes, dir, at) = match outcome {
       Some(o) =>
-        (int_or(o, "files", 0), num_field(o, "bytes"), str_field(o, "dir"), str_field(o, "at"))
+        (
+          int_or(o, "files", 0),
+          num_field(o, "bytes"),
+          str_field(o, "dir"),
+          str_field(o, "at"),
+        )
       None => (0, None, "", "")
     }
     let when = match js_short_time(at) {
       "" => ""
       short => "（" + short + "）"
     }
-    let text = "已给 " + name + " 拍了一张快照" + when + "：" + files.to_string() + " 个文件 · " +
-      trash_size_text(bytes) + "。"
-    let hint = backend_hint(note) + (if dir == "" { "" } else { "\n快照目录：" + dir })
+    let text = "已给 " +
+      name +
+      " 拍了一张快照" +
+      when +
+      "：" +
+      files.to_string() +
+      " 个文件 · " +
+      trash_size_text(bytes) +
+      "。"
+    let hint = backend_hint(note) +
+      (if dir == "" { "" } else { "\n快照目录：" + dir })
     return (text, hint)
   }
   if action == "restore-snapshot" {
@@ -245,11 +293,20 @@ fn action_receipt(
       short => short + " 那一份"
     }
     let text = if restored.length() == 0 {
-      name + " 已还原到 " + when + "，但那三个文件快照里一个都没有，profile 里的内容没动。"
+      name +
+      " 已还原到 " +
+      when +
+      "，但那三个文件快照里一个都没有，profile 里的内容没动。"
     } else {
-      name + " 已还原到 " + when + "（写回 " + restored.join("、") + "）。"
+      name +
+      " 已还原到 " +
+      when +
+      "（写回 " +
+      restored.join("、") +
+      "）。"
     }
-    let hint = backend_hint(note) + (if pre_id == "" { "" } else { "\n还原前那张快照：" + pre_id }) +
+    let hint = backend_hint(note) +
+      (if pre_id == "" { "" } else { "\n还原前那张快照：" + pre_id }) +
       (if dir == "" { "" } else { "\n这一份快照在：" + dir })
     return (text, hint)
   }
@@ -269,9 +326,17 @@ fn action_receipt(
       None => ("", "", [], [], [], "")
     }
     if to != "" && from != "" {
-      let text = to + " 的配置已用 " + from + " 替换（写了 " + written.length().to_string() +
-        " 份文件，搬了 " + moved.length().to_string() + " 个包，跳过 " +
-        skipped.length().to_string() + " 个已存在的包）；替换前快照 " + snap_id
+      let text = to +
+        " 的配置已用 " +
+        from +
+        " 替换（写了 " +
+        written.length().to_string() +
+        " 份文件，搬了 " +
+        moved.length().to_string() +
+        " 个包，跳过 " +
+        skipped.length().to_string() +
+        " 个已存在的包）；替换前快照 " +
+        snap_id
       let mut hint = backend_hint(note)
       match outcome {
         Some(o) => {
@@ -292,7 +357,9 @@ fn action_receipt(
         hint = hint + "\n搬过去的包：" + moved.join("、")
       }
       if skipped.length() > 0 {
-        hint = hint + "\n同名已存在、没有覆盖的包：" + skipped.join("、")
+        hint = hint +
+          "\n同名已存在、没有覆盖的包：" +
+          skipped.join("、")
       }
       return (text, hint)
     }
@@ -319,7 +386,9 @@ fn action_receipt(
           None => 0
         }
         let suffix = if links > 0 {
-          "（副本里还有 " + links.to_string() + " 个软链接指向原处）"
+          "（副本里还有 " +
+          links.to_string() +
+          " 个软链接指向原处）"
         } else {
           ""
         }
@@ -351,7 +420,11 @@ fn str_array_field(obj : Map[String, Json], key : String) -> Array[String] {
 
 ///|
 /// 备注保存的回执：清空与写入是两件事，后端在 outcome.removed 里说了；说了就照它说。
-fn note_receipt(name : String, note : String, res : Result[String, Error]) -> (String, String) {
+fn note_receipt(
+  name : String,
+  note : String,
+  res : Result[String, Error],
+) -> (String, String) {
   let removed = match outcome_of(res) {
     Some(outcome) => bool_field(outcome, "removed")
     None => false
@@ -379,7 +452,10 @@ fn interpret_http(res : Result[String, Error]) -> (Bool, String) {
           Err(reason) =>
             (
               false,
-              "HTTP " + got.status.to_string() + " | 回执不是约定的格式：" + reason,
+              "HTTP " +
+              got.status.to_string() +
+              " | 回执不是约定的格式：" +
+              reason,
             )
         }
       } else {
@@ -431,8 +507,10 @@ fn outcome_value_text(value : Json) -> String {
 /// 后端还没提供接口时（例如 404 的空响应体）到这里也要说清「响应体不是约定的错误壳」。
 fn failure_note(got : HttpResult) -> String {
   let head = http_status_text(got)
-  let root = try @json.parse(got.body) catch {
-    _ => return head + " | 回执不是合法 JSON（这一版可能还没有这个动作）"
+  let root = @json.parse(got.body) catch {
+    _ =>
+      return head +
+        " | 回执不是合法 JSON（这一版可能还没有这个动作）"
   }
   guard root is Json::Object(obj) else {
     return head + " | 回执不是 JSON 对象"
@@ -477,7 +555,7 @@ fn notice_err(model : Model, text : String) -> Model {
 
 ///|
 /// 动作失败的正文最多几个字（design/design-fixes.md §32.1）。
-pub let failure_text_max : Int = 56
+pub let failure_text_max : Int32 = 56
 
 ///|
 /// 失败提示的正文：**只留第一句**（§32.1）。
@@ -568,7 +646,13 @@ fn is_token_char(c : Char) -> Bool {
   (c >= '0' && c <= '9') ||
   (c >= 'a' && c <= 'z') ||
   (c >= 'A' && c <= 'Z') ||
-  c == '-' || c == '_' || c == '.' || c == '~' || c == '+' || c == '/' || c == '='
+  c == '-' ||
+  c == '_' ||
+  c == '.' ||
+  c == '~' ||
+  c == '+' ||
+  c == '/' ||
+  c == '='
 }
 
 ///|
@@ -578,7 +662,7 @@ fn notice_put(
   ok : Bool,
   text : String,
   hint : String,
-  audit? : Bool = false,
+  audit~ : Bool = false,
 ) -> Model {
   let seq = model.notice_serial + 1
   // 末尾句号在这里统一去掉：提示条说的是一句结论，不是一段话
@@ -589,7 +673,9 @@ fn notice_put(
   let at = local_time_now()
   // 通知历史（§36）：新到旧留最近 notice_history_max 条。只在内存里，刷新就清空。
   // 顺序是「新的插在最前面」，侧栏直接照这个顺序摆，不再排一遍。
-  let history : Array[NoticeRecord] = [{ at, ok, text: safe_text, hint: safe_hint, audit }]
+  let history : Array[NoticeRecord] = [
+    { at, ok, text: safe_text, hint: safe_hint, audit, },
+  ]
   let mut kept = 1
   for item in model.notice_history {
     if kept < notice_history_max {
@@ -600,7 +686,7 @@ fn notice_put(
   {
     ..model,
     notice_serial: seq,
-    notice: Some({ seq, ok, text: safe_text, hint: safe_hint, at, audit }),
+    notice: Some({ seq, ok, text: safe_text, hint: safe_hint, at, audit, }),
     notice_history: history,
     notice_unread: model.notice_unread + 1,
     flash_fading: false,
@@ -634,7 +720,7 @@ fn notice_parts(model : Model) -> (String, String) {
 
 ///|
 /// 当前那条提示的序号（0 = 没有）。到期消息带着序号回来，对不上就作废。
-fn notice_seq(model : Model) -> Int {
+fn notice_seq(model : Model) -> Int32 {
   match model.notice {
     Some(n) => n.seq
     None => 0

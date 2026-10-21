@@ -18,11 +18,11 @@
 /// 一次 relink 的结果。四个数都进回执 / 审计（§48.2 要的 refsRewritten 是其中之一）。
 pub(all) struct RelinkReport {
   /// 重写过的相对链接条数
-  mut links_fixed : Int
+  mut links_fixed : Int32
   /// 跳过的链接条数：目标找不到（原本就坏）、或链接本身读不出来
-  mut links_broken : Int
+  mut links_broken : Int32
   /// cordis.patch.yml / package.json 里换掉的前缀条数
-  mut refs_rewritten : Int
+  mut refs_rewritten : Int32
   /// 跳过的那几条各自的原文（进悬停，最多留 5 条）
   mut notes : Array[String]
 }
@@ -30,7 +30,7 @@ pub(all) struct RelinkReport {
 ///|
 /// 一个空结果（没有要改的东西时用）。
 fn empty_report() -> RelinkReport {
-  { links_fixed: 0, links_broken: 0, refs_rewritten: 0, notes: [] }
+  { links_fixed: 0, links_broken: 0, refs_rewritten: 0, notes: [], }
 }
 
 ///|
@@ -43,7 +43,10 @@ fn path_is_absolute(path : String) -> Bool {
     return true
   }
   // Windows 盘符写法（C:… / C:/…）：第二个字符是冒号就算绝对
-  path.length() > 1 && path[1] == ':' && (path.length() > 2 && (path[2] == '/' || path[2] == '\\'))
+  path.length() > 1 &&
+  path[1] == ':' &&
+  path.length() > 2 &&
+  (path[2] == '/' || path[2] == '\\')
 }
 
 ///|
@@ -108,14 +111,19 @@ fn relative_path(from_dir : String, target : String) -> String {
 /// 跳过 skip 里的名字（fork 时 node_modules 本来就不拷），并跳过 node_modules/.pnpm：
 /// 那里是 pnpm 自己的链接农场，几千条链接既不归这份 profile 管，搬完 pnpm 也会重新链。
 /// 条数有上限（避免一份超大目录把一次动作拖死）。
-pub async fn collect_links(root : String, skip : Array[String]) -> Array[String] noraise {
+pub async fn collect_links(
+  root : String,
+  skip : Array[String],
+) -> Array[String] noraise {
   let out : Array[String] = []
   let queue : Array[String] = [root]
   let mut cursor = 0
   let mut visited = 0
   let max_entries = 20000
   let max_links = 2000
-  while cursor < queue.length() && out.length() < max_links && visited < max_entries {
+  while cursor < queue.length() &&
+        out.length() < max_links &&
+        visited < max_entries {
     let dir = queue[cursor]
     cursor = cursor + 1
     let names = match @json.list_dir_result(dir) {
@@ -134,11 +142,7 @@ pub async fn collect_links(root : String, skip : Array[String]) -> Array[String]
         continue
       }
       let path = @json.join_path(dir, name)
-      let kind = try {
-        @fs.kind(path, follow_symlink=false)
-      } catch {
-        _ => Unknown
-      }
+      let kind = @fs.kind(path, follow_symlink=false) catch { _ => Unknown }
       match kind {
         SymLink => out.push(path)
         Directory => queue.push(path)
@@ -188,7 +192,7 @@ async fn rewrite_link(link : String, target : String) -> Bool noraise {
 ///  · 外部：解析后落在 profile 目录之外、且目标存在的链接；
 ///  · 坏：解析不到目标的链接（只供排查，不上界面）。
 /// 口径与 §48 的 relink 一致：相对链接按链接自身目录解析，只看链接本身、不跟进目标目录。
-pub async fn link_counts_in(dir : String) -> (Int, Int) noraise {
+pub async fn link_counts_in(dir : String) -> (Int32, Int32) noraise {
   let mut external = 0
   let mut broken = 0
   if dir == "" {
@@ -214,7 +218,10 @@ pub async fn link_counts_in(dir : String) -> (Int, Int) noraise {
 ///|
 /// 搬家之后跑一遍：把 new_dir 里的相对链接按 old_dir→new_dir 重算，
 /// 再把两份配置里以 old_dir 开头的绝对路径换成 new_dir。
-pub async fn relink_after_move(old_dir : String, new_dir : String) -> RelinkReport noraise {
+pub async fn relink_after_move(
+  old_dir : String,
+  new_dir : String,
+) -> RelinkReport noraise {
   if old_dir == "" || new_dir == "" || old_dir == new_dir {
     return empty_report()
   }
@@ -238,7 +245,9 @@ pub async fn relink_after_move(old_dir : String, new_dir : String) -> RelinkRepo
       // 原本就是坏的：不猜一个目标出来，跳过并记一条（§48.1 / 验收 4）
       report.links_broken = report.links_broken + 1
       if report.notes.length() < 5 {
-        report.notes.push(link + " -> " + text + "（目标不在：" + target + "）")
+        report.notes.push(
+          link + " -> " + text + "（目标不在：" + target + "）",
+        )
       }
       continue
     }
@@ -283,7 +292,9 @@ pub async fn carry_symlinks(
     if !@json.exists(resolved) {
       report.links_broken = report.links_broken + 1
       if report.notes.length() < 5 {
-        report.notes.push(link + " -> " + text + "（目标不在：" + resolved + "）")
+        report.notes.push(
+          link + " -> " + text + "（目标不在：" + resolved + "）",
+        )
       }
       continue
     }
@@ -318,7 +329,11 @@ pub async fn carry_symlinks(
 /// 把新目录里两份配置文本中的旧目录前缀换掉，返回换了几处。
 ///
 /// 只换「后面跟 /」或「正好等于旧目录」的出现：别把别的路径里偶然相同的片段换掉。
-async fn rewrite_refs(dir : String, old_prefix : String, new_prefix : String) -> Int noraise {
+async fn rewrite_refs(
+  dir : String,
+  old_prefix : String,
+  new_prefix : String,
+) -> Int32 noraise {
   let mut total = 0
   for name in ["cordis.patch.yml", "package.json"] {
     let path = @json.join_path(dir, name)
@@ -337,7 +352,11 @@ async fn rewrite_refs(dir : String, old_prefix : String, new_prefix : String) ->
 
 ///|
 /// 文本里的旧前缀替换（见 rewrite_refs 的边界口径），返回 (新文本, 条数)。
-fn replace_path_prefix(text : String, from : String, to : String) -> (String, Int) {
+fn replace_path_prefix(
+  text : String,
+  from : String,
+  to : String,
+) -> (String, Int32) {
   if from == "" || from == to {
     return (text, 0)
   }
@@ -370,8 +389,13 @@ fn replace_path_prefix(text : String, from : String, to : String) -> (String, In
     // 否则说明它只是某个更长路径里的一段，不该动
     if hit && i + flen < n {
       let after = chars[i + flen]
-      if after != '/' && after != ' ' && after != '"' && after != '\n' &&
-        after != '\t' && after != '\r' && after != ',' {
+      if after != '/' &&
+        after != ' ' &&
+        after != '"' &&
+        after != '\n' &&
+        after != '\t' &&
+        after != '\r' &&
+        after != ',' {
         hit = false
       }
     }

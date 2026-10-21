@@ -50,7 +50,12 @@ fn page_label(page : Page) -> String {
 }
 
 ///|
-fn nav_item(page : Page, current : Page, icon_name : String, emit : @cmd.Emit[Msg]) -> @html.Html {
+fn nav_item(
+  page : Page,
+  current : Page,
+  icon_name : String,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
   let active = page == current
   let label = page_label(page)
   @html.button(
@@ -105,7 +110,14 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     class=cls,
     attrs=mark("side-nav", ["shell", "side-nav"])
       .aria_label("主导航")
-      .data_set("collapsed", if model.sidebar_collapsed { "true" } else { "false" })
+      .data_set(
+        "collapsed",
+        if model.sidebar_collapsed {
+          "true"
+        } else {
+          "false"
+        },
+      )
       .data_set("open", if model.sidebar_overlay { "true" } else { "false" }),
     [
       @html.div(class="dsh-brand", [
@@ -136,7 +148,9 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         [
           @html.i(
             class="dsh-side-dot " + health_key(model.health_state),
-            attrs=mark("side-foot-dot", ["shell", "side-foot", "dot"]).aria_hidden("true"),
+            attrs=mark("side-foot-dot", ["shell", "side-foot", "dot"]).aria_hidden(
+              "true",
+            ),
             @html.nothing,
           ),
           @html.span(
@@ -153,7 +167,9 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             ),
             [
               @html.span(
-                attrs=mark("side-version-client", ["shell", "side-foot", "client"]),
+                attrs=mark("side-version-client", [
+                  "shell", "side-foot", "client",
+                ]),
                 "client " + build_sha,
               ),
             ],
@@ -165,8 +181,11 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
               } else {
                 @html.span(
                   class="dsh-side-ver",
-                  attrs=mark("side-version-server", ["shell", "side-foot", "server"])
-                    .title("server " + facts.build_at + "（控制台后端构建）"),
+                  attrs=mark("side-version-server", [
+                    "shell", "side-foot", "server",
+                  ]).title(
+                    "server " + facts.build_at + "（控制台后端构建）",
+                  ),
                   "server " + facts.build_sha,
                 )
               }
@@ -186,37 +205,42 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 /// 正是上一轮删掉的东西，不再造一遍。
 fn shell_topbar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let collapsed = model.sidebar_collapsed
-  @html.header(
-    class="dsh-topbar",
-    attrs=mark("topbar", ["shell", "topbar"]),
-    [
-      @html.button(
-        id=side_toggle_id(),
-        class="dsh-icon-btn",
-        type_="button",
-        attrs=mark("side-toggle", ["shell", "topbar", "side-toggle"])
-          .aria_label(if collapsed { "展开侧栏" } else { "收起侧栏" })
-          .aria_expanded(if collapsed { "false" } else { "true" })
-          .aria_controls("dsh-side-nav")
-          .title(
-            if collapsed {
-              "展开侧栏（190px，带文字）"
-            } else {
-              "收起成 56px 的图标栏，悬停看名字"
-            },
-          ),
-        on_click=emit(SidebarToggle),
-        [icon(if collapsed { "chevron-double-right" } else { "chevron-double-left" }, size=16)],
-      ),
-      @html.span(
-        class="dsh-topbar-title",
-        attrs=mark("topbar-title", ["shell", "topbar", "title"]),
-        page_label(model.page),
-      ),
-      // 顶栏右侧：通知（§36）。按钮 + 未读角标，点在右侧开历史侧栏。
-      notice_bell(model, emit, "topbar"),
-    ],
-  )
+  @html.header(class="dsh-topbar", attrs=mark("topbar", ["shell", "topbar"]), [
+    @html.button(
+      id=side_toggle_id(),
+      class="dsh-icon-btn",
+      type_="button",
+      attrs=mark("side-toggle", ["shell", "topbar", "side-toggle"])
+        .aria_label(if collapsed { "展开侧栏" } else { "收起侧栏" })
+        .aria_expanded(if collapsed { "false" } else { "true" })
+        .aria_controls("dsh-side-nav")
+        .title(
+          if collapsed {
+            "展开侧栏（190px，带文字）"
+          } else {
+            "收起成 56px 的图标栏，悬停看名字"
+          },
+        ),
+      on_click=emit(SidebarToggle),
+      [
+        icon(
+          if collapsed {
+            "chevron-double-right"
+          } else {
+            "chevron-double-left"
+          },
+          size=16,
+        ),
+      ],
+    ),
+    @html.span(
+      class="dsh-topbar-title",
+      attrs=mark("topbar-title", ["shell", "topbar", "title"]),
+      page_label(model.page),
+    ),
+    // 顶栏右侧：通知（§36）。按钮 + 未读角标，点在右侧开历史侧栏。
+    notice_bell(model, emit, "topbar"),
+  ])
 }
 
 ///|
@@ -255,13 +279,16 @@ fn shell_narrowbar(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 /// 从窄屏拉宽到宽屏时也不会留下一个盖住整页的东西。
 fn side_scrim(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   @html.div(
-    class=if model.sidebar_overlay { "dsh-side-scrim open" } else { "dsh-side-scrim" },
+    class=if model.sidebar_overlay {
+      "dsh-side-scrim open"
+    } else {
+      "dsh-side-scrim"
+    },
     attrs=mark("side-scrim", ["shell", "side-scrim"]),
     on_click=emit(SidebarOverlayClose),
     @html.nothing,
   )
 }
-
 
 ///|
 /// 地址回落说明：认不出来的地址落在这一页时，把「为什么」摆在最上面。
@@ -285,19 +312,35 @@ fn route_notice_bar(model : Model) -> @html.Html {
 ///
 /// 角标只是「上次打开侧栏之后又来了几条」：打开就算看过了，不另设已读操作。
 /// 颜色之外还有 aria-label 与悬停里的条数 —— 不靠颜色单独表达。
-fn notice_bell(model : Model, emit : @cmd.Emit[Msg], slot : String) -> @html.Html {
+fn notice_bell(
+  model : Model,
+  emit : @cmd.Emit[Msg],
+  slot : String,
+) -> @html.Html {
   let unread = model.notice_unread
-  let count = if unread > notice_history_max { notice_history_max } else { unread }
+  let count = if unread > notice_history_max {
+    notice_history_max
+  } else {
+    unread
+  }
   // 铃铛上不再挂未读数量（§97）：数字压在图标上既挤又容易和面板标题混读；
   // 未读信息只留在 aria-label 与悬停里，给读屏与鼠标用户，不占视觉。
   let kids : Array[@html.Html] = [icon("bell-outline", size=16)]
   @html.button(
     id=notice_bell_id(),
-    class=if model.notice_panel { "dsh-icon-btn dsh-bell active" } else { "dsh-icon-btn dsh-bell" },
+    class=if model.notice_panel {
+      "dsh-icon-btn dsh-bell active"
+    } else {
+      "dsh-icon-btn dsh-bell"
+    },
     type_="button",
     attrs=mark("notice-bell", ["shell", slot, "notice", "bell"])
       .aria_label(
-        if count > 0 { "通知：还有 " + count.to_string() + " 条未读" } else { "通知" },
+        if count > 0 {
+          "通知：还有 " + count.to_string() + " 条未读"
+        } else {
+          "通知"
+        },
       )
       .aria_haspopup("dialog")
       .aria_expanded(if model.notice_panel { "true" } else { "false" })
@@ -319,18 +362,38 @@ fn notice_bell(model : Model, emit : @cmd.Emit[Msg], slot : String) -> @html.Htm
 /// 通知历史里的一行（§36 / §45）：时刻、成功或失败（文字，不只是颜色）、
 /// **完整正文**（不再两行封顶，失败原文本来就该看全），以及两颗动作：
 /// 「复制」把正文与悬停细节一起写进剪贴板，「查看日志」只在这一条有审计行时出现。
-fn notice_row(item : NoticeRecord, index : Int, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let mut attrs = mark("notice-row", ["shell", "notice", "panel", "row", index.to_string()])
+fn notice_row(
+  item : NoticeRecord,
+  index : Int32,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let mut attrs = mark("notice-row", [
+    "shell",
+    "notice",
+    "panel",
+    "row",
+    index.to_string(),
+  ])
   if item.hint != "" {
     attrs = attrs.title(item.hint)
   }
-  let copy_text = if item.hint == "" { item.text } else { item.text + "\n" + item.hint }
+  let copy_text = if item.hint == "" {
+    item.text
+  } else {
+    item.text + "\n" + item.hint
+  }
   let actions : Array[@html.Html] = [
     @html.button(
       class="dsh-notice-row-btn",
       type_="button",
-      attrs=mark("notice-row-copy", ["shell", "notice", "panel", "row", index.to_string(), "copy"])
-        .title("复制这一条的正文与细节"),
+      attrs=mark("notice-row-copy", [
+        "shell",
+        "notice",
+        "panel",
+        "row",
+        index.to_string(),
+        "copy",
+      ]).title("复制这一条的正文与细节"),
       on_click=copy_cmd("通知", copy_text, emit),
       [@html.text("复制")],
     ),
@@ -340,8 +403,14 @@ fn notice_row(item : NoticeRecord, index : Int, emit : @cmd.Emit[Msg]) -> @html.
       @html.button(
         class="dsh-notice-row-btn",
         type_="button",
-        attrs=mark("notice-row-logs", ["shell", "notice", "panel", "row", index.to_string(), "logs"])
-          .title("在控制台审计里看这一条的完整记录"),
+        attrs=mark("notice-row-logs", [
+          "shell",
+          "notice",
+          "panel",
+          "row",
+          index.to_string(),
+          "logs",
+        ]).title("在控制台审计里看这一条的完整记录"),
         on_click=emit(NoticeOpenLogs),
         [@html.text("查看日志")],
       ),
@@ -355,7 +424,11 @@ fn notice_row(item : NoticeRecord, index : Int, emit : @cmd.Emit[Msg]) -> @html.
         @html.span(class="dsh-notice-row-time", item.at),
         @html.span(
           class="dsh-notice-row-mark",
-          if item.ok { "成功" } else { "失败" },
+          if item.ok {
+            "成功"
+          } else {
+            "失败"
+          },
         ),
       ]),
       @html.span(class="dsh-notice-row-text", item.text),
@@ -421,15 +494,18 @@ fn notice_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-notice-panel-head", [
           @html.h2(
             class="dsh-notice-panel-title",
-            attrs=mark("notice-panel-title", ["shell", "notice", "panel", "title"]),
+            attrs=mark("notice-panel-title", [
+              "shell", "notice", "panel", "title",
+            ]),
             "通知",
           ),
           @html.button(
             id=notice_panel_close_id(),
             class="dsh-btn icon-only",
             type_="button",
-            attrs=mark("notice-panel-close", ["shell", "notice", "panel", "close"])
-              .aria_label("关闭通知"),
+            attrs=mark("notice-panel-close", [
+              "shell", "notice", "panel", "close",
+            ]).aria_label("关闭通知"),
             on_click=emit(NoticePanelClose),
             [icon("close", size=16)],
           ),
@@ -482,8 +558,9 @@ fn global_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             @html.button(
               class="dsh-btn",
               type_="button",
-              attrs=mark("notice-open-logs", ["shell", "notice", "open-logs"])
-                .title("在审计日志里看这次失败的完整原因"),
+              attrs=mark("notice-open-logs", ["shell", "notice", "open-logs"]).title(
+                "在审计日志里看这次失败的完整原因",
+              ),
               on_click=emit(NoticeOpenLogs),
               [icon("text-box-outline"), @html.span("查看日志")],
             ),
@@ -495,8 +572,11 @@ fn global_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             @html.button(
               class="dsh-btn",
               type_="button",
-              attrs=mark("notice-open-web-ui", ["shell", "notice", "open-web-ui"])
-                .title("再点一下就在新标签页打开带令牌的地址。手动点击是新手势，弹窗拦截器拦不住"),
+              attrs=mark("notice-open-web-ui", [
+                "shell", "notice", "open-web-ui",
+              ]).title(
+                "再点一下就在新标签页打开带令牌的地址。手动点击是新手势，弹窗拦截器拦不住",
+              ),
               on_click=emit(NoticeOpenUi),
               [icon("open-in-new"), @html.span("打开 Web UI")],
             ),
@@ -505,7 +585,11 @@ fn global_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         // 成功用 toast 那副脸色，失败用提示条那副脸色；两者的外壳位置与层级是同一个，
         // 所以「成功自己走、失败常驻」只是计时上的差别，不靠第二套渲染点。
         let cls = if n.ok {
-          if model.flash_fading { "dsh-toast fading" } else { "dsh-toast" }
+          if model.flash_fading {
+            "dsh-toast fading"
+          } else {
+            "dsh-toast"
+          }
         } else {
           "dsh-notice err dsh-global-notice"
         }
@@ -513,7 +597,14 @@ fn global_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           class=cls,
           attrs=mark("global-notice", ["shell", "notice"])
             .data_set("ok", if n.ok { "true" } else { "false" })
-            .data_set("fading", if model.flash_fading { "true" } else { "false" })
+            .data_set(
+              "fading",
+              if model.flash_fading {
+                "true"
+              } else {
+                "false"
+              },
+            )
             .role("status")
             .on_mouseenter(fn(_e) { emit(FlashHover(true)) })
             .on_mouseleave(fn(_e) { emit(FlashHover(false)) }),
@@ -547,7 +638,13 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.drag_id != "" {
     shell_attrs = shell_attrs
       .on_pointermove(fn(event) {
-        emit(DragMove(event.get_client_x(), event.get_client_y(), event.get_buttons()))
+        emit(
+          DragMove(
+            event.get_client_x(),
+            event.get_client_y(),
+            event.get_buttons(),
+          ),
+        )
       })
       .on_pointerup(fn(_event) { emit(DragUp) })
       .on_pointercancel(fn(_event) { emit(DragCancel) })
@@ -570,31 +667,27 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       }
     })
   }
-  @html.div(
-    class="dsh-shell",
-    attrs=shell_attrs,
-    [
-      // 遮罩节点一直在（宽屏不显示）：见 side_scrim
-      side_scrim(model, emit),
-      side_nav(model, emit),
-      @html.div(class="dsh-workbench", [
-        shell_topbar(model, emit),
-        shell_narrowbar(model, emit),
-        route_notice_bar(model),
-        @html.main_(class="dsh-main", [body]),
-      ]),
-      // 全局提示挂在 shell 这一层、不在任何一页里面：位置与页面无关，
-      // 切页也不会把它带走（§14.2）。六个页面共用这一个节点。
-      global_notice(model, emit),
-      // 通知历史侧栏（§36）：也挂在 shell 这一层 —— 打开时切页不该把它带走。
-      notice_panel(model, emit),
-      // 全局启动变量专窗（§94）：它从设置页打开，而设置页不渲染总览的 dialogs 列表，
-      // 挂在 shell 才会出现（挂在 overview 里时探针永远 open:false）。
-      if model.env_global_open {
-        env_global_dialog(model, emit)
-      } else {
-        @html.nothing
-      },
-    ],
-  )
+  @html.div(class="dsh-shell", attrs=shell_attrs, [
+    // 遮罩节点一直在（宽屏不显示）：见 side_scrim
+    side_scrim(model, emit),
+    side_nav(model, emit),
+    @html.div(class="dsh-workbench", [
+      shell_topbar(model, emit),
+      shell_narrowbar(model, emit),
+      route_notice_bar(model),
+      @html.main_(class="dsh-main", [body]),
+    ]),
+    // 全局提示挂在 shell 这一层、不在任何一页里面：位置与页面无关，
+    // 切页也不会把它带走（§14.2）。六个页面共用这一个节点。
+    global_notice(model, emit),
+    // 通知历史侧栏（§36）：也挂在 shell 这一层 —— 打开时切页不该把它带走。
+    notice_panel(model, emit),
+    // 全局启动变量专窗（§94）：它从设置页打开，而设置页不渲染总览的 dialogs 列表，
+    // 挂在 shell 才会出现（挂在 overview 里时探针永远 open:false）。
+    if model.env_global_open {
+      env_global_dialog(model, emit)
+    } else {
+      @html.nothing
+    },
+  ])
 }

@@ -14,7 +14,7 @@ pub struct TailRead {
   raw_lines : Array[String]
   truncated : Bool
   note : String?
-  window_bytes : Int
+  window_bytes : Int32
   size : Int64
 }
 
@@ -51,29 +51,38 @@ fn split_lines(s : String) -> Array[String] {
 
 ///|
 /// 反向分块读尾：读够 tail 行，或者读到头、读满窗口。
-pub async fn read_tail_lines(file : String, tail : Int) -> TailRead raise TailError {
-  let size = try {
-    @fs.file_size(file)
-  } catch {
+pub async fn read_tail_lines(
+  file : String,
+  tail : Int32,
+) -> TailRead raise TailError {
+  let size = @fs.file_size(file) catch {
     err => raise TailError("读不到文件状态：" + err.to_string())
   }
   if size == 0L {
-    return { raw_lines: [], truncated: false, note: None, window_bytes: 0, size: 0L }
+    return {
+      raw_lines: [],
+      truncated: false,
+      note: None,
+      window_bytes: 0,
+      size: 0L,
+    }
   }
-  let handle = try {
-    @fs.open(file, mode=ReadOnly)
-  } catch {
+  let handle = @fs.open(file, mode=ReadOnly) catch {
     err => raise TailError("打不开文件：" + err.to_string())
   }
   defer handle.close()
   // 文件可能正在被写：以 fd 自己的 size 为准，不用前面那份可能过期的
-  let actual = try {
-    handle.size()
-  } catch {
+  let actual = handle.size() catch {
     err => raise TailError("读不到文件状态：" + err.to_string())
   }
   if actual == 0L {
-    return { raw_lines: [], truncated: false, note: None, window_bytes: 0, size: 0L }
+    return {
+      raw_lines: [],
+      truncated: false,
+      note: None,
+      window_bytes: 0,
+      size: 0L,
+    }
   }
 
   let mut window_bytes = 0L
@@ -82,7 +91,11 @@ pub async fn read_tail_lines(file : String, tail : Int) -> TailRead raise TailEr
   let mut at_start = false
   let mut done = false
   while !done {
-    let next = if window_bytes == 0L { initial_window_bytes } else { window_bytes * 2L }
+    let next = if window_bytes == 0L {
+      initial_window_bytes
+    } else {
+      window_bytes * 2L
+    }
     window_bytes = if next > actual { actual } else { next }
     window_for_note = window_bytes.to_int()
     let start = actual - window_bytes
@@ -94,7 +107,9 @@ pub async fn read_tail_lines(file : String, tail : Int) -> TailRead raise TailEr
     }
     let parts = split_lines(chunk)
     let head_count = parts.length() - 1
-    let enough = at_start || head_count >= tail || window_bytes >= max_window_bytes
+    let enough = at_start ||
+      head_count >= tail ||
+      window_bytes >= max_window_bytes
     if enough {
       done = true
     }
@@ -113,7 +128,9 @@ pub async fn read_tail_lines(file : String, tail : Int) -> TailRead raise TailEr
     raw_lines,
     truncated: thin,
     note: if thin {
-      Some("尾部窗口 \{window_for_note} 字节内只容得下 1 行，这一行可能被截断")
+      Some(
+        "尾部窗口 \{window_for_note} 字节内只容得下 1 行，这一行可能被截断",
+      )
     } else {
       None
     },

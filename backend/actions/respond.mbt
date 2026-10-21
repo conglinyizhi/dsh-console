@@ -17,24 +17,18 @@ pub let local_api_read_write : String = "read-write"
 ///|
 /// 契约里的七个错误码。
 pub let codes : Array[String] = [
-  "not-authorized",
-  "unknown-action",
-  "bad-params",
-  "not-found",
-  "conflict",
-  "spawn-failed",
-  "stop-failed",
-  "io-error",
+  "not-authorized", "unknown-action", "bad-params", "not-found", "conflict", "spawn-failed",
+  "stop-failed", "io-error",
   // 指定的那个目录不是这台机器上装着的一份 dsh（见 dsh_version.mbt 的 pin_dsh）
-  "dsh-not-installed",
+   "dsh-not-installed",
   // 同一 kind 已经有一条没做完的作业（见 job.mbt 的 job_start）
-  "job-exists",
+   "job-exists",
   // 同一只 profile 已经有一个补包在跑（见 repair.mbt 的 repair_packages）
-  "busy",
+   "busy",
   // 包管理器跑了但退出码不 0（§39.2）
-  "install-failed",
+   "install-failed",
   // 装完了，但按 dsh.profile.bundles 重算仍缺包（§39.2）
-  "install-incomplete",
+   "install-incomplete",
 ]
 
 ///|
@@ -53,7 +47,7 @@ pub fn fail(code : String, message : String) -> Unit raise ActionError {
 ///|
 /// 错误码到 HTTP 状态码。除了契约写明的 not-authorized = 403，其余按语义挑：
 /// bad-params / unknown-action = 400，not-found = 404，conflict = 409，其余 500。
-pub fn status_for_code(code : String) -> Int {
+pub fn status_for_code(code : String) -> Int32 {
   match code {
     "not-authorized" => 403
     "unknown-action" => 400
@@ -105,7 +99,13 @@ pub async fn send_write_error(
       ("ok", @json.JBool(false)),
       ("readOnly", @json.JBool(false)),
       ("readAt", @json.JStr(read_at)),
-      ("error", @json.JObj([("code", @json.JStr(code)), ("message", @json.JStr(message))])),
+      (
+        "error",
+        @json.JObj([
+          ("code", @json.JStr(code)),
+          ("message", @json.JStr(message)),
+        ]),
+      ),
     ]),
     extra_headers=[("X-Local-Api", local_api_read_write)],
   )
@@ -126,10 +126,16 @@ pub async fn send_method_not_allowed(
       ("ok", @json.JBool(false)),
       ("readOnly", @json.JBool(false)),
       ("readAt", @json.JStr(read_at)),
-      ("error", @json.JObj([
-        ("code", @json.JStr("method-not-allowed")),
-        ("message", @json.JStr("这个端点只接受 " + allow + "，收到 " + got)),
-      ])),
+      (
+        "error",
+        @json.JObj([
+          ("code", @json.JStr("method-not-allowed")),
+          (
+            "message",
+            @json.JStr("这个端点只接受 " + allow + "，收到 " + got),
+          ),
+        ]),
+      ),
     ]),
     extra_headers=[("Allow", allow), ("X-Local-Api", local_api_read_write)],
   )

@@ -78,14 +78,23 @@ fn pin_dsh_version(
 ) -> (Model, @cmd.Cmd) {
   if dir == "" {
     return (
-      notice_err(model, "这一份 dsh 的目录没读到，没法指定（读数里那一格是空的）"),
+      notice_err(
+        model, "这一份 dsh 的目录没读到，没法指定（读数里那一格是空的）",
+      ),
       @cmd.none,
     )
   }
   let params = params_of([("dir", json_text_literal(dir))])
   (
-    notice_clear({ ..model, dsh_pin_busy: dir }),
-    action_cmd("", "pin-dsh", version, "用这一版", action_body("pin-dsh", params), emit),
+    notice_clear({ ..model, dsh_pin_busy: dir, }),
+    action_cmd(
+      "",
+      "pin-dsh",
+      version,
+      "用这一版",
+      action_body("pin-dsh", params),
+      emit,
+    ),
   )
 }
 
@@ -93,8 +102,15 @@ fn pin_dsh_version(
 /// 关于页「回到自动」：撤掉指定（POST unpin-dsh，没有参数）。
 fn unpin_dsh_version(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   (
-    notice_clear({ ..model, dsh_pin_busy: "auto" }),
-    action_cmd("", "unpin-dsh", "", "回到自动", action_body("unpin-dsh", "{}"), emit),
+    notice_clear({ ..model, dsh_pin_busy: "auto", }),
+    action_cmd(
+      "",
+      "unpin-dsh",
+      "",
+      "回到自动",
+      action_body("unpin-dsh", "{}"),
+      emit,
+    ),
   )
 }
 
@@ -119,11 +135,14 @@ fn dsh_pin_settled(
     "没能回到自动：" + note
   }
   (
-    notice_put({ ..model, dsh_pin_busy: "" }, ok, text, ""),
-    if ok { load_runtime(emit) } else { @cmd.none },
+    notice_put({ ..model, dsh_pin_busy: "", }, ok, text, ""),
+    if ok {
+      load_runtime(emit)
+    } else {
+      @cmd.none
+    },
   )
 }
-
 
 // ── 维护页（作业台） ─────────────────────────────────────────
 //
@@ -192,21 +211,27 @@ fn job_success_text(action : String, outcome : Map[String, Json]?) -> String {
     None => Map([])
   }
   match action {
-    "job-start" => "作业已创建，第 1 步（锁定当前版本）已经做完。"
+    "job-start" =>
+      "作业已创建，第 1 步（锁定当前版本）已经做完。"
     "job-install" =>
       if !bool_field(o, "executed") {
         "预演完成：还没有装任何东西。"
       } else {
         match int_field(o, "exitCode") {
-          Some(0) => "安装命令跑完了（退出码 0）。下一步把新版本跑起来。"
-          Some(code) => "安装命令退出码 " + code.to_string() + "，这一步记为不通过。"
+          Some(0) =>
+            "安装命令跑完了（退出码 0）。下一步把新版本跑起来。"
+          Some(code) =>
+            "安装命令退出码 " +
+            code.to_string() +
+            "，这一步记为不通过。"
           None => "安装命令没跑完，这一步记为不通过。"
         }
       }
     "job-trial" =>
       if bool_field(o, "started") {
         let url = str_field(o, "url")
-        "新版本在一次性 home 里起来了：" + (if url == "" { "见下面的地址" } else { url }) +
+        "新版本在一次性 home 里起来了：" +
+        (if url == "" { "见下面的地址" } else { url }) +
         "。你去用一用，收尾时这只实例会停掉、这份 home 会删掉。"
       } else {
         "新版本没跑起来，这一步记为不通过。原因在悬停里。"
@@ -215,23 +240,29 @@ fn job_success_text(action : String, outcome : Map[String, Json]?) -> String {
       match str_field(o, "verdict") {
         "good" => "记下了：好用。下一步是切到新版本。"
         "bad" =>
-          "回滚了：起实例还是用 " + str_field(o, "anchorVersion") +
+          "回滚了：起实例还是用 " +
+          str_field(o, "anchorVersion") +
           "；新装的那份留着没删，要删单独清理"
-        "later" => "记下了：先放着。试跑实例、一次性 home 与版本指定都没动。"
+        "later" =>
+          "记下了：先放着。试跑实例、一次性 home 与版本指定都没动。"
         _ => "结论记下了。"
       }
-    "job-trial-stop" => "试跑实例已经收掉了，一次性 home 也删了；作业还停在这一步。"
+    "job-trial-stop" =>
+      "试跑实例已经收掉了，一次性 home 也删了；作业还停在这一步。"
     "job-commit" =>
-      "已经切到 " + str_field(o, "version") +
+      "已经切到 " +
+      str_field(o, "version") +
       "；起实例会用这一版。旧版本留着当回滚锚，确认稳定后再清理"
-    "job-cleanup-preview" => "预演完成：这一步会删掉旧版本的包目录，还没有删。"
+    "job-cleanup-preview" =>
+      "预演完成：这一步会删掉旧版本的包目录，还没有删。"
     "job-cleanup" =>
       if bool_field(o, "deleted") {
         "旧版本的包目录已删掉。"
       } else {
         "旧版本的包目录本来就不在了，这一步没有可删的。"
       }
-    "job-abort" => "作业已中止，试跑实例与一次性 home 都收掉了；已经做完的步骤都留着。"
+    "job-abort" =>
+      "作业已中止，试跑实例与一次性 home 都收掉了；已经做完的步骤都留着。"
     _ => "这一步完成了。"
   }
 }
@@ -239,18 +270,17 @@ fn job_success_text(action : String, outcome : Map[String, Json]?) -> String {
 ///|
 /// POST 一条作业动作，回执走 JobDone）。
 fn job_cmd(action : String, params : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.attempt(
-    fn(res : Result[String, Error]) { emit(JobDone(action, res)) },
-    async fn() {
-      let text : String = js_http_call(
+  @cmd.attempt(fn(res : Result[String, Error]) { emit(JobDone(action, res)) }, async fn() {
+    let text : String = js_http_call(
         "POST",
         "/api/local/action",
         action_body(action, params),
         write_headers(),
-      ).wait().cast()
-      text
-    },
-  )
+      )
+      .wait()
+      .cast()
+    text
+  })
 }
 
 ///|
@@ -259,7 +289,10 @@ fn job_cmd(action : String, params : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd 
 fn job_start_command(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   let version = model.job_version.trim().to_owned()
   if version == "" {
-    return (notice_err(model, "先填上要装的目标版本，再点开始。"), @cmd.none)
+    return (
+      notice_err(model, "先填上要装的目标版本，再点开始。"),
+      @cmd.none,
+    )
   }
   // profile 必填（后端也拦）：试跑要从这只 profile 复制一份配置到一次性 home（§9.4）。
   // 名称取自「在跑的 → web → 第一份」里第一只**可用**的，与页面下拉里显示的是同一个函数。
@@ -277,7 +310,10 @@ fn job_start_command(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) 
     ("version", json_text_literal(version)),
     ("profile", json_text_literal(profile)),
   ])
-  (notice_clear({ ..model, job_busy: "new" }), job_cmd("job-start", params, emit))
+  (
+    notice_clear({ ..model, job_busy: "new", }),
+    job_cmd("job-start", params, emit),
+  )
 }
 
 ///|
@@ -298,66 +334,102 @@ fn job_step_command(
     params_of([("id", json_text_literal(id)), (confirm_key, confirm_value)])
   }
   match step {
-    "install-preview" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd("job-install", params_with("confirm", "false"), emit),
-    )
+    "install-preview" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd("job-install", params_with("confirm", "false"), emit),
+      )
     "install-confirm" =>
       if model.job_previewed != id || model.job_previewed_step != "install" {
-        refuse("先点「预演这一步」，看过确切命令再确认执行。")
+        refuse(
+          "先点「预演这一步」，看过确切命令再确认执行。",
+        )
       } else {
-        (notice_clear({ ..model, job_busy: id }), job_cmd("job-install", params_with("confirm", "true"), emit))
+        (
+          notice_clear({ ..model, job_busy: id, }),
+          job_cmd("job-install", params_with("confirm", "true"), emit),
+        )
       }
-    "trial" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd("job-trial", params_of([("id", json_text_literal(id))]), emit),
-    )
-    "verdict-good" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd(
-        "job-verdict",
-        params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("good"))]),
-        emit,
-      ),
-    )
-    "verdict-bad" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd(
-        "job-verdict",
-        params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("bad"))]),
-        emit,
-      ),
-    )
-    "verdict-later" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd(
-        "job-verdict",
-        params_of([("id", json_text_literal(id)), ("verdict", json_text_literal("later"))]),
-        emit,
-      ),
-    )
-    "trial-stop" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd("job-trial-stop", params_of([("id", json_text_literal(id))]), emit),
-    )
-    "commit" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd("job-commit", params_of([("id", json_text_literal(id))]), emit),
-    )
-    "cleanup-preview" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd("job-cleanup-preview", params_of([("id", json_text_literal(id))]), emit),
-    )
+    "trial" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd("job-trial", params_of([("id", json_text_literal(id))]), emit),
+      )
+    "verdict-good" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd(
+          "job-verdict",
+          params_of([
+            ("id", json_text_literal(id)),
+            ("verdict", json_text_literal("good")),
+          ]),
+          emit,
+        ),
+      )
+    "verdict-bad" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd(
+          "job-verdict",
+          params_of([
+            ("id", json_text_literal(id)),
+            ("verdict", json_text_literal("bad")),
+          ]),
+          emit,
+        ),
+      )
+    "verdict-later" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd(
+          "job-verdict",
+          params_of([
+            ("id", json_text_literal(id)),
+            ("verdict", json_text_literal("later")),
+          ]),
+          emit,
+        ),
+      )
+    "trial-stop" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd(
+          "job-trial-stop",
+          params_of([("id", json_text_literal(id))]),
+          emit,
+        ),
+      )
+    "commit" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd("job-commit", params_of([("id", json_text_literal(id))]), emit),
+      )
+    "cleanup-preview" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd(
+          "job-cleanup-preview",
+          params_of([("id", json_text_literal(id))]),
+          emit,
+        ),
+      )
     "cleanup" =>
       if model.job_previewed != id || model.job_previewed_step != "cleanup" {
-        refuse("先点「清理旧版本」，看过会删掉什么再确认执行。")
+        refuse(
+          "先点「清理旧版本」，看过会删掉什么再确认执行。",
+        )
       } else {
-        (notice_clear({ ..model, job_busy: id }), job_cmd("job-cleanup", params_with("confirm", "DELETE"), emit))
+        (
+          notice_clear({ ..model, job_busy: id, }),
+          job_cmd("job-cleanup", params_with("confirm", "DELETE"), emit),
+        )
       }
-    "abort" => (
-      notice_clear({ ..model, job_busy: id }),
-      job_cmd("job-abort", params_of([("id", json_text_literal(id))]), emit),
-    )
+    "abort" =>
+      (
+        notice_clear({ ..model, job_busy: id, }),
+        job_cmd("job-abort", params_of([("id", json_text_literal(id))]), emit),
+      )
     _ => refuse("认不出这一步，没有发出请求。")
   }
 }
@@ -382,7 +454,7 @@ fn job_settled(
     return (
       // 失败不往作业卡里写细节：原因在常驻提示条上（一句话，§32.1），历史在后端写的步骤表里。
       notice_failed_action(
-        { ..model, job_busy: "", job_detail: "", job_detail_for: "" },
+        { ..model, job_busy: "", job_detail: "", job_detail_for: "", },
         job_action_label(action) + "没成功：" + note,
       ),
       // 失败也可能改过作业记录（例如清理没删掉时那一步被记成 failed）：
@@ -392,35 +464,43 @@ fn job_settled(
   }
   let body = job_success_text(action, outcome)
   let job_id = job_id_of(outcome)
-  let preview_install = action == "job-install" && !bool_field(match outcome {
-    Some(o) => o
-    None => Map([])
-  }, "executed")
+  let preview_install = action == "job-install" &&
+    !bool_field(
+      match outcome {
+        Some(o) => o
+        None => Map([])
+      },
+      "executed",
+    )
   let preview_cleanup = action == "job-cleanup-preview"
   let mut next = notice_ok(
-    { ..model, job_busy: "", job_detail: note, job_detail_for: job_id },
+    { ..model, job_busy: "", job_detail: note, job_detail_for: job_id, },
     body,
     "",
   )
   if action == "job-start" {
-    next = { ..next, job_version: "" }
+    next = { ..next, job_version: "", }
     next = {
       ..next,
-      job_collapsed: next.job_collapsed.filter(fn(collapsed) { collapsed != job_id }),
+      job_collapsed: next.job_collapsed.filter(fn(collapsed) {
+        collapsed != job_id
+      }),
     }
   }
   if preview_install {
-    next = { ..next, job_previewed: job_id, job_previewed_step: "install" }
+    next = { ..next, job_previewed: job_id, job_previewed_step: "install", }
   } else if preview_cleanup {
-    next = { ..next, job_previewed: job_id, job_previewed_step: "cleanup" }
+    next = { ..next, job_previewed: job_id, job_previewed_step: "cleanup", }
   } else if model.job_previewed == job_id && job_id != "" {
     // 预演过的那一步已经执行（或作业被别的动作推进了）：这一份预演作废。
     // 留着它会让下一次「确认执行」拿一份旧的预演去放行。
-    next = { ..next, job_previewed: "", job_previewed_step: "" }
+    next = { ..next, job_previewed: "", job_previewed_step: "", }
   }
   // 试跑起了一只实例、收掉它、切了版本 —— 这三类动作会把「本机有哪些实例 / 哪一版生效」
   // 一起改掉，所以连 profiles 与 instances 读数一起重读（否则总览页还停在动作前）。
-  if action == "job-trial" || action == "job-trial-stop" || action == "job-verdict" {
+  if action == "job-trial" ||
+    action == "job-trial-stop" ||
+    action == "job-verdict" {
     refresh_readings(next, emit)
   } else if action == "job-commit" {
     let (after, cmd) = refresh_readings(next, emit)
@@ -443,19 +523,19 @@ fn note_settled(
   emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
   let return_id = model.note_return
-  let base = { ..model, note_saving: "" }
+  let base = { ..model, note_saving: "", }
   let (ok, _) = interpret_http(res)
   if ok {
     let (text, hint) = note_receipt(name, note, res)
     let closed = notice_ok(
-      { ..base, note_open: "", note_draft: "", note_error: "" },
+      { ..base, note_open: "", note_draft: "", note_error: "", },
       text,
       hint,
     )
     let (next, cmd) = refresh_readings(closed, emit)
     (next, @cmd.batch([cmd, focus_after_render(return_id)]))
   } else {
-    ({ ..base, note_error: note }, @cmd.none)
+    ({ ..base, note_error: note, }, @cmd.none)
   }
 }
 
@@ -476,13 +556,17 @@ fn new_instance_settled(
 ) -> (Model, @cmd.Cmd) {
   let (ok, note) = interpret_http(res)
   if !ok {
-    return ({ ..model, new_busy: false, new_error: note }, @cmd.none)
+    return ({ ..model, new_busy: false, new_error: note, }, @cmd.none)
   }
   let outcome = match outcome_of(res) {
     Some(fields) => fields
     None =>
       return (
-        { ..model, new_busy: false, new_error: "回执里没有 outcome，这一版认不出派生结果" },
+        {
+          ..model,
+          new_busy: false,
+          new_error: "回执里没有 outcome，这一版认不出派生结果",
+        },
         @cmd.none,
       )
   }
@@ -492,16 +576,25 @@ fn new_instance_settled(
   let home = obj_field(outcome, "home")
   let home_path = str_field(home, "path")
   let home_error = str_field(home, "error")
-  let name = if created == "" { model.new_name_draft.trim().to_owned() } else { created }
+  let name = if created == "" {
+    model.new_name_draft.trim().to_owned()
+  } else {
+    created
+  }
   // 隔离建成与没建成是两件事：没建成时不能说「已隔离到」，那是假报
   let text = if home_path != "" {
     "已创建 " + name + "（已隔离到 " + home_path + "）"
   } else if home_error != "" {
-    "已创建 " + name + "（隔离 home 没建成：" + home_error + "，它现在与别的 profile 共用 DSH_HOME）"
+    "已创建 " +
+    name +
+    "（隔离 home 没建成：" +
+    home_error +
+    "，它现在与别的 profile 共用 DSH_HOME）"
   } else {
     "已创建 " + name
   }
-  let hint = backend_hint(note) + (if source == "" { "" } else { "\n源配置：" + source })
+  let hint = backend_hint(note) +
+    (if source == "" { "" } else { "\n源配置：" + source })
   let closed = notice_ok(
     {
       ..model,
@@ -533,13 +626,17 @@ fn base_profile_settled(
 ) -> (Model, @cmd.Cmd) {
   let (ok, note) = interpret_http(res)
   if !ok {
-    return ({ ..model, new_busy: false, new_error: note }, @cmd.none)
+    return ({ ..model, new_busy: false, new_error: note, }, @cmd.none)
   }
   let outcome = match outcome_of(res) {
     Some(fields) => fields
     None =>
       return (
-        { ..model, new_busy: false, new_error: "回执里没有 outcome，这一版认不出新建结果" },
+        {
+          ..model,
+          new_busy: false,
+          new_error: "回执里没有 outcome，这一版认不出新建结果",
+        },
         @cmd.none,
       )
   }
@@ -547,12 +644,19 @@ fn base_profile_settled(
   let home = obj_field(outcome, "home")
   let home_path = str_field(home, "path")
   let home_error = str_field(home, "error")
-  let name = if created == "" { model.new_name_draft.trim().to_owned() } else { created }
+  let name = if created == "" {
+    model.new_name_draft.trim().to_owned()
+  } else {
+    created
+  }
   // 隔离建成与没建成是两件事：没建成时不能说「已隔离到」，那是假报（与派生那一支同一口径）
   let text = if home_path != "" {
     "已从基础模板新建 " + name + "（已隔离到 " + home_path + "）"
   } else if home_error != "" {
-    "已从基础模板新建 " + name + "（隔离 home 没建成：" + home_error +
+    "已从基础模板新建 " +
+    name +
+    "（隔离 home 没建成：" +
+    home_error +
     "，它与别的 profile 共用 DSH_HOME）"
   } else {
     "已从基础模板新建 " + name

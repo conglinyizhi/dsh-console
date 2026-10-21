@@ -119,7 +119,7 @@ fn start_attempt_of(line : Json) -> StartAttempt? {
       }
     None => ""
   }
-  Some({ profile, action, home, at, ok, code, message })
+  Some({ profile, action, home, at, ok, code, message, })
 }
 
 ///|
@@ -168,7 +168,11 @@ pub async fn load_start_attempts() -> (Array[StartAttempt], Array[String]) norai
           }
         }
         if bad_lines > 0 {
-          notes.push("audit.jsonl 里有 " + bad_lines.to_string() + " 行解析不出来，已跳过")
+          notes.push(
+            "audit.jsonl 里有 " +
+            bad_lines.to_string() +
+            " 行解析不出来，已跳过",
+          )
         }
       }
       Err(e) => notes.push("读不动 " + paths.audit + "：" + e)

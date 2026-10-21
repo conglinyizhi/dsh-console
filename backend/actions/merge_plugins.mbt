@@ -27,50 +27,13 @@ pub(all) struct MergeTarget {
 
 ///|
 /// 源 profile 里认出的本地插件。
-struct LocalPlugin {
+priv struct LocalPlugin {
   name : String
   path : String
   is_link : Bool
 }
 
 ///|
-/// 两个绝对路径之间的相对路径（从 from_dir 出发）。
-fn relative_from(from_dir : String, target : String) -> String {
-  let a : Array[String] = []
-  for s in from_dir.split("/") {
-    a.push(@json.owned(s))
-  }
-  let b : Array[String] = []
-  for s in target.split("/") {
-    b.push(@json.owned(s))
-  }
-  let mut i = 0
-  while i < a.length() && i < b.length() && a[i] == b[i] {
-    i = i + 1
-  }
-  let parts : Array[String] = []
-  let mut k = i
-  while k < a.length() {
-    if a[k].length() > 0 {
-      parts.push("..")
-    }
-    k = k + 1
-  }
-  // b 从公共前缀之后开始接（不是接着 a 的游标）
-  let mut j = i
-  while j < b.length() {
-    if b[j].length() > 0 {
-      parts.push(b[j].to_string())
-    }
-    j = j + 1
-  }
-  if parts.length() == 0 {
-    "."
-  } else {
-    parts.join("/")
-  }
-}
-
 ///|
 /// 把路径里的 . 与 .. 段折掉（绝对路径）。
 fn normalize_path(path : String) -> String {
@@ -94,7 +57,9 @@ fn normalize_path(path : String) -> String {
 ///|
 /// 这一只「声明要用的插件名」：package.json 的 dsh.profile.bundles，
 /// 加上 cordis.patch.yml 里每条 patch 的 name:（补丁层点到的插件也是声明）。
-async fn declared_plugins(dir : String) -> (Array[String], Array[String]) noraise {
+async fn declared_plugins(
+  dir : String,
+) -> (Array[String], Array[String]) noraise {
   let out : Array[String] = []
   let unresolved : Array[String] = []
   let push = fn(name : String) {
@@ -109,16 +74,16 @@ async fn declared_plugins(dir : String) -> (Array[String], Array[String]) norais
   }
   if text != "" {
     match @json.json_parse(text) {
-      Some(pkg) => {
+      Some(pkg) =>
         for name in declared_bundles_text(pkg) {
           push(name)
         }
-      }
       None => ()
     }
   }
   // cordis.patch.yml：一行一条 `name: "@scope/pkg"`（缩进随意，值可能带引号）
-  let patch = match @json.read_text_file(@json.join_path(dir, "cordis.patch.yml")) {
+  let patch = match
+    @json.read_text_file(@json.join_path(dir, "cordis.patch.yml")) {
     Ok(t) => t
     Err(_) => ""
   }
@@ -126,17 +91,23 @@ async fn declared_plugins(dir : String) -> (Array[String], Array[String]) norais
     for raw in patch.split("\n") {
       let line = @json.owned(raw)
       let trimmed = @json.trim_both(line)
-      if trimmed.has_prefix("- id:") || trimmed.has_prefix("id:") || trimmed.has_prefix("#") {
+      if trimmed.has_prefix("- id:") ||
+        trimmed.has_prefix("id:") ||
+        trimmed.has_prefix("#") {
         continue
       }
       let at = match @json.index_of(trimmed, "name:") {
         Some(i) => i
         None => continue
       }
-      let mut value = @json.trim_both(@json.slice(trimmed, at + 5, trimmed.length()))
+      let mut value = @json.trim_both(
+        @json.slice(trimmed, at + 5, trimmed.length()),
+      )
       if value.length() >= 2 && value.has_prefix("\"") && value.has_suffix("\"") {
         value = @json.slice(value, 1, value.length() - 1)
-      } else if value.length() >= 2 && value.has_prefix("'") && value.has_suffix("'") {
+      } else if value.length() >= 2 &&
+        value.has_prefix("'") &&
+        value.has_suffix("'") {
         value = @json.slice(value, 1, value.length() - 1)
       }
       // patch 里的 name: 可能是插件实例名（ClyzhiReviewAgent），不是包名：
@@ -216,7 +187,8 @@ async fn is_local_dep(dir : String, name : String) -> Bool noraise {
   for pair in @store.object_entries(deps) {
     if pair.0 == name {
       match @json.json_string(pair.1) {
-        Some(spec) => return spec.has_prefix("file:") || spec.has_prefix("link:")
+        Some(spec) =>
+          return spec.has_prefix("file:") || spec.has_prefix("link:")
         None => return false
       }
     }
@@ -267,7 +239,11 @@ pub async fn plugin_inventory(dir : String) -> Array[PluginEntry] noraise {
     }
     out.push({
       name: plugin.name,
-      kind: if plugin.is_link { "local-link" } else { "local-dir" },
+      kind: if plugin.is_link {
+        "local-link"
+      } else {
+        "local-dir"
+      },
       version: plugin_version(plugin.path),
       declared: false,
       description: plugin_description(plugin.path),
@@ -322,10 +298,14 @@ async fn plugin_version(dir : String) -> String noraise {
 ///|
 /// GET /api/local/merge-preview?source=<profile>（只读）：这一步不写任何东西。
 /// 识别口径与 merge-plugins 完全同一份（local_plugins_of），界面据此先选插件再选目标。
-pub async fn merge_preview_json(source_in : String) -> @json.JsonVal raise ActionError {
+pub async fn merge_preview_json(
+  source_in : String,
+) -> @json.JsonVal raise ActionError {
   let source = @json.trim_both(source_in)
   if source == "" {
-    fail("bad-params", "缺少 source（要看哪一只 profile 的本地插件）")
+    fail(
+      "bad-params", "缺少 source（要看哪一只 profile 的本地插件）",
+    )
   }
   let (dir, _) = @profiles.profile_location(source)
   if !@json.is_dir(dir) {
@@ -335,12 +315,18 @@ pub async fn merge_preview_json(source_in : String) -> @json.JsonVal raise Actio
   let (_declared, unresolved) = declared_plugins(dir)
   let warnings : Array[String] = []
   for name in unresolved {
-    warnings.push("patch 里 " + name + " 解析不到包（可能是插件实例名，不当插件列出）")
+    warnings.push(
+      "patch 里 " +
+      name +
+      " 解析不到包（可能是插件实例名，不当插件列出）",
+    )
   }
   let items : Array[@json.JsonVal] = []
   for entry in entries {
     if entry.kind == "missing" {
-      warnings.push(entry.name + " 只声明了、没装上：这一只要先补包")
+      warnings.push(
+        entry.name + " 只声明了、没装上：这一只要先补包",
+      )
     }
     items.push(
       @json.JObj([
@@ -381,7 +367,7 @@ async fn local_plugins_of(dir : String) -> Array[LocalPlugin] noraise {
         // node_modules/@local/<dir> 的包名是带 scope 的 "@local/<dir>"（bundle 就按这个写）
         let full = "@local/" + name
         seen.push(full)
-        out.push({ name: full, path: entry, is_link })
+        out.push({ name: full, path: entry, is_link, })
       }
     }
   }
@@ -415,7 +401,7 @@ async fn local_plugins_of(dir : String) -> Array[LocalPlugin] noraise {
               }
               if @json.exists(path) {
                 seen.push(name)
-                out.push({ name, path, is_link: false })
+                out.push({ name, path, is_link: false, })
               }
             }
           None => ()
@@ -429,7 +415,10 @@ async fn local_plugins_of(dir : String) -> Array[LocalPlugin] noraise {
 ///|
 /// 把一个插件摆进目标 node_modules/@local/<name>：软链按 §48 的口径重算相对路径，
 /// 目录整份拷过去。返回是否覆盖了已有的同名条目（「覆盖前在清单里写明」用）。
-async fn place_plugin(plugin : LocalPlugin, target_dir : String) -> Result[Bool, String] noraise {
+async fn place_plugin(
+  plugin : LocalPlugin,
+  target_dir : String,
+) -> Result[Bool, String] noraise {
   let dest_dir = @json.join_all([target_dir, "node_modules", "@local"])
   match @fsx.ensure_dir(dest_dir) {
     Ok(_) => ()
@@ -503,31 +492,31 @@ fn declared_bundles_text(pkg : Json) -> Array[String] {
 
 ///|
 /// 从 text 里 open_at 这个 '[' 起找配对的 ']'（跳过字符串里的括号）。
-fn match_array_end(text : String, open_at : Int) -> Int? {
+fn match_array_end(text : String, open_at : Int32) -> Int32? {
   let mut depth = 0
   let mut i = 0
   let mut in_string = false
   let mut escaped = false
   for c in text {
     if i >= open_at {
-    if in_string {
-      if escaped {
-        escaped = false
-      } else if c == '\\' {
-        escaped = true
+      if in_string {
+        if escaped {
+          escaped = false
+        } else if c == '\\' {
+          escaped = true
+        } else if c == '"' {
+          in_string = false
+        }
       } else if c == '"' {
-        in_string = false
+        in_string = true
+      } else if c == '[' {
+        depth = depth + 1
+      } else if c == ']' {
+        depth = depth - 1
+        if depth == 0 {
+          return Some(i)
+        }
       }
-    } else if c == '"' {
-      in_string = true
-    } else if c == '[' {
-      depth = depth + 1
-    } else if c == ']' {
-      depth = depth - 1
-      if depth == 0 {
-        return Some(i)
-      }
-    }
     }
     i = i + 1
   }
@@ -537,7 +526,10 @@ fn match_array_end(text : String, open_at : Int) -> Int? {
 ///|
 /// 把包名补进 package.json 的 dsh.profile.bundles（已在就跳过）。
 /// 文本级插入再回读校验：不重排整份 JSON，也不动别的字段。
-fn bundles_with(names : Array[String], text : String) -> Result[(Array[String], String), String] {
+fn bundles_with(
+  names : Array[String],
+  text : String,
+) -> Result[(Array[String], String), String] {
   let json = match @json.json_parse(text) {
     Some(j) => j
     None => return Err("package.json 不是合法 JSON")
@@ -556,7 +548,8 @@ fn bundles_with(names : Array[String], text : String) -> Result[(Array[String], 
     Some(i) => i
     None => return Err("package.json 里没有 dsh.profile.bundles")
   }
-  let open_rel = match @json.index_of(@json.slice(text, key_at, text.length()), "[") {
+  let open_rel = match
+    @json.index_of(@json.slice(text, key_at, text.length()), "[") {
     Some(i) => i
     None => return Err("bundles 不是数组")
   }
@@ -575,7 +568,9 @@ fn bundles_with(names : Array[String], text : String) -> Result[(Array[String], 
   } else {
     ", " + quoted.join(", ")
   }
-  let new_text = @json.slice(text, 0, close_at) + inserted + @json.slice(text, close_at, text.length())
+  let new_text = @json.slice(text, 0, close_at) +
+    inserted +
+    @json.slice(text, close_at, text.length())
   match @json.json_parse(new_text) {
     Some(_) => Ok((missing, new_text))
     None => Err("改完的 package.json 解析不了，已放弃写入")
@@ -584,13 +579,19 @@ fn bundles_with(names : Array[String], text : String) -> Result[(Array[String], 
 
 ///|
 /// merge-plugins：params { profile, targets: [..], confirm }。
-pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionError {
-  ensure_action_params(params, "分发插件：", ["profile", "targets", "plugins", "confirm"])
+pub async fn merge_plugins_action(
+  params : Json,
+) -> @json.JsonVal raise ActionError {
+  ensure_action_params(params, "分发插件：", [
+    "profile", "targets", "plugins", "confirm",
+  ])
   let confirm = require_string(params, "confirm")
   if confirm != "MERGE" {
     fail(
       "bad-params",
-      "确认串不对：要原样输入 MERGE 才会分发（你给的是「" + confirm + "」）",
+      "确认串不对：要原样输入 MERGE 才会分发（你给的是「" +
+      confirm +
+      "」）",
     )
   }
   let source_name = @json.trim_both(require_string(params, "profile"))
@@ -621,17 +622,19 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
         if !available.contains(name) {
           fail(
             "bad-params",
-            "这只源里没有插件「" + name + "」；可选的是：" + available.join("、"),
+            "这只源里没有插件「" +
+            name +
+            "」；可选的是：" +
+            available.join("、"),
           )
         }
         chosen.push(name)
       }
     }
-    None => {
+    None =>
       for entry in inventory {
         chosen.push(entry.name)
       }
-    }
   }
   // 名字 → 形态；本地实体（local-dir / local-link）要拷，其余只补声明
   let plugins : Array[LocalPlugin] = []
@@ -657,15 +660,20 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
   if chosen.length() == 0 {
     fail(
       "not-found",
-      source_name + " 里没有声明要用的插件（dsh.profile.bundles 与 cordis.patch.yml 都是空的）",
+      source_name +
+      " 里没有声明要用的插件（dsh.profile.bundles 与 cordis.patch.yml 都是空的）",
     )
   }
   if targets.length() == 0 {
-    fail("bad-params", "没有可分发到的目标（至少选一只别的 profile）")
+    fail(
+      "bad-params", "没有可分发到的目标（至少选一只别的 profile）",
+    )
   }
   let reports : Array[MergeTarget] = []
   for target_name in targets {
-    reports.push(merge_into(source_name, source_dir, chosen, plugins, target_name))
+    reports.push(
+      merge_into(source_name, source_dir, chosen, plugins, target_name),
+    )
   }
   let mut ok_count = 0
   for r in reports {
@@ -683,7 +691,10 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
           "plugins",
           @json.JArr(
             plugins.map(fn(p) {
-              @json.JObj([("name", @json.JStr(p.name)), ("link", @json.JBool(p.is_link))])
+              @json.JObj([
+                ("name", @json.JStr(p.name)),
+                ("link", @json.JBool(p.is_link)),
+              ])
             }),
           ),
         ),
@@ -695,7 +706,9 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
         (
           "patchesTouched",
           @json.JBool(
-            reports.any(fn(r) { r.patch_added.length() > 0 || r.patch_overwritten.length() > 0 }),
+            reports.any(fn(r) {
+              r.patch_added.length() > 0 || r.patch_overwritten.length() > 0
+            }),
           ),
         ),
       ]),
@@ -736,15 +749,21 @@ async fn merge_into(
   }
   let (target_dir, _) = @profiles.profile_location(target_name)
   if !@json.is_dir(target_dir) {
-    return { ..report, error: "目标 profile 不存在：" + target_dir }
+    return { ..report, error: "目标 profile 不存在：" + target_dir, }
   }
   if target_dir == source_dir {
-    return { ..report, error: "目标与源是同一只 profile" }
+    return { ..report, error: "目标与源是同一只 profile", }
   }
   // 1) 先拍快照（复用现有 snapshot 那套；拍不成就不动这只目标）
-  let snapshot = match @profiles.create_snapshot(target_dir, "分发插件前：" + source_name, keep_id="merge") {
+  let snapshot = match
+    @profiles.create_snapshot(
+      target_dir,
+      "分发插件前：" + source_name,
+      keep_id="merge",
+    ) {
     Ok(outcome) => outcome.id
-    Err(e) => return { ..report, error: "拍不了快照，这一只没动：" + e }
+    Err(e) =>
+      return { ..report, error: "拍不了快照，这一只没动：" + e, }
   }
   // 2) 逐个拷包
   let copied : Array[String] = []
@@ -757,14 +776,21 @@ async fn merge_into(
           overwritten.push(plugin.name)
         }
       }
-      Err(e) => return { ..report, snapshot, copied, overwritten, error: e }
+      Err(e) => return { ..report, snapshot, copied, overwritten, error: e, }
     }
   }
   // 3) 补 bundles
   let pkg_path = @json.join_path(target_dir, "package.json")
   let text = match @json.read_text_file(pkg_path) {
     Ok(t) => t
-    Err(e) => return { ..report, snapshot, copied, overwritten, error: "读不了目标 package.json：" + e }
+    Err(e) =>
+      return {
+        ..report,
+        snapshot,
+        copied,
+        overwritten,
+        error: "读不了目标 package.json：" + e,
+      }
   }
   // 声明的全集：选中的全部名字（含 registry / missing）；实体只拷 plugins 里那几个
   let names : Array[String] = []
@@ -795,25 +821,31 @@ async fn merge_into(
         match @fsx.write_text_atomic(pkg_path, new_text) {
           Ok(_) => ()
           Err(e) =>
-            return { ..report, snapshot, copied, overwritten, error: "写不进目标 package.json：" + e }
-        }
-      }
-      // 4) N6b：迁 cordis.patch.yml（失败这只目标 ok=false，快照仍在）
-      let (patch_added, patch_overwritten, patch_backup) =
-        match migrate_patch(source_dir, target_dir, snapshot, names) {
-          Ok(triple) => triple
-          Err(e) =>
             return {
               ..report,
               snapshot,
               copied,
               overwritten,
-              bundles_added: added,
-              declared_only,
-              notes,
-              error: e,
+              error: "写不进目标 package.json：" + e,
             }
         }
+      }
+      // 4) N6b：迁 cordis.patch.yml（失败这只目标 ok=false，快照仍在）
+      let (patch_added, patch_overwritten, patch_backup) = match
+        migrate_patch(source_dir, target_dir, snapshot, names) {
+        Ok(triple) => triple
+        Err(e) =>
+          return {
+            ..report,
+            snapshot,
+            copied,
+            overwritten,
+            bundles_added: added,
+            declared_only,
+            notes,
+            error: e,
+          }
+      }
       {
         ..report,
         snapshot,
@@ -828,7 +860,16 @@ async fn merge_into(
         ok: true,
       }
     }
-    Err(e) => { ..report, snapshot, copied, overwritten, declared_only, notes, error: e }
+    Err(e) =>
+      {
+        ..report,
+        snapshot,
+        copied,
+        overwritten,
+        declared_only,
+        notes,
+        error: e,
+      }
   }
 }
 
@@ -849,6 +890,7 @@ fn merge_target_json(r : MergeTarget) -> @json.JsonVal {
     ("patchBackup", @json.JStr(r.patch_backup)),
   ])
 }
+
 ///|
 /// POST /api/local/merge-preview 的入口（只读：不写任何东西，只是把源的插件清单读一遍）。
 /// 为什么用 POST 而不是 GET + 查询串：moonback 路由把查询串剥掉了，req.path 里只剩路径；
@@ -878,9 +920,7 @@ pub async fn handle_merge_preview(
       }
     None => ""
   }
-  let data = try {
-    merge_preview_json(source)
-  } catch {
+  let data = merge_preview_json(source) catch {
     ActionError(code~, message~) => {
       send_write_error(res, code, message, read_at)
       return
@@ -888,6 +928,7 @@ pub async fn handle_merge_preview(
   }
   @localapi.send_ok(res, data, read_at)
 }
+
 ///|
 /// 把 YAML patch 拆成条目块：每块以顶层 "- " 行起头，后面的缩进行归它。
 fn patch_blocks(text : String) -> Array[String] {
@@ -983,7 +1024,8 @@ async fn migrate_patch(
   snapshot : String,
   names : Array[String],
 ) -> Result[(Array[String], Array[String], String), String] noraise {
-  let source_text = match @json.read_text_file(@json.join_path(source_dir, "cordis.patch.yml")) {
+  let source_text = match
+    @json.read_text_file(@json.join_path(source_dir, "cordis.patch.yml")) {
     Ok(s) => s
     Err(_) => ""
   }
@@ -1003,9 +1045,13 @@ async fn migrate_patch(
     _ => false
   }
   if !target_empty && patch_blocks(target_text).length() == 0 {
-    return Err("目标 cordis.patch.yml 解析不了（不是 patch 列表），没有动它")
+    return Err(
+      "目标 cordis.patch.yml 解析不了（不是 patch 列表），没有动它",
+    )
   }
-  let (added, overwritten, new_text) = merge_patch_text(target_text, source_text, names)
+  let (added, overwritten, new_text) = merge_patch_text(
+    target_text, source_text, names,
+  )
   if added.length() == 0 && overwritten.length() == 0 {
     return Ok(([], [], ""))
   }
@@ -1035,7 +1081,8 @@ async fn migrate_patch(
   }
   let ok = match @json.read_text_file(target_path) {
     Ok(text) => {
-      let mut fine = @json.trim_both(text) != "" && patch_blocks(text).length() > 0
+      let mut fine = @json.trim_both(text) != "" &&
+        patch_blocks(text).length() > 0
       for name in added {
         if !text.contains(name) {
           fine = false
@@ -1056,11 +1103,16 @@ async fn migrate_patch(
       Err(e) => Err(e)
     }
     let _ = @fsx.remove_file(temp_path)
-    return Err("迁移后的 patch 校验不过，已回滚到备份（" + backup_path + "）")
+    return Err(
+      "迁移后的 patch 校验不过，已回滚到备份（" +
+      backup_path +
+      "）",
+    )
   }
   let _ = @fsx.remove_file(temp_path)
   Ok((added, overwritten, backup_path))
 }
+
 ///|
 /// 分发回执的一句话（§86）：只看结果，不铺细节。
 /// 逐只的 error、patch 备份路径、bundles 明细都在审计行里，文案只负责说「成了几个、覆盖几个、失败几个」。
@@ -1078,7 +1130,10 @@ fn merge_note(reports : Array[MergeTarget]) -> String {
   }
   let base = copied.to_string() + " 个插件复制完成"
   if failed > 0 {
-    base + "，" + failed.to_string() + " 个插件复制失败，详细原因在「日志 → 动作」里本次这一条"
+    base +
+    "，" +
+    failed.to_string() +
+    " 个插件复制失败，详细原因在「日志 → 动作」里本次这一条"
   } else if overwritten > 0 {
     base + "，其中 " + overwritten.to_string() + " 个插件产生覆盖"
   } else {

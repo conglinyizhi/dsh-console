@@ -61,16 +61,21 @@ fn version_rows(model : Model, emit : @cmd.Emit[Msg]) -> Array[@html.Html] {
           [
             @html.span(
               class="dsh-value",
-              attrs=mark("kv-value", ["about", "version-row", "dsh 版本", "value"])
-                .title(facts.dsh_package_name),
+              attrs=mark("kv-value", [
+                "about", "version-row", "dsh 版本", "value",
+              ]).title(facts.dsh_package_name),
               facts.dsh_version,
             ),
             @html.button(
               class="dsh-link-btn dsh-row-action",
               type_="button",
-              attrs=mark("about-switch-version", ["about", "version", "switch"])
-                .title("去设置页的「dsh 版本」一组，列本机装着的几份，选一份给以后起的实例用"),
-              on_click=@cmd.batch([emit(Navigate(Settings)), emit(SettingsGroupPicked("version"))]),
+              attrs=mark("about-switch-version", ["about", "version", "switch"]).title(
+                "去设置页的「dsh 版本」一组，列本机装着的几份，选一份给以后起的实例用",
+              ),
+              on_click=@cmd.batch([
+                emit(Navigate(Settings)),
+                emit(SettingsGroupPicked("version")),
+              ]),
               [@html.text("切换版本")],
             ),
           ],
@@ -110,7 +115,8 @@ fn facts_line(model : Model) -> String {
 fn facts_note(model : Model) -> String {
   match model.runtime {
     None => ""
-    Some(facts) => install_kind_hint(facts) + "；控制台包 " + facts.console_package_name
+    Some(facts) =>
+      install_kind_hint(facts) + "；控制台包 " + facts.console_package_name
   }
 }
 
@@ -169,11 +175,14 @@ fn dsh_candidate_row(
       ),
     )
   }
-  let hint = "包目录：" + cand.dir +
+  let hint = "包目录：" +
+    cand.dir +
     (if cand.source == "" { "" } else { " | 从哪找到的：" + cand.source })
   @html.div(
     class="dsh-row dsh-version-item",
-    attrs=mark("dsh-version-row", ["about", "dsh-version", cand.version]).title(hint),
+    attrs=mark("dsh-version-row", ["about", "dsh-version", cand.version]).title(
+      hint,
+    ),
     [
       @html.span(class="dsh-value", cand.version),
       @html.span(class="dsh-dsh-marks", marks),
@@ -189,7 +198,9 @@ fn dsh_candidate_row(
 /// 状态字段整个不在时（这一版后端还没有这一项）也说清是「没有这一项」，不写成「没指定」。
 fn dsh_pin_line(facts : RuntimeFacts) -> @html.Html {
   let text = if facts.dsh_pin_state == "pinned" {
-    "起实例用的是你指定的 " + facts.dsh_version + "（启动 / 重启都用它）"
+    "起实例用的是你指定的 " +
+    facts.dsh_version +
+    "（启动 / 重启都用它）"
   } else if facts.dsh_pin_state == "pin-missing" {
     if facts.dsh_pin_note == "" {
       "你指定过的那一版现在找不到了，起实例已回到自动挑的那一份"
@@ -197,7 +208,8 @@ fn dsh_pin_line(facts : RuntimeFacts) -> @html.Html {
       facts.dsh_pin_note
     }
   } else if facts.dsh_pin_state == "auto" {
-    "没指定过版本，起实例按自动挑的那一份：" + facts.dsh_version
+    "没指定过版本，起实例按自动挑的那一份：" +
+    facts.dsh_version
   } else {
     "这一版读数里没有「指定了哪一版」这一项，起实例按自动挑的那一份"
   }
@@ -219,7 +231,9 @@ fn dsh_version_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       if model.read_runtime {
         body.push(kv_row("读取状态", "读取失败", model.runtime_error))
       } else {
-        body.push(kv_row("读取状态", "正在读取…", "本机读数还没返回"))
+        body.push(
+          kv_row("读取状态", "正在读取…", "本机读数还没返回"),
+        )
       }
     Some(facts) => {
       if facts.dsh_candidates.length() == 0 {
@@ -255,6 +269,7 @@ fn dsh_version_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+
 ///|
 /// 「手动启动」那两条命令不再渲染进页面（§71）：静态说明在 design/manual-start.md，
 /// 人也好 agent 也好直接读那个文件；页面上只留一句指向它的说明。
@@ -262,7 +277,7 @@ fn about_manual_note() -> @html.Html {
   @html.p(
     class="dsh-foot",
     attrs=mark("about-manual-note", ["about", "manual-start", "note"]).title(
-      "为什么要看文件：控制台起不来时这条页面本身也可能打不开，静态文件在仓库里随手可读"
+      "为什么要看文件：控制台起不来时这条页面本身也可能打不开，静态文件在仓库里随手可读",
     ),
     "手动启动命令见 design/manual-start.md（静态说明，不在这页渲染）",
   )
@@ -270,38 +285,33 @@ fn about_manual_note() -> @html.Html {
 
 ///|
 fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  @html.section(
-    class="dsh-page",
-    attrs=mark("about-page", ["about", "page"]),
-    [
-      // 页头带那句简介（降密度）：一句话不值得单独占一块面板 ——
-      // 一块只有一行字的面板等于给这句话加了一圈边，读的人还得先判断「这块是不是可点的」。
-      // 那句话本身留着：它说的是「动作会真的作用到本机」，是安全提示，不删。
-      @html.header(class="dsh-page-head", [
-        @html.h1(class="dsh-page-title", "关于"),
-        @html.p(
-          class="dsh-para",
-          attrs=mark("about-intro", ["about", "page", "intro"]),
-          "本机 DSH 控制台。读数是只读的，动作会真的作用到本机实例与 profile。",
-        ),
-      ]),
-      @html.div(
-        class="dsh-panel",
-        attrs=mark("version-panel", ["about", "version-panel"]),
-        [
-          @html.h2(class="dsh-panel-title", "版本"),
-          @html.div(class="dsh-kv", version_rows(model, emit)),
-          @html.p(
-            class="dsh-foot",
-            attrs=mark("about-facts-foot", ["about", "version-panel", "foot"]).title(
-              facts_note(model),
-            ),
-            facts_line(model),
-          ),
-        ],
+  @html.section(class="dsh-page", attrs=mark("about-page", ["about", "page"]), [
+    // 页头带那句简介（降密度）：一句话不值得单独占一块面板 ——
+    // 一块只有一行字的面板等于给这句话加了一圈边，读的人还得先判断「这块是不是可点的」。
+    // 那句话本身留着：它说的是「动作会真的作用到本机」，是安全提示，不删。
+    @html.header(class="dsh-page-head", [
+      @html.h1(class="dsh-page-title", "关于"),
+      @html.p(
+        class="dsh-para",
+        attrs=mark("about-intro", ["about", "page", "intro"]),
+        "本机 DSH 控制台。读数是只读的，动作会真的作用到本机实例与 profile。",
       ),
-
-      about_manual_note(),
-    ],
-  )
+    ]),
+    @html.div(
+      class="dsh-panel",
+      attrs=mark("version-panel", ["about", "version-panel"]),
+      [
+        @html.h2(class="dsh-panel-title", "版本"),
+        @html.div(class="dsh-kv", version_rows(model, emit)),
+        @html.p(
+          class="dsh-foot",
+          attrs=mark("about-facts-foot", ["about", "version-panel", "foot"]).title(
+            facts_note(model),
+          ),
+          facts_line(model),
+        ),
+      ],
+    ),
+    about_manual_note(),
+  ])
 }

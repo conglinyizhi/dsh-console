@@ -4,7 +4,6 @@
 // 2026-10-20 从 job.mbt 拆出来：那个文件 1670 行，主干（开始 / 中止 / 结局）与三步的细节混在
 // 一起；拆开之后改某一步只看这一份。只搬位置，函数体一个字没改。
 
-
 ///|
 /// 试跑实例现在跑的是不是这条作业起的那一只（进程表读得到 argv 时对上号）。
 ///
@@ -12,7 +11,7 @@
 /// Some(原因) = 对不上。为什么要认这一道：pid 会被系统回收再利用，
 /// 真要收的是一只不属于这条作业的进程，那是这个控制台最不该做的事 ——
 /// 宁可留下一只收不掉的实例并如实说清，也不拿 pid 数字直接下手。
-async fn trial_owner_mismatch(job : @store.Job, pid : Int) -> String? noraise {
+async fn trial_owner_mismatch(job : @store.Job, pid : Int32) -> String? noraise {
   let target_dir = match job.target {
     Some(t) => @json.trim_both(t.dir)
     None => ""
@@ -36,7 +35,9 @@ async fn trial_owner_mismatch(job : @store.Job, pid : Int) -> String? noraise {
     }
     if !dir_ok && !profile_ok {
       return Some(
-        "PID " + pid.to_string() + " 现在跑的不是这条作业的试跑实例（进程表里它的 profile 与包目录都对不上），没有动它",
+        "PID " +
+        pid.to_string() +
+        " 现在跑的不是这条作业的试跑实例（进程表里它的 profile 与包目录都对不上），没有动它",
       )
     }
   }
@@ -83,9 +84,7 @@ async fn stop_trial(job : @store.Job) -> String noraise {
       Some(reason) => reason
       None => {
         let settings = @store.load_settings().values
-        let attempt = try {
-          Ok(stop_pid(t.pid, settings.process_stop_grace_ms))
-        } catch {
+        let attempt = Ok(stop_pid(t.pid, settings.process_stop_grace_ms)) catch {
           // 停不成的原因只进正文；错误码在这里没有用处
           ActionError(message~, ..) => Err(message)
         }
@@ -94,7 +93,11 @@ async fn stop_trial(job : @store.Job) -> String noraise {
           Ok(stopped) => {
             let _ = @store.remove_by_pid(t.pid)
             t.stopped_at = now_iso()
-            "试跑实例已收掉（PID " + stopped.pid.to_string() + "，" + stopped.signal + "）"
+            "试跑实例已收掉（PID " +
+            stopped.pid.to_string() +
+            "，" +
+            stopped.signal +
+            "）"
           }
         }
       }
@@ -102,7 +105,10 @@ async fn stop_trial(job : @store.Job) -> String noraise {
   }
   // 实例还活着就不动它脚下的 home：删一份正被用着的 home 比留着它糟得多
   if process_alive(t.pid) {
-    return stop_note + "；一次性 home 先留着：这只实例还在跑（PID " + t.pid.to_string() + "）"
+    return stop_note +
+      "；一次性 home 先留着：这只实例还在跑（PID " +
+      t.pid.to_string() +
+      "）"
   }
   let home_note = remove_trial_home_of(job)
   if home_note == "" {
@@ -121,13 +127,14 @@ async fn capture_pin_before() -> @store.JobPinBefore noraise {
   let paths = @store.state_paths()
   let existed = @json.exists(paths.dsh_pin)
   match @store.load_dsh_pin() {
-    Some(pin) => {
-      existed: true,
-      dir: pin.dir,
-      version: pin.version,
-      pinned_at: pin.pinned_at,
-    }
-    None => { existed, dir: "", version: "", pinned_at: "" }
+    Some(pin) =>
+      {
+        existed: true,
+        dir: pin.dir,
+        version: pin.version,
+        pinned_at: pin.pinned_at,
+      }
+    None => { existed, dir: "", version: "", pinned_at: "", }
   }
 }
 
@@ -147,7 +154,9 @@ async fn pin_file_text() -> String noraise {
 
 ///|
 /// 把 dsh-pin.json 恢复成开工前的样子。只做这一件事，不碰任何包目录。
-async fn restore_pin_before(before : @store.JobPinBefore) -> Result[String, String] noraise {
+async fn restore_pin_before(
+  before : @store.JobPinBefore,
+) -> Result[String, String] noraise {
   if !before.existed {
     match @store.clear_dsh_pin() {
       Ok(_) => Ok("开工前没有这份记录，已经删掉")
@@ -161,7 +170,11 @@ async fn restore_pin_before(before : @store.JobPinBefore) -> Result[String, Stri
     let pin : @store.DshPin = {
       dir: before.dir,
       version: before.version,
-      pinned_at: if before.pinned_at == "" { now_iso() } else { before.pinned_at },
+      pinned_at: if before.pinned_at == "" {
+        now_iso()
+      } else {
+        before.pinned_at
+      },
     }
     match @store.save_dsh_pin(pin) {
       Ok(_) => Ok("已按开工前的样子写回")
@@ -182,9 +195,10 @@ async fn trial_failed(
   @store.mark_step(job, "trial", "failed", note, evidence, now)
   match @store.save_job(job) {
     Ok(_) => ()
-    Err(e) => fail("io-error", "试跑没做成，作业也没能写进磁盘：" + e)
+    Err(e) =>
+      fail("io-error", "试跑没做成，作业也没能写进磁盘：" + e)
   }
-  { job, fields: [("started", @json.JBool(false))], note }
+  { job, fields: [("started", @json.JBool(false))], note, }
 }
 
 // ── 1. job-start ─────────────────────────────────────────────
@@ -197,12 +211,17 @@ async fn trial_failed(
 /// pnpm 装的是全局根里的另一份 —— **除非目标版本与某只在跑实例的版本相同**，
 /// 那时 pnpm 会把同一份包的目录重装一遍，正在跑的那只读的文件就换了。
 /// 这一条按事实说，不替用户判断安全不安全。
-pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise ActionError {
+pub async fn job_install(
+  id : String,
+  confirm : Bool,
+) -> JobOutcome raise ActionError {
   let job = require_job(id)
   if job.step != "install" {
     fail(
       "conflict",
-      "这条作业现在不在「安装新版本」这一步（当前：" + job.step + "）",
+      "这条作业现在不在「安装新版本」这一步（当前：" +
+      job.step +
+      "）",
     )
   }
   let version = match job.target {
@@ -210,9 +229,16 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
     None => ""
   }
   if version == "" {
-    fail("bad-params", "这条作业没有目标版本；到「维护」页重新开一条并填上要装的版本")
+    fail(
+      "bad-params", "这条作业没有目标版本；到「维护」页重新开一条并填上要装的版本",
+    )
   }
-  let command : Array[String] = ["pnpm", "add", "-g", "@deepseek-ai/dsh@" + version]
+  let command : Array[String] = [
+    "pnpm",
+    "add",
+    "-g",
+    "@deepseek-ai/dsh@" + version,
+  ]
   let pnpm = @json.find_in_path("pnpm")
   let snapshots = running_snapshots()
   let touched : Array[RunningSnapshot] = []
@@ -222,15 +248,25 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
     }
   }
   let touch_text = if touched.length() == 0 {
-    "在跑的实例（" + snapshots.length().to_string() + " 只）各自跑在自己那份包目录上，这一装不动它们"
+    "在跑的实例（" +
+    snapshots.length().to_string() +
+    " 只）各自跑在自己那份包目录上，这一装不动它们"
   } else {
-    "有 " + touched.length().to_string() + " 只在跑的实例用的就是 " + version +
+    "有 " +
+    touched.length().to_string() +
+    " 只在跑的实例用的就是 " +
+    version +
     "：pnpm 会把同一份包目录重装一遍，它们读的文件会换"
   }
   let running_field = running_json(snapshots)
   if !confirm {
-    let note = "预演：将要执行 " + command.join(" ") + "（在 " + @json.home_dir() + " 下跑）。" +
-      touch_text + "。这一步会真的装东西，装完不会自动切过去。"
+    let note = "预演：将要执行 " +
+      command.join(" ") +
+      "（在 " +
+      @json.home_dir() +
+      " 下跑）。" +
+      touch_text +
+      "。这一步会真的装东西，装完不会自动切过去。"
     return {
       job,
       fields: [
@@ -250,18 +286,24 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
     None => {
       fail(
         "spawn-failed",
-        "PATH 上找不到 pnpm，没法执行安装；装好 pnpm 再来，或者手动跑：" + command.join(" "),
+        "PATH 上找不到 pnpm，没法执行安装；装好 pnpm 再来，或者手动跑：" +
+        command.join(" "),
       )
       abort("unreachable: fail 一定抛错")
     }
   }
-  let argv : Array[String] = [pnpm_path, "add", "-g", "@deepseek-ai/dsh@" + version]
+  let argv : Array[String] = [
+    pnpm_path,
+    "add",
+    "-g",
+    "@deepseek-ai/dsh@" + version,
+  ]
   let started = now_iso()
   let outcome = run_capture(argv, Map([]), @json.home_dir(), install_timeout_ms)
   let now = now_iso()
   match outcome {
     Err(reason) => {
-      job.commands.push({ at: started, argv, result: "没跑完：" + reason })
+      job.commands.push({ at: started, argv, result: "没跑完：" + reason, })
       @store.mark_step(
         job,
         "install",
@@ -292,16 +334,21 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
       job.commands.push({
         at: started,
         argv,
-        result: "exit=" + code.to_string() + (if tail == "" { "" } else { "；" + tail }),
+        result: "exit=" +
+        code.to_string() +
+        (if tail == "" { "" } else { "；" + tail }),
       })
       let target_dir = find_version_dir(version)
       match target_dir {
-        Some(dir) => job.target = Some({ version, dir })
+        Some(dir) => job.target = Some({ version, dir, })
         None => ()
       }
       let dir_text = match target_dir {
         Some(dir) => "新版包目录：" + dir
-        None => "装完之后没在这台机器上扫到 " + version + " 这一份（试跑那一步会再找一次）"
+        None =>
+          "装完之后没在这台机器上扫到 " +
+          version +
+          " 这一份（试跑那一步会再找一次）"
       }
       if code == 0 {
         @store.mark_step(
@@ -313,10 +360,13 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
             ("exitCode", code.to_string()),
             ("argv", argv.join(" ")),
             ("targetVersion", version),
-            ("targetDir", match target_dir {
-              Some(dir) => dir
-              None => ""
-            }),
+            (
+              "targetDir",
+              match target_dir {
+                Some(dir) => dir
+                None => ""
+              },
+            ),
             ("outputTail", tail),
           ],
           now,
@@ -340,7 +390,10 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
       match @store.save_job(job) {
         Ok(_) => ()
         Err(e) => {
-          fail("io-error", "安装跑完了，但作业没能写进磁盘：" + e)
+          fail(
+            "io-error",
+            "安装跑完了，但作业没能写进磁盘：" + e,
+          )
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -359,7 +412,9 @@ pub async fn job_install(id : String, confirm : Bool) -> JobOutcome raise Action
           "安装命令退出码 0。"
         } else {
           "安装命令退出码 " + code.to_string() + "。"
-        }) + dir_text + (if tail == "" { "" } else { "输出尾部：" + tail }),
+        }) +
+        dir_text +
+        (if tail == "" { "" } else { "输出尾部：" + tail }),
       }
     }
   }
@@ -388,7 +443,9 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
   if job.step != "trial" {
     fail(
       "conflict",
-      "这条作业现在不在「把新版本跑起来」这一步（当前：" + job.step + "）",
+      "这条作业现在不在「把新版本跑起来」这一步（当前：" +
+      job.step +
+      "）",
     )
   }
   // 上一只试跑实例还活着：不许起第二只（§4）。判据是这一刻的进程表，不是作业里的记录。
@@ -397,7 +454,10 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
       if process_alive(t.pid) {
         fail(
           "conflict",
-          "试跑实例还在跑（PID " + t.pid.to_string() + "，端口 " + t.port.to_string() +
+          "试跑实例还在跑（PID " +
+          t.pid.to_string() +
+          "，端口 " +
+          t.port.to_string() +
           "）；先在页面上「停掉试跑实例」，或者直接用那只",
         )
       }
@@ -417,17 +477,20 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
     )
   }
   let target_dir = match job.target {
-    Some(t) if @json.trim_both(t.dir) != "" && @json.is_dir(t.dir) => @json.trim_both(t.dir)
+    Some(t) if @json.trim_both(t.dir) != "" && @json.is_dir(t.dir) =>
+      @json.trim_both(t.dir)
     _ =>
       match find_version_dir(version) {
         Some(dir) => {
-          job.target = Some({ version, dir })
+          job.target = Some({ version, dir, })
           dir
         }
         None =>
           return trial_failed(
             job,
-            "这台机器上找不到 " + version + " 这一份 dsh（安装那一步可能没真的装上）",
+            "这台机器上找不到 " +
+            version +
+            " 这一份 dsh（安装那一步可能没真的装上）",
             [("targetVersion", version), ("reason", "没扫到这一版")],
             now,
           )
@@ -439,8 +502,15 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
       if actual != version {
         return trial_failed(
           job,
-          "目标包目录里的版本是 " + actual + "，不是作业里的 " + version,
-          [("expectedVersion", version), ("actualVersion", actual), ("targetDir", target_dir)],
+          "目标包目录里的版本是 " +
+          actual +
+          "，不是作业里的 " +
+          version,
+          [
+            ("expectedVersion", version),
+            ("actualVersion", actual),
+            ("targetDir", target_dir),
+          ],
           now,
         )
       }
@@ -463,7 +533,9 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
   }
   let profile = @json.trim_both(job.profile)
   if profile == "" {
-    fail("bad-params", "这条作业没记试跑用的 profile（开工时就该选好）；到「维护」页重开一条")
+    fail(
+      "bad-params", "这条作业没记试跑用的 profile（开工时就该选好）；到「维护」页重开一条",
+    )
   }
   validate_profile_name(profile)
   let (source_home, source_home_source) = @runtime.resolve_dsh_home()
@@ -480,7 +552,9 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
     None => {
       fail(
         "conflict",
-        "从 " + settings.instance_base_port.to_string() + " 起找不到空闲端口给试跑实例",
+        "从 " +
+        settings.instance_base_port.to_string() +
+        " 起找不到空闲端口给试跑实例",
       )
       abort("unreachable: fail 一定抛错")
     }
@@ -504,9 +578,15 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
         now,
       )
   }
-  let started = try {
-    Ok(start_instance_with(profile, Some(trial_home.path), Some(port), Some(target_dir), true))
-  } catch {
+  let started = Ok(
+    start_instance_with(
+      profile,
+      Some(trial_home.path),
+      Some(port),
+      Some(target_dir),
+      true,
+    ),
+  ) catch {
     ActionError(code~, message~) => Err((code, message))
   }
   match started {
@@ -567,7 +647,14 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
         ("sourceProfileDir", source_profile_dir),
         ("configFilesCopied", trial_home.files_copied.to_string()),
         ("nodeModulesTarget", trial_home.node_modules_target),
-        ("skillsLinked", if trial_home.skills_linked { "true" } else { "false" }),
+        (
+          "skillsLinked",
+          if trial_home.skills_linked {
+            "true"
+          } else {
+            "false"
+          },
+        ),
         ("credentialsPath", trial_home.credentials_path),
         ("credentialsKey", trial_home.credentials_key),
         ("targetDir", target_dir),
@@ -583,8 +670,11 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
         job,
         "trial",
         "passed",
-        "新版本在一次性 home 里起来了（端口 " + outcome.port.to_string() + "，PID " +
-        outcome.pid.to_string() + "），等你试",
+        "新版本在一次性 home 里起来了（端口 " +
+        outcome.port.to_string() +
+        "，PID " +
+        outcome.pid.to_string() +
+        "），等你试",
         evidence,
         now,
       )
@@ -594,14 +684,20 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
         "verdict",
         "running",
         "等你试：好用 / 不好用 / 先放着",
-        [("trialPid", outcome.pid.to_string()), ("trialPort", outcome.port.to_string())],
+        [
+          ("trialPid", outcome.pid.to_string()),
+          ("trialPort", outcome.port.to_string()),
+        ],
         now,
       )
       @store.advance_to(job, "verdict", now)
       match @store.save_job(job) {
         Ok(_) => ()
         Err(e) => {
-          fail("io-error", "实例起来了，但作业没能写进磁盘：" + e)
+          fail(
+            "io-error",
+            "实例起来了，但作业没能写进磁盘：" + e,
+          )
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -620,10 +716,15 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
           ("bootMs", @json.jint(boot_ms)),
           ("trialAlive", @json.JBool(true)),
         ],
-        note: "新版本在一次性 home 里起来了：http://127.0.0.1:" + outcome.port.to_string() +
-          "/。试跑用的是 profile " + profile + " 的一份配置拷贝，你平时那份 home 没有动。" +
-          "这只实例不会被作业自动收掉；收尾（好用 / 不好用 / 停掉试跑 / 中止）时会停掉它，" +
-          "并删掉 " + trial_home.path + " 这份 home。",
+        note: "新版本在一次性 home 里起来了：http://127.0.0.1:" +
+        outcome.port.to_string() +
+        "/。试跑用的是 profile " +
+        profile +
+        " 的一份配置拷贝，你平时那份 home 没有动。" +
+        "这只实例不会被作业自动收掉；收尾（好用 / 不好用 / 停掉试跑 / 中止）时会停掉它，" +
+        "并删掉 " +
+        trial_home.path +
+        " 这份 home。",
       }
     }
   }
@@ -639,14 +740,25 @@ pub async fn job_trial(id : String) -> JobOutcome raise ActionError {
 ///
 /// good / bad 都会把前后两份 pin 内容摆进证据：回滚这一步说「恢复成开工前」，
 /// 只有把前后摆出来才验得了。
-pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise ActionError {
+pub async fn job_verdict(
+  id : String,
+  verdict_in : String,
+) -> JobOutcome raise ActionError {
   let job = require_job(id)
   let value = @json.trim_both(verdict_in)
   if !verdict_values.contains(value) {
-    fail("bad-params", "verdict 只能是 good / bad / later，收到「" + value + "」")
+    fail(
+      "bad-params",
+      "verdict 只能是 good / bad / later，收到「" + value + "」",
+    )
   }
   if job.step != "verdict" {
-    fail("conflict", "这条作业现在不在「你来试」这一步（当前：" + job.step + "）")
+    fail(
+      "conflict",
+      "这条作业现在不在「你来试」这一步（当前：" +
+      job.step +
+      "）",
+    )
   }
   let now = now_iso()
   let pin_before_content = pin_file_text()
@@ -659,7 +771,7 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
     "bad" => "你说不好用"
     _ => "先放着"
   }
-  job.verdict = Some({ value, at: now, note: record })
+  job.verdict = Some({ value, at: now, note: record, })
   if value == "later" {
     @store.mark_step(
       job,
@@ -668,10 +780,13 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
       "先放着：什么都不动，你想好了再说",
       [
         ("verdict", "later"),
-        ("trialPid", match job.trial {
-          Some(t) => t.pid.to_string()
-          None => ""
-        }),
+        (
+          "trialPid",
+          match job.trial {
+            Some(t) => t.pid.to_string()
+            None => ""
+          },
+        ),
         ("trialAlive", if alive { "true" } else { "false" }),
       ],
       now,
@@ -687,7 +802,7 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
         ("trialAlive", @json.JBool(alive)),
       ],
       note: "结论记下了：先放着。试跑实例没动，dsh-pin.json 也没动；" +
-        "想好了再来点「好用」或「不好用」。",
+      "想好了再来点「好用」或「不好用」。",
     }
   }
   let stop_note = stop_trial(job)
@@ -708,7 +823,8 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
     @store.advance_to(job, "commit", now)
     match @store.save_job(job) {
       Ok(_) => ()
-      Err(e) => fail("io-error", "结论记下了，但作业没能写进磁盘：" + e)
+      Err(e) =>
+        fail("io-error", "结论记下了，但作业没能写进磁盘：" + e)
     }
     return {
       job,
@@ -718,31 +834,46 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
         ("stop", @json.JStr(stop_note)),
         ("pinUnchanged", @json.JBool(pin_before_content == pin_file_text())),
       ],
-      note: "记下了：好用。" + stop_note + "。dsh-pin.json 还没有动；" +
-        "切到新版本是下一步那一下。",
+      note: "记下了：好用。" +
+      stop_note +
+      "。dsh-pin.json 还没有动；" +
+      "切到新版本是下一步那一下。",
     }
   }
   // bad：先把试跑实例收掉，再按开工前的快照恢复 pin，最后看盘上恢复成了什么
-  let restored = restore_pin_before(match job.pin_before {
-    Some(p) => p
-    None => { existed: false, dir: "", version: "", pinned_at: "" }
-  })
+  let restored = restore_pin_before(
+    match job.pin_before {
+      Some(p) => p
+      None => { existed: false, dir: "", version: "", pinned_at: "", }
+    },
+  )
   let pin_after_content = pin_file_text()
   match restored {
     Err(why) => {
-      @store.mark_step(job, "verdict", "passed", "你说不好用；" + stop_note, [
-        ("verdict", "bad"),
-        ("stop", stop_note),
-        ("pinBefore", pin_before_content),
-        ("pinAfter", pin_after_content),
-        ("restoreError", why),
-      ], now)
+      @store.mark_step(
+        job,
+        "verdict",
+        "passed",
+        "你说不好用；" + stop_note,
+        [
+          ("verdict", "bad"),
+          ("stop", stop_note),
+          ("pinBefore", pin_before_content),
+          ("pinAfter", pin_after_content),
+          ("restoreError", why),
+        ],
+        now,
+      )
       @store.mark_step(
         job,
         "rollback",
         "failed",
         "回滚没做成（原因在证据里）；作业停在「你来试」，可以再点一次「不好用，回滚」",
-        [("reason", why), ("pinBefore", pin_before_content), ("pinAfter", pin_after_content)],
+        [
+          ("reason", why),
+          ("pinBefore", pin_before_content),
+          ("pinAfter", pin_after_content),
+        ],
         now,
       )
       match @store.save_job(job) {
@@ -753,12 +884,19 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
       abort("unreachable: fail 一定抛错")
     }
     Ok(what) => {
-      @store.mark_step(job, "verdict", "passed", "你说不好用；" + stop_note, [
-        ("verdict", "bad"),
-        ("stop", stop_note),
-        ("pinBefore", pin_before_content),
-        ("pinAfter", pin_after_content),
-      ], now)
+      @store.mark_step(
+        job,
+        "verdict",
+        "passed",
+        "你说不好用；" + stop_note,
+        [
+          ("verdict", "bad"),
+          ("stop", stop_note),
+          ("pinBefore", pin_before_content),
+          ("pinAfter", pin_after_content),
+        ],
+        now,
+      )
       @store.mark_step(
         job,
         "rollback",
@@ -786,7 +924,10 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
       match @store.save_job(job) {
         Ok(_) => ()
         Err(e) => {
-          fail("io-error", "回滚做完了，但作业没能写进磁盘：" + e)
+          fail(
+            "io-error",
+            "回滚做完了，但作业没能写进磁盘：" + e,
+          )
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -796,10 +937,15 @@ pub async fn job_verdict(id : String, verdict_in : String) -> JobOutcome raise A
           ("verdict", @json.JStr("bad")),
           ("trialAlive", @json.JBool(false)),
           ("stop", @json.JStr(stop_note)),
-          ("anchorVersion", @json.JStr(match job.rollback_anchor {
-            Some(a) => a.version
-            None => ""
-          })),
+          (
+            "anchorVersion",
+            @json.JStr(
+              match job.rollback_anchor {
+                Some(a) => a.version
+                None => ""
+              },
+            ),
+          ),
           ("restored", @json.JBool(true)),
           ("pinBefore", @json.JStr(pin_before_content)),
           ("pinAfter", @json.JStr(pin_after_content)),

@@ -5,7 +5,10 @@
 
 ///|
 /// 保存一份启动环境。返回回执用的 data（{action, outcome, note}），审计跟着它走。
-pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal raise ActionError {
+pub async fn save_env_action(
+  params : Json,
+  action : String,
+) -> @json.JsonVal raise ActionError {
   let scope = require_string(params, "scope")
   if scope != "global" && scope != "profile" {
     fail("bad-params", "scope 只认 global 或 profile，收到 " + scope)
@@ -24,7 +27,12 @@ pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal ra
     let key = pair.0
     if !@store.env_key_allowed(key) {
       // 保留键（DSH_HOME / PATH …）与非法键名都不收：说清是哪一个
-      fail("bad-params", "这个键不能由启动环境设置：" + key + "（控制台自己管它，或键名非法）")
+      fail(
+        "bad-params",
+        "这个键不能由启动环境设置：" +
+        key +
+        "（控制台自己管它，或键名非法）",
+      )
       abort("unreachable: fail 一定抛错")
     }
     let value = match @json.json_string(pair.1) {
@@ -77,14 +85,14 @@ pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal ra
     }
   }
   let file = if scope == "global" {
-    { ..loaded, global: entries, suppressed }
+    { ..loaded, global: entries, suppressed, }
   } else {
     home = require_string(params, "home")
     profile = require_string(params, "profile")
     let key = @store.profile_env_key(home, profile)
     let profiles = Map(loaded.profiles.iter().collect())
     profiles[key] = entries
-    { ..loaded, profiles, suppressed }
+    { ..loaded, profiles, suppressed, }
   }
   // options（§62.2）：可选；只认 keep_system 与 merge，别的值 bad-params
   let options = match @json.json_field(params, "options") {
@@ -107,7 +115,10 @@ pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal ra
               if @store.env_merge_allowed(m) {
                 m
               } else {
-                fail("bad-params", "options.merge 只认 override 或 append，收到 " + m)
+                fail(
+                  "bad-params",
+                  "options.merge 只认 override 或 append，收到 " + m,
+                )
                 abort("unreachable: fail 一定抛错")
               }
             None => {
@@ -117,11 +128,11 @@ pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal ra
           }
         None => loaded.options.merge
       }
-      @store.EnvOptions::{ keep_system: keep_system, merge: merge }
+      @store.EnvOptions::{ keep_system, merge, }
     }
     None => loaded.options
   }
-  let file = { ..file, options }
+  let file = { ..file, options, }
   match @store.save_env_file(file) {
     Ok(_) => ()
     Err(e) => {
@@ -147,9 +158,14 @@ pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal ra
       "note",
       @json.JStr(
         if scope == "global" {
-          "启动环境（全局）已保存 " + keys.length().to_string() + " 个键"
+          "启动环境（全局）已保存 " +
+          keys.length().to_string() +
+          " 个键"
         } else {
-          profile + " 的启动环境已保存 " + keys.length().to_string() + " 个键"
+          profile +
+          " 的启动环境已保存 " +
+          keys.length().to_string() +
+          " 个键"
         },
       ),
     ),

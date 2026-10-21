@@ -30,7 +30,7 @@ fn opt_str_field(obj : Map[String, Json], key : String) -> String? {
 
 ///|
 /// 只读接口的 JSON 数值都是整数读法：带小数就取整，别处用不到小数。
-fn int_field(obj : Map[String, Json], key : String) -> Int? {
+fn int_field(obj : Map[String, Json], key : String) -> Int32? {
   match obj.get(key) {
     Some(Json::Number(n, ..)) => Some(n.to_int())
     _ => None
@@ -93,7 +93,7 @@ fn obj_field(obj : Map[String, Json], key : String) -> Map[String, Json] {
 }
 
 ///|
-fn int_or(obj : Map[String, Json], key : String, fallback : Int) -> Int {
+fn int_or(obj : Map[String, Json], key : String, fallback : Int32) -> Int32 {
   match int_field(obj, key) {
     Some(v) => v
     None => fallback
@@ -121,7 +121,7 @@ fn envelope_error(envelope : Map[String, Json]) -> String {
 /// 三个失败点各自有话说：不是 JSON、不是外壳、ok=false —— 都带上能对上号的措辞，
 /// 界面直接展示，不吞。
 fn open_envelope(text : String) -> Result[Map[String, Json], String] {
-  let root = try @json.parse(text) catch {
+  let root = @json.parse(text) catch {
     _ => return Err("回执不是合法 JSON")
   }
   guard root is Json::Object(envelope) else {
@@ -297,7 +297,8 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
       dir_mtime_ms: num_field(fact, "dirMtimeMs"),
       // 后端给了 dirMtimeSource 就照它说；字段**整个不在响应里**（这一版后端还没落地）
       // 补一句前端自己的话 —— 那与「后端读了但读不到」不是同一件事，不能都写成「读不到」。
-      dir_mtime_source: if has_key(fact, "dirMtimeMs") || has_key(fact, "dirMtimeSource") {
+      dir_mtime_source: if has_key(fact, "dirMtimeMs") ||
+        has_key(fact, "dirMtimeSource") {
         str_field(fact, "dirMtimeSource")
       } else {
         "这一版读数里没有「最近改动」可读"
@@ -378,16 +379,23 @@ fn parse_promote_side(obj : Map[String, Json]) -> PromoteSide {
 
 ///|
 /// 覆盖项里的两种行（新增 / 移除 / 改写）。
-fn parse_patch_entries(obj : Map[String, Json], key : String) -> Array[PromotePatchEntry] {
+fn parse_patch_entries(
+  obj : Map[String, Json],
+  key : String,
+) -> Array[PromotePatchEntry] {
   let out : Array[PromotePatchEntry] = []
   for item in arr_field(obj, key) {
     guard item is Json::Object(entry) else { continue }
-    out.push({ id: str_field(entry, "id"), text: str_field(entry, "text") })
+    out.push({ id: str_field(entry, "id"), text: str_field(entry, "text"), })
   }
   out
 }
 
-fn parse_patch_changes(obj : Map[String, Json], key : String) -> Array[PromotePatchChange] {
+///|
+fn parse_patch_changes(
+  obj : Map[String, Json],
+  key : String,
+) -> Array[PromotePatchChange] {
   let out : Array[PromotePatchChange] = []
   for item in arr_field(obj, key) {
     guard item is Json::Object(entry) else { continue }
@@ -400,7 +408,11 @@ fn parse_patch_changes(obj : Map[String, Json], key : String) -> Array[PromotePa
   out
 }
 
-fn parse_package_versions(obj : Map[String, Json], key : String) -> Array[PromotePackageVersion] {
+///|
+fn parse_package_versions(
+  obj : Map[String, Json],
+  key : String,
+) -> Array[PromotePackageVersion] {
   let out : Array[PromotePackageVersion] = []
   for item in arr_field(obj, key) {
     guard item is Json::Object(entry) else { continue }
@@ -503,7 +515,7 @@ pub fn parse_instances(text : String) -> Result[InstancesFacts, String] {
       process_reason_code: str_field(reason, "code"),
       process_reason: str_field(reason, "message"),
       console_started: bool_field(fact, "consoleStarted") ||
-        bool_field(fact, "startedByConsole"),
+      bool_field(fact, "startedByConsole"),
       web_url: opt_str_field(fact, "webUrl"),
       web_url_source: web_url_source_of(fact),
       state: state_of(fact),
@@ -729,7 +741,7 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     let id = str_field(entry, "id")
     // 没有 id 或没有时刻的条目直接丢掉：一条查不到的读数，摆在表里只会让查表的人以为有
     if id != "" && at != "" {
-      last_started.push({ id, at, source: str_field(entry, "source") })
+      last_started.push({ id, at, source: str_field(entry, "source"), })
     }
   }
   let jobs : Array[JobFact] = []

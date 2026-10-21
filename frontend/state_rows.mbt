@@ -6,7 +6,8 @@ enum RowStatus {
   Starting
 } derive(Eq)
 
-pub extend RowStatus with Eq::{ not_equal, equal }
+///|
+pub extend RowStatus with Eq::{not_equal, equal}
 
 ///|
 enum Tone {
@@ -14,7 +15,8 @@ enum Tone {
   Violet
 } derive(Eq)
 
-pub extend Tone with Eq::{ not_equal, equal }
+///|
+pub extend Tone with Eq::{not_equal, equal}
 
 ///|
 /// 一张实例卡（现有 Instance 接口的对应物；真假数据共用同一个模型）。
@@ -27,7 +29,7 @@ struct Row {
   tone : Tone
   status : RowStatus
   /// 已运行分钟数；None = 端口探测到了实例但读不到宿主进程，时长未知，不编
-  uptime : Int?
+  uptime : Int32?
   uptime_hint : String
   /// 派生时探测端口的结论，仅启动等待期间展示
   port_note : String
@@ -71,7 +73,7 @@ struct Row {
   /// 这时动作先在本地说清「没有可用的目标」，不发请求（也不拿演示数据里的名字去删真东西）。
   profile_name : String?
   /// 写动作的目标：实例端口（停止 / 重启按端口认）
-  port_value : Int?
+  port_value : Int32?
   /// 运行时登记（runtime.json）里有这一条 → 由本控制台启动
   console_started : Bool
   /// 用户给这只 profile 写的备注（读自 profiles 读数的 note）。
@@ -91,14 +93,14 @@ struct Row {
   home_kind_source : String
   /// 缺几个包（读数的 bundles.missing 条数）。>0 时抽屉「状态」组里多一颗
   /// 「安装缺的包（N）」（design/design-fixes.md §39）。
-  missing_count : Int
+  missing_count : Int32
   /// 补包会在 profile 目录里跑的那条命令（后端 repairCommand，同一处口径）
   repair_command : String
   /// 补包要带的 home：这只 profile 自己的 home（隔离的那只是它的隔离 home）
   repair_home : String
   /// 指向 profile 之外的有效软链接条数（design/design-fixes.md §60.1）：
   /// 派生开发副本前按它决定要不要先告知「藕断丝连」。
-  external_links : Int
+  external_links : Int32
   /// 命令行型：bundles 里没有 `@deepseek-ai/dsh-web-app`（读数 webApp === false）。
   /// 这种 profile 没有网页入口，起不成常驻实例；卡上给它一枚蓝色小标（design/design-fixes.md §41）。
   /// 读不到这一项（None）时算 false：不确定就不贴标签，不替它下结论。
@@ -163,14 +165,15 @@ struct Row {
   snapshots_source : String
 } derive(Eq)
 
-pub extend Row with Eq::{ not_equal, equal }
+///|
+pub extend Row with Eq::{not_equal, equal}
 
 ///|
 /// 启动等待时长与重启按钮的自锁时长（前端演示，没有真实进程可等）。
-pub let start_delay_ms : Int = 2500
+pub let start_delay_ms : Int32 = 2500
 
 ///|
-pub let restart_lock_ms : Int = 900
+pub let restart_lock_ms : Int32 = 900
 
 ///|
 /// 拖动排序的位移阈值（CSS 像素）。按下之后位移超过它才算拖动，没超过就还是点击。
@@ -185,7 +188,7 @@ pub let drag_threshold_px : Double = 6.0
 /// 726 就是样式里那个两列断点（.dsh-rows.dsh-card-grid 的 @media (min-width: 726px)）：
 /// 低于它页面是单列，条目占满整幅宽，纵向拖动与页面滚动落在同一个手势上 ——
 /// 拖一次条目，页面跟着往下滚。两处必须一起改。
-pub let drag_min_viewport_width : Int = 726
+pub let drag_min_viewport_width : Int32 = 726
 
 ///|
 /// 条目让位那一段过渡的时长（毫秒）：别条从旧格子挪到新格子走这么久。
@@ -194,25 +197,25 @@ pub let drag_min_viewport_width : Int = 726
 /// 是同一个数（改一处得改另两处）。取值 150–200：再快看不清「谁让了谁」，
 /// 再慢指针已经移到下一格了、上一段还没走完，落点会看着发黏。
 /// **减少动效那一档不做过渡**（那条 media query 关掉 transition + FLIP 自己会跳过）。
-pub let reorder_ms : Int = 180
+pub let reorder_ms : Int32 = 180
 
 ///|
 /// 键盘换位第一拍与第二拍之间留多久（毫秒）：占位块先亮出来，再落位。
 ///
 /// 比 reorder_ms 略长一点：让位那一段走完，眼睛已经看见「落到这儿」，
 /// 落位紧跟着发生；短于 reorder_ms 的话两段动画会叠在一起，看着像直接跳过去。
-pub let reorder_preview_ms : Int = 190
+pub let reorder_preview_ms : Int32 = 190
 
 ///|
 /// 成功提示（toast）的寿命：出现之后这么多毫秒开始淡出。
 ///
 /// 只有**成功**的提示会走：失败要留到使用者自己处理掉（见 app.mbt 的 update 外壳）。
 /// 3.5 秒是规格 14.1 定的数（旧版 4 秒）。
-pub let flash_ms : Int = 3500
+pub let flash_ms : Int32 = 3500
 
 ///|
 /// toast 淡出那一小段（毫秒）：先把不透明度收下去，再撤节点。
-pub let flash_fade_ms : Int = 220
+pub let flash_fade_ms : Int32 = 220
 
 ///|
 /// 详情抽屉开、合那一段动画的时长（毫秒）。
@@ -223,7 +226,7 @@ pub let flash_fade_ms : Int = 220
 ///
 /// **上限是硬的**：收起来那一段走完之后节点才撤，验收探针在 Esc 之后等 700ms
 /// 就断言「抽屉没了」；这个数超过 300 就会让那条判定误报。
-pub let drawer_anim_ms : Int = 220
+pub let drawer_anim_ms : Int32 = 220
 
 ///|
 /// 启动成功之后，最多重读几轮读数去等带令牌的地址。
@@ -231,11 +234,11 @@ pub let drawer_anim_ms : Int = 220
 /// 为什么要等：令牌不在启动响应里，它在实例日志里，由 /api/local/instances 现算
 /// （后端的 weburl.mbt）。端口先监听、带令牌的横幅后落盘，在慢机器上是可能的 ——
 /// 一轮没读到就认输会把一只真起来的实例说成没地址。有界：等满就认输并说清为什么。
-pub let start_tab_max_tries : Int = 3
+pub let start_tab_max_tries : Int32 = 3
 
 ///|
 /// 上面那几轮之间的间隔（毫秒）。
-pub let start_tab_retry_ms : Int = 1200
+pub let start_tab_retry_ms : Int32 = 1200
 
 ///|
 /// DOM 上的稳定 id：行 id 里带 ':'（port:3080），不能直接当选择器用。
@@ -304,7 +307,9 @@ fn running_rows(
       None => "dsh :" + fact.port.to_string()
     }
     // 状态灯与「为什么是这个颜色」：实例卡只看后端的 state（后端没给就是 unknown，不猜）
-    let (light, light_reason, light_basis) = instance_light(fact, profile_fact, ignore_missing)
+    let (light, light_reason, light_basis) = instance_light(
+      fact, profile_fact, ignore_missing,
+    )
     let health = instance_health(fact, profile_fact, ignore_missing)
     // 第二行第三顺位：这一只真实的启动时刻优先（进程起始时间），取不到才去查控制台的记录
     let (last_started, last_started_source) = row_last_started(
@@ -321,7 +326,9 @@ fn running_rows(
       name,
       kind: "本机监听的 dsh 实例",
       kind_hint: "从 /proc/net/tcp(6) 的 loopback LISTEN 端口探测到，命中判据 " +
-        fact.signature_id + "：" + fact.signature_describe,
+      fact.signature_id +
+      "：" +
+      fact.signature_describe,
       tone: Accent,
       status: Running,
       uptime: minutes,
@@ -345,7 +352,9 @@ fn running_rows(
       note: match profile_fact {
         Some(item) =>
           if item.bundles.missing.length() > 0 {
-            "缺 " + item.bundles.missing.length().to_string() + " 个包：" +
+            "缺 " +
+            item.bundles.missing.length().to_string() +
+            " 个包：" +
             join_with(item.bundles.missing, "、")
           } else {
             ""
@@ -372,13 +381,17 @@ fn running_rows(
       // 「有地址可复制」= 真在跑 **且** 这一格不是占位串。两个条件都要看：
       // 判据是地址本身，不是「这一行走到了哪个分支」——实例读数理论上也可能给不出地址，
       // 那时按钮照旧不该亮（§13.1 的口径）。
-      url_copyable: fact.url != "" && fact.url != "—" && fact.url != "已停用，无法访问",
+      url_copyable: fact.url != "" &&
+      fact.url != "—" &&
+      fact.url != "已停用，无法访问",
       // 带令牌的地址来自后端（按实例端口对出来的那一条），前端不自己拼、也不缓存
       web_url: fact.web_url,
       web_url_source: fact.web_url_source,
       plugin_count: match profile_fact {
         Some(item) =>
-          "声明 " + item.bundles.declared.to_string() + " | 已装 " +
+          "声明 " +
+          item.bundles.declared.to_string() +
+          " | 已装 " +
           item.bundles.installed.to_string()
         None => "—"
       },
@@ -396,7 +409,8 @@ fn running_rows(
       archive_home: "",
       profile_name: fact.profile,
       port_value: Some(fact.port),
-      console_started: fact.console_started || console_started(console, fact.port),
+      console_started: fact.console_started ||
+      console_started(console, fact.port),
       // 运行中卡也要带备注：这只 profile 的目录就在磁盘上，备注读得到什么就写什么
       user_note: match profile_fact {
         Some(item) => item.note
@@ -434,15 +448,19 @@ fn running_rows(
           Some(item) => item.home_kind_source
           None =>
             if home_is_path(instance_home) {
-              "按实例的 home 认定：profiles 读数里没有这只 profile（" + fact.dsh_home_source + "）"
+              "按实例的 home 认定：profiles 读数里没有这只 profile（" +
+              fact.dsh_home_source +
+              "）"
             } else {
-              "实例的 home 读不到（" + fact.dsh_home_source + "），profiles 读数里也没有这只 profile"
+              "实例的 home 读不到（" +
+              fact.dsh_home_source +
+              "），profiles 读数里也没有这只 profile"
             }
         }
       },
       home_from_instance: fact.home_kind != "trial" &&
-        profile_fact is None &&
-        home_is_path(instance_home),
+      profile_fact is None &&
+      home_is_path(instance_home),
       // 运行中的实例必然有网页入口（没有入口的 profile 起不出常驻实例）
       cli_only: false,
       // 补包（§39）：只在 profiles 读数配得上这一只时才知道缺几个、也知道该用哪条命令；
@@ -460,7 +478,12 @@ fn running_rows(
         None => 0
       },
       repair_home: match profile_fact {
-        Some(item) => if item.home_path != "" { item.home_path } else { instance_home }
+        Some(item) =>
+          if item.home_path != "" {
+            item.home_path
+          } else {
+            instance_home
+          }
         None => ""
       },
       // 第六格：这只实例用的 profile 目录的最近改动。profile 解析得出就用它的 mtime；
@@ -469,7 +492,11 @@ fn running_rows(
         Some(item) => item.dir_mtime_ms
         None => None
       },
-      mtime_missing: if profile_fact is Some(_) { "读不到" } else { "—" },
+      mtime_missing: if profile_fact is Some(_) {
+        "读不到"
+      } else {
+        "—"
+      },
       mtime_hint: match profile_fact {
         Some(item) =>
           match item.dir_mtime_ms {
@@ -484,12 +511,22 @@ fn running_rows(
           } else {
             match fact.profile {
               Some(name) =>
-                "这只实例解析出的 profile 名是「" + name + "」，但 profiles 读数里没有这一只，" +
+                "这只实例解析出的 profile 名是「" +
+                name +
+                "」，但 profiles 读数里没有这一只，" +
                 "没有目录可读最近改动" +
-                (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
+                (if fact.profile_source == "" {
+                  ""
+                } else {
+                  "（" + fact.profile_source + "）"
+                })
               None =>
                 "实例读数里没解析出 profile 名，没有 profile 目录可读最近改动" +
-                (if fact.profile_source == "" { "" } else { "（" + fact.profile_source + "）" })
+                (if fact.profile_source == "" {
+                  ""
+                } else {
+                  "（" + fact.profile_source + "）"
+                })
             }
           }
       },
@@ -508,7 +545,8 @@ fn running_rows(
       },
       snapshots_source: match profile_fact {
         Some(item) => item.snapshots_source
-        None => "profiles 读数里没有这只实例的 profile，读不到它的配置快照"
+        None =>
+          "profiles 读数里没有这只实例的 profile，读不到它的配置快照"
       },
     }
   })
@@ -532,7 +570,11 @@ fn profile_rows(
     // 后面「这只 profile 有没有在跑」「行 id」「上次启动」全都要用同一个值 ——
     // 拿控制台 home 去配对，隔离的那只会既配不上运行中那一只（多出一行），
     // 行 id 也会指到它不在的地方。
-    let row_home = if fact.home_path != "" { fact.home_path } else { profiles_home }
+    let row_home = if fact.home_path != "" {
+      fact.home_path
+    } else {
+      profiles_home
+    }
     if in_use_by(fact, running, row_home) {
       continue
     }
@@ -563,7 +605,11 @@ fn profile_rows(
       // 留下的只有「默认」这半 —— 它是真信息：DSH_PROFILE 指向它。
       // 不是默认的卡片这一格**一个节点都不产出**：不留空 pill，也不摆一个空壳（见 view_overview
       // 的 sub_line —— 那一轨的宽度留着是为了状态点跨卡对齐，节点是真的没有）。
-      kind: if fact.is_current { "默认 profile" } else { "" },
+      kind: if fact.is_current {
+        "默认 profile"
+      } else {
+        ""
+      },
       // 「默认」只表示 DSH_PROFILE 指向它，跟「运行中」无关 —— 这个词以前写成「当前」，会被读成正在跑
       kind_hint: if fact.is_current {
         "环境变量 DSH_PROFILE 指向这只 profile：新起的实例默认用它，不代表它正在运行"
@@ -577,7 +623,10 @@ fn profile_rows(
       port_note: "",
       idle_note: patch_lock_note(fact),
       note: if missing.length() > 0 {
-        "缺 " + missing.length().to_string() + " 个包：" + join_with(missing, "、")
+        "缺 " +
+        missing.length().to_string() +
+        " 个包：" +
+        join_with(missing, "、")
       } else {
         ""
       },
@@ -590,12 +639,17 @@ fn profile_rows(
       // 是控制台 home）；只有它给不出来时才退回「这批 profile 是从哪个 home 列出来的」。
       // 两种情况都读不到就写「未知」：绝不拿控制台自己的 home 顶替 ✗
       // （那会把这只 profile 说成属于一个它不属于的地方，开发指令也会因此指错目录）。
-      home: if row_home == "" { "未知" } else { row_home },
+      home: if row_home == "" {
+        "未知"
+      } else {
+        row_home
+      },
       home_hint: if profiles_home == "" {
         "这一版 profiles 读数里没有 dshHome：不知道这批 profile 是从哪个 home 的 profiles/ 下读出来的，" +
         "所以这一格写「未知」。不拿控制台自己的 home 顶上，那只是把别处的 home 说成它的"
       } else {
-        "这只 profile 自己的 home：profiles 读数就是在 " + profiles_home +
+        "这只 profile 自己的 home：profiles 读数就是在 " +
+        profiles_home +
         "/profiles 下把这只列出来的（读数里的 dshHome / dshHomeSource）。" +
         "它与控制台自己的 home 可以相同、也可以不同。这一格说的是这一只属于哪儿，不是控制台在用什么"
       },
@@ -606,8 +660,10 @@ fn profile_rows(
       // 这只 profile 现在没有在跑的实例：没有地址可握手，也就没有令牌可读
       web_url: None,
       web_url_source: "这只 profile 现在没有在运行的实例，没有访问地址可握手",
-      plugin_count: "声明 " + fact.bundles.declared.to_string() + " | 已装 " +
-        fact.bundles.installed.to_string(),
+      plugin_count: "声明 " +
+      fact.bundles.declared.to_string() +
+      " | 已装 " +
+      fact.bundles.installed.to_string(),
       plugin_detail: if missing.length() > 0 {
         "缺少的包：" + join_with(missing, "、")
       } else {
@@ -667,7 +723,11 @@ fn profile_rows(
   // 运行中那一组不在这里排：它按实例读数自己的顺序走，不掺进这条口径。
   rows.sort_by(fn(a, b) {
     let by_time = mtime_desc(a.mtime_ms, b.mtime_ms)
-    if by_time != 0 { by_time } else { name_asc(a.name, b.name) }
+    if by_time != 0 {
+      by_time
+    } else {
+      name_asc(a.name, b.name)
+    }
   })
   rows
 }
@@ -697,7 +757,7 @@ fn apply_archived_marks(model : Model, rows : Array[Row]) -> Array[Row] {
         if stamp == "" {
           row
         } else {
-          { ..row, archived_at: Some(stamp) }
+          { ..row, archived_at: Some(stamp), }
         }
       }
     }
@@ -745,7 +805,11 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
     // 这一行的 home 来自**归档记录自己**：磁盘上没有目录可读，但记录说了它属于哪个 home。
     // 记录里没写（改动之前写下的那条旧记录）就如实写「—」—— 不拿控制台自己的 home 顶上 ✗：
     // 那会把一个它不属于的 home 说成它的，开发指令也会照着那个错的 home 拼。
-    home: if record.home == "" { "—" } else { record.home },
+    home: if record.home == "" {
+      "—"
+    } else {
+      record.home
+    },
     home_hint: if record.home == "" {
       "archive.json 里这条记录没写它属于哪个 home，磁盘上也没有这只 profile 的目录。" +
       "这一格没有可写的值（拿控制台自己的 home 来填，就是给它安一个它不属于的 home）"
@@ -812,24 +876,54 @@ fn archived_orphan(record : ConsoleArchive) -> Row {
 fn demo_running() -> Array[Row] {
   [
     {
-      id: "work-main", name: "work-main", kind: "核心工作实例", kind_hint: "",
-      tone: Accent, status: Running, uptime: Some(138), uptime_hint: "",
-      port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "main", home: "/Users/you/.dsh/work-main",
+      id: "work-main",
+      name: "work-main",
+      kind: "核心工作实例",
+      kind_hint: "",
+      tone: Accent,
+      status: Running,
+      uptime: Some(138),
+      uptime_hint: "",
+      port_note: "",
+      idle_note: "",
+      note: "",
+      busy: false,
+      version: "0.2.0-rc.2（本地源码）",
+      version_hint: "演示数据，不是读数",
+      profile_hint: "演示数据，不是读数",
+      home_hint: "演示数据，不是读数",
+      profile: "main",
+      home: "/Users/you/.dsh/work-main",
       // 演示行不是读数：没有真在跑的实例，地址是编的 —— 不当成「有地址可复制」
-      url: "http://127.0.0.1:8100", url_copyable: false, web_url: None,
+      url: "http://127.0.0.1:8100",
+      url_copyable: false,
+      web_url: None,
       web_url_source: "演示数据：端口 8100 上没有真实实例，读不到令牌",
-      plugin_count: "5 个", plugin_detail: "",
-      deletable: false, archived_at: None, archive_home: "",
-      profile_name: None, port_value: None, console_started: false,
-      user_note: "", user_note_source: "",
+      plugin_count: "5 个",
+      plugin_detail: "",
+      deletable: false,
+      archived_at: None,
+      archive_home: "",
+      profile_name: None,
+      port_value: None,
+      console_started: false,
+      user_note: "",
+      user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
+      home_kind: "",
+      home_path: "",
+      home_kind_source: "",
+      home_from_instance: false,
+      cli_only: false,
       missing_count: 0,
-      external_links: 0, repair_command: "", repair_home: "",
+      external_links: 0,
+      repair_command: "",
+      repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
-      last_started: "", last_started_source: "",
-      mtime_ms: None, mtime_missing: "读不到",
+      last_started: "",
+      last_started_source: "",
+      mtime_ms: None,
+      mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
       light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
@@ -842,23 +936,53 @@ fn demo_running() -> Array[Row] {
       snapshots_source: "演示数据：不是真实读数，没有配置快照可读",
     },
     {
-      id: "plugin-dev", name: "plugin-dev", kind: "插件开发（试验）", kind_hint: "",
-      tone: Violet, status: Running, uptime: Some(42), uptime_hint: "",
-      port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "dev", home: "/Users/you/.dsh/plugin-dev",
-      url: "http://127.0.0.1:8200", url_copyable: false, web_url: None,
+      id: "plugin-dev",
+      name: "plugin-dev",
+      kind: "插件开发（试验）",
+      kind_hint: "",
+      tone: Violet,
+      status: Running,
+      uptime: Some(42),
+      uptime_hint: "",
+      port_note: "",
+      idle_note: "",
+      note: "",
+      busy: false,
+      version: "0.2.0-rc.2（本地源码）",
+      version_hint: "演示数据，不是读数",
+      profile_hint: "演示数据，不是读数",
+      home_hint: "演示数据，不是读数",
+      profile: "dev",
+      home: "/Users/you/.dsh/plugin-dev",
+      url: "http://127.0.0.1:8200",
+      url_copyable: false,
+      web_url: None,
       web_url_source: "演示数据：端口 8200 上没有真实实例，读不到令牌",
-      plugin_count: "2 个（开发中）", plugin_detail: "",
-      deletable: true, archived_at: None, archive_home: "",
-      profile_name: None, port_value: None, console_started: false,
-      user_note: "", user_note_source: "",
+      plugin_count: "2 个（开发中）",
+      plugin_detail: "",
+      deletable: true,
+      archived_at: None,
+      archive_home: "",
+      profile_name: None,
+      port_value: None,
+      console_started: false,
+      user_note: "",
+      user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
+      home_kind: "",
+      home_path: "",
+      home_kind_source: "",
+      home_from_instance: false,
+      cli_only: false,
       missing_count: 0,
-      external_links: 0, repair_command: "", repair_home: "",
+      external_links: 0,
+      repair_command: "",
+      repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
-      last_started: "", last_started_source: "",
-      mtime_ms: None, mtime_missing: "读不到",
+      last_started: "",
+      last_started_source: "",
+      mtime_ms: None,
+      mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
       light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
@@ -877,23 +1001,53 @@ fn demo_running() -> Array[Row] {
 fn demo_stopped() -> Array[Row] {
   [
     {
-      id: "staging", name: "staging", kind: "插件开发（试验）", kind_hint: "",
-      tone: Violet, status: Stopped, uptime: Some(0), uptime_hint: "",
-      port_note: "", idle_note: "", note: "", busy: false,
-      version: "0.2.0-rc.2（本地源码）", version_hint: "演示数据，不是读数", profile_hint: "演示数据，不是读数", home_hint: "演示数据，不是读数", profile: "staging", home: "/Users/you/.dsh/staging",
-      url: "http://127.0.0.1:8300", url_copyable: false, web_url: None,
+      id: "staging",
+      name: "staging",
+      kind: "插件开发（试验）",
+      kind_hint: "",
+      tone: Violet,
+      status: Stopped,
+      uptime: Some(0),
+      uptime_hint: "",
+      port_note: "",
+      idle_note: "",
+      note: "",
+      busy: false,
+      version: "0.2.0-rc.2（本地源码）",
+      version_hint: "演示数据，不是读数",
+      profile_hint: "演示数据，不是读数",
+      home_hint: "演示数据，不是读数",
+      profile: "staging",
+      home: "/Users/you/.dsh/staging",
+      url: "http://127.0.0.1:8300",
+      url_copyable: false,
+      web_url: None,
       web_url_source: "演示数据：端口 8300 上没有真实实例，读不到令牌",
-      plugin_count: "3 个", plugin_detail: "",
-      deletable: true, archived_at: None, archive_home: "",
-      profile_name: None, port_value: None, console_started: false,
-      user_note: "", user_note_source: "",
+      plugin_count: "3 个",
+      plugin_detail: "",
+      deletable: true,
+      archived_at: None,
+      archive_home: "",
+      profile_name: None,
+      port_value: None,
+      console_started: false,
+      user_note: "",
+      user_note_source: "",
       // 演示数据不是读数：home 归属也没有读数，三格空着（界面写「读不到」）
-      home_kind: "", home_path: "", home_kind_source: "", home_from_instance: false, cli_only: false,
+      home_kind: "",
+      home_path: "",
+      home_kind_source: "",
+      home_from_instance: false,
+      cli_only: false,
       missing_count: 0,
-      external_links: 0, repair_command: "", repair_home: "",
+      external_links: 0,
+      repair_command: "",
+      repair_home: "",
       // 演示数据不是读数：没有真实的启动记录可查，那一行空着（不编一个时间）
-      last_started: "", last_started_source: "",
-      mtime_ms: None, mtime_missing: "读不到",
+      last_started: "",
+      last_started_source: "",
+      mtime_ms: None,
+      mtime_missing: "读不到",
       mtime_hint: "演示数据：不是真实读数，没有目录可读最近改动",
       light: LightUnknown,
       light_reason: "这是读取失败时兜底的演示数据，没有读数，颜色不猜。",
@@ -910,4 +1064,4 @@ fn demo_stopped() -> Array[Row] {
 
 ///|
 /// 失败提示留多久（§91）：比成功长一倍多，够读完一句话，但不至于一直挂屏幕上。
-pub let err_ms : Int = 8000
+pub let err_ms : Int32 = 8000

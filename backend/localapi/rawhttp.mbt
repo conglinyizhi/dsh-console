@@ -19,14 +19,17 @@ pub let accept_header : String = "text/html,application/json;q=0.9,*/*;q=0.8"
 ///|
 /// 一次 HTTP 响应。
 pub(all) struct RawResponse {
-  code : Int
+  code : Int32
   headers : Array[(String, String)]
   body : String
 }
 
 ///|
 /// 取响应头的值（名字大小写不敏感）；没有给 None。
-pub fn header_value(headers : Array[(String, String)], name : String) -> String? {
+pub fn header_value(
+  headers : Array[(String, String)],
+  name : String,
+) -> String? {
   let wanted = @json.to_lower(name)
   for pair in headers {
     if @json.to_lower(pair.0) == wanted {
@@ -38,7 +41,7 @@ pub fn header_value(headers : Array[(String, String)], name : String) -> String?
 
 ///|
 /// 从 "HTTP/1.1 401 Unauthorized" 里取状态码。
-fn parse_status_code(line : String) -> Int {
+fn parse_status_code(line : String) -> Int32 {
   let parts = @json.split_ws(line)
   if parts.length() < 2 {
     return 0
@@ -60,7 +63,13 @@ fn parse_headers(text : String) -> Array[(String, String)] {
       continue
     }
     match raw.find(":") {
-      Some(i) => out.push((@json.slice(raw, 0, i), @json.trim_both(@json.slice_from(raw, i + 1))))
+      Some(i) =>
+        out.push(
+          (
+            @json.slice(raw, 0, i),
+            @json.trim_both(@json.slice_from(raw, i + 1)),
+          ),
+        )
       None => ()
     }
   }
@@ -69,7 +78,7 @@ fn parse_headers(text : String) -> Array[(String, String)] {
 
 ///|
 /// 从 "1f\r\n" 里取十六进制块长度。
-fn parse_hex_size(line : String) -> Int {
+fn parse_hex_size(line : String) -> Int32 {
   let parts = @json.split_ws(line)
   if parts.length() == 0 {
     return -1
@@ -97,7 +106,7 @@ fn parse_hex_size(line : String) -> Int {
 
 ///|
 /// 按字节上限裁剪一个 UTF-8 字符串。
-fn truncate_to_bytes(text : String, limit : Int) -> String {
+fn truncate_to_bytes(text : String, limit : Int32) -> String {
   if @json.utf8_len(text) <= limit {
     return text
   }
@@ -109,8 +118,8 @@ fn truncate_to_bytes(text : String, limit : Int) -> String {
 async fn read_body(
   sock : @async_socket.Tcp,
   headers : Array[(String, String)],
-  limit : Int,
-) -> String raise {
+  limit : Int32,
+) -> String {
   let lowered = match header_value(headers, "Transfer-Encoding") {
     Some(v) => @json.to_lower(v)
     None => ""
@@ -127,17 +136,17 @@ async fn read_body(
 
 ///|
 /// 读到 declared 字节或读到 EOF，最多 limit 字节。
-async fn read_by_length(sock : @async_socket.Tcp, declared : Int, limit : Int) -> String raise {
+async fn read_by_length(
+  sock : @async_socket.Tcp,
+  declared : Int32,
+  limit : Int32,
+) -> String {
   let chunks : Array[BytesView] = []
   let mut size = 0
   let target = if declared < limit { declared } else { limit }
   while size < target {
     let room = target - size
-    let chunk = try {
-      sock.read_some(max_len=room)
-    } catch {
-      _ => break
-    }
+    let chunk = sock.read_some(max_len=room) catch { _ => break }
     match chunk {
       None => break
       Some(data) =>
@@ -154,7 +163,7 @@ async fn read_by_length(sock : @async_socket.Tcp, declared : Int, limit : Int) -
 
 ///|
 /// chunked 分块体：按块读，块间换行跳过，遇到 0 长度块收尾。
-async fn read_chunked(sock : @async_socket.Tcp, limit : Int) -> String raise {
+async fn read_chunked(sock : @async_socket.Tcp, limit : Int32) -> String {
   let chunks : Array[BytesView] = []
   let mut size = 0
   let mut done = false
@@ -171,11 +180,7 @@ async fn read_chunked(sock : @async_socket.Tcp, limit : Int) -> String raise {
       let mut got = 0
       while got < block {
         let room = block - got
-        let piece = try {
-          sock.read_some(max_len=room)
-        } catch {
-          _ => break
-        }
+        let piece = sock.read_some(max_len=room) catch { _ => break }
         match piece {
           None => break
           Some(data) =>
@@ -183,7 +188,11 @@ async fn read_chunked(sock : @async_socket.Tcp, limit : Int) -> String raise {
               break
             } else {
               if got < want {
-                let keep = if data.length() > want - got { want - got } else { data.length() }
+                let keep = if data.length() > want - got {
+                  want - got
+                } else {
+                  data.length()
+                }
                 chunks.push(data[:keep])
                 size = size + keep
               }
@@ -200,7 +209,7 @@ async fn read_chunked(sock : @async_socket.Tcp, limit : Int) -> String raise {
 
 ///|
 /// 对 127.0.0.1:<port> 发一次 GET /，最多读 limit 字节。
-pub async fn fetch_root(port : Int, limit : Int) -> RawResponse raise {
+pub async fn fetch_root(port : Int32, limit : Int32) -> RawResponse {
   fetch_path(port, "/", limit)
 }
 
@@ -210,15 +219,18 @@ pub async fn fetch_root(port : Int, limit : Int) -> RawResponse raise {
 /// path 会被原样写进请求行：调用方只能传自己拼的路径（根路径探测，或 webUrl 的
 /// `/?token=<串>`），那个串取自日志、且已经过令牌字符集过滤（见 instances/weburl.mbt），
 /// 带不了空格与 CRLF。
-pub async fn fetch_path(port : Int, path : String, limit : Int) -> RawResponse raise {
-  let addr = try {
-    @async_socket.Addr::parse("127.0.0.1:\{port}")
-  } catch {
-    _ => raise @json.RawHttpError("端口号无法组成回环地址：127.0.0.1:\{port}")
+pub async fn fetch_path(
+  port : Int32,
+  path : String,
+  limit : Int32,
+) -> RawResponse {
+  let addr = @async_socket.Addr::parse("127.0.0.1:\{port}") catch {
+    _ =>
+      raise @json.RawHttpError(
+        "端口号无法组成回环地址：127.0.0.1:\{port}",
+      )
   }
-  let sock = try {
-    @async_socket.Tcp::connect(addr)
-  } catch {
+  let sock = @async_socket.Tcp::connect(addr) catch {
     _ => raise @json.RawHttpError("连接被拒绝：127.0.0.1:\{port}")
   }
   defer sock.close()
@@ -242,5 +254,9 @@ pub async fn fetch_path(port : Int, path : String, limit : Int) -> RawResponse r
   }
   let headers = parse_headers(header_text)
   let body = read_body(sock, headers, limit)
-  { code: parse_status_code(status_line), headers, body: truncate_to_bytes(body, limit) }
+  {
+    code: parse_status_code(status_line),
+    headers,
+    body: truncate_to_bytes(body, limit),
+  }
 }

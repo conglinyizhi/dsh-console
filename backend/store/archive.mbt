@@ -75,7 +75,11 @@ fn archive_of(json : Json) -> ArchiveRecord? {
 ///   · 记录自己没标 home（旧文件）—— 那时全仓只有一个 home 口径，这条记录说的就是它；
 ///   · 调用方没给 home（旧客户端 / 没带这个参数的请求）—— 同样退回按名字认。
 /// 除了这两种，home 必须相等：这正是「同名不同 home 不串」那一条。
-pub fn archive_target_matches(r : ArchiveRecord, home : String, profile : String) -> Bool {
+pub fn archive_target_matches(
+  r : ArchiveRecord,
+  home : String,
+  profile : String,
+) -> Bool {
   if r.profile != profile {
     return false
   }
@@ -104,17 +108,27 @@ pub async fn load_archive() -> LoadedArchive noraise {
             }
           }
           if dropped > 0 {
-            note = Some("archive.json 里有 " + dropped.to_string() + " 条读不出来的记录，已跳过")
+            note = Some(
+              "archive.json 里有 " +
+              dropped.to_string() +
+              " 条读不出来的记录，已跳过",
+            )
           }
         }
-        _ => note = Some("archive.json 顶层不是数组，按空表处理：" + paths.archive)
+        _ =>
+          note = Some(
+            "archive.json 顶层不是数组，按空表处理：" +
+            paths.archive,
+          )
       }
   }
-  { entries, note }
+  { entries, note, }
 }
 
 ///|
-pub async fn save_archive(entries : Array[ArchiveRecord]) -> Result[Unit, String] noraise {
+pub async fn save_archive(
+  entries : Array[ArchiveRecord],
+) -> Result[Unit, String] noraise {
   let paths = state_paths()
   let items : Array[@json.JsonVal] = []
   for r in entries {

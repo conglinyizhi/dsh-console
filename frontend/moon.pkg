@@ -14,4 +14,5 @@ import {
 
 // 整包只出 js 产物：`theme.mbt` 里有一处 extern "js"（取浏览器本地时刻），
 // native 目标编不过。这是有意的 —— 前端这一侧的运行期就是浏览器。
+
 supported_targets = "js"

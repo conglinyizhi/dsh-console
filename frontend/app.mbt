@@ -18,7 +18,9 @@ pub fn app() -> @rabbita.Val[@html.Html] {
       let settle = if route.notice == "" {
         @cmd.none
       } else {
-        replace_route(route_url(model.page, model.settings_group, model.log_source))
+        replace_route(
+          route_url(model.page, model.settings_group, model.log_source),
+        )
       }
       // 设置**启动时读一次**（这一轮起）：侧栏的形态存在 ui.sidebarCollapsed 里，
       // 不读就不知道刷新之后该画展开还是收起 —— 先画展开再收一下，那一下是跳的。
@@ -46,7 +48,7 @@ pub fn app() -> @rabbita.Val[@html.Html] {
         ]),
       )
     },
-    update=update,
+    update~,
   )
   model.view(fn(m) { page_view(m, emit) })
 }
@@ -74,11 +76,17 @@ fn default_log_source(model : Model) -> String {
 /// 启动时不预拉：后端没提供这个接口时，每次打开总览都会在控制台里留一条 404，
 /// 而「控制台零问题」是验收项。读过一次（成功或失败）就不再自动重发，
 /// 失败之后要重试走设置页那颗「重新读取」。
-fn ensure_settings_read(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn ensure_settings_read(
+  model : Model,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   if model.settings_loaded || model.settings_loading {
     (model, @cmd.none)
   } else {
-    ({ ..model, settings_loading: true, settings_error: "" }, settings_get_cmd(emit))
+    (
+      { ..model, settings_loading: true, settings_error: "", },
+      settings_get_cmd(emit),
+    )
   }
 }
 
@@ -87,12 +95,20 @@ fn ensure_settings_read(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cm
 ///
 /// 启动（init）与前进 / 后退（RouteChanged）都只走这一条 —— 两边各写一遍「进日志页要读一次
 /// 日志、进设置页要读一次设置」迟早会分叉，而分叉出来的是「刷新之后这一页没数据」。
-fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn route_into(
+  model : Model,
+  route : Route,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
   let base = {
     ..model,
     page: route.page,
     // 分组只在地址真写着设置页时才进 model：切到别的页面不该把用户记住的那一组抹掉
-    settings_group: if route.page is Settings { route.group } else { model.settings_group },
+    settings_group: if route.page is Settings {
+      route.group
+    } else {
+      model.settings_group
+    },
     route_notice: route.notice,
     // 进一页就把窄屏的覆盖层收掉：它盖在页面上，新的一页不该从它下面出来。
     // 三条关闭路径里的「点导航项」与浏览器前进 / 后退都经过这里。
@@ -106,7 +122,7 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
         Some(value) => (true, value)
         None => (false, default_log_source(base))
       }
-      let next = { ..base, log_source: source, log_user_picked: picked }
+      let next = { ..base, log_source: source, log_user_picked: picked, }
       // 内容已经是这个来源的就只滚到底（后退回到同一页不必重读）
       if next.log_source_read == source {
         (next, scroll_bottom_after_render("dsh-log-box"))
@@ -148,9 +164,9 @@ fn route_into(model : Model, route : Route, emit : @cmd.Emit[Msg]) -> (Model, @c
 fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   if model.built ||
     !(model.read_runtime &&
-      model.read_profiles &&
-      model.read_instances &&
-      model.read_console) {
+    model.read_profiles &&
+    model.read_instances &&
+    model.read_console) {
     return (model, @cmd.none)
   }
   // 这批 profile 是从哪个 home 的 profiles/ 下读出来的（profiles 读数的 dshHome）。
@@ -169,7 +185,13 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   let ignore_missing = ignore_missing_bundles(model)
   let running = match model.instances {
     Some(facts) =>
-      running_rows(facts.instances, profile_list, model.console, profiles_home, ignore_missing)
+      running_rows(
+        facts.instances,
+        profile_list,
+        model.console,
+        profiles_home,
+        ignore_missing,
+      )
     None => demo_running()
   }
   // 已停止组要排除「正被某个运行中实例用着」的 profile——同一个东西不能既运行中又已停止
@@ -234,7 +256,11 @@ fn rebuild(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
     built: true,
     log_source: source,
     // 刚补发了一次读取：加载态立起来，回执到了再放下去
-    log_loading: if reload { true } else { model.log_loading },
+    log_loading: if reload {
+      true
+    } else {
+      model.log_loading
+    },
   }
   // 列表拼好之后还有两件跟读数有关的事要办：
   //   ① 启动成功的那只实例，它在点击那一栈里占下的标页正等着带令牌的地址（见 fill_start_tab）；
@@ -257,23 +283,21 @@ fn focus_new_card(model : Model) -> (Model, @cmd.Cmd) {
   let mut target = ""
   for row in model.rows {
     match row.profile_name {
-      Some(name) => if name == model.new_focus {
-        target = row.id
-      }
+      Some(name) => if name == model.new_focus { target = row.id }
       None => ()
     }
   }
   if target == "" {
-    return ({ ..model, new_focus: "" }, @cmd.none)
+    return ({ ..model, new_focus: "", }, @cmd.none)
   }
-  ({ ..model, new_focus: "" }, focus_after_render(card_id(target)))
+  ({ ..model, new_focus: "", }, focus_after_render(card_id(target)))
 }
 
 // ── 行操作 ─────────────────────────────────────────────────
 
 ///|
 fn map_rows(model : Model, id : String, f : (Row) -> Row) -> Model {
-  { ..model, rows: map_row(model.rows, id, f) }
+  { ..model, rows: map_row(model.rows, id, f), }
 }
 
 ///|
@@ -336,7 +360,13 @@ fn matches_source_row(fact : InstanceFact, row : Row) -> Bool {
 /// 而那时 built 已经是 true，后回来的那一份就白读了（卡上还是动作前的老样子）。
 fn refresh_readings(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   (
-    { ..model, built: false, read_profiles: false, read_instances: false, read_console: false },
+    {
+      ..model,
+      built: false,
+      read_profiles: false,
+      read_instances: false,
+      read_console: false,
+    },
     @cmd.batch([load_readings(emit), load_console(emit)]),
   )
 }
