@@ -451,26 +451,24 @@ async fn place_plugin(plugin : LocalPlugin, target_dir : String) -> Result[Bool,
       Err(e) => return Err("删不掉目标里已有的 " + dest + "：" + e)
     }
   }
-  if plugin.is_link {
-    let resolved = match @json.read_link(plugin.path) {
+  // 一律复制实体（§84）：软链先解析成真实目录，再整份拷过去 —— 目标不再牵着源，
+  // 源那边以后怎么改都不会悄悄影响这份副本。目标里同名条目已在上面删过。
+  let real = if plugin.is_link {
+    match @json.read_link(plugin.path) {
       Ok(raw) =>
         if raw.has_prefix("/") {
           raw
         } else {
-          // 相对链接按链接自身所在目录解析（§48 同一口径）
           normalize_path(@json.join_path(@json.dirname(plugin.path), raw))
         }
       Err(_) => plugin.path
     }
-    let rel = relative_from(dest_dir, resolved)
-    return match @fsx.make_symlink(rel, dest) {
-      Ok(_) => Ok(overwritten)
-      Err(e) => Err("建不了软链 " + dest + "：" + e)
-    }
+  } else {
+    plugin.path
   }
-  match @fsx.copy_tree(plugin.path, dest, []) {
+  match @fsx.copy_tree(real, dest, []) {
     Ok(_) => Ok(overwritten)
-    Err(e) => Err("拷不动 " + plugin.path + "：" + e)
+    Err(e) => Err("拷不动 " + real + "：" + e)
   }
 }
 

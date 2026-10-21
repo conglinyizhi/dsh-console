@@ -1126,3 +1126,9 @@ GET /api/local/console 带 buildSha / buildAt；页脚状态灯旁显示 client 
 目标 @local/<name> 若是一条指向已不存在路径的软链，exists() 返回 false、目录项却还在，
 于是跳过删除、建链时报 File exists。现在先 read_link 判「是不是链接」，链接一律先删。
 实测：目标里放一条悬空链，分发后回执 ok、overwritten 列出该包、链接指向新的源。
+
+## 84 分发插件改成复制实体
+
+软链先解析成真实目录再整份复制；目标里同名条目（目录或悬空链）先删再拷，记进 overwritten。
+好处：目标不再牵着源目录，源以后怎么改都不影响副本。实测：目标里预置悬空链，分发后落地面是实体目录（drwx），
+回执 overwritten 列出该包。
