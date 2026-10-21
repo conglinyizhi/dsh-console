@@ -263,7 +263,11 @@ pub async fn run_action(
     // ── 补包（design/design-fixes.md §39）──────────────────────────
     // 启动环境（§61）：整份替换 global 或某只 profile 的那张表
     "save-env" => {
-      ensure_action_params(params, "保存启动环境：", ["scope", "home", "profile", "entries"])
+      ensure_action_params(
+        params,
+        "保存启动环境：",
+        ["scope", "home", "profile", "entries", "options"],
+      )
       save_env_action(params, action)
     }
     "repair-packages" => {

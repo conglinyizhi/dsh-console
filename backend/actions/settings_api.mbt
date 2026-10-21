@@ -46,6 +46,15 @@ async fn handle_settings_get(res : @moonback.Responder, read_at : String) -> Uni
   }
   let env_json = @json.JObj([
     ("path", @json.JStr(@store.env_file_path())),
+    // 生效方式（§62.2）：前端按这两个字段渲染「继承系统环境」开关与「同名变量覆盖/追加」单选。
+    // 缺省与 envfile 一致：继承 + 覆盖。
+    (
+      "options",
+      @json.JObj([
+        ("inherit", @json.JBool(env.options.keep_system)),
+        ("merge", @json.JStr(env.options.merge)),
+      ]),
+    ),
     ("global", @store.env_map_json(env.global)),
     ("profiles", @json.JObj(profiles_fields)),
     // 保留键名单随读数一起给：界面据此置灰（§61.2）

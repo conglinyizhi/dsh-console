@@ -306,6 +306,17 @@ async fn audit_params_for(action : String, params : Json) -> @json.JsonVal {
         fields.push((pair.0, json_to_val(pair.1)))
       }
     }
+    // 请求没带 options 时，记下这次真正生效的方式（§62.4：审计要有 options 两个值）
+    if @store.field_of(params, "options") is None {
+      let file = @store.load_env_file()
+      fields.push((
+        "options",
+        @json.JObj([
+          ("inherit", @json.JBool(file.options.keep_system)),
+          ("merge", @json.JStr(file.options.merge)),
+        ]),
+      ))
+    }
     return @json.JObj(fields)
   }
   if action != "restart-instance" {

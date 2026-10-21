@@ -1,0 +1,8 @@
+dsh-console 后端已起（API + 前端静态同端口），http://127.0.0.1:5393
+GET  /api/local/runtime, /profiles, /logs, /processes, /instances, /dsh-releases, /settings, /console
+POST /api/local/action（写动作唯一入口，需 X-DSH-Console: 1）
+- 静态根：~/Public/deepseek-harness-project/dsh-console/frontend/dist
+- 静态根来源：DSH_CONSOLE_DIST 环境变量（显式指定）
+- SPA 回退：/index.html（history_fallback；实体文件与静态目录都命中不了时回落到它）
+- 预压缩：Accept-Encoding 含 gzip 且同名 .gz 在时发 .gz（Content-Encoding: gzip + Vary: Accept-Encoding），其余照旧发原文件；.gz 缺失不是错误，不会变成 404
+- 优先级：/api/local 与 /api/local/* 由最外层闸门先接走，静态文件抢不到

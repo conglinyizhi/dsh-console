@@ -12,6 +12,35 @@
 pub(all) struct EnvFile {
   global : Map[String, String]
   profiles : Map[String, Map[String, String]]
+  options : EnvOptions
+}
+
+///|
+/// 生效方式（§62.2）：keep_system 是否继承控制台进程环境；merge 同键冲突时 override 覆盖 / append 拼接。
+pub(all) struct EnvOptions {
+  keep_system : Bool
+  merge : String
+}
+
+///|
+/// 缺省：继承 + 覆盖。
+pub fn default_env_options() -> EnvOptions {
+  { keep_system: true, merge: "override" }
+}
+
+///|
+/// merge 只认两个值。
+pub fn env_merge_allowed(merge : String) -> Bool {
+  merge == "override" || merge == "append"
+}
+
+///|
+/// 拼接用的分隔符：Unix 是冒号，Windows 是分号（§62.2）。
+pub async fn env_path_separator() -> String noraise {
+  match @json.env_value("OS") {
+    Some(v) if v.to_lower().contains("windows") => ";"
+    _ => ":"
+  }
 }
 
 ///|
@@ -68,7 +97,7 @@ pub async fn env_file_path() -> String noraise {
 ///|
 /// 读一份（文件不在 / 读不动 / 解析不了 → 空表；坏文件不让接口挂掉）。
 pub async fn load_env_file() -> EnvFile noraise {
-  let empty : EnvFile = { global: Map([]), profiles: Map([]) }
+  let empty : EnvFile = { global: Map([]), profiles: Map([]), options: default_env_options() }
   let path = env_file_path()
   let text = match @json.read_text_file(path) {
     Ok(t) => t
@@ -90,7 +119,28 @@ pub async fn load_env_file() -> EnvFile noraise {
       }
     None => ()
   }
-  { global, profiles }
+  // options（§62.2）：缺一项就用缺省值；merge 只认 override / append，别的值退回 override
+  let options = match field_of(json, "options") {
+    Some(opts) => {
+      let keep_system = match field_of(opts, "inherit") {
+        Some(json) => match as_bool(json) {
+          Some(b) => b
+          None => true
+        }
+        _ => true
+      }
+      let merge = match field_of(opts, "merge") {
+        Some(json) => match as_string(json) {
+          Some(m) if env_merge_allowed(m) => m
+          _ => "override"
+        }
+        _ => "override"
+      }
+      { keep_system, merge }
+    }
+    None => default_env_options()
+  }
+  { global, profiles, options }
 }
 
 ///|
@@ -133,6 +183,13 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
   let json = @json.JObj([
     ("global", env_map_json(file.global)),
     ("profiles", @json.JObj(profiles_fields)),
+    (
+      "options",
+      @json.JObj([
+        ("inherit", @json.JBool(file.options.keep_system)),
+        ("merge", @json.JStr(file.options.merge)),
+      ]),
+    ),
   ])
   match @fsx.ensure_dir(@json.dirname(path)) {
     Ok(_) => ()
@@ -154,22 +211,88 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
 /// 保留键（reserved_env_keys）一律跳过；返回的是「要额外覆盖的那几项」，
 /// 子进程本身仍然继承当前进程环境（inherit_env=true）。
 pub async fn env_for_spawn(home : String, profile : String) -> Map[String, String] noraise {
+  let (_, extra) = env_plan(home, profile)
+  extra
+}
+
+///|
+/// 起实例时的完整方案（§62.4）：(是否继承控制台环境, 要额外设置的变量)。
+/// · keep_system=true：extra 只放 global 与该 profile 的键；merge=override 原样覆盖，
+///   merge=append 时同键拼成「继承值 + 分隔符 + global 值」（profile 仍覆盖 global）。
+/// · keep_system=false：extra 要自带保留键（从控制台进程环境抄一份），子进程不继承。
+pub async fn env_plan(home : String, profile : String) -> (Bool, Map[String, String]) noraise {
   let file = load_env_file()
+  let opts = file.options
+  let sep = env_path_separator()
   let out : Map[String, String] = Map([])
-  let take = fn(entries : Map[String, String]) {
+  // 先把要用的继承值抄一份（env_value 是 async，闭包里不能再 await）。
+  // 除了保留键，还要把 global 与该 profile 里出现的所有键预读进来：
+  // append 的拼接要用「继承来的同键值」，只读保留键会让 FOO 这类键永远拼不上（§62 bug）。
+  let inherited : Map[String, String] = Map([])
+  let preload = fn(entries : Map[String, String]) {
     for pair in entries.iter() {
-      if env_key_allowed(pair.0) {
+      if !inherited.contains(pair.0) {
+        inherited[pair.0] = ""
+      }
+    }
+  }
+  for key in reserved_env_keys() {
+    inherited[key] = ""
+  }
+  preload(file.global)
+  match file.profiles.get(profile_env_key(home, profile)) {
+    Some(entries) => preload(entries)
+    None => ()
+  }
+  // 先收键名再逐个赋值：边遍历边改同一个 Map 容易踩到迭代器的假设
+  let keys : Array[String] = []
+  for pair in inherited.iter() {
+    keys.push(pair.0)
+  }
+  for key in keys {
+    match @json.env_value(key) {
+      Some(v) => inherited[key] = v
+      None => ()
+    }
+  }
+  if !opts.keep_system {
+    // 不继承：保留键由我们显式给（拿不到就不写，子进程自然没有）
+    for key in reserved_env_keys() {
+      match inherited.get(key) {
+        Some(v) => out[key] = v
+        None => ()
+      }
+    }
+  }
+  let take = fn(entries : Map[String, String], append : Bool) {
+    for pair in entries.iter() {
+      if !env_key_allowed(pair.0) {
+        continue
+      }
+      let base = if opts.keep_system {
+        match inherited.get(pair.0) {
+          Some(v) => v
+          None => ""
+        }
+      } else {
+        ""
+      }
+      // append 只对「继承来的同键」拼接；不继承时没有可拼的东西
+      if append && opts.keep_system && base != "" {
+        out[pair.0] = base + sep + pair.1
+      } else {
         out[pair.0] = pair.1
       }
     }
   }
-  take(file.global)
+  take(file.global, opts.merge == "append")
   let key = profile_env_key(home, profile)
   match file.profiles.get(key) {
-    Some(entries) => take(entries)
+    // profile 永远覆盖 global：append 不再叠加
+    Some(entries) => take(entries, false)
     None => ()
   }
-  out
+  (opts.keep_system, out)
 }
 
 ///|

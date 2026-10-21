@@ -50,6 +50,42 @@ pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal ra
     profiles[key] = entries
     { ..loaded, profiles }
   }
+  // options（§62.2）：可选；只认 keep_system 与 merge，别的值 bad-params
+  let options = match @json.json_field(params, "options") {
+    Some(opts_json) => {
+      let keep_system = match @store.field_of(opts_json, "inherit") {
+        Some(v) =>
+          match @store.as_bool(v) {
+            Some(b) => b
+            None => {
+              fail("bad-params", "options.inherit 要是布尔值")
+              abort("unreachable: fail 一定抛错")
+            }
+          }
+        None => loaded.options.keep_system
+      }
+      let merge = match @store.field_of(opts_json, "merge") {
+        Some(v) =>
+          match @store.as_string(v) {
+            Some(m) =>
+              if @store.env_merge_allowed(m) {
+                m
+              } else {
+                fail("bad-params", "options.merge 只认 override 或 append，收到 " + m)
+                abort("unreachable: fail 一定抛错")
+              }
+            None => {
+              fail("bad-params", "options.merge 要是字符串")
+              abort("unreachable: fail 一定抛错")
+            }
+          }
+        None => loaded.options.merge
+      }
+      @store.EnvOptions::{ keep_system: keep_system, merge: merge }
+    }
+    None => loaded.options
+  }
+  let file = { ..file, options }
   match @store.save_env_file(file) {
     Ok(_) => ()
     Err(e) => {

@@ -306,7 +306,7 @@ async fn spawn_child(
   // 子进程环境 = 继承当前进程 → global → 该 profile（§61.2）。
   // 保留键（DSH_HOME / PATH / HOME …）由这里先摆好，env_for_spawn 不会再覆盖它们。
   let env : Map[String, String] = Map([("DSH_HOME", home)])
-  let extra = @store.env_for_spawn(home, profile)
+  let (inherit, extra) = @store.env_plan(home, profile)
   for pair in extra.iter() {
     env[pair.0] = pair.1
   }
@@ -334,7 +334,7 @@ async fn spawn_child(
             command.node,
             args,
             extra_env=env,
-            inherit_env=true,
+            inherit_env=inherit,
             stdin=input,
             stdout=out,
             stderr=out,
@@ -354,7 +354,7 @@ async fn spawn_child(
       command.node,
       args,
       extra_env=env,
-      inherit_env=true,
+      inherit_env=inherit,
       stdin=input,
       stdout=out,
       stderr=out,
