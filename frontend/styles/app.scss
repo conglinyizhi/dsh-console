@@ -3019,3 +3019,12 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 .dsh-env-dialog { width: 720px; max-width: 92vw; }
 .dsh-env-long { display: flex; align-items: flex-start; gap: 8px; width: 100%; }
 .dsh-env-input.is-wide { height: 56px; min-height: 56px; }
+
+/* 设置行与控件列（§96）：整行是两列 —— 左文字可以缩，右控件不参与拉伸。
+   之前摘要行把整行撑宽，控件被推到面板外面（截图里那一列悬在右边界外）。 */
+.dsh-settings-panel, .dsh-settings-rows { min-width: 0; }
+.dsh-setting { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
+.dsh-setting-main { min-width: 0; }
+.dsh-setting-control { justify-self: end; }
+.dsh-env-summary { min-width: 0; flex-wrap: wrap; row-gap: 6px; }
+.dsh-env-summary-text { min-width: 0; overflow-wrap: anywhere; }
