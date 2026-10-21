@@ -84,6 +84,62 @@ fn normalize_path(path : String) -> String {
 }
 
 ///|
+/// 读一份插件的 package.json 拿 version（读不到给空串）。
+async fn plugin_version(dir : String) -> String noraise {
+  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+    Ok(t) => t
+    Err(_) => return ""
+  }
+  match @json.json_parse(text) {
+    Some(pkg) =>
+      match @json.json_field(pkg, "version") {
+        Some(v) =>
+          match @json.json_string(v) {
+            Some(s) => s
+            None => ""
+          }
+        None => ""
+      }
+    None => ""
+  }
+}
+
+///|
+/// GET /api/local/merge-preview?source=<profile>（只读）：这一步不写任何东西。
+/// 识别口径与 merge-plugins 完全同一份（local_plugins_of），界面据此先选插件再选目标。
+pub async fn merge_preview_json(source_in : String) -> @json.JsonVal raise ActionError {
+  let source = @json.trim_both(source_in)
+  if source == "" {
+    fail("bad-params", "缺少 source（要看哪一只 profile 的本地插件）")
+  }
+  let (dir, _) = @profiles.profile_location(source)
+  if !@json.is_dir(dir) {
+    fail("not-found", "profile 目录不存在：" + dir)
+  }
+  let plugins = local_plugins_of(dir)
+  let items : Array[@json.JsonVal] = []
+  let warnings : Array[String] = []
+  for plugin in plugins {
+    let version = plugin_version(plugin.path)
+    if version == "" {
+      warnings.push(plugin.name + " 读不到 version（package.json 里没有或读不出来）")
+    }
+    items.push(
+      @json.JObj([
+        ("name", @json.JStr(plugin.name)),
+        ("link", @json.JBool(plugin.is_link)),
+        ("version", @json.JStr(version)),
+      ]),
+    )
+  }
+  @json.JObj([
+    ("source", @json.JStr(source)),
+    ("plugins", @json.JArr(items)),
+    ("warnings", @json.jstr_array(warnings)),
+  ])
+}
+
+///|
 /// 从 node_modules/@local 与 package.json 的 file:/link: 依赖里认本地插件。
 async fn local_plugins_of(dir : String) -> Array[LocalPlugin] noraise {
   let out : Array[LocalPlugin] = []
@@ -308,7 +364,7 @@ fn bundles_with(names : Array[String], text : String) -> Result[(Array[String], 
 ///|
 /// merge-plugins：params { profile, targets: [..], confirm }。
 pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionError {
-  ensure_action_params(params, "分发插件：", ["profile", "targets", "confirm"])
+  ensure_action_params(params, "分发插件：", ["profile", "targets", "plugins", "confirm"])
   let confirm = require_string(params, "confirm")
   if confirm != "MERGE" {
     fail(
@@ -322,7 +378,44 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
   if !@json.is_dir(source_dir) {
     fail("not-found", "源 profile 目录不存在：" + source_dir)
   }
-  let plugins = local_plugins_of(source_dir)
+  let all_plugins = local_plugins_of(source_dir)
+  // 只分发参数里点名的这几个（§N 第二版）；不给就是全部（向后兼容）
+  let plugins : Array[LocalPlugin] = []
+  match @json.json_field(params, "plugins") {
+    Some(list) => {
+      let names : Array[String] = []
+      for item in @json.json_array(Some(list)) {
+        match @json.json_string(item) {
+          Some(s) => names.push(@json.trim_both(s))
+          None => ()
+        }
+      }
+      let available : Array[String] = []
+      for p in all_plugins {
+        available.push(p.name)
+      }
+      for name in names {
+        let mut hit = false
+        for p in all_plugins {
+          if p.name == name {
+            plugins.push(p)
+            hit = true
+          }
+        }
+        if !hit {
+          fail(
+            "bad-params",
+            "这只源里没有插件「" + name + "」；可选的是：" + available.join("、"),
+          )
+        }
+      }
+    }
+    None => {
+      for p in all_plugins {
+        plugins.push(p)
+      }
+    }
+  }
   if plugins.length() == 0 {
     fail(
       "not-found",
@@ -472,3 +565,43 @@ fn merge_target_json(r : MergeTarget) -> @json.JsonVal {
     ("bundlesAdded", @json.jstr_array(r.bundles_added)),
   ])
 }
+///|
+/// POST /api/local/merge-preview 的入口（只读：不写任何东西，只是把源的插件清单读一遍）。
+/// 为什么用 POST 而不是 GET + 查询串：moonback 路由把查询串剥掉了，req.path 里只剩路径；
+/// POST 走 body 与 settings 那套同形，前端也不用自己拼 URL。
+pub async fn handle_merge_preview(
+  req : @moonback.Request,
+  res : @moonback.Responder,
+  read_at : String,
+) -> Unit {
+  let verb = @localapi.method_name(req.meth)
+  if verb != "POST" {
+    send_method_not_allowed(res, "POST", verb, read_at)
+    return
+  }
+  let json = match @json.json_parse(req.body.text()) {
+    Some(j) => j
+    None => {
+      send_write_error(res, "bad-params", "body 不是合法 JSON", read_at)
+      return
+    }
+  }
+  let source = match @json.json_field(json, "source") {
+    Some(v) =>
+      match @json.json_string(v) {
+        Some(s) => s
+        None => ""
+      }
+    None => ""
+  }
+  let data = try {
+    merge_preview_json(source)
+  } catch {
+    ActionError(code~, message~) => {
+      send_write_error(res, code, message, read_at)
+      return
+    }
+  }
+  @localapi.send_ok(res, data, read_at)
+}
+

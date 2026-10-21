@@ -274,6 +274,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     StartTick(_) => handle_start_tick(model, msg, emit)
     StartTabRetry => handle_start_tab_retry(model, msg, emit)
     MergeOpen(..) => handle_merge_open(model, msg, emit)
+    MergePreviewText(_) => handle_merge_preview(model, msg, emit)
+    MergePluginToggle(_) => handle_merge_plugin_toggle(model, msg, emit)
     MergeTargetToggle(_) => handle_merge_toggle(model, msg, emit)
     MergeConfirmInput(_) => handle_merge_input(model, msg, emit)
     MergeSubmit => handle_merge_submit(model, msg, emit)

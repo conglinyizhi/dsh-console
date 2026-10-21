@@ -2,11 +2,15 @@
 
 ///|
 /// 打开对话框：记下源行与焦点返回点；目标默认空（要人自己勾）。
-fn handle_merge_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+fn handle_merge_open(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
     MergeOpen(id~, return_id~) =>
       match find_row(model.rows, id) {
-        Some(_) =>
+        Some(row) => {
+          let source = match row.profile_name {
+            Some(n) => n
+            None => row.name
+          }
           (
             {
               ..model,
@@ -14,13 +18,91 @@ fn handle_merge_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
               merge_targets: [],
               merge_confirm: "",
               merge_return: return_id,
+              merge_plugins: [],
+              merge_plugin_picked: [],
+              merge_loading: true,
             },
-            focus_after_render("dsh-merge-dialog-input"),
+            merge_preview_cmd(source, emit),
           )
+        }
         None => (model, @cmd.none)
       }
     _ => (model, @cmd.none)
   }
+}
+
+///|
+/// 目标勾选（多选）。
+fn handle_merge_plugin_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    MergePluginToggle(name) => {
+      // 选插件是第一步：改了插件就把目标清空（目标列表与插件无关，但提交要成套）
+      let next : Array[String] = []
+      let mut had = false
+      for item in model.merge_plugin_picked {
+        if item == name {
+          had = true
+        } else {
+          next.push(item)
+        }
+      }
+      if !had {
+        next.push(name)
+      }
+      ({ ..model, merge_plugin_picked: next }, @cmd.none)
+    }
+    _ => (model, @cmd.none)
+  }
+}
+
+///|
+/// 预览接口的回执：填插件清单；失败就留在空态并记一句。
+fn handle_merge_preview(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    MergePreviewText(res) => {
+      let (ok, text) = interpret_http(res)
+      let plugins : Array[(String, String, Bool)] = []
+      if ok {
+        match open_envelope(text) {
+          Ok(data) => {
+            for item in arr_field(data, "plugins") {
+              match item {
+                Json::Object(obj) => {
+                  let name = str_field(obj, "name")
+                  let version = str_field(obj, "version")
+                  let link = match obj.get("link") {
+                    Some(Json::True) => true
+                    _ => false
+                  }
+                  if name != "" {
+                    plugins.push((name, version, link))
+                  }
+                }
+                _ => ()
+              }
+            }
+            ()
+          }
+          Err(_) => ()
+        }
+      }
+      ({ ..model, merge_plugins: plugins, merge_loading: false }, @cmd.none)
+    }
+    _ => (model, @cmd.none)
+  }
+}
+
+///|
+/// 发一次预览（POST /api/local/merge-preview，只读）。
+fn merge_preview_cmd(source : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  let body = "{\"source\":\"" + source + "\"}"
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(MergePreviewText(res)) },
+    async fn() {
+      let text : String = js_http_call("POST", "/api/local/merge-preview", body, write_headers()).wait().cast()
+      text
+    },
+  )
 }
 
 ///|
@@ -82,7 +164,8 @@ fn handle_merge_submit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
       let targets = model.merge_targets
       let confirm = model.merge_confirm
       let back = model.merge_return
-      if source == "" || targets.length() == 0 || confirm != "MERGE" {
+      if source == "" || targets.length() == 0 || confirm != "MERGE" ||
+        model.merge_plugin_picked.length() == 0 {
         (model, @cmd.none)
       } else {
         // 用磁盘目录名（web），不是卡片上带端口的那串（web :3080）：后端按 profile 目录找源。
@@ -98,8 +181,13 @@ fn handle_merge_submit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
         for t in targets {
           ids.push("\"" + t + "\"")
         }
+        let picks : Array[String] = []
+        for p in model.merge_plugin_picked {
+          picks.push("\"" + p + "\"")
+        }
         let body = "{\"action\":\"merge-plugins\",\"params\":{\"profile\":\"" +
-          name + "\",\"targets\":[" + ids.join(",") + "],\"confirm\":\"MERGE\"}}"
+          name + "\",\"targets\":[" + ids.join(",") + "],\"plugins\":[" +
+          picks.join(",") + "],\"confirm\":\"MERGE\"}}"
         let closed = {
           ..model,
           merge_source: "",

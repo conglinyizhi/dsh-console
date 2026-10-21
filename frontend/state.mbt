@@ -481,6 +481,12 @@ struct Model {
   merge_confirm : String
   /// 正在分发
   merge_busy : Bool
+  /// 预览接口读回来的插件：名字 / 版本 / 是不是软链
+  merge_plugins : Array[(String, String, Bool)]
+  /// 勾中的插件名
+  merge_plugin_picked : Array[String]
+  /// 预览还在读
+  merge_loading : Bool
   /// 关框后焦点回哪颗按钮
   merge_return : String
   /// 派生副本前的确认框说的是哪一行（§60.2）。空串 = 框没开
@@ -569,6 +575,10 @@ priv enum Msg {
   MergeSubmit
   /// 点「取消」（或 Esc / 遮罩）
   MergeCancel
+  /// 预览接口的回执（插件清单）
+  MergePreviewText(Result[String, Error])
+  /// 勾/取消一只插件
+  MergePluginToggle(String)
   /// merge-plugins 的回执
   MergeDone(Result[String, Error])
   /// 「派生开发副本」但这一只有外部软链接（§60.2）：先开确认框，不直接发请求
@@ -959,6 +969,9 @@ fn initial_model() -> Model {
     merge_targets: [],
     merge_confirm: "",
     merge_busy: false,
+    merge_plugins: [],
+    merge_plugin_picked: [],
+    merge_loading: false,
     merge_return: "",
     fork_confirm_id: "",
     fork_confirm_return: "",

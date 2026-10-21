@@ -20,7 +20,8 @@ pub fn handles_path(path : StringView) -> Bool {
   p == "/api/local/action" ||
   p == "/api/local/settings" ||
   p == "/api/local/console" ||
-  p == "/api/local/fork-progress"
+  p == "/api/local/fork-progress" ||
+  p == "/api/local/merge-preview"
 }
 
 ///|
@@ -892,6 +893,7 @@ pub async fn dispatch(req : @moonback.Request, res : @moonback.Responder, read_a
     "/api/local/settings" => handle_settings(req, res, read_at)
     "/api/local/console" => handle_console(req, res, read_at)
     "/api/local/fork-progress" => handle_fork_progress(req, res, read_at)
+    "/api/local/merge-preview" => handle_merge_preview(req, res, read_at)
     _ => send_method_not_allowed(res, "GET", @localapi.method_name(req.meth), read_at)
   }
 }
