@@ -2968,3 +2968,22 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 /* 页脚版本号各占一行（§79）：挤在同一行会读成「服务端在线client … · server …」 */
 .dsh-side-foot { flex-wrap: wrap; row-gap: 2px; }
 .dsh-side-ver { display: block; width: 100%; margin-left: 16px; }
+
+/* 分发插件对话框（backlog N 第五版）：720 宽，一行一只（图标 + 名字/来源/引用 + 开关）。 */
+.dsh-merge-card { max-width: 720px; }
+.dsh-merge-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; margin: 12px 0; }
+.dsh-merge-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border: 1px solid $line; border-radius: 8px;
+}
+.dsh-merge-row.on { border-color: $accent; background: $panel-soft; }
+.dsh-merge-ico { color: $text-dim; display: flex; }
+.dsh-merge-main { flex: 1; min-width: 0; }
+.dsh-merge-name { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsh-merge-meta { color: $text-dim; font-size: 11.5px; margin-top: 2px; }
+.dsh-merge-desc { color: $text-mid; font-size: 11.5px; margin-top: 4px; }
+.dsh-merge-why { color: $text-dim; font-size: 11.5px; margin: 8px 0; }
+@media (max-width: 520px) {
+  .dsh-merge-card { width: 100%; max-width: 100%; }
+  .dsh-merge-list { max-height: 46vh; }
+}

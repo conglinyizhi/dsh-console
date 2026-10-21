@@ -227,6 +227,8 @@ pub(all) struct PluginEntry {
   kind : String
   version : String
   declared : Bool
+  /// 包里 package.json 的 description（没有给空串）
+  description : String
 }
 
 ///|
@@ -248,6 +250,10 @@ pub async fn plugin_inventory(dir : String) -> Array[PluginEntry] noraise {
       kind,
       version,
       declared: true,
+      description: match resolve_package(dir, name) {
+        Some(path) => plugin_description(path)
+        None => ""
+      },
     })
     seen.push(name)
   }
@@ -260,10 +266,32 @@ pub async fn plugin_inventory(dir : String) -> Array[PluginEntry] noraise {
       kind: if plugin.is_link { "local-link" } else { "local-dir" },
       version: plugin_version(plugin.path),
       declared: false,
+      description: plugin_description(plugin.path),
     })
     seen.push(plugin.name)
   }
   out
+}
+
+///|
+/// 读一份插件的 package.json 拿 description（读不到给空串）。
+async fn plugin_description(dir : String) -> String noraise {
+  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+    Ok(t) => t
+    Err(_) => return ""
+  }
+  match @json.json_parse(text) {
+    Some(pkg) =>
+      match @json.json_field(pkg, "description") {
+        Some(v) =>
+          match @json.json_string(v) {
+            Some(s) => s
+            None => ""
+          }
+        None => ""
+      }
+    None => ""
+  }
 }
 
 ///|
@@ -317,6 +345,7 @@ pub async fn merge_preview_json(source_in : String) -> @json.JsonVal raise Actio
         ("link", @json.JBool(entry.kind == "local-link")),
         ("version", @json.JStr(entry.version)),
         ("declared", @json.JBool(entry.declared)),
+        ("description", @json.JStr(entry.description)),
       ]),
     )
   }

@@ -1,4 +1,14 @@
-// 分发插件对话框的四个动作（design/backlog.md N）。
+// 分发插件对话框的动作（design/backlog.md N）。
+
+///|
+/// 这一行对应的 profile 目录名：优先 profile_name；没有就用卡片名（实例名带端口不能用，
+/// 但这一版只有 profile 行会开这个框）。
+fn merge_row_name(row : Row) -> String {
+  match row.profile_name {
+    Some(n) => if n == "" { row.name } else { n }
+    None => row.name
+  }
+}
 
 ///|
 /// 打开对话框：记下源行与焦点返回点；目标默认空（要人自己勾）。
@@ -20,6 +30,7 @@ fn handle_merge_open(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
               merge_plugin_picked: [],
               merge_loading: true,
               merge_slide: 0,
+              merge_step: 1,
             },
             merge_preview_cmd(source, emit),
           )
@@ -55,13 +66,28 @@ fn handle_merge_plugin_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) 
 }
 
 ///|
+/// 两步之间来回：选目标那一步只在选了插件之后可进。
+fn handle_merge_step(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    MergeStepNext =>
+      if model.merge_plugin_picked.length() > 0 {
+        ({ ..model, merge_step: 2, merge_slide: 0 }, @cmd.none)
+      } else {
+        (model, @cmd.none)
+      }
+    MergeStepPrev => ({ ..model, merge_step: 1, merge_slide: 0 }, @cmd.none)
+    _ => (model, @cmd.none)
+  }
+}
+
+///|
 /// 预览接口的回执：填插件清单；失败就留在空态并记一句。
 fn handle_merge_preview(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
     MergePreviewText(res) => {
       // 不能用 interpret_http：它回的是给人看的一句话（§80），不是响应体。
       // 这里要的是 JSON，自己走 HTTP → body → envelope。
-      let plugins : Array[(String, String, String)] = []
+      let plugins : Array[(String, String, String, String)] = []
       match res {
         Ok(text) => {
           let got = parse_http_result(text)

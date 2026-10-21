@@ -1,69 +1,100 @@
-// 分发插件对话框（design/backlog.md N）：选目标（多选，排除自己）→ 看清单 → 输入 MERGE 才可分发。
+// 分发插件对话框（design/backlog.md N 第五版）：一个对话框内分两步 —— 选插件 / 选目标。
+// 一行一只：左边图标位、中间名字（粗）+ 来源与版本、下面 description，右边开关（small）。
 
 ///|
-/// 一张行对应的**磁盘 profile 名**（§77）：卡片名可能带端口（review-space-a :18712），
-/// 后端按目录找 profile，带端口就找不到。隔离 home 的行 profile_name 会是空，
-/// 这时从卡片名里截掉「 :端口」那一段。
-fn merge_row_name(row : Row) -> String {
-  match row.profile_name {
-    Some(name) =>
-      if name != "" {
-        name
-      } else {
-        merge_strip_port(row.name)
-      }
-    None => merge_strip_port(row.name)
+/// 第一步行：一只插件。
+fn merge_plugin_row(model : Model, name : String, version : String, kind : String, description : String, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let picked = model.merge_plugin_picked.contains(name)
+  let kind_label = match kind {
+    "local-link" => "软链"
+    "local-dir" => "目录"
+    "registry" => "registry"
+    _ => "没装上"
   }
+  let meta = kind_label + (if version == "" { "" } else { " · " + version })
+  @html.div(
+    class=if picked { "dsh-merge-row on" } else { "dsh-merge-row" },
+    attrs=mark("merge-plugin", ["dialog", "merge", "plugin", name]).data_set(
+      "picked",
+      if picked { "true" } else { "false" },
+    ),
+    [
+      @html.span(class="dsh-merge-ico", [icon("puzzle-outline", size=16)]),
+      @html.div(class="dsh-merge-main", [
+        @html.div(class="dsh-merge-name", name),
+        @html.div(class="dsh-merge-meta", meta),
+        if description == "" {
+          @html.nothing
+        } else {
+          @html.div(class="dsh-merge-desc", description)
+        },
+      ]),
+      switch_control(
+        picked,
+        false,
+        name,
+        "分发这一只",
+        emit(MergePluginToggle(name)),
+        small=true,
+        key=name,
+        elem_id="dsh-merge-plugin-switch",
+      ),
+    ],
+  )
 }
 
 ///|
-fn merge_strip_port(name : String) -> String {
-  for part in name.split(" :") {
-    return part.to_string()
+/// 第二步行：一只目标。
+fn merge_target_row(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let name = match row.profile_name {
+    Some(n) => n
+    None => row.name
   }
-  name
-}
-
-///|
-/// 目标候选：现在读数里的 profile 行，排除源自己。
-fn merge_target_rows(model : Model) -> Array[Row] {
-  let source = match find_row(model.rows, model.merge_source) {
-    Some(row) => merge_row_name(row)
+  let picked = model.merge_targets.contains(name)
+  let port_part = match row.port_value {
+    Some(p) => " · 端口 " + p.to_string()
     None => ""
   }
-  let out : Array[Row] = []
-  for row in model.rows {
-    if row.name == source {
-      continue
-    }
-    // 只对「有成对的 profile 名」的行分发：实例行没有 package.json 可补
-    match row.profile_name {
-      Some(name) =>
-        if name != "" {
-          out.push(row)
-        }
-      None => ()
-    }
-  }
-  out
+  let meta = row.kind + port_part
+  @html.div(
+    class=if picked { "dsh-merge-row on" } else { "dsh-merge-row" },
+    attrs=mark("merge-target", ["dialog", "merge", "target", name]).data_set(
+      "picked",
+      if picked { "true" } else { "false" },
+    ),
+    [
+      @html.span(class="dsh-merge-ico", [icon("cube-outline", size=16)]),
+      @html.div(class="dsh-merge-main", [
+        @html.div(class="dsh-merge-name", row.name),
+        @html.div(class="dsh-merge-meta", meta),
+      ]),
+      switch_control(
+        picked,
+        false,
+        name,
+        "分发到这一只",
+        emit(MergeTargetToggle(name)),
+        small=true,
+        key=name,
+        elem_id="dsh-merge-target-switch",
+      ),
+    ],
+  )
 }
 
 ///|
 fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let source = match find_row(model.rows, model.merge_source) {
-    Some(row) => merge_row_name(row)
+    Some(row) => row.name
     None => model.merge_source
   }
-  // 两步：先选插件（≥1 只）才展开选目标；确认串仍是 MERGE
   let picked_plugins = model.merge_plugin_picked.length() > 0
-  let ready = model.merge_targets.length() > 0 && picked_plugins && !model.merge_busy
-  let slide = model.merge_slide
-  // 第一步：插件（名字 + 版本 + 软链/目录），默认全不选
-  let plugin_rows : Array[@html.Html] = []
+  let step = model.merge_step
+  let step1 : Array[@html.Html] = []
   if model.merge_loading {
-    plugin_rows.push(@html.p(class="dsh-merge-empty", "正在读这一只的插件…"))
+    step1.push(@html.p(class="dsh-merge-empty", "正在读这一只的插件…"))
   } else if model.merge_plugins.length() == 0 {
-    plugin_rows.push(
+    step1.push(
       @html.p(
         class="dsh-merge-empty",
         attrs=mark("merge-empty", ["dialog", "merge", "empty"]),
@@ -74,152 +105,170 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     let local_rows : Array[@html.Html] = []
     let other_rows : Array[@html.Html] = []
     for plugin in model.merge_plugins {
-      let (name, version, kind) = plugin
-      let kind_label = match kind {
-        "local-link" => "软链"
-        "local-dir" => "目录"
-        "registry" => "registry（只补声明）"
-        _ => "没装上（只补声明）"
-      }
-      let picked = model.merge_plugin_picked.contains(name)
-      let target_rows = if kind == "local-dir" || kind == "local-link" {
-        local_rows
+      let (name, version, kind, description) = plugin
+      let line = merge_plugin_row(model, name, version, kind, description, emit)
+      if kind == "local-dir" || kind == "local-link" {
+        local_rows.push(line)
       } else {
-        other_rows
+        other_rows.push(line)
       }
-      target_rows.push(
-        @html.button(
-          class=if picked { "dsh-merge-target on" } else { "dsh-merge-target" },
-          type_="button",
-          attrs=mark("merge-plugin", ["dialog", "merge", "plugin", name])
-            .data_set("picked", if picked { "true" } else { "false" }),
-          on_click=emit(MergePluginToggle(name)),
-          [
-            @html.span(class="dsh-merge-check", if picked { "✓" } else { "" }),
-            @html.span(name),
-            @html.span(class="dsh-merge-meta", kind_label +
-              (if version == "" { "" } else { " · " + version })),
-          ],
-        ),
-      )
     }
     if local_rows.length() > 0 {
-      plugin_rows.push(@html.p(class="dsh-merge-group", attrs=mark("merge-group-local", ["dialog", "merge", "group", "local"]), "本地插件（可分发实体）"))
+      step1.push(
+        @html.p(
+          class="dsh-merge-group",
+          attrs=mark("merge-group-local", ["dialog", "merge", "group", "local"]),
+          "本地插件（可分发实体）",
+        ),
+      )
       for r in local_rows {
-        plugin_rows.push(r)
+        step1.push(r)
       }
     }
     if other_rows.length() > 0 {
-      plugin_rows.push(@html.p(class="dsh-merge-group", attrs=mark("merge-group-other", ["dialog", "merge", "group", "other"]), "已安装的其它插件（只补声明）"))
+      step1.push(
+        @html.p(
+          class="dsh-merge-group",
+          attrs=mark("merge-group-other", ["dialog", "merge", "group", "other"]),
+          "已安装的其它插件（只补声明）",
+        ),
+      )
       for r in other_rows {
-        plugin_rows.push(r)
+        step1.push(r)
       }
     }
   }
-  let rows : Array[@html.Html] = []
-  for row in merge_target_rows(model) {
-    let name = match row.profile_name {
-      Some(n) => n
-      None => row.name
+  let step2 : Array[@html.Html] = []
+  if !picked_plugins {
+    step2.push(@html.p(class="dsh-merge-empty", "先回到上一步选插件。"))
+  } else {
+    let source_name = match find_row(model.rows, model.merge_source) {
+      Some(r) => merge_row_name(r)
+      None => ""
     }
-    let picked = model.merge_targets.contains(name)
-    rows.push(
+    for row in model.rows {
+      match row.profile_name {
+        Some(n) =>
+          if n != "" && n != source_name {
+            step2.push(merge_target_row(model, row, emit))
+          }
+        None => ()
+      }
+    }
+  }
+  let why = if !picked_plugins {
+    "先在第一步选至少一只插件"
+  } else if model.merge_targets.length() == 0 {
+    "再勾至少一只目标"
+  } else if model.merge_busy {
+    "正在分发…"
+  } else {
+    ""
+  }
+  let foot : Array[@html.Html] = []
+  if step == 1 {
+    foot.push(
       @html.button(
-        class=if picked { "dsh-merge-target on" } else { "dsh-merge-target" },
+        class="dsh-dialog-btn",
         type_="button",
-        attrs=mark("merge-target", ["dialog", "merge", "target", name])
-          .data_set("picked", if picked { "true" } else { "false" }),
-        on_click=emit(MergeTargetToggle(name)),
-        [
-          @html.span(class="dsh-merge-check", if picked { "✓" } else { "" }),
-          @html.span(name),
-        ],
+        disabled=!picked_plugins,
+        attrs=mark("merge-step-next", ["dialog", "merge", "step", "next"]),
+        on_click=emit(MergeStepNext),
+        [@html.text("下一步")],
+      ),
+    )
+  } else {
+    foot.push(
+      @html.button(
+        class="dsh-dialog-btn",
+        type_="button",
+        attrs=mark("merge-step-prev", ["dialog", "merge", "step", "prev"]),
+        on_click=emit(MergeStepPrev),
+        [@html.text("上一步")],
       ),
     )
   }
+  foot.push(
+    @html.button(
+      class="dsh-dialog-btn",
+      type_="button",
+      attrs=mark("merge-dialog-cancel", ["dialog", "merge", "cancel"]),
+      on_click=emit(MergeCancel),
+      [@html.text("取消")],
+    ),
+  )
   let card = @html.div(class="dsh-dialog-card dsh-merge-card", [
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("merge-dialog-title", ["dialog", "merge", "title"]),
-      "把 " + source + " 的插件分发出去",
+      if step == 1 { "把 " + source + " 的插件分发出去" } else { "分发到哪几只" },
     ),
     @html.p(
       class="dsh-dialog-message",
       attrs=mark("merge-dialog-message", ["dialog", "merge", "message"]),
-      "每一只目标都会先拍一张快照，再复制 node_modules/@local 下的插件、补 dsh.profile.bundles；" +
-      "目标里已有同名插件会被覆盖。cordis.patch.yml 这一版不动。",
-    ),
-    @html.p(class="dsh-merge-step", "1. 选插件"),
-    @html.div(class="dsh-merge-targets", attrs=mark("merge-plugins", ["dialog", "merge", "plugins"]), plugin_rows),
-    @html.p(class="dsh-merge-step", "2. 选目标" +
-      (if picked_plugins { "" } else { "（先选插件）" })),
-    @html.div(
-      class="dsh-merge-targets",
-      attrs=mark("merge-targets", ["dialog", "merge", "targets"]),
-      if picked_plugins { rows } else { [
-        @html.p(class="dsh-merge-empty", "选了插件再选目标。"),
-      ] },
-    ),
-    @html.p(
-      class="dsh-dialog-message",
-      attrs=mark("merge-dialog-preview", ["dialog", "merge", "preview"]),
-      "选了 " + model.merge_plugin_picked.length().to_string() + " 只插件，分发到 " +
-      model.merge_targets.length().to_string() + " 只；" +
-      (if model.merge_targets.length() == 0 { "先勾目标" } else { "输入 MERGE 才能点分发" }),
+      if step == 1 {
+        "第 1 / 2 步：选插件。勾上的会被分发；registry 只补声明，实体要目标自己补包。"
+      } else {
+        "第 2 / 2 步：选目标。每只先拍快照，再复制实体插件、补 bundles；cordis.patch.yml 不动。"
+      },
     ),
     @html.div(
-      id="dsh-merge-slide",
-      class="dsh-merge-slide",
-      attrs=mark("merge-confirm", ["dialog", "merge", "confirm"])
-        .tabindex(0)
-        .data_set("slide", slide.to_string())
-        .aria_label("向右滑动分发")
-        .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
-        .on_pointerdown(fn(_event) {
-          emit(MergeSlideStart)
-        })
-        .on_pointermove(fn(event) {
-          if model.merge_dragging {
+      class="dsh-merge-list",
+      attrs=mark("merge-step", ["dialog", "merge", "step"]).data_set("step", step.to_string()),
+      if step == 1 {
+        step1
+      } else {
+        step2
+      },
+    ),
+    if step == 2 && picked_plugins {
+      @html.div(
+        class="dsh-merge-slide",
+        attrs=mark("merge-confirm", ["dialog", "merge", "confirm"])
+          .id("dsh-merge-slide")
+          .tabindex(0)
+          .data_set("slide", model.merge_slide.to_string())
+          .aria_label("向右滑动分发")
+          .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
+          .on_pointerdown(fn(event) {
             emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
-          } else { @cmd.none }
-        })
-        .on_pointerup(fn(_event) { emit(MergeSlideRelease) })
-        .on_keydown(fn(event) {
-          let key = event.key()
-          if key == " " {
-            emit(MergeSlideKey("Space"))
-          } else {
-            emit(MergeSlideKey(key))
-          }
-        }),
-      [
-        @html.span(class="dsh-merge-slide-hint", "向右滑动分发"),
-        @html.div(
-          class="dsh-merge-slide-knob",
-          style=["left: calc(" + slide.to_string() + "% - " + (slide * 36 / 100).to_string() + "px)"],
-          attrs=mark("merge-knob", ["dialog", "merge", "knob"]),
-          [icon("send", size=14)],
-        )
-      ],
+          })
+          .on_pointermove(fn(event) {
+            emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+          })
+          .on_pointerup(fn(_event) { emit(MergeSlideRelease) })
+          .on_keydown(fn(event) {
+            let key = event.key()
+            if key == " " {
+              emit(MergeSlideKey("Space"))
+            } else {
+              emit(MergeSlideKey(key))
+            }
+          }),
+        [
+          @html.span(class="dsh-merge-slide-hint", "向右滑动分发"),
+          @html.div(
+            class="dsh-merge-slide-knob",
+            style=["left: " + model.merge_slide.to_string() + "%"],
+            attrs=mark("merge-knob", ["dialog", "merge", "knob"]),
+            [icon("send", size=14)],
+          ),
+        ],
+      )
+    } else {
+      @html.nothing
+    },
+    @html.p(
+      class="dsh-merge-why",
+      attrs=mark("merge-dialog-preview", ["dialog", "merge", "preview"]).data_set("why", why),
+      if why == "" {
+        "选了 " + model.merge_plugin_picked.length().to_string() + " 只插件，分发到 " +
+        model.merge_targets.length().to_string() + " 只；拖到底才分发"
+      } else {
+        why
+      },
     ),
-    @html.div(class="dsh-dialog-foot", [
-      @html.button(
-        id="dsh-merge-dialog-ok",
-        class="dsh-dialog-btn primary",
-        type_="button",
-        disabled=!ready,
-        attrs=mark("merge-dialog-ok", ["dialog", "merge", "ok"]),
-        on_click=emit(MergeSubmit),
-        [@html.text(if model.merge_busy { "分发中…" } else { "分发" })],
-      ),
-      @html.button(
-        class="dsh-dialog-btn",
-        type_="button",
-        attrs=mark("merge-dialog-cancel", ["dialog", "merge", "cancel"]),
-        on_click=emit(MergeCancel),
-        [@html.text("取消")],
-      ),
-    ]),
+    @html.div(class="dsh-dialog-foot", foot),
   ])
   dialog(
     "merge-dialog",
@@ -233,6 +282,5 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       }
     }),
     card,
-    on_pointerup=emit(MergeSlideRelease),
   )
 }
