@@ -146,7 +146,9 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     for row in model.rows {
       match row.profile_name {
         Some(n) =>
-          if n != "" && n != source_name {
+          // 目标是 profile，不是实例（§93）：实例行（带端口的那几张）不能当目标，
+          // 否则会往「正在跑的那只」身上分发，用户还以为是来源
+          if n != "" && n != source_name && row.port_value is None {
             step2.push(merge_target_row(model, row, emit))
           }
         None => ()
