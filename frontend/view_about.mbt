@@ -74,23 +74,55 @@ fn version_rows(model : Model, emit : @cmd.Emit[Msg]) -> Array[@html.Html] {
             ),
           ],
         ),
-        // 这一版的 dsh 是怎么装上去的：值只有四种（pnpm / npm / yarn 全局安装、未知），
-        // 凭什么这么判挂在悬停里。它说的是「装法」，不是「版本」，放在版本号下面一行。
-        kv_row(
-          "安装方式",
-          install_kind_text(facts.dsh_install_kind),
-          install_kind_hint(facts),
-        ),
-        kv_row(
-          "控制台版本",
-          match facts.console_version {
-            Some(version) => version
-            None => "未知"
-          },
-          facts.console_package_name,
-        ),
-        kv_row("平台", facts.platform, ""),
+        // 安装方式与平台不再各占一行（§68）：并进面板脚下那句小字（见 about_view），
+        // 装法的判断依据仍在那句小字的悬停里。这一格只留「哪一版」这件主角。
       ]
+  }
+}
+
+///|
+/// 版本面板脚下那一句：装法 · 平台 · 读于（§68）。原来是三行键值，现在一行小字。
+fn facts_line(model : Model) -> String {
+  match model.runtime {
+    None => "读于 " + model.runtime_time
+    Some(facts) => {
+      let parts : Array[String] = []
+      let kind = install_kind_text(facts.dsh_install_kind)
+      if kind != "" {
+        parts.push(kind)
+      }
+      if facts.platform != "" {
+        parts.push(facts.platform)
+      }
+      let console_version = console_version_text(model)
+      if console_version != "" {
+        parts.push("控制台 " + console_version)
+      }
+      parts.push("读于 " + model.runtime_time)
+      join_with(parts, " · ")
+    }
+  }
+}
+
+///|
+/// 上面那句小字的悬停：装法的判断依据、控制台包名都在这里。
+fn facts_note(model : Model) -> String {
+  match model.runtime {
+    None => ""
+    Some(facts) => install_kind_hint(facts) + "；控制台包 " + facts.console_package_name
+  }
+}
+
+///|
+/// 控制台自己的版本号（读数里没有就是空串，界面上不写「未知」占一行）。
+fn console_version_text(model : Model) -> String {
+  match model.runtime {
+    Some(facts) =>
+      match facts.console_version {
+        Some(version) => version
+        None => ""
+      }
+    None => ""
   }
 }
 
@@ -305,9 +337,11 @@ fn manual_start_package(model : Model) -> String {
 ///|
 /// 关于页「手动启动」里的一条命令：标签 + 命令本身 + 一句说明。
 fn manual_start_row(label : String, command : String, note : String, key : String) -> @html.Html {
+  // 说明不进正文（§68）：这一块的读者是「控制台起不来、要照着敲」的人，
+  // 他要的是那条命令；解释放悬停，正文只留标签与命令两行。
   @html.div(
     class="dsh-manual-row",
-    attrs=mark("manual-start-row", ["about", "manual-start", key]),
+    attrs=mark("manual-start-row", ["about", "manual-start", key]).title(note),
     [
       @html.span(
         class="dsh-manual-label",
@@ -316,13 +350,8 @@ fn manual_start_row(label : String, command : String, note : String, key : Strin
       ),
       @html.code(
         class="dsh-manual-cmd",
-        attrs=mark("manual-start-cmd", ["about", "manual-start", key, "cmd"]),
+        attrs=mark("manual-start-cmd", ["about", "manual-start", key, "cmd"]).title(command),
         command,
-      ),
-      @html.span(
-        class="dsh-manual-note",
-        attrs=mark("manual-start-note", ["about", "manual-start", key, "note"]),
-        note,
       ),
     ],
   )
@@ -361,18 +390,13 @@ fn manual_start_panel(model : Model) -> @html.Html {
     attrs=mark("manual-start-panel", ["about", "manual-start"]),
     [
       @html.h2(class="dsh-panel-title", "手动启动"),
-      @html.p(
-        class="dsh-para",
-        "控制台起不来的时候，在终端里照着下面两条敲，起的是同一套东西。",
-      ),
       @html.div(class="dsh-manual", [
         manual_start_row("稳定环境", stable, stable_note, "stable"),
         manual_start_row("锁版本", locked, locked_note, "pinned"),
       ]),
       @html.p(
         class="dsh-foot",
-        "隔离到自己的 home 的 profile 也这样起：把 DSH_HOME 换成那份隔离 home 的路径即可" +
-        "（总览抽屉里「配置 home」那一格写着路径）。",
+        "隔离的那只把 DSH_HOME 换成它自己的 home 路径即可",
       ),
     ],
   )
@@ -389,13 +413,10 @@ fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         class="dsh-panel",
         attrs=mark("about-panel", ["about", "about-panel"]),
         [
+          // 一段话说完（§68）：原来的第二句把八个动作逐个列了一遍，那是「看起来完整」。
           @html.p(
             class="dsh-para",
-            "面向个人本机使用的 DSH 控制台，用来查看这台机器上的 DeepSeek Harness 实例。",
-          ),
-          @html.p(
-            class="dsh-para",
-            "读数只读本机 ~/.dsh；动作（启动 / 停止 / 重启 / 派生 / 归档 / 重命名 / 编辑备注 / 删除）会真的作用到本机实例与 profile，不是预览。",
+            "本机 DSH 控制台。读数是只读的，动作会真的作用到本机实例与 profile。",
           ),
         ],
       ),
@@ -407,7 +428,10 @@ fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.div(class="dsh-kv", version_rows(model, emit)),
           @html.p(
             class="dsh-foot",
-            "读于 " + model.runtime_time + " | 读自本机",
+            attrs=mark("about-facts-foot", ["about", "version-panel", "foot"]).title(
+              facts_note(model),
+            ),
+            facts_line(model),
           ),
         ],
       ),
