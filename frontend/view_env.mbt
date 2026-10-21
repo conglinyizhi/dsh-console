@@ -1,16 +1,21 @@
-// 启动环境变量（design/design-fixes.md §61.3）的界面。
+// 启动变量（design/design-fixes.md §61.3 / §62.3）的界面。
 //
 // 两处摆的是同一张表，只是作用域不同：
-//   - 设置页「启动环境」那一组：scope = global，写进 env.json 的 global 段；
-//   - 抽屉里「这只 profile 的启动环境」对话框：scope = profile，
+//   - 设置页**「进程」组**里的「全局启动变量」：scope = global，写进 env.json 的 global 段
+//     （§62.1 撤掉了它单独那一组：它说的是「怎么起这一只进程」，与那组的两条设置项是同一件事）；
+//   - 抽屉里「<profile> 的启动变量」对话框：scope = profile，
 //     写进 profiles["<home>|<profile>"]，只影响这一只（同名不同 home 不会混）。
 //
 // 三条纪律写在这里：
 //   1. 值默认打码为 ••••••，点「显示」才在本地露出来。显示状态只在内存里，刷新就收回 ——
 //      环境变量里常放密钥，默认看得见就等于默认泄露。
-//   2. 改动即保存：改值（回车 / 失焦）、删行、添行都立刻发 save-env（整份替换这个作用域），
-//      成功之后重读设置那份读数，以读数为准；界面不自己记账，也不猜后端存成了什么。
-//   3. 回执与提示条里不出现值：只说键名与条数（§61.4 第 4 条）。后端审计同样只记键名。
+//   2. 改动即保存：改值（回车 / 失焦）、删行、添行、改生效方式都立刻发 save-env
+//      （整份替换这个作用域），成功之后重读设置那份读数，以读数为准；界面不自己记账。
+//   3. 回执与提示条里不出现值：只说键名与生效方式（§61.4 第 4 条）。后端审计同样只记键名。
+//
+// 生效方式（§62.2 的 options，存在 env.json 顶层）：inherit 继不继承控制台进程的环境变量，
+// merge 撞上同名键时覆盖还是追加。这两项是**全局**的，只摆在设置页那一张表下面；
+// profile 那张表永远覆盖 global（没有第三种语义），所以对话框顶部只读显示当前方式。
 //
 // 键名那一侧有一张保留名单（DSH_HOME / PATH / HOME / PWD / TMPDIR / DSH_PROFILE）：
 // 命中的行置灰、注明「控制台自己管，不能改」，删除与显示键都不摆 —— 后端也会拒，
@@ -90,7 +95,15 @@ fn env_facts_of_response(body : String) -> EnvFacts {
   match open_envelope(body) {
     Ok(data) => parse_env_facts(data)
     Err(_) =>
-      { path: "", global: [], profiles: [], reserved: [] }
+      {
+        path: "",
+        global: [],
+        profiles: [],
+        reserved: [],
+        options_known: false,
+        inherit_env: true,
+        merge: "override",
+      }
   }
 }
 
@@ -103,6 +116,9 @@ fn env_facts_of_model(model : Model) -> EnvFacts {
     global: model.env_global,
     profiles: model.env_profiles,
     reserved: model.env_reserved,
+    options_known: model.env_options_known,
+    inherit_env: model.env_inherit,
+    merge: model.env_merge,
   }
 }
 
@@ -473,20 +489,169 @@ fn env_table(
   )
 }
 
-// ── 设置页那一组 ────────────────────────────────────────────
+// ── 生效方式（§62.2 的 options）────────────────────────────
 
 ///|
-/// 设置页「启动环境」那一组的条目块（标题与说明由设置页那一栏给）。
-fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let target = env_target_global()
-  env_table(model, target, "还没有启动环境变量，加一行就会在起实例时带上", true, emit)
+/// 「同名变量」那半句：同名覆盖 / 同名追加。
+fn env_merge_text(model : Model) -> String {
+  if model.env_merge == "append" {
+    "同名追加"
+  } else {
+    "同名覆盖"
+  }
 }
 
 ///|
-/// 抽屉「操作」组里那一颗：打开这只 profile 的启动环境对话框（§61.3）。
+/// 生效方式那一整句，提示条与对话框顶部共用：「继承系统环境，同名覆盖」。
 ///
-/// 名字用「环境变量」四个字：它在「操作」组里，上下文已经说明了这是「这一只的」，
-/// 长名字（「这只 profile 的启动环境」）反而要占半行。作用域写在悬停里说清。
+/// inherit 关掉之后 merge 不再参与合并，但它的值仍然存在文件里（下次打开继承就用得上），
+/// 所以照样拼出来：这一句说的是「现在存的是什么」，不是替用户推断「现在有没有用」。
+fn env_mode_text(model : Model) -> String {
+  let inherit_text = if model.env_inherit { "继承系统环境" } else { "不继承系统环境" }
+  inherit_text + "，" + env_merge_text(model)
+}
+
+///|
+/// 对话框顶部那一行只读文字（§62.3）：「继承系统环境 · 同名覆盖 · 这一份覆盖全局」。
+///
+/// 旧后端没有 options 段时只说后一半：前半句这时是「不知道」，不是「继承」。
+/// 后一半（profile 覆盖 global）是 §62.2 写死的语义，永远成立。
+fn env_mode_line(model : Model) -> String {
+  if model.env_options_known {
+    (if model.env_inherit { "继承系统环境" } else { "不继承系统环境" }) + " · " +
+    env_merge_text(model) +
+    " · 这一份覆盖全局"
+  } else {
+    "这一份覆盖全局"
+  }
+}
+
+///|
+/// 一枚「同名变量」的单选（§62.3）。点了即保存，没有单独的确认键。
+fn env_merge_radio(
+  model : Model,
+  value : String,
+  label : String,
+  hint : String,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  @html.label(
+    class="dsh-env-radio",
+    attrs=mark("env-merge-" + value, ["settings", "env", "options", "merge", value]).title(hint),
+    [
+      @html.input(
+        input_type=Radio,
+        name="dsh-env-merge",
+        id="dsh-env-merge-" + value,
+        class="dsh-env-radio-input",
+        value=value,
+        checked=model.env_merge == value,
+        on_change=emit.map(fn(_text) { EnvMergePicked(value) }),
+      ),
+      @html.span(class="dsh-env-radio-text", label),
+    ],
+  )
+}
+
+///|
+/// 生效方式那两项：「继承系统环境变量」开关 + 「同名变量：覆盖 / 追加」（§62.3）。
+///
+/// 只在读数里有 options 段时才摆：save-env 的参数 allow-list 在旧后端里没有 options，
+/// 摆一排点下去必然被拒的控件，比不摆更糟（也更容易被读成「这台后端坏了」）。
+fn env_options_block(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  if !model.env_options_known {
+    return @html.nothing
+  }
+  let merge_hint = "只在继承系统环境时有区别：覆盖 = 系统里的同名键用这张表的值；" +
+    "追加 = 系统值在前、表里的值接在后面，分隔符是冒号"
+  @html.div(
+    class="dsh-env-options",
+    attrs=mark("env-options", ["settings", "env", "options"]),
+    [
+      @html.div(class="dsh-env-option", [
+        @html.div(class="dsh-env-option-main", [
+          @html.div(
+            class="dsh-env-option-name",
+            attrs=mark("env-inherit-name", ["settings", "env", "options", "inherit", "name"]),
+            "继承系统环境变量",
+          ),
+          @html.p(
+            class="dsh-env-option-desc",
+            attrs=mark("env-inherit-desc", ["settings", "env", "options", "inherit", "desc"]),
+            "起实例时带上控制台进程自己的环境变量；关掉之后子进程只有这张表与保留键",
+          ),
+        ]),
+        @html.div(class="dsh-env-option-control", [
+          switch_control(
+            model.env_inherit,
+            false,
+            "继承系统环境变量",
+            "起实例时带上控制台进程自己的环境变量；关掉之后子进程只有这张表与保留键",
+            emit(EnvInheritToggled(!model.env_inherit)),
+            key="env.inherit",
+            elem_id="dsh-env-inherit",
+          ),
+        ]),
+      ]),
+      @html.div(class="dsh-env-option", [
+        @html.div(class="dsh-env-option-main", [
+          @html.div(
+            class="dsh-env-option-name",
+            attrs=mark("env-merge-name", ["settings", "env", "options", "merge", "name"]),
+            "同名变量",
+          ),
+          @html.p(
+            class="dsh-env-option-desc",
+            attrs=mark("env-merge-desc", ["settings", "env", "options", "merge", "desc"]),
+            "与继承来的同名键撞上时，覆盖或把系统值接在前面（冒号分隔）",
+          ),
+        ]),
+        @html.div(class="dsh-env-option-control", [
+          @html.div(
+            class="dsh-env-radios",
+            attrs=mark("env-merge-group", ["settings", "env", "options", "merge", "group"])
+              .role("radiogroup")
+              .aria_label("同名变量"),
+            [
+              env_merge_radio(model, "override", "覆盖", merge_hint, emit),
+              env_merge_radio(model, "append", "追加", merge_hint, emit),
+            ],
+          ),
+        ]),
+      ]),
+    ],
+  )
+}
+
+// ── 设置页「进程」组里那一块 ────────────────────────────────
+
+///|
+/// 设置页「进程」组里的「全局启动变量」那一块（§62.1）：表格 + 生效方式。
+///
+/// 它接在那两条设置项后面，所以自己带一个小标题 —— 面板标题是「进程」，
+/// 这一块得说清自己叫「全局启动变量」，不然那张表看上去像第三条设置项。
+fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let target = env_target_global()
+  @html.div(
+    class="dsh-settings-section",
+    attrs=mark("env-section", ["settings", "env", "section"]),
+    [
+      @html.h3(class="dsh-settings-section-title", "全局启动变量"),
+      @html.p(
+        class="dsh-settings-section-note",
+        "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以再覆盖其中的键",
+      ),
+      env_table(model, target, "还没有启动变量，加一行就会在起实例时带上", true, emit),
+      env_options_block(model, emit),
+    ],
+  )
+}
+
+///|
+/// 抽屉「操作」组里那一颗：打开这只 profile 的启动变量对话框（§62.1）。
+///
+/// 名字用「启动变量」四个字：它在「操作」组里，上下文已经说明了这是「这一只的」，
+/// 长名字（「这只 profile 的启动变量」）反而要占半行。作用域写在悬停里说清。
 fn drawer_env_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   @html.button(
     class="dsh-btn",
@@ -495,10 +660,10 @@ fn drawer_env_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     attrs=mark("drawer-env", ["overview", "drawer", row.id, "action", "env"])
       .data_set("action", "env")
       .title(
-        "这只 profile 的启动环境：起它时挂进子进程的变量，同名键覆盖设置页那份全局的",
+        "这只 profile 的启动变量：起它时挂进子进程的变量，同名键覆盖设置页那份全局的",
       ),
     on_click=emit(EnvProfileOpen(row.id)),
-    [icon("key-variant"), @html.span("环境变量")],
+    [icon("key-variant"), @html.span("启动变量")],
   )
 }
 
@@ -524,10 +689,14 @@ fn env_dialog_note(
 }
 
 ///|
-/// 「这只 profile 的启动环境」对话框（§61.3）：同一张表，scope = profile。
+/// 「<profile> 的启动变量」对话框（§61.3 / §62.1）：同一张表，scope = profile。
+///
+/// 顶部有一行只读的生效方式（§62.3）：那两项是全局的（在设置页「进程」组里改），
+/// 摆在这里是为了让「这一份到底怎么和全局、系统环境拼」在动手之前就看得见；
+/// 「这一份覆盖全局」是写死的语义，不提供第三种。
 ///
 /// 空态写「没有单独设置，跟着全局走」—— 这一句是这个对话框最常出现的状态，
-/// 也是它与设置页那一组的关系说明（全局那一份不在这里重复摆，免得两处各说一半）。
+/// 也是它与全局那一份的关系说明（全局那张表不在这里重复摆，免得两处各说一半）。
 fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let row = find_row(model.rows, model.env_open)
   let name = match row {
@@ -539,12 +708,12 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   //   还没读到设置 → 正在读；读失败 → 说读失败；这只 profile 的目录名 / home 认不出 → 存不了。
   // 「没有单独设置」这一句只说**真读到过、确实没有**那一档（空态与「不知道」不是一回事）。
   let content = if !model.settings_loaded {
-    env_dialog_note(model, "env-loading", "正在读启动环境", "")
+    env_dialog_note(model, "env-loading", "正在读启动变量", "")
   } else if model.settings_error != "" {
     env_dialog_note(
       model,
       "env-unread",
-      "启动环境没读到，暂时改不了",
+      "启动变量没读到，暂时改不了",
       model.settings_error,
     )
   } else {
@@ -560,16 +729,26 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         )
     }
   }
+  // 顶部那一行只读的生效方式（§62.3）。悬停里说清「这两项在哪儿改、为什么这里只读」——
+  // 不摆控件是刻意的：它是全局的一项，摆在两只 profile 的对话框里就会变成两个入口。
+  let mode_line = @html.p(
+    class="dsh-env-mode",
+    attrs=mark("env-mode", ["dialog", "env-dialog", "mode"]).title(
+      "继承与同名变量的方式在设置页的「进程」组里改；这一只的变量永远覆盖全局那一份",
+    ),
+    env_mode_line(model),
+  )
   let card = @html.div(class="dsh-dialog-card dsh-env-dialog", [
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("dialog-title", ["dialog", "env-dialog", "title"]),
-      name + " 的启动环境",
+      name + " 的启动变量",
     ),
+    mode_line,
     @html.p(
       class="dsh-dialog-message",
       attrs=mark("dialog-message", ["dialog", "env-dialog", "message"]),
-      "起这只 profile 时，先铺全局那一段，再铺这一份；同键以这里为准，只影响这一只",
+      "起这只 profile 时，先按上面的方式铺全局那一段，再铺这一份；同键以这里为准，只影响这一只",
     ),
     content,
     @html.div(class="dsh-dialog-foot", [
@@ -584,7 +763,7 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "env-dialog",
-    name + " 的启动环境",
+    name + " 的启动变量",
     emit(EnvProfileClose),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {

@@ -129,8 +129,9 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
       } else if got.status >= 200 && got.status < 300 {
         match parse_settings(got.body) {
           Ok(facts) => {
-            // 启动环境（§61）跟着同一份读数回来：reparse 一次拿 data 再取 env 段。
+            // 启动变量（§61 / §62）跟着同一份读数回来：reparse 一次拿 data 再取 env 段。
             // 设置项与 env 是两份文件、同一枪读；分成两枪会多一次「读到了设置、没读到 env」的中间态。
+            // options 段同理：它有没有（env_options_known）决定界面摆不摆那两项。
             let env = env_facts_of_response(got.body)
             let parsed = {
               ..base,
@@ -147,6 +148,9 @@ fn settings_loaded_state(model : Model, res : Result[String, Error]) -> (Model, 
               env_global: env.global,
               env_profiles: env.profiles,
               env_reserved: env.reserved,
+              env_options_known: env.options_known,
+              env_inherit: env.inherit_env,
+              env_merge: env.merge,
             }
             // 读数跟上来之后，与它一样的草稿自动收掉（保存成功那一格就是这样退场的）；
             // 正在敲、还没存的那一格文本仍然不同，留着。

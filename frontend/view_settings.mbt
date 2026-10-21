@@ -340,7 +340,7 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.span(class="dsh-settings-tab-label", group.label),
           @html.span(
             class="dsh-settings-tab-count",
-            settings_group_count(model, group.id).to_string(),
+            settings_group_count(group.id).to_string(),
           ),
           // 「这一行后面还有内容」的提示：窄屏靠它说清「点进去」是下一步
           @html.span(class="dsh-settings-tab-arrow", [icon("chevron-right", size=16)]),
@@ -358,27 +358,27 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 ///|
 /// 右侧条目块。
 ///
-/// 设置项那一档是一列键表；「启动环境」那一档是键值表格（view_env.mbt）——
-/// 两者不共用 .dsh-settings-rows 的排版（一行一个键 vs 一张表），所以按分组分支，
-/// 而不是硬把表格塞进那一列。
+/// 设置项是一列键表；「进程」组在那两条设置项后面多接一块「全局启动变量」
+/// （键值表格，view_env.mbt，§62.1）—— 后缀摆在这一列之后，因为那张表的排版
+/// 与「一行一个键」不是一回事，硬塞进 .dsh-settings-rows 会让两种行长打架。
 fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let group = setting_group_of(model.settings_group)
   let defs = settings_table.filter(fn(def) { def.group == group.id })
-  let content = if group.id == "env" {
-    env_settings_body(model, emit)
-  } else {
-    @html.div(class="dsh-settings-rows", defs.map(fn(def) { setting_row(model, def, emit) }))
+  let children : Array[@html.Html] = [
+    @html.h2(class="dsh-settings-panel-title", group.label),
+    @html.p(class="dsh-settings-panel-note", group.note),
+    @html.div(class="dsh-settings-rows", defs.map(fn(def) { setting_row(model, def, emit) })),
+  ]
+  // §62.1：表格接在「进程」组那两条设置项后面（不单独占一组）
+  if group.id == "process" {
+    children.push(env_settings_body(model, emit))
   }
   @html.div(class="dsh-settings-body", [
     settings_index(model, emit),
     @html.div(
       class="dsh-settings-panel",
       attrs=mark("settings-panel", ["settings", "panel"]),
-      [
-        @html.h2(class="dsh-settings-panel-title", group.label),
-        @html.p(class="dsh-settings-panel-note", group.note),
-        content,
-      ],
+      children,
     ),
   ])
 }

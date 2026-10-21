@@ -63,8 +63,9 @@ pub extend SettingGroup with Eq::{ not_equal, equal }
 ///|
 /// 左侧索引的分组（顺序即索引顺序）。
 ///
-/// 最后一组「启动环境」不是设置项（一个键一个值的那套契约），而是任意键值表：
-/// 分组照样是一个分组，条目那一块由 view_env.mbt 画（§61.5 说明了为什么分开）。
+/// 启动变量不单独占一组（§62.1）：它是任意键值表，挂在「进程」组那两条设置项后面，
+/// 由 view_env.mbt 画。分组回到五个 —— 那两条设置项说的是进程怎么起，
+/// 起实例时挂的变量属于同一件事。
 let settings_groups : Array[SettingGroup] = [
   {
     id: "instance",
@@ -95,12 +96,6 @@ let settings_groups : Array[SettingGroup] = [
     label: "危险动作",
     icon: "shield-outline",
     note: "删除是不可逆的那一档：这里决定它进回收站还是直接落刀。",
-  },
-  {
-    id: "env",
-    label: "启动环境",
-    icon: "key-variant",
-    note: "起实例时挂进子进程的变量：全局一份，某只 profile 可以覆盖其中的键",
   },
 ]
 
@@ -214,12 +209,9 @@ fn setting_is_switch(key : String) -> Bool {
 ///|
 /// 一个分组里有几条（索引行右侧那个数）。
 ///
-/// 设置项那一档数的是键表；「启动环境」那一档数的是**全局那一段有几条**——
-/// 它没有固定键表，条数是读数里的事实（还没读到时是 0，不编）。
-fn settings_group_count(model : Model, group_id : String) -> Int {
-  if group_id == "env" {
-    return model.env_global.length()
-  }
+/// 只数键表：启动变量那张表挂在「进程」组里，不进这个数 —— 它没有固定条数，
+/// 数进去会让索引上的数字随变量增减而跳，而它说明的是「这一组有几项设置」。
+fn settings_group_count(group_id : String) -> Int {
   settings_table.filter(fn(def) { def.group == group_id }).length()
 }
 
@@ -472,13 +464,21 @@ fn setting_group_of(id : String) -> SettingGroup {
   settings_groups[0]
 }
 ///|
-/// 启动环境（design/design-fixes.md §61）：global 一份 + 每只 profile 一份。
-/// 值可能含密钥：界面默认打码，审计只记键名。
+/// 启动变量（design/design-fixes.md §61 / §62）：global 一份 + 每只 profile 一份 + 一条
+/// 生效方式（options）。值可能含密钥：界面默认打码，审计只记键名与 options。
 pub struct EnvFacts {
   path : String
   global : Array[(String, String)]
   profiles : Array[(String, Array[(String, String)])]
   reserved : Array[String]
+  /// 读数里有没有 options 段（§62.2）。没有 = 后端还没这一版：界面不摆那两项，
+  /// 保存也不带 options —— 硬发过去只会被 allow-list 拒成 bad-params。
+  options_known : Bool
+  /// 继承控制台进程自己的环境变量（缺省 true）。字段名不叫 inherit：
+  /// 那个词在 MoonBit 里是保留字，用它当字段名会招一行警告（JSON 里的键仍是 inherit）
+  inherit_env : Bool
+  /// 与继承来的同名键撞上时：override 覆盖 / append 追加（缺省 override）
+  merge : String
 } derive(Eq)
 
 pub extend EnvFacts with Eq::{ not_equal, equal }
@@ -499,7 +499,15 @@ fn env_pairs_of(obj : Map[String, Json]) -> Array[(String, String)] {
 ///|
 /// 从 settings 响应里取 env 段（没有这一段 = 旧后端，给空表）。
 fn parse_env_facts(data : Map[String, Json]) -> EnvFacts {
-  let empty : EnvFacts = { path: "", global: [], profiles: [], reserved: [] }
+  let empty : EnvFacts = {
+    path: "",
+    global: [],
+    profiles: [],
+    reserved: [],
+    options_known: false,
+    inherit_env: true,
+    merge: "override",
+  }
   if !data.contains("env") {
     return empty
   }
@@ -511,11 +519,25 @@ fn parse_env_facts(data : Map[String, Json]) -> EnvFacts {
       _ => ()
     }
   }
+  // 生效方式（§62.2）：缺项按缺省走，merge 只认 override / append，别的值退回 override。
+  let options_known = env.contains("options")
+  let options = obj_field(env, "options")
+  let inherit_env = match opt_bool_field(options, "inherit") {
+    Some(value) => value
+    None => true
+  }
+  let merge = match str_field(options, "merge") {
+    "append" => "append"
+    _ => "override"
+  }
   {
     path: str_field(env, "path"),
     global: env_pairs_of(obj_field(env, "global")),
     profiles,
     reserved: str_array_field(env, "reserved"),
+    options_known,
+    inherit_env,
+    merge,
   }
 }
 
@@ -532,18 +554,28 @@ fn env_profile_pairs(facts : EnvFacts, home : String, profile : String) -> Array
 }
 
 ///|
-/// save-env 的请求体：entries 整份替换。
-fn env_put_body(scope : String, home : String, profile : String, entries : Array[(String, String)]) -> String {
+/// save-env 的请求体：entries 整份替换；options 是可选的那一段（§62.2）。
+///
+/// options 传空串 = 这一枪不带它：后端缺省保留文件里原来那份。前端只在
+/// 读到了 options 段（后端有这一版）时才带 —— 旧后端会因为参数 allow-list 整枪拒掉。
+fn env_put_body(
+  scope : String,
+  home : String,
+  profile : String,
+  entries : Array[(String, String)],
+  options? : String = "",
+) -> String {
   let fields : Array[String] = []
   for pair in entries {
     fields.push(json_text_literal(pair.0) + ":" + json_text_literal(pair.1))
   }
+  let tail = if options == "" { "" } else { ",\"options\":" + options }
   let params = if scope == "global" {
-    "{\"scope\":\"global\",\"entries\":{" + join_with(fields, ",") + "}}"
+    "{\"scope\":\"global\",\"entries\":{" + join_with(fields, ",") + "}" + tail + "}"
   } else {
     "{\"scope\":\"profile\",\"home\":" + json_text_literal(home) +
     ",\"profile\":" + json_text_literal(profile) + ",\"entries\":{" +
-    join_with(fields, ",") + "}}"
+    join_with(fields, ",") + "}" + tail + "}"
   }
   "{\"action\":\"save-env\",\"params\":" + params + "}"
 }

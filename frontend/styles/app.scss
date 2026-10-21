@@ -2273,6 +2273,44 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
   .dsh-env-add { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .dsh-env-add .dsh-env-btn { justify-self: start; }
   .dsh-env-dialog { width: calc(100vw - 24px); }
+  /* 生效方式那两行：控件落到说明下面并靠左（与 .dsh-setting 窄屏同一档） */
+  .dsh-env-option { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .dsh-env-option-control { justify-self: start; }
+}
+/* 设置页里「全局启动变量」那一块（§62.1）：接在「进程」组那两条设置项后面。
+   小标题与设置项的名称同一档字号，但它是**块标题**，所以上半部分多一段留白，
+   把「两条设置项」与「一张表」分开 —— 不加分隔线（§5 那一轮的规矩）。 */
+.dsh-settings-section { display: flex; flex-direction: column; margin-top: 10px; padding-top: 16px; }
+.dsh-settings-section-title { margin: 0; font-size: 13px; font-weight: 600; color: $text; }
+.dsh-settings-section-note { margin: 4px 0 10px; font-size: 11.5px; line-height: 1.6; color: $text-dim; }
+/* 生效方式那两行（§62.3）：与设置项同一副骨架 —— 左边名称与说明、右边控件。
+   窄屏（< 820）右控件落到下一行并靠左，与 .dsh-setting 同一档处理。 */
+.dsh-env-options { display: flex; flex-direction: column; margin-top: 10px; }
+.dsh-env-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+.dsh-env-option-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.dsh-env-option-name { font-size: 13px; font-weight: 500; color: $text; }
+.dsh-env-option-desc { margin: 0; font-size: 12.5px; line-height: 1.65; color: $text-mid; }
+.dsh-env-option-control { display: flex; align-items: center; gap: 8px; justify-self: end; }
+/* 两枚单选：原生 radio + 文字，外面一层 label 当点击区（点字也能选） */
+.dsh-env-radios { display: flex; align-items: center; gap: 14px; }
+.dsh-env-radio { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.dsh-env-radio-input { width: 15px; height: 15px; margin: 0; accent-color: $accent; cursor: pointer; }
+.dsh-env-radio-text { font-size: 12.5px; color: $text-mid; }
+.dsh-env-radio:hover .dsh-env-radio-text { color: $text; }
+.dsh-env-radio-input:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
+/* 对话框顶部那一行只读的生效方式（§62.3）：一行小字，等宽不像它 —— 它是给人读的一句话 */
+.dsh-env-mode {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: $accent;
+  overflow-wrap: anywhere;
 }
 .dsh-setting-saving { font-size: 11px; color: $text-dim; white-space: nowrap; }
 /* 开关（MD2，design/design-fixes.md §51.2）：button[role=switch] 里一条轨道 + 一个圆点。

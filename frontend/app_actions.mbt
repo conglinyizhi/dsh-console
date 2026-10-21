@@ -338,13 +338,16 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     SettingToggle(_, _) => handle_setting_toggle(model, msg, emit)
     SettingReset(_) => handle_setting_reset(model, msg, emit)
     SettingsSaved(_, _) => handle_settings_saved(model, msg, emit)
-    // 启动环境（§61.3）：改值 / 删行 / 添行 / 添行那两格输入 / 显示隐藏 / 对话框 / 回执
+    // 启动变量（§61.3 / §62.3）：改值 / 删行 / 添行 / 添行那两格输入 / 生效方式 /
+    // 显示隐藏 / 对话框 / 回执
     EnvDraft(_, _, _) => handle_env_draft(model, msg, emit)
     EnvCommit(_, _, _) => handle_env_commit(model, msg, emit)
     EnvDelete(_, _) => handle_env_delete(model, msg, emit)
     EnvAdd(_) => handle_env_add(model, msg, emit)
     EnvAddKeyInput(_) => handle_env_add_input(model, msg, emit)
     EnvAddValueInput(_) => handle_env_add_input(model, msg, emit)
+    EnvInheritToggled(_) => handle_env_options(model, msg, emit)
+    EnvMergePicked(_) => handle_env_options(model, msg, emit)
     EnvReveal(_, _) => handle_env_reveal(model, msg, emit)
     EnvProfileOpen(_) => handle_env_profile_open(model, msg, emit)
     EnvProfileClose => handle_env_profile_close(model, msg, emit)

@@ -1,11 +1,15 @@
-// 启动环境（design/design-fixes.md §61.3）的写入口与那几条回执。
+// 启动变量（design/design-fixes.md §61.3 / §62.3）的写入口与那几条回执。
 //
 // 每条写动作都走同一套路：取出这个作用域的那一份表 → 改一行 → **整份**发 save-env
-// （契约就是整份替换）→ 成功之后重读设置那份读数（env 段跟着回来）。
+// （契约就是整份替换）→ 成功之后重读设置那份读数（env 段与 options 跟着回来）。
 // 界面不本地记账：失败时页面停在读数里的样子，不会出现「看着改了、其实没存下」。
 //
-// 值可能含密钥，所以这里有一条硬规矩：回执与提示条只说键名与条数（§61.4 第 4 条），
-// 任何一句拼接都不许带上值 —— 后端审计同样只记键名。
+// 生效方式（§62.2 的 options）是**全局**的一项：随 global 那张表一起发，profile 那张不动它。
+// 两项选项的控件在开关/单选被点的那一刻先翻界面（不然那一下看着像没点上），
+// 失败了由 EnvSaved 重读设置，读数一回来就退回文件里的那份。
+//
+// 值可能含密钥，所以这里有一条硬规矩：回执与提示条只说键名与生效方式（§61.4 第 4 条），
+// 任何一句拼接都不许带上值 —— 后端审计同样只记键名与两个 options。
 
 ///|
 /// 消息里那个 scope 词（global / profile）→ 这一处作用域的身份。
@@ -33,14 +37,55 @@ fn env_save(
   emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
   let kept = entries.filter(fn(pair) { !env_is_reserved(model, pair.0) })
+  // 生效方式只在「写全局那张表」时带上：它是全局的一项（§62.2），profile 那张不动它。
+  // 读不到 options 段就不带 —— 旧后端的参数 allow-list 里没有 options，带了整枪会被拒。
+  let options = if target.scope == "global" && model.env_options_known {
+    "{\"inherit\":" + (if model.env_inherit { "true" } else { "false" }) +
+    ",\"merge\":" + json_text_literal(model.env_merge) + "}"
+  } else {
+    ""
+  }
   (
     model,
     env_save_cmd(
       target.scope,
-      env_put_body(target.scope, target.home, target.profile, kept),
+      env_put_body(target.scope, target.home, target.profile, kept, options~),
       emit,
     ),
   )
+}
+
+///|
+/// 改生效方式之后那一枪：把全局那张表连同新的 options 一起写回去。
+///
+/// 为什么连表一起发：save-env 的契约是「整份替换这个作用域」，只发 options 没有那条路。
+/// 表里那些值原样带回去（保留键在这一步被剔掉，见 env_save）—— 一个字节都不改。
+fn env_save_options(model : Model, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  let target = env_target_global()
+  env_save(model, target, env_entries_of(model, target), emit)
+}
+
+///|
+/// 「继承系统环境变量」开关与「同名变量：覆盖 / 追加」两枚单选（§62.3）。
+///
+/// 先翻界面再发请求：这是一次点击，等回执再翻的话那一下看着像没点上，
+/// 而回执是一条本地 GET，几十毫秒就回来了。失败时 EnvSaved 重读设置把它退回去。
+fn handle_env_options(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    EnvInheritToggled(next) =>
+      if !model.env_options_known {
+        (model, @cmd.none)
+      } else {
+        env_save_options({ ..model, env_inherit: next }, emit)
+      }
+    EnvMergePicked(merge) =>
+      if !model.env_options_known || (merge != "override" && merge != "append") {
+        (model, @cmd.none)
+      } else {
+        env_save_options({ ..model, env_merge: merge }, emit)
+      }
+    _ => (model, @cmd.none)
+  }
 }
 
 ///|
@@ -189,7 +234,7 @@ fn handle_env_reveal(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
 }
 
 ///|
-/// 打开抽屉里「这只 profile 的启动环境」：两格「添加一行」清空 ——
+/// 打开抽屉里「这只 profile 的启动变量」：两格「添加一行」清空 ——
 /// 它们属于上一次摆着的那张表，带过来会让新对话框里凭空多半行输入。
 fn handle_env_profile_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
@@ -213,19 +258,43 @@ fn handle_env_profile_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) ->
 }
 
 ///|
+/// 对话框里那一只是谁（提示条里要用它的名字）。
+fn env_open_name(model : Model) -> String {
+  match find_row(model.rows, model.env_open) {
+    Some(row) => if row.name == "" { "这只 profile" } else { row.name }
+    None => "这只 profile"
+  }
+}
+
+///|
 /// save-env 的回执。
 ///
-/// 成功 → 用后端那句 note 发一条短提示（只有键名与条数），并**重读设置**：
-/// 那才是这份表的真样子（后端把整个文件读回来，顺序、跨 profile 的改动都以它为准）。
-/// 失败 → 常驻提示条，回执原文进悬停与审计；同一个作用域的草稿退回读数里的值 ——
-/// 停在「看着改了、其实没存下」比不做还糟。
+/// 成功 → 一句短提示（§62.3）：全局那句必须带「下一次启动生效」与当前生效方式，
+/// 因为它们说的是「改了之后什么时候、按哪种方式起」。然后**重读设置**：
+/// 那才是这份表与 options 的真样子（后端把整个文件读回来，顺序、跨 profile 的改动都以它为准）。
+///
+/// 失败 → 常驻提示条，回执原文进悬停与审计；同一个作用域的草稿退回读数里的值。
+/// 另外**重读一次设置**：生效方式那两项是先翻界面再发的，不重读就会停在「看着改了、
+/// 其实没存下」的样子 —— 那正是这次重读要退回去的东西。
 fn handle_env_saved(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
     EnvSaved(scope, res) => {
       let (ok, note) = interpret_http(res)
+      let hint = if model.env_path == "" { "" } else { "落在 " + model.env_path }
       if ok {
+        // 全局那句带生效方式（§62.3）；读不到 options 段的后端只说「下一次启动生效」——
+        // 拼一个它其实没读到的模式进去，就成了一句凭缺省猜的话
+        let text = if scope == "global" {
+          if model.env_options_known {
+            "全局启动变量已保存（" + env_mode_text(model) + "），下一次启动生效"
+          } else {
+            "全局启动变量已保存，下一次启动生效"
+          }
+        } else {
+          env_open_name(model) + " 的启动变量已保存，下一次启动生效"
+        }
         (
-          notice_ok({ ..model, env_add_key: "", env_add_value: "" }, note, ""),
+          notice_ok({ ..model, env_add_key: "", env_add_value: "" }, text, hint),
           settings_get_cmd(emit),
         )
       } else {
@@ -236,8 +305,8 @@ fn handle_env_saved(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, 
           None => model.env_draft
         }
         (
-          notice_failed_action({ ..model, env_draft: drafts }, "启动环境没保存：" + note),
-          @cmd.none,
+          notice_failed_action({ ..model, env_draft: drafts }, "启动变量没保存：" + note),
+          settings_get_cmd(emit),
         )
       }
     }

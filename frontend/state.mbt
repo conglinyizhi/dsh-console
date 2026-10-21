@@ -391,8 +391,15 @@ struct Model {
   /// 「添加一行」两个输入框里的原文（键 / 值）
   env_add_key : String
   env_add_value : String
-  /// 抽屉里「这只 profile 的启动环境」对话框指着哪一行（空串 = 关着）
+  /// 抽屉里「这只 profile 的启动变量」对话框指着哪一行（空串 = 关着）
   env_open : String
+  /// 读数里有没有 options 段（§62.2）。false = 后端还没这一版：
+  /// 界面不摆「继承 / 同名变量」那两项，保存也不带 options（旧后端会整枪拒掉参数）
+  env_options_known : Bool
+  /// 继承控制台进程自己的环境变量（缺省 true）
+  env_inherit : Bool
+  /// 继承值与 global 撞上时：override 覆盖 / append 追加（缺省 override）
+  env_merge : String
   // 写动作（POST /api/local/action）
   /// 正在等响应的启动动作所在的行；空串表示没有
   act_pending : String
@@ -709,6 +716,10 @@ priv enum Msg {
   /// 它们不属于任何一行，保存成功之后就清掉，不跟着表格的草稿一起走
   EnvAddKeyInput(String)
   EnvAddValueInput(String)
+  /// 勾 / 勾掉「继承系统环境变量」（§62.3）：改动即保存，与 global 那张表一起发
+  EnvInheritToggled(Bool)
+  /// 选「同名变量：覆盖 / 追加」（override / append）
+  EnvMergePicked(String)
   /// 显示 / 隐藏一个值（只改本地状态，不写文件）
   EnvReveal(String, String)
   /// 打开抽屉里这只 profile 的启动环境对话框（带行 id）
@@ -879,6 +890,11 @@ fn initial_model() -> Model {
     env_add_key: "",
     env_add_value: "",
     env_open: "",
+    // 生效方式：还没读到 options 段时按缺省摆（inherit=true / override），
+    // 但界面不摆这两项 —— env_options_known 才是「后端有没有这一版」的判据。
+    env_options_known: false,
+    env_inherit: true,
+    env_merge: "override",
     act_pending: "",
     act_response: false,
     act_tick: false,
