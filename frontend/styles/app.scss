@@ -3042,3 +3042,8 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 .dsh-setting-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
 .dsh-setting-row .dsh-settings-section-note { margin: 0; }
 .dsh-setting-row .dsh-btn { justify-self: end; }
+
+/* 「全局启动变量」这块不再自带上下留白（§101）：它现在就是一条设置项，
+   行距由 .dsh-setting-row 与上面几条同一个节奏给，否则它比邻居高出一截。 */
+.dsh-settings-section { margin-top: 0; padding-top: 0; }
+.dsh-environment-section, .dsh-settings-section-title { margin-top: 0; }
