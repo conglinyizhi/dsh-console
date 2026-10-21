@@ -280,11 +280,7 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           .data_set("slide", model.merge_slide.to_string())
           .aria_label("向右滑动分发")
           .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
-          .on_pointerdown(fn(_event) {
-            // 按下：按当前轨道宽度算提交区起点（zone_px = 72，球宽 36×2）并存进 model；
-            // 位移交给 pointermove（它只在拖动期间生效）。
-            js_slide_capture("dsh-merge-slide"); emit(MergeSlideStart(js_slide_zone_pct("dsh-merge-slide", 72)))
-          })
+// 拖动只从球开始（§90）：轨道上别处按下不启动，pointerdown 挂在球上（见下）
           .on_pointermove(fn(event) {
             emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
           })
@@ -315,7 +311,11 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
               "left: clamp(2px, calc(" + model.merge_slide.to_string() + "% - " +
               (model.merge_slide * 36 / 100).to_string() + "px), calc(100% - 38px))",
             ],
-            attrs=mark("merge-knob", ["dialog", "merge", "knob"]),
+            attrs=mark("merge-knob", ["dialog", "merge", "knob"])
+              .on_pointerdown(fn(_event) {
+                js_slide_capture("dsh-merge-slide")
+                emit(MergeSlideStart(js_slide_zone_pct("dsh-merge-slide", 72)))
+              }),
             [icon("send", size=14)],
           ),
         ],
