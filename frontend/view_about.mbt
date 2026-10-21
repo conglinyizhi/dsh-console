@@ -40,7 +40,7 @@ fn install_kind_hint(facts : RuntimeFacts) -> String {
 }
 
 ///|
-fn version_rows(model : Model) -> Array[@html.Html] {
+fn version_rows(model : Model, emit : @cmd.Emit[Msg]) -> Array[@html.Html] {
   match model.runtime {
     // 读数还没回来与读取失败是两件事：前者说「正在读」，后者把原因摆出来
     None =>
@@ -52,6 +52,20 @@ fn version_rows(model : Model) -> Array[@html.Html] {
     Some(facts) =>
       [
         kv_row("dsh 版本", facts.dsh_version, facts.dsh_package_name),
+        // 想换版本的人不该自己去摸「设置里哪一组」：版本号右边给一条直达入口（§66）。
+        @html.div(class="dsh-row", [
+          @html.span(class="dsh-label", ""),
+          @html.span(class="dsh-value", [
+            @html.button(
+              class="dsh-link-btn",
+              type_="button",
+              attrs=mark("about-switch-version", ["about", "version", "switch"])
+                .title("去设置页的「dsh 版本」一组，列本机装着的几份，选一份给以后起的实例用"),
+              on_click=@cmd.batch([emit(Navigate(Settings)), emit(SettingsGroupPicked("version"))]),
+              [@html.text("切换版本")],
+            ),
+          ]),
+        ]),
         // 这一版的 dsh 是怎么装上去的：值只有四种（pnpm / npm / yarn 全局安装、未知），
         // 凭什么这么判挂在悬停里。它说的是「装法」，不是「版本」，放在版本号下面一行。
         kv_row(
@@ -382,7 +396,7 @@ fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         attrs=mark("version-panel", ["about", "version-panel"]),
         [
           @html.h2(class="dsh-panel-title", "版本"),
-          @html.div(class="dsh-kv", version_rows(model)),
+          @html.div(class="dsh-kv", version_rows(model, emit)),
           @html.p(
             class="dsh-foot",
             "读于 " + model.runtime_time + " | 读自本机",
