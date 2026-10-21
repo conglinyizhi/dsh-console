@@ -374,3 +374,8 @@ fn handle_copy_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model,
   }
 }
 
+///|
+/// 把 Error 说成一句人话（读失败提示里用；state.mbt 那次拆分后这里补一份）。
+fn describe(err : Error) -> String {
+  err.to_string()
+}

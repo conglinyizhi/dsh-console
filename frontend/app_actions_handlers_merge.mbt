@@ -100,8 +100,9 @@ fn handle_merge_preview(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mo
                       let name = str_field(obj, "name")
                       let version = str_field(obj, "version")
                       let kind = str_field(obj, "kind")
+                      let description = str_field(obj, "description")
                       if name != "" {
-                        plugins.push((name, version, kind))
+                        plugins.push((name, version, kind, description))
                       }
                     }
                     _ => ()

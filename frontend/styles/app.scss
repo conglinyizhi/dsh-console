@@ -2987,3 +2987,10 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
   .dsh-merge-card { width: 100%; max-width: 100%; }
   .dsh-merge-list { max-height: 46vh; }
 }
+
+/* 分发插件对话框（§81）：卡宽 720，窄屏整屏单列；插件行三行结构（图标 / 名字与来源 / 描述）。 */
+.dsh-merge-card { width: 720px; max-width: calc(100vw - 32px); }
+.dsh-merge-desc { margin: 2px 0 0; font-size: 11.5px; line-height: 1.45; color: $text-dim; }
+@media (max-width: 520px) {
+  .dsh-merge-card { width: 100%; max-width: none; }
+}
