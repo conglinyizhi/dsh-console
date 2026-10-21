@@ -246,6 +246,27 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         step3
       },
     ),
+    // 第 3 步把「发什么、发给谁」摊出来（§89）：滑动之前再确认一次，不靠记忆
+    if step == 3 {
+      @html.div(
+        class="dsh-merge-summary",
+        attrs=mark("merge-summary", ["dialog", "merge", "summary"]),
+        [
+          @html.p(
+            class="dsh-merge-summary-line",
+            "将复制 " + model.merge_plugin_picked.length().to_string() + " 个插件：" +
+            join_with(model.merge_plugin_picked, "、"),
+          ),
+          @html.p(
+            class="dsh-merge-summary-line",
+            "分发到 " + model.merge_targets.length().to_string() + " 只：" +
+            join_with(model.merge_targets, "、"),
+          ),
+        ],
+      )
+    } else {
+      @html.nothing
+    },
     if step == 3 && picked_plugins && model.merge_targets.length() > 0 {
       @html.div(
         class=if model.merge_slide >= model.merge_zone_pct {
@@ -289,7 +310,11 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           ),
           @html.div(
             class="dsh-merge-slide-knob",
-            style=["left: " + model.merge_slide.to_string() + "%"],
+            // 两端都夹住（§89）：100% 时减去球宽，0% 留 2px，球不再越出轨道
+            style=[
+              "left: clamp(2px, calc(" + model.merge_slide.to_string() + "% - " +
+              (model.merge_slide * 36 / 100).to_string() + "px), calc(100% - 38px))",
+            ],
             attrs=mark("merge-knob", ["dialog", "merge", "knob"]),
             [icon("send", size=14)],
           ),
