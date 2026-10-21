@@ -80,6 +80,12 @@ let settings_groups : Array[SettingGroup] = [
     note: "实例进程怎么活、怎么停。",
   },
   {
+    id: "version",
+    label: "dsh 版本",
+    icon: "layers-outline",
+    note: "起实例用哪一份 dsh：没指定时自动挑一份，也可以钉住某一版。",
+  },
+  {
     id: "logs",
     label: "日志",
     icon: "text-box-outline",
@@ -211,7 +217,14 @@ fn setting_is_switch(key : String) -> Bool {
 ///
 /// 只数键表：启动变量那张表挂在「进程」组里，不进这个数 —— 它没有固定条数，
 /// 数进去会让索引上的数字随变量增减而跳，而它说明的是「这一组有几项设置」。
-fn settings_group_count(group_id : String) -> Int {
+fn settings_group_count(model : Model, group_id : String) -> Int {
+  // 「dsh 版本」这一组数的是本机装着的候选版本数（读数还没到时是 0，不编）。
+  if group_id == "version" {
+    return match model.runtime {
+      Some(facts) => facts.dsh_candidates.length()
+      None => 0
+    }
+  }
   settings_table.filter(fn(def) { def.group == group_id }).length()
 }
 

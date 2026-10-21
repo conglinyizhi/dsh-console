@@ -193,12 +193,9 @@ fn dsh_version_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
   )
   @html.div(
-    class="dsh-panel",
-    attrs=mark("dsh-version-panel", ["about", "dsh-version-panel"]),
-    [
-      @html.h2(class="dsh-panel-title", "这台的 dsh 版本"),
-      @html.fragment(body),
-    ],
+    class="dsh-version-body",
+    attrs=mark("dsh-version-panel", ["settings", "dsh-version-panel"]),
+    body,
   )
 }
 
@@ -392,7 +389,7 @@ fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           ),
         ],
       ),
-      dsh_version_panel(model, emit),
+
       manual_start_panel(model),
     ],
   )

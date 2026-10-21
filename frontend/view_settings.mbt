@@ -340,7 +340,7 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.span(class="dsh-settings-tab-label", group.label),
           @html.span(
             class="dsh-settings-tab-count",
-            settings_group_count(group.id).to_string(),
+            settings_group_count(model, group.id).to_string(),
           ),
           // 「这一行后面还有内容」的提示：窄屏靠它说清「点进去」是下一步
           @html.span(class="dsh-settings-tab-arrow", [icon("chevron-right", size=16)]),
@@ -372,6 +372,10 @@ fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // §62.1：表格接在「进程」组那两条设置项后面（不单独占一组）
   if group.id == "process" {
     children.push(env_settings_body(model, emit))
+  }
+  // 「dsh 版本」这一组没有键值项，摆的是候选版本列表与「用这一版」（原来在关于页，§65 搬过来）。
+  if group.id == "version" {
+    children.push(dsh_version_panel(model, emit))
   }
   @html.div(class="dsh-settings-body", [
     settings_index(model, emit),
