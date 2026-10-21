@@ -5,31 +5,27 @@
 
 
 ///|
-/// 抽屉「配置历史」组下面那一颗：打开右侧栏去选源。
+/// 抽屉「操作」组里那一颗：打开右侧栏去选源，把这一只的配置换成另一只的（§74）。
+///
+/// 文案只留「换上另一只的配置」：说清动作，不说机制；被换掉哪三份文件、会不会先拍快照，
+/// 都在悬停里 —— 点这颗按钮的人先要知道「会发生什么」，细枝末节等打开侧栏再说。
 fn promote_launcher(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   let usable = row.profile_name is Some(_) && !row.busy
-  @html.div(
-    class="dsh-promote-launcher",
-    attrs=mark("drawer-promote-open-line", ["overview", "drawer", row.id, "promote", "open"]),
-    [
-      @html.button(
-        id=promote_open_id(row.id),
-        class="dsh-btn",
-        type_="button",
-        disabled=!usable,
-        attrs=mark("drawer-promote-open", ["overview", "drawer", row.id, "action", "promote-open"])
-          .data_set("action", "promote-open")
-          .title(
-            "把这一只的三份配置（package.json、cordis.patch.yml、pnpm-workspace.yaml）换成另一只的，" +
-            "再把它没有的本地包搬过来；替换之前会先给这一只拍一张快照",
-          ),
-        on_click=emit(PromoteOpen(row.id)),
-        [icon("swap-horizontal"), @html.span("用另一只配置替换这一只")],
+  @html.button(
+    id=promote_open_id(row.id),
+    class="dsh-btn",
+    type_="button",
+    disabled=!usable,
+    attrs=mark("drawer-promote-open", ["overview", "drawer", row.id, "action", "promote-open"])
+      .data_set("action", "promote-open")
+      .title(
+        "把这一只的配置（package.json、cordis.patch.yml、pnpm-workspace.yaml）换成另一只的，" +
+        "它没有的本地包一起搬过来；替换之前先给这一只拍一张快照，能还原",
       ),
-    ],
+    on_click=emit(PromoteOpen(row.id)),
+    [icon("swap-horizontal"), @html.span("换上另一只的配置")],
   )
 }
-
 ///|
 /// 侧栏顶部那一行：被替换的是谁、它属于哪一份 home。路径收进悬停（正文只留一句）。
 fn promote_target_block(model : Model) -> @html.Html {

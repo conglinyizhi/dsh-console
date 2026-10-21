@@ -440,6 +440,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         // 这只 profile 的启动环境（§61.3）：**放在「操作」组**，因为它改的是「怎么起这一只」，
         // 不是「这份配置长什么样」——与复制开发指令同属「起它之前要的东西」。
         take.push(drawer_env_button(row, emit))
+        take.push(promote_launcher(row, emit))
       }
     None => ()
   }
@@ -594,7 +595,6 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     snapshot_history(row, model, emit, lead=home_items),
     // 缺包仍可修（§40.2）：低调地摆在配置组里 —— 状态组不再摆那一行大提示
     repair_action(row, model, emit),
-    promote_launcher(row, emit),
     // 查看与编辑（第三轮接上的那三项）
     @html.div(class="dsh-drawer-btns", ops),
   ]
