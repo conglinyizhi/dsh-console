@@ -277,6 +277,7 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     MergePreviewText(_) => handle_merge_preview(model, msg, emit)
     MergePluginToggle(_) => handle_merge_plugin_toggle(model, msg, emit)
     MergeTargetToggle(_) => handle_merge_toggle(model, msg, emit)
+    MergeSlideStart => handle_merge_slide(model, msg, emit)
     MergeSlide(_) => handle_merge_slide(model, msg, emit)
     MergeSlideRelease => handle_merge_slide(model, msg, emit)
     MergeSlideKey(_) => handle_merge_slide(model, msg, emit)

@@ -584,6 +584,7 @@ fn dialog(
   on_scrim : @cmd.Cmd,
   on_keydown : @cmd.Emit[@html.Keyboard],
   card : @html.Html,
+  on_pointerup? : @cmd.Cmd = @cmd.none,
 ) -> @html.Html {
   @html.fragment([
     @html.div(
@@ -597,7 +598,8 @@ fn dialog(
       attrs=mark(name, ["dialog", name])
         .aria_label(label)
         .role("dialog")
-        .aria_modal("true"),
+        .aria_modal("true")
+        .on_pointerup(fn(_event) { on_pointerup }),
       on_keydown~,
       [card],
     ),

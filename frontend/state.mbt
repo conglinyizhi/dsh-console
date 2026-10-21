@@ -483,6 +483,8 @@ struct Model {
   merge_busy : Bool
   /// 滑动确认的进度（0..100，到 95 以上才提交）
   merge_slide : Int
+  /// 正在拖滑块：只有按下之后才跟随指针
+  merge_dragging : Bool
   /// 预览接口读回来的插件：名字 / 版本 / 形态（local-dir / local-link / registry / missing）
   merge_plugins : Array[(String, String, String)]
   /// 勾中的插件名
@@ -572,6 +574,7 @@ priv enum Msg {
   /// 目标勾/取消勾（profile 名）
   MergeTargetToggle(String)
   /// 滑动确认：指针/键盘把滑块推到某个百分比
+  MergeSlideStart
   MergeSlide(Int)
   /// 松开滑块：到 95 以上才提交，否则弹回左端
   MergeSlideRelease
@@ -976,6 +979,7 @@ fn initial_model() -> Model {
     merge_confirm: "",
     merge_busy: false,
     merge_slide: 0,
+    merge_dragging: false,
     merge_plugins: [],
     merge_plugin_picked: [],
     merge_loading: false,

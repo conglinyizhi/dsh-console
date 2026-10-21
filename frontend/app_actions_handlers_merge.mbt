@@ -7,10 +7,8 @@ fn handle_merge_open(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
     MergeOpen(id~, return_id~) =>
       match find_row(model.rows, id) {
         Some(row) => {
-          let source = match row.profile_name {
-            Some(n) => n
-            None => row.name
-          }
+          // 磁盘目录名：profile_name 可能为空（隔离 home 的卡片），卡片名带端口也不能用（§77）
+          let source = merge_row_name(row)
           (
             {
               ..model,
@@ -130,13 +128,21 @@ fn handle_merge_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mod
 /// 滑动确认：指针把滑块推到某个百分比；到 95 以上松手才提交（低于就弹回）。
 fn handle_merge_slide(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
-    MergeSlide(v) => ({ ..model, merge_slide: if v < 0 { 0 } else if v > 100 { 100 } else { v } }, @cmd.none)
-    MergeSlideRelease =>
-      if model.merge_slide >= 95 {
-        handle_merge_submit({ ..model, merge_slide: 100 }, MergeSubmit, emit)
+    MergeSlideStart => ({ ..model, merge_dragging: true }, @cmd.none)
+    MergeSlide(v) =>
+      if !model.merge_dragging {
+        (model, @cmd.none)
       } else {
-        ({ ..model, merge_slide: 0 }, @cmd.none)
+        ({ ..model, merge_slide: if v < 0 { 0 } else if v > 100 { 100 } else { v } }, @cmd.none)
       }
+    MergeSlideRelease => {
+      let stopped = { ..model, merge_dragging: false }
+      if stopped.merge_slide >= 95 {
+        handle_merge_submit({ ..stopped, merge_slide: 100 }, MergeSubmit, emit)
+      } else {
+        ({ ..stopped, merge_slide: 0 }, @cmd.none)
+      }
+    }
     MergeSlideKey(key) =>
       if key == "End" || (key == "Enter" && model.merge_slide >= 95) {
         handle_merge_submit({ ..model, merge_slide: 100 }, MergeSubmit, emit)

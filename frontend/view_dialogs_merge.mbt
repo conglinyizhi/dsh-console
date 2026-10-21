@@ -1,10 +1,34 @@
 // 分发插件对话框（design/backlog.md N）：选目标（多选，排除自己）→ 看清单 → 输入 MERGE 才可分发。
 
 ///|
+/// 一张行对应的**磁盘 profile 名**（§77）：卡片名可能带端口（review-space-a :18712），
+/// 后端按目录找 profile，带端口就找不到。隔离 home 的行 profile_name 会是空，
+/// 这时从卡片名里截掉「 :端口」那一段。
+fn merge_row_name(row : Row) -> String {
+  match row.profile_name {
+    Some(name) =>
+      if name != "" {
+        name
+      } else {
+        merge_strip_port(row.name)
+      }
+    None => merge_strip_port(row.name)
+  }
+}
+
+///|
+fn merge_strip_port(name : String) -> String {
+  for part in name.split(" :") {
+    return part.to_string()
+  }
+  name
+}
+
+///|
 /// 目标候选：现在读数里的 profile 行，排除源自己。
 fn merge_target_rows(model : Model) -> Array[Row] {
   let source = match find_row(model.rows, model.merge_source) {
-    Some(row) => row.name
+    Some(row) => merge_row_name(row)
     None => ""
   }
   let out : Array[Row] = []
@@ -27,7 +51,7 @@ fn merge_target_rows(model : Model) -> Array[Row] {
 ///|
 fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let source = match find_row(model.rows, model.merge_source) {
-    Some(row) => row.name
+    Some(row) => merge_row_name(row)
     None => model.merge_source
   }
   // 两步：先选插件（≥1 只）才展开选目标；确认串仍是 MERGE
@@ -151,11 +175,13 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         .data_set("slide", slide.to_string())
         .aria_label("向右滑动分发")
         .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
-        .on_pointerdown(fn(event) {
-          emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+        .on_pointerdown(fn(_event) {
+          emit(MergeSlideStart)
         })
         .on_pointermove(fn(event) {
-          emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+          if model.merge_dragging {
+            emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+          } else { @cmd.none }
         })
         .on_pointerup(fn(_event) { emit(MergeSlideRelease) })
         .on_keydown(fn(event) {
@@ -170,7 +196,7 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.span(class="dsh-merge-slide-hint", "向右滑动分发"),
         @html.div(
           class="dsh-merge-slide-knob",
-          style=["left: " + slide.to_string() + "%"],
+          style=["left: calc(" + slide.to_string() + "% - " + (slide * 36 / 100).to_string() + "px)"],
           attrs=mark("merge-knob", ["dialog", "merge", "knob"]),
           [icon("send", size=14)],
         )
@@ -207,5 +233,6 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       }
     }),
     card,
+    on_pointerup=emit(MergeSlideRelease),
   )
 }
