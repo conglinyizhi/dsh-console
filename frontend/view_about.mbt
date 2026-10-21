@@ -53,11 +53,12 @@ fn version_rows(model : Model, emit : @cmd.Emit[Msg]) -> Array[@html.Html] {
       [
         // 版本号与「切换版本」**同一行**（§66）：按钮靠右，且不再多占一行 ——
         // 单独一行会让这张表多出一条空标签的行，看着像漏填了值。
+        // 行标签「dsh 版本」不再写（降密度）：面板标题已经叫「版本」，同一个容器里说了两遍。
+        // 底下那几行候选版本本来就没有标签，这一行去掉之后与它们同一种排法。
         @html.div(
           class="dsh-row",
           attrs=mark("about-version-row", ["about", "version", "row"]),
           [
-            @html.span(class="dsh-label", "dsh 版本"),
             @html.span(
               class="dsh-value",
               attrs=mark("kv-value", ["about", "version-row", "dsh 版本", "value"])
@@ -389,15 +390,17 @@ fn manual_start_panel(model : Model) -> @html.Html {
     class="dsh-panel",
     attrs=mark("manual-start-panel", ["about", "manual-start"]),
     [
-      @html.h2(class="dsh-panel-title", "手动启动"),
+      // 末尾那句「隔离的那只换 home」是特例提示，收进标题的悬停（降密度）：
+      // 这一块的读者要的是两条命令，照抄就能起；隔离 home 那一档的人会看这里。
+      @html.h2(
+        class="dsh-panel-title",
+        attrs=@html.Attrs::build().title("隔离的那只把 DSH_HOME 换成它自己的 home 路径即可"),
+        "手动启动",
+      ),
       @html.div(class="dsh-manual", [
         manual_start_row("稳定环境", stable, stable_note, "stable"),
         manual_start_row("锁版本", locked, locked_note, "pinned"),
       ]),
-      @html.p(
-        class="dsh-foot",
-        "隔离的那只把 DSH_HOME 换成它自己的 home 路径即可",
-      ),
     ],
   )
 }
@@ -408,18 +411,17 @@ fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     class="dsh-page",
     attrs=mark("about-page", ["about", "page"]),
     [
-      @html.header(class="dsh-page-head", [@html.h1(class="dsh-page-title", "关于")]),
-      @html.div(
-        class="dsh-panel",
-        attrs=mark("about-panel", ["about", "about-panel"]),
-        [
-          // 一段话说完（§68）：原来的第二句把八个动作逐个列了一遍，那是「看起来完整」。
-          @html.p(
-            class="dsh-para",
-            "本机 DSH 控制台。读数是只读的，动作会真的作用到本机实例与 profile。",
-          ),
-        ],
-      ),
+      // 页头带那句简介（降密度）：一句话不值得单独占一块面板 ——
+      // 一块只有一行字的面板等于给这句话加了一圈边，读的人还得先判断「这块是不是可点的」。
+      // 那句话本身留着：它说的是「动作会真的作用到本机」，是安全提示，不删。
+      @html.header(class="dsh-page-head", [
+        @html.h1(class="dsh-page-title", "关于"),
+        @html.p(
+          class="dsh-para",
+          attrs=mark("about-intro", ["about", "page", "intro"]),
+          "本机 DSH 控制台。读数是只读的，动作会真的作用到本机实例与 profile。",
+        ),
+      ]),
       @html.div(
         class="dsh-panel",
         attrs=mark("version-panel", ["about", "version-panel"]),

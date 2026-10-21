@@ -283,6 +283,7 @@ fn setting_hint(key : String) -> String {
   match key {
     "probe.timeoutMs" => "调大能容下慢实例，代价是扫描变慢"
     "probe.concurrency" => "调大扫得快，瞬时占用的文件描述符也更多"
+    "process.stopGraceMs" => "0 表示不留宽限：SIGTERM 之后立刻 SIGKILL"
     "logs.defaultTail" => "日志页自己写着实际读到了多少行"
     "ui.sidebarCollapsed" => "窄屏不看这一项：那一档的侧栏从顶部汉堡滑出，不占位"
     "profile.ignoreMissingBundles" => "缺的包仍然可以在抽屉里安装；关掉这一项，缺包会重新算作警告"

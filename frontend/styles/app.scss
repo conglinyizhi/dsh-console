@@ -1978,7 +1978,6 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
 // ── 设置页（左索引 + 右条目） ──────────────────────────────
 .dsh-settings-page { display: flex; flex-direction: column; gap: 10px; padding: 16px 22px 24px; min-height: 100%; }
 .dsh-settings-head { display: flex; align-items: center; gap: 10px; }
-.dsh-settings-note { margin: 0; font-size: 11.5px; color: $text-dim; }
 .dsh-settings-body { display: grid; grid-template-columns: 176px minmax(0, 1fr); align-items: start; gap: 14px; }
 .dsh-settings-index { display: flex; flex-direction: column; gap: 2px; padding: 7px; background: $card; border-radius: $radius; }
 .dsh-settings-tab {
@@ -2033,7 +2032,6 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
   border-radius: $radius;
 }
 .dsh-settings-panel-title { margin: 0; font-size: 13px; font-weight: 600; color: $text; }
-.dsh-settings-panel-note { margin: 4px 0 12px; font-size: 11.5px; color: $text-dim; }
 .dsh-settings-rows { display: flex; flex-direction: column; }
 .dsh-setting {
   /* 条目之间不再画分隔线（第 5 条）：改用留白。一行上下各 14px，
@@ -2857,3 +2855,23 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
   line-height: 1.5;
   color: $text-dim;
 }
+
+/* 设置页与关于页的间距刻度（§70）：全部收到 4 的倍数上，组间 = 组内两倍。
+   这一组放在文件末尾，靠层叠覆盖上面那些旧值；旧规则暂时留着，
+   等下一次动那几段时一起删，免得一次改两处对不上账。 */
+.dsh-settings-page { padding: 16px 24px 24px; }
+.dsh-settings-head { gap: 8px; }
+.dsh-settings-index { padding: 8px; gap: 4px; }
+.dsh-settings-tab { padding: 0 8px; }
+.dsh-settings-panel { padding: 16px 24px 16px; }
+.dsh-settings-panel-title { margin: 0 0 12px; }
+.dsh-setting { padding: 12px 0; }
+.dsh-setting:first-child { padding-top: 0; }
+.dsh-settings-section { margin-top: 16px; padding-top: 16px; }
+.dsh-settings-section-note { margin: 4px 0 12px; }
+.dsh-env-head { gap: 8px; padding-bottom: 4px; }
+.dsh-env-row { gap: 8px; padding: 8px 0; }
+.dsh-env-add { gap: 8px; }
+.dsh-env-option { padding: 8px 0; }
+.dsh-env-empty { padding: 8px 0 0; }
+section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
