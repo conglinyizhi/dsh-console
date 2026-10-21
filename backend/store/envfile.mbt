@@ -172,12 +172,46 @@ pub fn env_map_json(entries : Map[String, String]) -> @json.JsonVal {
 
 ///|
 /// 原子写：临时文件 + rename，权限 600（§61.1）。失败如实返回原因。
+///|
+/// 大小写成对补齐（§94）：全小写的键顺手写一份全大写，全大写的写一份全小写；
+/// 显式写了混合大小写（FooBar）的键原样留着，不拆成两份 —— 那是使用者刻意的写法。
+fn expand_case_variants(entries : Map[String, String]) -> Map[String, String] {
+  let out : Map[String, String] = Map([])
+  for pair in entries.iter() {
+    out[pair.0] = pair.1
+  }
+  for pair in entries.iter() {
+    let key = pair.0
+    let upper = key.to_upper()
+    let lower = key.to_lower()
+    let has_upper = upper != key
+    let has_lower = lower != key
+    if has_upper && !has_lower {
+      // 全小写：补一份全大写
+      if !entries.contains(upper) {
+        out[upper] = pair.1
+      }
+    } else if has_lower && !has_upper {
+      // 全大写：补一份全小写
+      if !entries.contains(lower) {
+        out[lower] = pair.1
+      }
+    }
+  }
+  out
+}
+
+///|
 pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
   let path = env_file_path()
+  let file = {
+    ..file,
+    global: expand_case_variants(file.global),
+  }
   let profiles_fields : Array[(String, @json.JsonVal)] = []
   for pair in file.profiles.iter() {
     if pair.1.size() > 0 {
-      profiles_fields.push((pair.0, env_map_json(pair.1)))
+      profiles_fields.push((pair.0, env_map_json(expand_case_variants(pair.1))))
     }
   }
   let json = @json.JObj([
