@@ -381,6 +381,7 @@ fn env_add_row(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @htm
     [
       @html.input(
         input_type=Text,
+        id="dsh-env-add-key-" + target.scope,
         class="dsh-env-add-key",
         value=model.env_add_key,
         placeholder="KEY",
@@ -391,6 +392,7 @@ fn env_add_row(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @htm
       ),
       @html.input(
         input_type=Text,
+        id="dsh-env-add-value-" + target.scope,
         class="dsh-env-add-value",
         value=model.env_add_value,
         placeholder="值",
@@ -674,6 +676,189 @@ fn drawer_env_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   )
 }
 
+// ── 只读档（实例在跑的时候，M）───────────────────────────
+
+///|
+/// 对话框指着的那一行现在是不是在跑（控制台起的与外部起的都算）。
+///
+/// 判据就是行状态：Running 一档既覆盖本控制台起的实例（有登记），也覆盖别处起的
+/// （只有端口探测能认出它）。启动中（Starting）不算 —— 那一档还没起来。
+fn env_open_running(model : Model) -> Bool {
+  if model.env_open == "" {
+    return false
+  }
+  match find_row(model.rows, model.env_open) {
+    Some(row) => row.status is Running
+    None => false
+  }
+}
+
+///|
+/// 这一只**进程里实际生效**的变量：全局那一段在前、这一只覆盖同键（键留在第一次出现的位置）。
+///
+/// 与 env_merged_pairs（开发指令那一段用的）有两处刻意的差别：
+///   * 空值也留着 —— 进程里那个键确实存在，值是空的；开发指令要往 shell 里 export，
+///     空值写进去没有意义，所以那边跳掉。这里说的是「进程绑了什么」，不能跳。
+///   * 保留键剔掉 —— 它们不由这张表决定（后端 env_for_spawn 同一张名单跳过）。
+fn env_effective_pairs(model : Model, target : EnvTarget) -> Array[(String, String)] {
+  let own = env_profile_pairs(env_facts_of_model(model), target.home, target.profile)
+  let order : Array[String] = []
+  let values : Map[String, String] = Map([])
+  let put = fn(list : Array[(String, String)]) {
+    for pair in list {
+      if env_is_reserved(model, pair.0) {
+        continue
+      }
+      if !values.contains(pair.0) {
+        order.push(pair.0)
+      }
+      values[pair.0] = pair.1
+    }
+  }
+  put(model.env_global)
+  put(own)
+  let out : Array[(String, String)] = []
+  for key in order {
+    match values.get(key) {
+      Some(value) => out.push((key, value))
+      None => ()
+    }
+  }
+  out
+}
+
+///|
+/// 只读档的值那一格：打码点 / 明文，两种都是纯文本 —— 这里没有输入框。
+///
+/// 明文复用键那一格的排版（等宽、可折行、正文色）：它的类名是 key，但作用就是
+/// 「这张表里的一格等宽文本」。为只读档再立一条同形的样式没有收益。
+fn env_readonly_value(
+  model : Model,
+  target : EnvTarget,
+  key : String,
+  value : String,
+) -> @html.Html {
+  if !env_revealed(model, target, key) {
+    return @html.span(
+      class="dsh-env-mask",
+      attrs=mark("env-mask", ["settings", "env", target.scope_id, key, "mask"])
+        .aria_label(key + " 的值已打码"),
+      "••••••",
+    )
+  }
+  @html.span(
+    class="dsh-env-key",
+    attrs=mark("env-plain", ["settings", "env", target.scope_id, key, "plain"]).title(value),
+    if value == "" { "（空值）" } else { value },
+  )
+}
+
+///|
+/// 只读档的一行：键 / 值 / 一颗「显示」。没有删除，也没有输入框 ——
+/// 这一档里一个会写文件的动作都不摆。
+fn env_readonly_row(
+  model : Model,
+  target : EnvTarget,
+  key : String,
+  value : String,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let revealed = env_revealed(model, target, key)
+  @html.div(
+    class="dsh-env-row",
+    attrs=mark("env-row", ["settings", "env", target.scope_id, key])
+      .data_set("key", key)
+      .data_set("readonly", "true"),
+    [
+      @html.span(
+        class="dsh-env-key",
+        attrs=mark("env-key", ["settings", "env", target.scope_id, key, "key"]).title(key),
+        key,
+      ),
+      @html.div(class="dsh-env-value", [
+        env_readonly_value(model, target, key, value),
+      ]),
+      @html.div(class="dsh-env-ops", [
+        @html.button(
+          class="dsh-env-btn",
+          type_="button",
+          attrs=mark("env-reveal", ["settings", "env", target.scope_id, key, "reveal"])
+            .data_set("shown", if revealed { "true" } else { "false" })
+            .aria_pressed(if revealed { "true" } else { "false" })
+            .aria_label(
+              if revealed { "隐藏 " + key + " 的值" } else { "显示 " + key + " 的值" },
+            ),
+          on_click=emit(EnvReveal(target.scope, key)),
+          [@html.text(if revealed { "隐藏" } else { "显示" })],
+        ),
+      ]),
+    ],
+  )
+}
+
+///|
+/// 只读档那张表：**合并之后**的结果（global + 这一只），值默认打码、可点显示。
+///
+/// 为什么不是「这一只覆盖的那张表」：打开它的人多半只是想看这只进程到底绑了什么，
+/// 而进程里生效的是合并之后的那一份。要看「这一只单独写了哪几条」，点「仍然修改」
+/// 回到可编辑那一档，那里摆的就是覆盖表。
+fn env_readonly_table(
+  model : Model,
+  target : EnvTarget,
+  emit : @cmd.Emit[Msg],
+) -> @html.Html {
+  let entries = env_effective_pairs(model, target)
+  let body : Array[@html.Html] = []
+  if entries.length() == 0 {
+    body.push(
+      @html.p(
+        class="dsh-env-empty",
+        attrs=mark("env-empty", ["settings", "env", target.scope_id, "empty"]),
+        "这只实例现在没有生效的启动变量",
+      ),
+    )
+  } else {
+    body.push(
+      @html.div(
+        class="dsh-env-head",
+        attrs=mark("env-head", ["settings", "env", target.scope_id, "head"]),
+        [
+          @html.span(class="dsh-env-head-key", "键"),
+          @html.span(class="dsh-env-head-value", "值"),
+          @html.span(class="dsh-env-head-ops", "操作"),
+        ],
+      ),
+    )
+    for pair in entries {
+      body.push(env_readonly_row(model, target, pair.0, pair.1, emit))
+    }
+  }
+  // 脚上这句说清「摆的是哪一份」：合并之后的结果，而不是这一只单独写的那几条。
+  // 悬停把两段的条数摊开 —— 只看表看不出哪几条是这一只盖上去的。
+  let own_count = env_profile_pairs(
+    env_facts_of_model(model),
+    target.home,
+    target.profile,
+  ).length()
+  body.push(
+    @html.p(
+      class="dsh-env-foot",
+      attrs=mark("env-foot", ["settings", "env", "foot"]).title(
+        "全局 " + model.env_global.length().to_string() + " 条 · 这一只覆盖 " +
+        own_count.to_string() + " 条；保留键由控制台自己摆，不在这张表里",
+      ),
+      "以上是这只实例现在生效的变量：全局与这一份合并之后的结果",
+    ),
+  )
+  @html.div(
+    class="dsh-env-table",
+    attrs=mark("env-table", ["settings", "env", target.scope_id])
+      .data_set("scope", target.scope)
+      .data_set("readonly", "true"),
+    body,
+  )
+}
+
 // ── 抽屉里的对话框 ──────────────────────────────────────────
 
 ///|
@@ -716,6 +901,10 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     None => "这只 profile"
   }
   let target = env_target_open(model)
+  // 这只实例在跑 → 先按只读摆（M）：改完要下次启动才生效，先让人看清进程里绑了什么。
+  // 点「仍然修改」才解锁；解锁是这一次对话框的决定（开 / 关都清零）。
+  let running = env_open_running(model)
+  let locked = running && !model.env_edit_unlocked
   // 三种「现在摆不出一张真表」的状态分开说，别拿空态冒充：
   //   还没读到设置 → 正在读；读失败 → 说读失败；这只 profile 的目录名 / home 认不出 → 存不了。
   // 「没有单独设置」这一句只说**真读到过、确实没有**那一档（空态与「不知道」不是一回事）。
@@ -731,7 +920,11 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   } else {
     match target {
       Some(target) =>
-        env_table(model, target, "没有单独设置，跟着全局走", true, emit)
+        if locked {
+          env_readonly_table(model, target, emit)
+        } else {
+          env_table(model, target, "没有单独设置，跟着全局走", true, emit)
+        }
       None =>
         env_dialog_note(
           model,
@@ -740,6 +933,20 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           "",
         )
     }
+  }
+  // 在跑的那一行说明（M）：讲清「现在写进去的东西这一只是不会用的」。
+  // 摆在这张表上面而不是塞进脚注：它是读这张表之前的上下文，不是表的一部分。
+  let running_note = if running {
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("env-running", ["dialog", "env-dialog", "running"]).title(
+        "实例进程的环境在起它的那一刻就定了；改的是下一次启动要挂的那一份。" +
+        "要看这一只单独覆盖了哪几条，点下面的「仍然修改」",
+      ),
+      "这只在跑，改完要下次启动才生效",
+    )
+  } else {
+    @html.nothing
   }
   // 顶部那一行只读的生效方式（§62.3）。悬停里说清「这两项在哪儿改、为什么这里只读」——
   // 不摆控件是刻意的：它是全局的一项，摆在两只 profile 的对话框里就会变成两个入口。
@@ -760,8 +967,25 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       name + " 的启动变量",
     ),
     mode_line,
+    running_note,
     content,
+    // 脚上一主一次：「仍然修改」是例外路径（多数人打开只是想看），所以做成文字按钮，
+    // 实心那颗留给「关闭」。两件事同时摆着，但只有一颗重按钮。
     @html.div(class="dsh-dialog-foot", [
+      if locked {
+        @html.button(
+          class="dsh-link-btn",
+          type_="button",
+          attrs=mark("env-unlock", ["dialog", "env-dialog", "unlock"]).title(
+            "解锁之后这张表变成可编辑的那一份（这一只单独覆盖的几条）；" +
+            "保存仍然只写这一份，改完要等这只实例下次启动才生效",
+          ),
+          on_click=emit(EnvEditUnlock),
+          [@html.text("仍然修改")],
+        )
+      } else {
+        @html.nothing
+      },
       @html.button(
         class="dsh-dialog-btn primary",
         type_="button",

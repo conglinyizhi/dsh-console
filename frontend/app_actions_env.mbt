@@ -238,8 +238,9 @@ fn handle_env_reveal(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
 /// 它们属于上一次摆着的那张表，带过来会让新对话框里凭空多半行输入。
 fn handle_env_profile_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
+    // 解锁那一格跟着清（M）：只读是**每一次打开**的默认，不跟着上一只 profile 一起过去。
     EnvProfileOpen(id) => (
-      { ..model, env_open: id, env_add_key: "", env_add_value: "" },
+      { ..model, env_open: id, env_add_key: "", env_add_value: "", env_edit_unlocked: false },
       @cmd.none,
     )
     _ => (model, @cmd.none)
@@ -250,8 +251,24 @@ fn handle_env_profile_open(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> 
 fn handle_env_profile_close(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
     EnvProfileClose => (
-      { ..model, env_open: "", env_add_key: "", env_add_value: "" },
+      { ..model, env_open: "", env_add_key: "", env_add_value: "", env_edit_unlocked: false },
       @cmd.none,
+    )
+    _ => (model, @cmd.none)
+  }
+}
+
+///|
+/// 只读档上那颗「仍然修改」（M）：只翻本地一格，不写任何读数。
+///
+/// 解锁之后表格切回**这一只覆盖的那张表**（可编辑那一份），焦点送到「添加一行」的
+/// 键名输入框 —— 解锁那一枪之后原来那颗按钮就没了，焦点不能掉到 body 上。
+/// 那一格渲染出来的 id 带作用域（dsh-env-add-key-profile / -global），见 view_env 的 env_add_row。
+fn handle_env_edit_unlock(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    EnvEditUnlock => (
+      { ..model, env_edit_unlocked: true },
+      focus_after_render("dsh-env-add-key-profile"),
     )
     _ => (model, @cmd.none)
   }
