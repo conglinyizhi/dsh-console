@@ -418,16 +418,18 @@ fn env_foot(model : Model) -> @html.Html {
   } else {
     "｜控制台自己管的键不能改：" + join_with(model.env_reserved, "、")
   }
+  // 页脚只留一句短的（§63）：路径、权限、保留键名单全进悬停。
+  // 这一段在设置页与对话框里各出现一次，长句子会把表格压得没地方站。
   @html.p(
     class="dsh-env-foot",
     attrs=mark("env-foot", ["settings", "env", "foot"]).title(
-      if model.env_path == "" {
-        "env.json 的落点还没读到"
+      (if model.env_path == "" {
+        "落盘位置还没读到"
       } else {
-        "落盘位置 " + model.env_path
-      },
+        "落盘位置 " + model.env_path + "（权限 600）"
+      }) + "；改一行就存一次，下一次启动实例生效" + reserved,
     ),
-    "改一行就存一次，落在权限 600 的 env.json" + reserved,
+    "改一行就存一次",
   )
 }
 
@@ -699,8 +701,13 @@ fn env_dialog_note(
 /// 也是它与全局那一份的关系说明（全局那张表不在这里重复摆，免得两处各说一半）。
 fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let row = find_row(model.rows, model.env_open)
+  // 标题说磁盘上的名字（web），不是卡片上带端口的那串（web :3080）——与改名框同一口径。
   let name = match row {
-    Some(item) => item.name
+    Some(item) =>
+      match item.profile_name {
+        Some(profile) => profile
+        None => item.name
+      }
     None => "这只 profile"
   }
   let target = env_target_open(model)
@@ -731,10 +738,13 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   // 顶部那一行只读的生效方式（§62.3）。悬停里说清「这两项在哪儿改、为什么这里只读」——
   // 不摆控件是刻意的：它是全局的一项，摆在两只 profile 的对话框里就会变成两个入口。
+  // 一行生效方式 + 悬停说清「在哪儿改、谁盖谁」（§63）。原来还有一段三句的正文，
+  // 讲的是同一件事，删掉：对话框的主语是这张表，不是那套合并规则。
   let mode_line = @html.p(
     class="dsh-env-mode",
     attrs=mark("env-mode", ["dialog", "env-dialog", "mode"]).title(
-      "继承与同名变量的方式在设置页的「进程」组里改；这一只的变量永远覆盖全局那一份",
+      "继承与同名变量的方式在设置页的「进程」组里改；这一只的变量永远覆盖全局那一份。" +
+      "起这只 profile 时先铺全局那一段，再铺这一份，同键以这里为准，只影响这一只",
     ),
     env_mode_line(model),
   )
@@ -745,11 +755,6 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       name + " 的启动变量",
     ),
     mode_line,
-    @html.p(
-      class="dsh-dialog-message",
-      attrs=mark("dialog-message", ["dialog", "env-dialog", "message"]),
-      "起这只 profile 时，先按上面的方式铺全局那一段，再铺这一份；同键以这里为准，只影响这一只",
-    ),
     content,
     @html.div(class="dsh-dialog-foot", [
       @html.button(
