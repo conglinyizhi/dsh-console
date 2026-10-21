@@ -70,12 +70,19 @@ fn handle_merge_plugin_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) 
 fn handle_merge_step(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
     MergeStepNext =>
-      if model.merge_plugin_picked.length() > 0 {
+      if model.merge_step == 1 && model.merge_plugin_picked.length() > 0 {
         ({ ..model, merge_step: 2, merge_slide: 0 }, @cmd.none)
+      } else if model.merge_step == 2 && model.merge_targets.length() > 0 {
+        ({ ..model, merge_step: 3, merge_slide: 0 }, @cmd.none)
       } else {
         (model, @cmd.none)
       }
-    MergeStepPrev => ({ ..model, merge_step: 1, merge_slide: 0 }, @cmd.none)
+    MergeStepPrev =>
+      if model.merge_step > 1 {
+        ({ ..model, merge_step: model.merge_step - 1, merge_slide: 0 }, @cmd.none)
+      } else {
+        (model, @cmd.none)
+      }
     _ => (model, @cmd.none)
   }
 }

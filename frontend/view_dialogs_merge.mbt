@@ -153,6 +153,17 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       }
     }
   }
+  let step3 : Array[@html.Html] = [
+    @html.p(class="dsh-merge-bullet", "插件会整份复制到目标（不是建软链），目标里同名的先删再拷"),
+    @html.p(
+      class="dsh-merge-bullet",
+      "cordis.patch.yml 先备份到快照目录，再同名覆盖合并，写回后重新解析校验；不过就回滚",
+    ),
+    @html.p(
+      class="dsh-merge-bullet",
+      "每只目标动手之前都拍一张快照，随时能在抽屉「配置 home」那一带还原",
+    ),
+  ]
   let why = if !picked_plugins {
     "先在第一步选至少一只插件"
   } else if model.merge_targets.length() == 0 {
@@ -163,18 +174,8 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ""
   }
   let foot : Array[@html.Html] = []
-  if step == 1 {
-    foot.push(
-      @html.button(
-        class="dsh-dialog-btn",
-        type_="button",
-        disabled=!picked_plugins,
-        attrs=mark("merge-step-next", ["dialog", "merge", "step", "next"]),
-        on_click=emit(MergeStepNext),
-        [@html.text("下一步")],
-      ),
-    )
-  } else {
+  // 第 1、2 屏：上一步 / 下一步；第 3 屏：上一步（滑动条在列表下方）
+  if step > 1 {
     foot.push(
       @html.button(
         class="dsh-dialog-btn",
@@ -182,6 +183,23 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         attrs=mark("merge-step-prev", ["dialog", "merge", "step", "prev"]),
         on_click=emit(MergeStepPrev),
         [@html.text("上一步")],
+      ),
+    )
+  }
+  if step < 3 {
+    let next_ok = if step == 1 {
+      picked_plugins
+    } else {
+      model.merge_targets.length() > 0
+    }
+    foot.push(
+      @html.button(
+        class="dsh-dialog-btn primary",
+        type_="button",
+        disabled=!next_ok,
+        attrs=mark("merge-step-next", ["dialog", "merge", "step", "next"]),
+        on_click=emit(MergeStepNext),
+        [@html.text("下一步")],
       ),
     )
   }
@@ -198,15 +216,23 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("merge-dialog-title", ["dialog", "merge", "title"]),
-      if step == 1 { "把 " + source + " 的插件分发出去" } else { "分发到哪几只" },
+      if step == 1 {
+        "把 " + source + " 的插件分发出去"
+      } else if step == 2 {
+        "分发到哪几只"
+      } else {
+        "会发生什么"
+      },
     ),
     @html.p(
       class="dsh-dialog-message",
       attrs=mark("merge-dialog-message", ["dialog", "merge", "message"]),
       if step == 1 {
-        "第 1 / 2 步：选插件。勾上的会被分发；registry 只补声明，实体要目标自己补包。"
+        "第 1 / 3 步：选插件。勾上的会被分发；registry 只补声明，实体要目标自己补包。"
+      } else if step == 2 {
+        "第 2 / 3 步：选目标。只对勾上的目标动手。"
       } else {
-        "第 2 / 2 步：选目标。每只先拍快照，再复制实体插件、补 bundles；cordis.patch.yml 不动。"
+        "第 3 / 3 步：确认。看完这三件事再向右滑动，才会真正开始。"
       },
     ),
     @html.div(
@@ -214,11 +240,13 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       attrs=mark("merge-step", ["dialog", "merge", "step"]).data_set("step", step.to_string()),
       if step == 1 {
         step1
-      } else {
+      } else if step == 2 {
         step2
+      } else {
+        step3
       },
     ),
-    if step == 2 && picked_plugins {
+    if step == 3 && picked_plugins && model.merge_targets.length() > 0 {
       @html.div(
         class="dsh-merge-slide",
         attrs=mark("merge-confirm", ["dialog", "merge", "confirm"])
