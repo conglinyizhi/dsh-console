@@ -441,7 +441,10 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         // 不是「这份配置长什么样」——与复制开发指令同属「起它之前要的东西」。
         take.push(drawer_env_button(row, emit))
         take.push(drawer_merge_button(row, emit))
-        take.push(promote_launcher(row, emit))
+        // N7：换上另一只的配置是 beta，只有 ui.showBetaFeatures 为真才出现
+        if show_beta(model) {
+          take.push(promote_launcher(row, emit))
+        }
       }
     None => ()
   }
@@ -870,4 +873,16 @@ fn drawer_merge_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     on_click=emit(MergeOpen(id=row.id, return_id="dsh-drawer-merge")),
     [icon("puzzle-outline", size=14), @html.span("分发插件…")],
   )
+}
+///|
+/// N7：设置里的 beta 开关。读数是懒加载的，取不到就按关着处理。
+fn show_beta(model : Model) -> Bool {
+  match model.settings {
+    Some(facts) =>
+      match lookup_setting(facts.values, "ui.showBetaFeatures") {
+        Some(VBool(on)) => on
+        _ => false
+      }
+    None => false
+  }
 }

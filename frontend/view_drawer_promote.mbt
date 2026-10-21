@@ -23,7 +23,7 @@ fn promote_launcher(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
         "它没有的本地包一起搬过来；替换之前先给这一只拍一张快照，能还原",
       ),
     on_click=emit(PromoteOpen(row.id)),
-    [icon("swap-horizontal"), @html.span("换上另一只的配置")],
+    [icon("swap-horizontal"), @html.span("换上另一只的配置（beta）")],
   )
 }
 ///|

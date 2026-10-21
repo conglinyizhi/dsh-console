@@ -86,6 +86,12 @@ let settings_groups : Array[SettingGroup] = [
     note: "起实例用哪一份 dsh：没指定时自动挑一份，也可以钉住某一版。",
   },
   {
+    id: "debug",
+    label: "调试",
+    icon: "bug-outline",
+    note: "还没定稿、默认藏起来的功能。",
+  },
+  {
     id: "logs",
     label: "日志",
     icon: "text-box-outline",
@@ -169,6 +175,14 @@ let settings_table : Array[SettingDef] = [
     group: "ui",
     label: "归档区默认展开",
     desc: "打开实例总览时，「已归档」分组是否直接展开。",
+    kind: CBool,
+    fallback: VBool(false),
+  },
+  {
+    key: "ui.showBetaFeatures",
+    group: "debug",
+    label: "显示 beta 功能",
+    desc: "打开后抽屉里会出现还没定稿的功能（目前是换上另一只的配置）。",
     kind: CBool,
     fallback: VBool(false),
   },

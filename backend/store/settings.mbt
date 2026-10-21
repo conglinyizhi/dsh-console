@@ -17,6 +17,8 @@ pub struct Settings {
   /// 侧栏收起：宽屏下侧栏是展开成 190px，还是收成 56px 的图标栏（窄屏不看这一项，
   /// 那一档的侧栏从顶部汉堡滑出，不占位）。前端读它复原形态，后端只负责存取与回显。
   ui_sidebar_collapsed : Bool
+  /// 调试开关：显示 beta 功能（N7）
+  ui_show_beta : Bool
   safety_delete_to_trash : Bool
   /// 忽略缺包警告（design/design-fixes.md §40）：开（缺省）时缺包不参与状态灯判定、
   /// 也不产生「有警告」；关掉回到旧行为（缺包 → 黄）。缺包仍然可以在抽屉里修。
@@ -58,6 +60,10 @@ pub let key_safety_delete_to_trash : String = "safety.deleteToTrash"
 pub let key_profile_ignore_missing_bundles : String = "profile.ignoreMissingBundles"
 
 ///|
+/// 调试开关：显示 beta 功能（N7）。布尔，缺省 false。
+pub let key_ui_show_beta : String = "ui.showBetaFeatures"
+
+///|
 /// 契约里的键序（响应的 values / defaults / sources 都按这个顺序出）。
 pub fn settings_keys() -> Array[String] {
   [
@@ -70,6 +76,7 @@ pub fn settings_keys() -> Array[String] {
     key_logs_default_tail,
     key_ui_archive_open_by_default,
     key_ui_sidebar_collapsed,
+    key_ui_show_beta,
     key_safety_delete_to_trash,
     key_profile_ignore_missing_bundles,
   ]
@@ -88,6 +95,7 @@ pub fn default_settings() -> Settings {
     logs_default_tail: 200,
     ui_archive_open_by_default: false,
     ui_sidebar_collapsed: false,
+    ui_show_beta: false,
     safety_delete_to_trash: true,
     profile_ignore_missing_bundles: true,
   }
@@ -148,6 +156,7 @@ fn apply_one(current : Settings, key : String, json : Json) -> Result[Settings, 
         "process.detach" => Ok({ ..current, process_detach: value })
         "ui.archiveOpenByDefault" => Ok({ ..current, ui_archive_open_by_default: value })
         "ui.sidebarCollapsed" => Ok({ ..current, ui_sidebar_collapsed: value })
+        "ui.showBetaFeatures" => Ok({ ..current, ui_show_beta: value })
         "profile.ignoreMissingBundles" => Ok({ ..current, profile_ignore_missing_bundles: value })
         _ => Ok({ ..current, safety_delete_to_trash: value })
       }
@@ -249,6 +258,7 @@ pub fn settings_values_json(s : Settings) -> @json.JsonVal {
     (key_logs_default_tail, @json.jint(s.logs_default_tail)),
     (key_ui_archive_open_by_default, @json.JBool(s.ui_archive_open_by_default)),
     (key_ui_sidebar_collapsed, @json.JBool(s.ui_sidebar_collapsed)),
+    (key_ui_show_beta, @json.JBool(s.ui_show_beta)),
     (key_safety_delete_to_trash, @json.JBool(s.safety_delete_to_trash)),
     (key_profile_ignore_missing_bundles, @json.JBool(s.profile_ignore_missing_bundles)),
   ])
@@ -267,6 +277,7 @@ pub fn value_of(s : Settings, key : String) -> @json.JsonVal {
     "logs.defaultTail" => @json.jint(s.logs_default_tail)
     "ui.archiveOpenByDefault" => @json.JBool(s.ui_archive_open_by_default)
     "ui.sidebarCollapsed" => @json.JBool(s.ui_sidebar_collapsed)
+    "ui.showBetaFeatures" => @json.JBool(s.ui_show_beta)
     "safety.deleteToTrash" => @json.JBool(s.safety_delete_to_trash)
     "profile.ignoreMissingBundles" => @json.JBool(s.profile_ignore_missing_bundles)
     _ => @json.JNull
