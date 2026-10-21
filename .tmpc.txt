@@ -1,3 +1,0 @@
-chore(console): 清掉误提交的两个临时文件
-
-.tmp-msg.txt 与 .tmp-pcc.log 是提交信息检查的中间产物，不该进版本库；顺带忽略 .tmp-*
