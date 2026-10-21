@@ -490,27 +490,6 @@ fn env_table(
   }
   if editable {
     body.push(env_add_row(model, target, emit))
-    // N8：只补缺、不覆盖；没有缺项时禁用（点了也不会写坏）
-    let mut missing_count = 0
-    for pair in env_suggestion_pairs() {
-      if !entries.any(fn(e) { e.0 == pair.0 }) {
-        missing_count = missing_count + 1
-      }
-    }
-    body.push(
-      @html.div(class="dsh-env-suggest-row", [
-        @html.button(
-          class="dsh-env-btn",
-          type_="button",
-          disabled=missing_count == 0,
-          attrs=mark("env-suggest", ["settings", "env", target.scope_id, "suggest"]).title(
-            "把本机代理那一组变量补进来：只补缺的键，已有的一律不覆盖",
-          ),
-          on_click=emit(EnvSuggestFill(target.scope_id)),
-          [@html.text("填入本机代理建议")],
-        ),
-      ]),
-    )
   } else {
     body.push(
       @html.p(
@@ -1047,17 +1026,6 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     }),
     card,
   )
-}
-///|
-/// N8：使用者这台机器上绕代理要挂的一组变量（只作「建议」，不是缺省值）。
-/// 只补缺：已有的键一律不覆盖。
-pub fn env_suggestion_pairs() -> Array[(String, String)] {
-  [
-    ("no_proxy", "localhost,127.0.0.1,::1,[::1],tokenflux.dev"),
-    ("NO_PROXY", "localhost,127.0.0.1,::1,[::1],tokenflux.dev"),
-    ("NODE_USE_ENV_PROXY", "1"),
-    ("NODE_OPTIONS", "--network-family-autoselection-attempt-timeout=3000"),
-  ]
 }
 ///|
 /// N8：设置页里的摘要行（已设置 N 条 · 前三个键名）+「编辑…」。

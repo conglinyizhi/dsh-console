@@ -799,8 +799,6 @@ priv enum Msg {
   EnvGlobalClose
   /// 长值那一行展开 / 收起
   EnvToggleExpand(String)
-  /// 把本机代理建议里缺的键补进这个作用域（只补缺）
-  EnvSuggestFill(String)
   EnvProfileClose
   /// 这只在跑：只读档上那颗「仍然修改」—— 解锁本次编辑（不改任何读数，只翻本地一格）
   EnvEditUnlock
