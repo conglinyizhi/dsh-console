@@ -736,3 +736,14 @@ extern "js" fn js_slide_zone_pct(track_id : String, zone_px : Int) -> Int =
   #|   if (w <= 0) return 90;
   #|   return Math.max(0, Math.min(100, Math.round(((w - zone_px) / w) * 100)));
   #| }
+
+///|
+/// 把指针捕获到滑块上（§88）：按住之后即使指针移出轨道/对话框，pointermove 与 pointerup
+/// 仍然发给它。鼠标的 pointerId 恒为 1；指针捕获失败就退回原来的「移出即失控」。
+extern "js" fn js_slide_capture(track_id : String) -> Unit =
+  #| (track_id) => {
+  #|   try {
+  #|     const el = document.getElementById(track_id);
+  #|     if (el && el.setPointerCapture) el.setPointerCapture(1);
+  #|   } catch (e) {}
+  #| }

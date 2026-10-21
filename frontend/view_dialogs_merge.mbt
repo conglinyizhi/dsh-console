@@ -262,7 +262,7 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           .on_pointerdown(fn(_event) {
             // 按下：按当前轨道宽度算提交区起点（zone_px = 72，球宽 36×2）并存进 model；
             // 位移交给 pointermove（它只在拖动期间生效）。
-            emit(MergeSlideStart(js_slide_zone_pct("dsh-merge-slide", 72)))
+            js_slide_capture("dsh-merge-slide"); emit(MergeSlideStart(js_slide_zone_pct("dsh-merge-slide", 72)))
           })
           .on_pointermove(fn(event) {
             emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
