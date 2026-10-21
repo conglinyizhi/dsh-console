@@ -348,3 +348,20 @@ fn order_action_cmd(ids : Array[String], emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
     },
   )
 }
+
+///|
+/// GET /api/local/fork-progress（§72）：派生拷贝的进度，只读。
+fn fork_progress_cmd(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.attempt(
+    fn(res : Result[String, Error]) {
+      emit(ForkProgressText(match res {
+        Ok(text) => text
+        Err(_) => ""
+      }))
+    },
+    async fn() {
+      let text : String = js_http_call("GET", "/api/local/fork-progress", "", "{}").wait().cast()
+      text
+    },
+  )
+}

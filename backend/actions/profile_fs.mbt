@@ -104,14 +104,34 @@ pub async fn fork_profile(
   }
   validate_profile_name(wanted)
   let target_name = unique_profile_name(root, wanted)
+  // 同名的隔离 home 也占着这个名字（§72 / G）：先拒，别等派生完再让隔离失败 ——
+  // 那时目录已经在磁盘上，用户看到的是一份「派生成功、家没搬成」的半成品。
+  match @profiles.isolated_home_of(target_name) {
+    Some(home) => {
+      fail(
+        "conflict",
+        "名字 " + target_name + " 已经有一份隔离 home：" + home +
+        "（同名的那一份还在，换个名字再来）",
+      )
+      abort("unreachable: fail 一定抛错")
+    }
+    None => ()
+  }
   let target_dir = @json.join_path(root, target_name)
   // 源备注在拷贝**之前**读：拷完之后目标目录里也有一份同样的内容，那时再读就分不清是谁的
   let (source_note, _) = @profiles.read_profile_note(source_dir)
   // .snapshots 不复制（design/ops-maintenance-jobs.md 16.1）：那是源 profile 的历史，
   // 带过去只会让人以为新 profile 也拍过那些。
-  let stats = match @fsx.copy_tree(source_dir, target_dir, ["node_modules", @profiles.snapshots_dir_name]) {
+  // node_modules **要拷**（§72）：使用者要的是「直接能跑的副本」，不是待补包的干净配置。
+  let skip = [@profiles.snapshots_dir_name]
+  let (total_files, _total_dirs) = @fsx.count_tree(source_dir, skip)
+  fork_progress_start(target_name, total_files)
+  let stats = match @fsx.copy_tree(source_dir, target_dir, skip, on_progress=fn(s) {
+    fork_progress_step(s.files)
+  }) {
     Ok(s) => s
     Err(e) => {
+      fork_progress_finish(e)
       fail("io-error", e)
       abort("unreachable: fail 一定抛错")
     }
@@ -123,7 +143,7 @@ pub async fn fork_profile(
   let relink = @profiles.carry_symlinks(
     source_dir,
     target_dir,
-    ["node_modules", @profiles.snapshots_dir_name],
+    [@profiles.snapshots_dir_name],
   )
   // copy_tree 把软链记进 skipped（「非普通文件」）—— 这一趟已经把它们带过来了，
   // 回执再报「跳过」就是假话。只摘掉确实已经在副本里落地的那些，其余照旧留着。

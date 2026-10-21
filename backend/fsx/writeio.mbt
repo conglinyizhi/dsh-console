@@ -363,6 +363,7 @@ pub async fn copy_tree(
   from : String,
   to : String,
   skip : Array[String],
+  on_progress? : (CopyStats) -> Unit = fn(_stats) { () },
 ) -> Result[CopyStats, String] noraise {
   let stats : CopyStats = { files: 0, dirs: 0, skipped: [] }
   let queue : Array[(String, String)] = [(from, to)]
@@ -377,6 +378,7 @@ pub async fn copy_tree(
       Err(e) => return Err(e)
     }
     stats.dirs = stats.dirs + 1
+    on_progress(stats)
     let names = match @json.list_dir_result(src) {
       Ok(list) => list
       Err(e) => return Err("列目录失败：" + src + "（" + e + "）")
@@ -399,7 +401,10 @@ pub async fn copy_tree(
         Directory => queue.push((s, d))
         Regular =>
           match copy_file(s, d) {
-            Ok(_) => stats.files = stats.files + 1
+            Ok(_) => {
+              stats.files = stats.files + 1
+              on_progress(stats)
+            }
             Err(e) => return Err(e)
           }
         _ => {
@@ -422,4 +427,39 @@ pub async fn chmod_path(path : String, mode : Int) -> Result[Unit, String] norai
   } catch {
     err => Err(path + " 改权限失败：" + err.to_string())
   }
+}
+
+///|
+/// 数一遍目录树里有多少普通文件与目录（不跟软链）。派生前的进度分母靠它。
+pub async fn count_tree(from : String, skip : Array[String]) -> (Int, Int) noraise {
+  let mut files = 0
+  let mut dirs = 0
+  let queue : Array[String] = [from]
+  let mut cursor = 0
+  while cursor < queue.length() {
+    let src = queue[cursor]
+    cursor = cursor + 1
+    dirs = dirs + 1
+    let names = match @json.list_dir_result(src) {
+      Ok(list) => list
+      Err(_) => continue
+    }
+    for name in names {
+      if name_in(skip, name) {
+        continue
+      }
+      let s = @json.join_path(src, name)
+      let kind = try {
+        @fs.kind(s, follow_symlink=false)
+      } catch {
+        _ => Unknown
+      }
+      match kind {
+        Directory => queue.push(s)
+        Regular => files = files + 1
+        _ => ()
+      }
+    }
+  }
+  (files, dirs)
 }

@@ -276,6 +276,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     ForkOpen(..) => handle_fork_open(model, msg, emit)
     ForkConfirm => handle_fork_confirm(model, msg, emit)
     ForkCancel => handle_fork_cancel(model, msg, emit)
+    ForkProgressText(_) => handle_fork_progress(model, msg, emit)
+    ForkProgressTick => handle_fork_progress(model, msg, emit)
     RepairOpen(..) => handle_repair_open(model, msg, emit)
     CliHelpOpen(_) => handle_cli_help_open(model, msg, emit)
     CliHelpClose => handle_cli_help_close(model, msg, emit)
@@ -351,6 +353,8 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     EnvReveal(_, _) => handle_env_reveal(model, msg, emit)
     EnvProfileOpen(_) => handle_env_profile_open(model, msg, emit)
     EnvProfileClose => handle_env_profile_close(model, msg, emit)
+    // 只读档上那颗「仍然修改」（M）：只翻本地一格
+    EnvEditUnlock => handle_env_edit_unlock(model, msg, emit)
     EnvSaved(_, _) => handle_env_saved(model, msg, emit)
     HttpDone(_, _, _, _, _) => handle_http_done(model, msg, emit)
     CopyDone(_, _) => handle_copy_done(model, msg, emit)

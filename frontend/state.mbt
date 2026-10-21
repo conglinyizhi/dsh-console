@@ -393,6 +393,12 @@ struct Model {
   env_add_value : String
   /// 抽屉里「这只 profile 的启动变量」对话框指着哪一行（空串 = 关着）
   env_open : String
+  /// 这只在跑的实例，启动变量是不是已经**解锁修改**（M / 只读档）。
+  ///
+  /// 默认 false：实例在跑时那张表先按只读摆（改完要下次启动才生效，先让人看清
+  /// 进程里到底绑了什么）。点「仍然修改」才置 true。每次开 / 关对话框都清零 ——
+  /// 解锁是**这一次**的决定，不该跟着下一只 profile 一起过去。
+  env_edit_unlocked : Bool
   /// 读数里有没有 options 段（§62.2）。false = 后端还没这一版：
   /// 界面不摆「继承 / 同名变量」那两项，保存也不带 options（旧后端会整枪拒掉参数）
   env_options_known : Bool
@@ -471,6 +477,12 @@ struct Model {
   fork_confirm_id : String
   /// 打开确认框那颗按钮的 DOM id：关框之后焦点回它
   fork_confirm_return : String
+  /// 派生拷贝进度（§72）：跑的过程中摆一只进度框，拷完自动关。
+  fork_progress_active : Bool
+  fork_progress_name : String
+  fork_progress_files : Int
+  fork_progress_total : Int
+  fork_progress_error : String
   /// 补包确认框说的是哪一行（§39.1）。空串 = 框没开
   repair_confirm_id : String
   /// 打开确认框那颗按钮的 DOM id：框关掉之后焦点回它
@@ -541,6 +553,10 @@ priv enum Msg {
   ForkOpen(id~ : String, return_id~ : String)
   /// 确认框里点了「仍然派生」
   ForkConfirm
+  /// GET /api/local/fork-progress 的回执（§72）：空串表示这一次读失败
+  ForkProgressText(String)
+  /// 下一拍再读一次进度
+  ForkProgressTick
   /// 确认框里点了「取消」（或 Esc / 遮罩）
   ForkCancel
   /// 抽屉里点了「安装缺的包（N）」：开确认框（写 node_modules 算真动作）
@@ -725,6 +741,8 @@ priv enum Msg {
   /// 打开抽屉里这只 profile 的启动环境对话框（带行 id）
   EnvProfileOpen(String)
   EnvProfileClose
+  /// 这只在跑：只读档上那颗「仍然修改」—— 解锁本次编辑（不改任何读数，只翻本地一格）
+  EnvEditUnlock
   /// save-env 的回执：作用域 + 原始响应（成败与文案在 update 里判）
   EnvSaved(String, Result[String, Error])
   // 写动作的回执：row_id / action / 谁 / 做了什么（动词）/ 原始响应
@@ -890,6 +908,7 @@ fn initial_model() -> Model {
     env_add_key: "",
     env_add_value: "",
     env_open: "",
+    env_edit_unlocked: false,
     // 生效方式：还没读到 options 段时按缺省摆（inherit=true / override），
     // 但界面不摆这两项 —— env_options_known 才是「后端有没有这一版」的判据。
     env_options_known: false,
@@ -916,6 +935,11 @@ fn initial_model() -> Model {
     notice_panel: false,
     fork_confirm_id: "",
     fork_confirm_return: "",
+    fork_progress_active: false,
+    fork_progress_name: "",
+    fork_progress_files: 0,
+    fork_progress_total: 0,
+    fork_progress_error: "",
     repair_confirm_id: "",
     repair_confirm_return: "",
     repair_id: "",

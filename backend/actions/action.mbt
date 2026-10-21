@@ -17,7 +17,10 @@ pub fn path_of(path : StringView) -> String {
 /// 这个路径归写侧管吗。写侧只有三条：动作入口、设置、控制台状态（只读）。
 pub fn handles_path(path : StringView) -> Bool {
   let p = path_of(path)
-  p == "/api/local/action" || p == "/api/local/settings" || p == "/api/local/console"
+  p == "/api/local/action" ||
+  p == "/api/local/settings" ||
+  p == "/api/local/console" ||
+  p == "/api/local/fork-progress"
 }
 
 ///|
@@ -886,6 +889,7 @@ pub async fn dispatch(req : @moonback.Request, res : @moonback.Responder, read_a
     "/api/local/action" => handle_action(req, res, read_at)
     "/api/local/settings" => handle_settings(req, res, read_at)
     "/api/local/console" => handle_console(req, res, read_at)
+    "/api/local/fork-progress" => handle_fork_progress(req, res, read_at)
     _ => send_method_not_allowed(res, "GET", @localapi.method_name(req.meth), read_at)
   }
 }
