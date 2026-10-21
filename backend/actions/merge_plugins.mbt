@@ -703,25 +703,9 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
     (
       "note",
       @json.JStr(
-        "分发了 " + ok_count.to_string() + "/" + reports.length().to_string() + " 只；" +
-        (if ok_count == reports.length() {
-          ""
-        } else {
-          let bad : Array[String] = []
-          for r in reports {
-            if !r.ok {
-              bad.push(r.name + "：" + r.error)
-            }
-          }
-          "失败 " + bad.join("；") + "。"
-        }) +
-        (if reports.any(fn(r) {
-          r.patch_added.length() > 0 || r.patch_overwritten.length() > 0
-        }) {
-          "cordis.patch.yml 已迁移（备份在各自快照目录）。"
-        } else {
-          ""
-        }),
+        // toast 只说结果（§86）：复制了几只、覆盖了几只、失败几只。
+        // 逐只的 error、patch 备份路径、bundles 明细都在审计行里，文案指向日志即可。
+        merge_note(reports),
       ),
     ),
   ])
@@ -1076,4 +1060,28 @@ async fn migrate_patch(
   }
   let _ = @fsx.remove_file(temp_path)
   Ok((added, overwritten, backup_path))
+}
+///|
+/// 分发回执的一句话（§86）：只看结果，不铺细节。
+/// 逐只的 error、patch 备份路径、bundles 明细都在审计行里，文案只负责说「成了几个、覆盖几个、失败几个」。
+fn merge_note(reports : Array[MergeTarget]) -> String {
+  let mut copied = 0
+  let mut overwritten = 0
+  let mut failed = 0
+  for r in reports {
+    if r.ok {
+      copied = copied + r.copied.length()
+      overwritten = overwritten + r.overwritten.length()
+    } else {
+      failed = failed + 1
+    }
+  }
+  let base = copied.to_string() + " 个插件复制完成"
+  if failed > 0 {
+    base + "，" + failed.to_string() + " 个插件复制失败，详见日志"
+  } else if overwritten > 0 {
+    base + "，其中 " + overwritten.to_string() + " 个插件产生覆盖"
+  } else {
+    base
+  }
 }
