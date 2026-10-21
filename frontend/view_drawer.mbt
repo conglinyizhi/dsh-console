@@ -594,6 +594,16 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
     promote_launcher(row, emit),
     // 查看与编辑（第三轮接上的那三项）
     @html.div(class="dsh-drawer-btns", ops),
+    // 这只 profile 的启动环境（design/design-fixes.md §61.3）：点开是同一张键值表，
+    // 只影响这一只（与设置页那一组是一对：那边是全局，这边是覆盖）。
+    // 读数里连目录名都认不出时不摆这一颗 —— 那一份没有可以指的对象。
+    if row.profile_name is Some(_) {
+      @html.div(class="dsh-drawer-btns", [
+        drawer_env_button(row, emit),
+      ])
+    } else {
+      @html.nothing
+    },
   ]
   @html.fragment([
     drawer_section("操作", "action", op_rows),

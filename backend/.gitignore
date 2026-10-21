@@ -2,3 +2,5 @@ _build/
 .sandbox/
 .mooncakes/
 target/
+# moon check 生成的接口摘要：构建产物，理由同 frontend/.gitignore 里那段注释
+pkg.generated.mbti

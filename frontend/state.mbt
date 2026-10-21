@@ -99,6 +99,19 @@ struct SettingDraft {
 pub extend SettingDraft with Eq::{ not_equal, equal }
 
 ///|
+/// 启动环境里正在编辑的那一格（design/design-fixes.md §61）。
+///
+/// scope 是**作用域 id**（"global" 或 "<home>|<profile>"）：同一个键名在全局与某只
+/// profile 是两条不同的记录，混成一个 (键 → 文本) 的集合会互相盖掉。
+struct EnvDraft {
+  scope : String
+  key : String
+  text : String
+} derive(Eq)
+
+pub extend EnvDraft with Eq::{ not_equal, equal }
+
+///|
 /// 通知历史上最多留几条（design/design-fixes.md §36）：新到旧，超了就丢最旧的。
 pub let notice_history_max : Int = 20
 
@@ -358,6 +371,28 @@ struct Model {
   settings_saving : String
   /// 正在保存的那个键准备写入的值（回执里没带新值时按它记账）
   settings_pending : SettingValue?
+  // ── 启动环境（design/design-fixes.md §61）──
+  //
+  // 与设置项分开：设置项是「一个键一个值」的封闭契约，这里是任意键值表（§61.5）。
+  // 界面**不本地记账**：改一次就发 save-env，成功之后重读设置，以读数为准。
+  /// env.json 的落点（后端给的原话，只用来在页面上说清「存在哪儿」）
+  env_path : String
+  /// 全局那一段（键值对，顺序照读数）
+  env_global : Array[(String, String)]
+  /// 每只 profile 单独设的那一份：键是 "<home>|<profile>"，与行 id 同一口径
+  env_profiles : Array[(String, Array[(String, String)])]
+  /// 控制台自己管、不许被覆盖的键（DSH_HOME / PATH …）
+  env_reserved : Array[String]
+  /// 现在按明文显示的那些值。键是「作用域 id + | + 键名」——
+  /// 同一个键名在全局与某只 profile 是两条，混成一个集合会一起露出来
+  env_shown : Array[String]
+  /// 正在编辑的值（控件里的原文）。保存成功之后清空，退回读数里的那一份
+  env_draft : Array[EnvDraft]
+  /// 「添加一行」两个输入框里的原文（键 / 值）
+  env_add_key : String
+  env_add_value : String
+  /// 抽屉里「这只 profile 的启动环境」对话框指着哪一行（空串 = 关着）
+  env_open : String
   // 写动作（POST /api/local/action）
   /// 正在等响应的启动动作所在的行；空串表示没有
   act_pending : String
@@ -656,6 +691,31 @@ priv enum Msg {
   SettingToggle(String, Bool)
   /// 把这一项写回后端给的缺省值（见 app.mbt 的 reset_setting）
   SettingReset(String)
+  // 启动环境（design/design-fixes.md §61.3）：改值 / 删行 / 添行 / 显示隐藏 /
+  // 开关这只 profile 的对话框 / 回执。
+  //
+  // 四个写动作都带 scope（"global" / "profile"）而不带 home、profile 两个串：
+  // profile 那一档的作用域由**开着的对话框**（env_open）决定，界面只摆得出一只；
+  // 消息里再塞一遍路径，两处一旦不一致就会写到另一只 profile 名下。
+  /// 值输入框里的原文（不打码的那一格正在被改）
+  EnvDraft(String, String, String)
+  /// 改值：改完即发 save-env（整份替换这个作用域）
+  EnvCommit(String, String, String)
+  /// 删掉一行
+  EnvDelete(String, String)
+  /// 「添加一行」：用 model 里那两个输入框的内容
+  EnvAdd(String)
+  /// 「添加一行」那两个输入框里的原文（键 / 值）。与 EnvDraft 分开两条：
+  /// 它们不属于任何一行，保存成功之后就清掉，不跟着表格的草稿一起走
+  EnvAddKeyInput(String)
+  EnvAddValueInput(String)
+  /// 显示 / 隐藏一个值（只改本地状态，不写文件）
+  EnvReveal(String, String)
+  /// 打开抽屉里这只 profile 的启动环境对话框（带行 id）
+  EnvProfileOpen(String)
+  EnvProfileClose
+  /// save-env 的回执：作用域 + 原始响应（成败与文案在 update 里判）
+  EnvSaved(String, Result[String, Error])
   // 写动作的回执：row_id / action / 谁 / 做了什么（动词）/ 原始响应
   HttpDone(String, String, String, String, Result[String, Error])
   // 复制到剪贴板的回执：复制的是谁的那一条地址 / 传输层拿回来的那段 JSON
@@ -809,6 +869,16 @@ fn initial_model() -> Model {
     settings_draft: [],
     settings_saving: "",
     settings_pending: None,
+    // 启动环境：还没读到之前是空表（不是演示数据）。值为空 = 这一份没设过
+    env_path: "",
+    env_global: [],
+    env_profiles: [],
+    env_reserved: [],
+    env_shown: [],
+    env_draft: [],
+    env_add_key: "",
+    env_add_value: "",
+    env_open: "",
     act_pending: "",
     act_response: false,
     act_tick: false,

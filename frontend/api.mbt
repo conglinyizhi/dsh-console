@@ -160,6 +160,27 @@ fn settings_put_cmd(key : String, body : String, emit : @cmd.Emit[Msg]) -> @cmd.
 }
 
 ///|
+/// POST /api/local/action 的 **save-env**（design/design-fixes.md §61）。
+///
+/// 单开一条而不是复用 action_cmd：它的回执要重读设置那份读数（env 段），
+/// 而不是刷新 profiles / instances —— 改的是起实例前挂的变量，实例列表一个字节都没变。
+/// 回执里也只带 scope，不带任何值。
+fn env_save_cmd(scope : String, body : String, emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
+  @cmd.attempt(
+    fn(res : Result[String, Error]) { emit(EnvSaved(scope, res)) },
+    async fn() {
+      let text : String = js_http_call(
+        "POST",
+        "/api/local/action",
+        body,
+        write_headers(),
+      ).wait().cast()
+      text
+    },
+  )
+}
+
+///|
 /// POST /api/local/action。row_id / name / verb 原样带回 update：
 /// 前两个决定这一枪打中了谁，后两个决定回执该怎么说话（见 app.mbt 的 action_receipt）。
 fn action_cmd(

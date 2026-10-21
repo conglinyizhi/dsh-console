@@ -61,7 +61,10 @@ struct SettingGroup {
 pub extend SettingGroup with Eq::{ not_equal, equal }
 
 ///|
-/// 左侧索引的五个分组（顺序即索引顺序）。
+/// 左侧索引的分组（顺序即索引顺序）。
+///
+/// 最后一组「启动环境」不是设置项（一个键一个值的那套契约），而是任意键值表：
+/// 分组照样是一个分组，条目那一块由 view_env.mbt 画（§61.5 说明了为什么分开）。
 let settings_groups : Array[SettingGroup] = [
   {
     id: "instance",
@@ -92,6 +95,12 @@ let settings_groups : Array[SettingGroup] = [
     label: "危险动作",
     icon: "shield-outline",
     note: "删除是不可逆的那一档：这里决定它进回收站还是直接落刀。",
+  },
+  {
+    id: "env",
+    label: "启动环境",
+    icon: "key-variant",
+    note: "起实例时挂进子进程的变量：全局一份，某只 profile 可以覆盖其中的键",
   },
 ]
 
@@ -204,7 +213,13 @@ fn setting_is_switch(key : String) -> Bool {
 
 ///|
 /// 一个分组里有几条（索引行右侧那个数）。
-fn settings_group_count(group_id : String) -> Int {
+///
+/// 设置项那一档数的是键表；「启动环境」那一档数的是**全局那一段有几条**——
+/// 它没有固定键表，条数是读数里的事实（还没读到时是 0，不编）。
+fn settings_group_count(model : Model, group_id : String) -> Int {
+  if group_id == "env" {
+    return model.env_global.length()
+  }
   settings_table.filter(fn(def) { def.group == group_id }).length()
 }
 
@@ -455,4 +470,109 @@ fn setting_group_of(id : String) -> SettingGroup {
     }
   }
   settings_groups[0]
+}
+///|
+/// 启动环境（design/design-fixes.md §61）：global 一份 + 每只 profile 一份。
+/// 值可能含密钥：界面默认打码，审计只记键名。
+pub struct EnvFacts {
+  path : String
+  global : Array[(String, String)]
+  profiles : Array[(String, Array[(String, String)])]
+  reserved : Array[String]
+} derive(Eq)
+
+pub extend EnvFacts with Eq::{ not_equal, equal }
+
+///|
+/// 一份 JSON 对象 → 有序键值对（保持文件里的顺序，界面不重排）。
+fn env_pairs_of(obj : Map[String, Json]) -> Array[(String, String)] {
+  let out : Array[(String, String)] = []
+  for pair in obj.iter() {
+    match pair.1 {
+      Json::String(v) => out.push((pair.0, v))
+      _ => ()
+    }
+  }
+  out
+}
+
+///|
+/// 从 settings 响应里取 env 段（没有这一段 = 旧后端，给空表）。
+fn parse_env_facts(data : Map[String, Json]) -> EnvFacts {
+  let empty : EnvFacts = { path: "", global: [], profiles: [], reserved: [] }
+  if !data.contains("env") {
+    return empty
+  }
+  let env = obj_field(data, "env")
+  let profiles : Array[(String, Array[(String, String)])] = []
+  for pair in obj_field(env, "profiles").iter() {
+    match pair.1 {
+      Json::Object(inner) => profiles.push((pair.0, env_pairs_of(inner)))
+      _ => ()
+    }
+  }
+  {
+    path: str_field(env, "path"),
+    global: env_pairs_of(obj_field(env, "global")),
+    profiles,
+    reserved: str_array_field(env, "reserved"),
+  }
+}
+
+///|
+/// 这份 profile 单独设的那张表（没有 = 空）。
+fn env_profile_pairs(facts : EnvFacts, home : String, profile : String) -> Array[(String, String)] {
+  let key = home + "|" + profile
+  for pair in facts.profiles {
+    if pair.0 == key {
+      return pair.1
+    }
+  }
+  []
+}
+
+///|
+/// save-env 的请求体：entries 整份替换。
+fn env_put_body(scope : String, home : String, profile : String, entries : Array[(String, String)]) -> String {
+  let fields : Array[String] = []
+  for pair in entries {
+    fields.push(json_text_literal(pair.0) + ":" + json_text_literal(pair.1))
+  }
+  let params = if scope == "global" {
+    "{\"scope\":\"global\",\"entries\":{" + join_with(fields, ",") + "}}"
+  } else {
+    "{\"scope\":\"profile\",\"home\":" + json_text_literal(home) +
+    ",\"profile\":" + json_text_literal(profile) + ",\"entries\":{" +
+    join_with(fields, ",") + "}}"
+  }
+  "{\"action\":\"save-env\",\"params\":" + params + "}"
+}
+
+///|
+/// 合并后的启动环境（§61.3 第 6 条：复制开发指令里那一段）。
+/// 顺序：global 在前、profile 覆盖同键（键留在第一次出现的位置），值为空的不写。
+fn env_merged_pairs(global : Array[(String, String)], own : Array[(String, String)]) -> Array[(String, String)] {
+  let order : Array[String] = []
+  let values : Map[String, String] = Map([])
+  let put = fn(list : Array[(String, String)]) {
+    for pair in list {
+      if pair.1 == "" {
+        continue
+      }
+      if !values.contains(pair.0) {
+        order.push(pair.0)
+      }
+      values[pair.0] = pair.1
+    }
+  }
+  put(global)
+  put(own)
+  let out : Array[(String, String)] = []
+  for key in order {
+    match values.get(key) {
+      Some(v) => out.push((key, v))
+      None => ()
+    }
+  }
+  out
 }

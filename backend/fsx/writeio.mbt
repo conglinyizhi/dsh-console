@@ -413,3 +413,13 @@ pub async fn copy_tree(
   }
   Ok(stats)
 }
+///|
+/// 改文件权限（env.json 要 600：里面可能含密钥）。
+pub async fn chmod_path(path : String, mode : Int) -> Result[Unit, String] noraise {
+  try {
+    @fs.chmod(path, mode)
+    Ok(())
+  } catch {
+    err => Err(path + " 改权限失败：" + err.to_string())
+  }
+}

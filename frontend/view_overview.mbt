@@ -319,6 +319,10 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   if model.new_open {
     dialogs.push(new_instance_dialog(model, emit))
   }
+  // 这只 profile 的启动环境（§61.3）：从抽屉「配置」组里点开，盖在抽屉上面
+  if model.env_open.length() > 0 {
+    dialogs.push(env_profile_dialog(model, emit))
+  }
   let body : Array[@html.Html] = [
     @html.section(class="dsh-overview-page", [
       @html.header(class="dsh-overview-head", [

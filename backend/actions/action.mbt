@@ -261,6 +261,11 @@ pub async fn run_action(
     "promote-preview" => promote_preview_action(params)
     "promote-profile" => promote_profile_action(params, confirm)
     // ── 补包（design/design-fixes.md §39）──────────────────────────
+    // 启动环境（§61）：整份替换 global 或某只 profile 的那张表
+    "save-env" => {
+      ensure_action_params(params, "保存启动环境：", ["scope", "home", "profile", "entries"])
+      save_env_action(params, action)
+    }
     "repair-packages" => {
       ensure_only_keys(params, ["profile", "home"])
       repair_packages(require_string(params, "profile"), optional_string(params, "home"))

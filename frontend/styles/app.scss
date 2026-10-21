@@ -2148,6 +2148,132 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
   &:hover { border-color: $accent; }
   &:focus-visible { outline: 2px solid $accent; outline-offset: -1px; }
 }
+/* ── 启动环境（design/design-fixes.md §61.3）─────────────────────
+   设置页「启动环境」那一组与抽屉里的对话框共用一张表：一行三格（键 / 值 / 操作）。
+   两条排版约束写在前面：
+     * 值那一格**可以很长**（no_proxy 那一串 CIDR 与域名）：一律 overflow-wrap: anywhere，
+       行内绝不撑破容器 —— 390 宽下横向溢出是这一块最容易踩的坑；
+     * 窄屏（< 820）收成一列：键在上，值与操作在下。三格硬挤会逼出横向滚动。 */
+.dsh-env-table { display: flex; flex-direction: column; min-width: 0; }
+.dsh-env-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  gap: 10px;
+  padding-bottom: 6px;
+  font-size: 11px;
+  color: $text-dim;
+}
+.dsh-env-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  &:hover { background: $panel-soft; }
+  /* 保留键（DSH_HOME / PATH …）：置灰，不给动作，只在操作那一格说明一句 */
+  &.is-locked { opacity: 0.55; }
+  &.is-locked:hover { background: transparent; }
+}
+.dsh-env-key {
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  color: $text;
+  overflow-wrap: anywhere;
+}
+.dsh-env-value { min-width: 0; display: flex; align-items: center; }
+/* 打码那一格：等宽的圆点，宽度与输入框里的字对齐（不摆一个装着圆点的输入框 ——
+   那样看着能改，改了就把掩码当成值存下去）。 */
+.dsh-env-mask {
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  color: $text-mid;
+  letter-spacing: 1px;
+  overflow-wrap: anywhere;
+}
+/* 三处输入框（值 / 新增的键 / 新增的值）共用一副皮。声明与伪类分开写：
+   这一份 SCSS 编译器对「逗号列表 + 嵌套 &」没有先例，不拿它试。 */
+.dsh-env-input,
+.dsh-env-add-key,
+.dsh-env-add-value {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: $gray-4;
+  color: $text;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+.dsh-env-input:hover,
+.dsh-env-add-key:hover,
+.dsh-env-add-value:hover { border-color: $accent; }
+.dsh-env-input:focus-visible,
+.dsh-env-add-key:focus-visible,
+.dsh-env-add-value:focus-visible { outline: 2px solid $accent; outline-offset: -1px; }
+.dsh-env-add-key::placeholder,
+.dsh-env-add-value::placeholder { color: $text-dim; }
+.dsh-env-ops { display: flex; align-items: center; gap: 4px; justify-self: end; }
+.dsh-env-btn {
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid $line-strong;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-mid;
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: $panel-soft; color: $text; }
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+  &.is-danger:hover:not(:disabled) {
+    border-color: rgba($danger-rgb, 0.5);
+    color: $danger;
+  }
+  /* 「添加」是这一段里唯一的主操作（一屏一个实心） */
+  &.primary {
+    border-color: transparent;
+    background: $accent-soft;
+    color: $text;
+    &:hover:not(:disabled) { background: rgba($accent-rgb, 0.22); }
+  }
+}
+/* 保留键那一行的说明：比按钮矮一档、不抢视线（它是一句解释，不是一个可选的动作） */
+.dsh-env-locked {
+  font-size: 11px;
+  color: $text-dim;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.dsh-env-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+.dsh-env-empty { margin: 0; padding: 8px 0 2px; font-size: 12px; line-height: 1.6; color: $text-dim; }
+.dsh-env-foot { margin: 8px 0 0; font-size: 11px; line-height: 1.6; color: $text-dim; overflow-wrap: anywhere; }
+/* 对话框那一档要宽一点：三格表摆进 360 的框里，值那一格只剩几十像素。
+   390 宽时仍是 calc(100vw - 24px)，两侧各留 12px。 */
+.dsh-env-dialog { width: min(560px, calc(100vw - 24px)); }
+// 窄屏（手机）：三格收成一列。断点与设置页那一段同一个数。
+@media (max-width: 819.98px) {
+  .dsh-env-head { display: none; }
+  .dsh-env-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+    padding: 8px 0;
+  }
+  .dsh-env-ops { justify-self: start; }
+  .dsh-env-locked { text-align: left; }
+  .dsh-env-add { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .dsh-env-add .dsh-env-btn { justify-self: start; }
+  .dsh-env-dialog { width: calc(100vw - 24px); }
+}
 .dsh-setting-saving { font-size: 11px; color: $text-dim; white-space: nowrap; }
 /* 开关（MD2，design/design-fixes.md §51.2）：button[role=switch] 里一条轨道 + 一个圆点。
    **没有开/关文字** —— 状态由圆点停在哪一端 + 轨道颜色表达，读屏靠 aria-checked。

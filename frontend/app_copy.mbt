@@ -230,7 +230,11 @@ fn own_home_of(row : Row) -> String {
 /// 命令里那个 8400 是 instance.basePort 的**缺省起点**（控制台也是从这一项往后找第一个
 /// 空闲端口），正文里同时写明它可以换成任何一个空闲端口 —— 写死一个数而不说这句，
 /// 端口被占时那条命令就是个起不来的命令。
-fn dev_instruction_text(row : Row, name : String) -> String {
+fn dev_instruction_text(
+  row : Row,
+  name : String,
+  env : Array[(String, String)],
+) -> String {
   let home = own_home_of(row)
   if home == "" {
     return ""
@@ -242,6 +246,18 @@ fn dev_instruction_text(row : Row, name : String) -> String {
   let facts = "目标 profile：" + name + "\n" +
     "目录：" + dir + "\n" +
     "DSH_HOME：" + home + "\n"
+  // 启动环境（§61.3）：全局 + 这一只合并之后的那几行，值为空的不写。
+  // 摆在状态前面 —— 「起它之前先设置」这句话要在那条命令之前读到，不是之后。
+  // 这一段是给另一个会话照着设的，所以不带控制台的任何解释：只有 KEY=VALUE。
+  let env_lines : Array[String] = []
+  for pair in env {
+    env_lines.push("  " + pair.0 + "=" + pair.1)
+  }
+  let env_block = if env_lines.length() == 0 {
+    ""
+  } else {
+    "起它之前先设置：\n" + join_with(env_lines, "\n") + "\n\n"
+  }
   // 状态按这一行**现在的事实**分两支：在跑的时候绝不能让它再起一只，
   // 也不该由它去重启用户正在用的进程（design/design-fixes.md §34）。
   let state = match (row.status, row.port_value) {
@@ -263,7 +279,7 @@ fn dev_instruction_text(row : Row, name : String) -> String {
       "起好的那只进程归你管，可以停、可以重启；除它之外别动别的进程。\n\n"
   }
   let rules = "只改 " + dir + " 这一份下的文件。别的 profile 与主线各是各的，不要碰。"
-  head + facts + state + rules
+  head + facts + env_block + state + rules
 }
 
 ///|
@@ -279,10 +295,24 @@ fn copy_dev_action(model : Model, row_id : String, emit : @cmd.Emit[Msg]) -> (Mo
     Some(name) => name
     None => ""
   }
+  // 启动环境：全局那一段 + 这一只覆盖的那一段（env_merged_pairs 负责次序与覆盖，
+  // 值为空的不写）。home 与上面那句 DSH_HOME 用同一个（own_home_of）——
+  // 两处一旦不是同一份，「先设置」那几行就挂到了另一只的配置上。
+  let env = if name == "" {
+    []
+  } else {
+    // 保留键（DSH_HOME / PATH …）逐条剔掉：控制台起实例时本来就跳过它们（后端
+    // env_for_spawn 同一张名单），照抄进指令里就会出现「上面写着 DSH_HOME=<这只的 home>、
+    // 下面又 export 了一个 DSH_HOME」这种自相矛盾的两行 —— 而那一个是不会生效的。
+    env_merged_pairs(
+      model.env_global,
+      env_profile_pairs(env_facts_of_model(model), own_home_of(row), name),
+    ).filter(fn(pair) { !env_is_reserved(model, pair.0) })
+  }
   let text = if name == "" {
     ""
   } else {
-    dev_instruction_text(row, name)
+    dev_instruction_text(row, name, env)
   }
   if text == "" {
     let why = if name == "" {

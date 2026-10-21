@@ -297,12 +297,19 @@ async fn spawn_child(
   command : DshCommand,
   args : Array[String],
   home : String,
+  profile : String,
   cwd : String,
   log_path : String,
   detach : Bool,
   grace_ms : Int,
 ) -> Result[Int, String] noraise {
+  // 子进程环境 = 继承当前进程 → global → 该 profile（§61.2）。
+  // 保留键（DSH_HOME / PATH / HOME …）由这里先摆好，env_for_spawn 不会再覆盖它们。
   let env : Map[String, String] = Map([("DSH_HOME", home)])
+  let extra = @store.env_for_spawn(home, profile)
+  for pair in extra.iter() {
+    env[pair.0] = pair.1
+  }
   let out = try {
     @process.redirect_to_file(
       log_path,

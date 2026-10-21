@@ -37,7 +37,21 @@ async fn settings_payload(extra : Array[(String, @json.JsonVal)]) -> @json.JsonV
 ///|
 /// GET /api/local/settings：纯只读，走只读外壳（readOnly: true）。
 async fn handle_settings_get(res : @moonback.Responder, read_at : String) -> Unit {
-  @localapi.send_ok(res, settings_payload([]), read_at)
+  // 启动环境（§61）：与设置项分开存（env.json），但读的时候一起给界面，
+  // 免得「设置页要发两次请求才凑齐一页」。
+  let env = @store.load_env_file()
+  let profiles_fields : Array[(String, @json.JsonVal)] = []
+  for pair in env.profiles.iter() {
+    profiles_fields.push((pair.0, @store.env_map_json(pair.1)))
+  }
+  let env_json = @json.JObj([
+    ("path", @json.JStr(@store.env_file_path())),
+    ("global", @store.env_map_json(env.global)),
+    ("profiles", @json.JObj(profiles_fields)),
+    // 保留键名单随读数一起给：界面据此置灰（§61.2）
+    ("reserved", @json.jstr_array(@store.reserved_env_keys())),
+  ])
+  @localapi.send_ok(res, settings_payload([("env", env_json)]), read_at)
 }
 
 ///|

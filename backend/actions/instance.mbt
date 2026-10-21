@@ -505,6 +505,7 @@ pub async fn start_instance_with(
     command,
     args,
     target_home,
+    name,
     profile_dir,
     log_path,
     settings.process_detach,

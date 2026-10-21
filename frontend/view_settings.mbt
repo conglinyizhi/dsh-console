@@ -1,7 +1,9 @@
 // 设置页：左索引 + 右条目。
 //
-// 左：五个分组（实例与端口 / 进程 / 日志 / 界面 / 危险动作），选中态在 model 里。
-// 右：当前分组的十个键里的那几个，每项 = 名称 + 说明 + 控件。
+// 左：六个分组（实例与端口 / 进程 / 日志 / 界面 / 危险动作 / 启动环境），选中态在 model 里。
+// 右：当前分组的那些条目，每项 = 名称 + 说明 + 控件。
+// 「启动环境」那一组不是设置项，而是一张键值表（见 view_env.mbt 的 env_settings_body）——
+// 它的排版与条目列不是一回事，所以 settings_panel 按分组分支，没往 .dsh-settings-rows 里塞。
 // 被改过的那一项（值 ≠ 缺省值）在说明下面多一颗「恢复默认」，值是缺省时那颗不出现。
 //
 // 三条纪律写在这里：
@@ -315,7 +317,7 @@ fn setting_reset_button(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) 
 }
 
 ///|
-/// 分区索引：五个分组。当前选中的那个带 .active 与 aria-current。
+/// 分区索引。当前选中的那个带 .active 与 aria-current。
 ///
 /// 宽屏是一列索引（点它就是换右边那一栏），窄屏是第一级的分区列表（点它是进第二级）。
 /// 同一份节点，差别全在样式表里：右箭头只在窄屏显示。
@@ -338,7 +340,7 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           @html.span(class="dsh-settings-tab-label", group.label),
           @html.span(
             class="dsh-settings-tab-count",
-            settings_group_count(group.id).to_string(),
+            settings_group_count(model, group.id).to_string(),
           ),
           // 「这一行后面还有内容」的提示：窄屏靠它说清「点进去」是下一步
           @html.span(class="dsh-settings-tab-arrow", [icon("chevron-right", size=16)]),
@@ -354,10 +356,19 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 右侧条目面板。
+/// 右侧条目块。
+///
+/// 设置项那一档是一列键表；「启动环境」那一档是键值表格（view_env.mbt）——
+/// 两者不共用 .dsh-settings-rows 的排版（一行一个键 vs 一张表），所以按分组分支，
+/// 而不是硬把表格塞进那一列。
 fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let group = setting_group_of(model.settings_group)
   let defs = settings_table.filter(fn(def) { def.group == group.id })
+  let content = if group.id == "env" {
+    env_settings_body(model, emit)
+  } else {
+    @html.div(class="dsh-settings-rows", defs.map(fn(def) { setting_row(model, def, emit) }))
+  }
   @html.div(class="dsh-settings-body", [
     settings_index(model, emit),
     @html.div(
@@ -366,7 +377,7 @@ fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       [
         @html.h2(class="dsh-settings-panel-title", group.label),
         @html.p(class="dsh-settings-panel-note", group.note),
-        @html.div(class="dsh-settings-rows", defs.map(fn(def) { setting_row(model, def, emit) })),
+        content,
       ],
     ),
   ])

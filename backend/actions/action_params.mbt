@@ -292,6 +292,22 @@ async fn audit(
 /// 是哪一只。认不出是谁的不算证据，读取那边会跳过它。
 async fn audit_params_for(action : String, params : Json) -> @json.JsonVal {
   let raw = json_to_val(params)
+  // 启动环境（§61.2）：审计只留键名，**值一个字节都不进审计**（值里可能含密钥）。
+  if action == "save-env" {
+    let fields : Array[(String, @json.JsonVal)] = []
+    for pair in @store.object_entries(params) {
+      if pair.0 == "entries" {
+        let names : Array[String] = []
+        for entry in @store.object_entries(pair.1) {
+          names.push(entry.0)
+        }
+        fields.push(("entries", @json.jstr_array(names)))
+      } else {
+        fields.push((pair.0, json_to_val(pair.1)))
+      }
+    }
+    return @json.JObj(fields)
+  }
   if action != "restart-instance" {
     return raw
   }
