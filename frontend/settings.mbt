@@ -86,12 +86,6 @@ let settings_groups : Array[SettingGroup] = [
     note: "起实例用哪一份 dsh：没指定时自动挑一份，也可以钉住某一版。",
   },
   {
-    id: "debug",
-    label: "调试",
-    icon: "bug-outline",
-    note: "还没定稿、默认藏起来的功能。",
-  },
-  {
     id: "logs",
     label: "日志",
     icon: "text-box-outline",
@@ -108,6 +102,12 @@ let settings_groups : Array[SettingGroup] = [
     label: "危险动作",
     icon: "shield-outline",
     note: "删除是不可逆的那一档：这里决定它进回收站还是直接落刀。",
+  },
+  {
+    id: "debug",
+    label: "调试",
+    icon: "cog-outline",
+    note: "还没定稿、默认藏起来的功能。放在最后，免得误碰。",
   },
 ]
 
