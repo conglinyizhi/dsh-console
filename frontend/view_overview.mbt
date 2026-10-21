@@ -329,7 +329,6 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         @html.div(class="dsh-head-text", [
           @html.h1(class="dsh-page-title", "实例总览"),
           source_badge(model.tag_runtime, ["overview", "head", "source-badge"]),
-          @html.span(class="dsh-head-note", "点卡片看读数与控制；灯旁边的词就是状态"),
         ]),
         // 页头的主操作：点开新建实例框（§19.1）。它不再是颗点了没反应的按钮。
         @html.button(

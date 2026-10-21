@@ -972,3 +972,8 @@ dsh-console/.tmp-verify/（已被 .gitignore 覆盖），不要写 /tmp。
 版本号下面一行右边放一条文字按钮「切换版本」：点了先 Navigate(Settings) 再
 SettingsGroupPicked("version")，落在 /settings/version，省得用户自己去摸设置里哪一组。
 悬停说明「列本机装着的几份，选一份给以后起的实例用」。
+
+## 67 实例总览页头那句说明删掉
+
+「点卡片看读数与控制；灯旁边的词就是状态」在第一次用时有用，用熟之后只是噪声；
+灯与状态词本来就在卡片上。页头只留标题与「真实数据」标记。
