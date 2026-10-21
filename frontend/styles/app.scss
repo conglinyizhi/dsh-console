@@ -2899,3 +2899,29 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 .dsh-fork-progress-fill.step-100 { width: 100%; }
 .dsh-fork-progress-note { margin: 0; color: $text-dim; }
 .dsh-dialog-foot-note { color: $text-dim; font-size: 11.5px; }
+
+/* ── 分发插件对话框（design/backlog.md N）────────────────────────────── */
+/* 目标是一列可点的行：勾上的左边出现 ✓，未勾的留白（宽度固定，勾选时文字不跳位）。 */
+.dsh-merge-card { max-width: 520px; }
+.dsh-merge-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 12px 0;
+}
+.dsh-merge-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid $line;
+  border-radius: 8px;
+  background: transparent;
+  color: $text;
+  text-align: left;
+  cursor: pointer;
+}
+.dsh-merge-target.on { border-color: $accent; background: $panel-soft; }
+.dsh-merge-check { width: 14px; display: inline-block; color: $accent; }

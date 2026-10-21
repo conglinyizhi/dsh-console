@@ -440,6 +440,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         // 这只 profile 的启动环境（§61.3）：**放在「操作」组**，因为它改的是「怎么起这一只」，
         // 不是「这份配置长什么样」——与复制开发指令同属「起它之前要的东西」。
         take.push(drawer_env_button(row, emit))
+        take.push(drawer_merge_button(row, emit))
         take.push(promote_launcher(row, emit))
       }
     None => ()
@@ -856,3 +857,17 @@ fn detail_drawer(
 }
 
 // ── 归档区 ─────────────────────────────────────────────────
+///|
+/// 「分发插件…」：把这一只里的本地插件发到别的 profile（design/backlog.md N）。
+fn drawer_merge_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
+  @html.button(
+    class="dsh-btn",
+    type_="button",
+    id="dsh-drawer-merge",
+    attrs=mark("drawer-merge", ["overview", "drawer", row.id, "action", "merge"])
+      .data_set("action", "merge")
+      .title("把这一只里的本地插件（node_modules/@local 与 file:/link: 依赖）分到别的 profile"),
+    on_click=emit(MergeOpen(id=row.id, return_id="dsh-drawer-merge")),
+    [icon("send", size=14), @html.span("分发插件…")],
+  )
+}

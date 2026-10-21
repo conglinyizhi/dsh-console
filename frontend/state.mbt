@@ -473,6 +473,16 @@ struct Model {
   notice_unread : Int
   /// 通知侧栏开着没有（右侧面板，盖在抽屉之上、确认框之下）
   notice_panel : Bool
+  /// 分发插件对话框说的是哪一行（design/backlog.md N）。空串 = 框没开
+  merge_source : String
+  /// 选中的目标 profile 名（多选）
+  merge_targets : Array[String]
+  /// 确认串输入框里的原文（要打成 MERGE）
+  merge_confirm : String
+  /// 正在分发
+  merge_busy : Bool
+  /// 关框后焦点回哪颗按钮
+  merge_return : String
   /// 派生副本前的确认框说的是哪一行（§60.2）。空串 = 框没开
   fork_confirm_id : String
   /// 打开确认框那颗按钮的 DOM id：关框之后焦点回它
@@ -549,6 +559,18 @@ priv enum Msg {
   NoticeOpenUi
   /// 失败提示条里那颗「查看日志」被点了：跳 /logs/audit，选中审计来源、滚到底、焦点进日志区
   NoticeOpenLogs
+  /// 抽屉「操作」组点了「分发插件…」：开对话框（design/backlog.md N）
+  MergeOpen(id~ : String, return_id~ : String)
+  /// 目标勾/取消勾（profile 名）
+  MergeTargetToggle(String)
+  /// 确认串输入
+  MergeConfirmInput(String)
+  /// 点「分发」：发 merge-plugins
+  MergeSubmit
+  /// 点「取消」（或 Esc / 遮罩）
+  MergeCancel
+  /// merge-plugins 的回执
+  MergeDone(Result[String, Error])
   /// 「派生开发副本」但这一只有外部软链接（§60.2）：先开确认框，不直接发请求
   ForkOpen(id~ : String, return_id~ : String)
   /// 确认框里点了「仍然派生」
@@ -933,6 +955,11 @@ fn initial_model() -> Model {
     notice_history: [],
     notice_unread: 0,
     notice_panel: false,
+    merge_source: "",
+    merge_targets: [],
+    merge_confirm: "",
+    merge_busy: false,
+    merge_return: "",
     fork_confirm_id: "",
     fork_confirm_return: "",
     fork_progress_active: false,

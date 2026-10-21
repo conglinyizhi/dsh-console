@@ -273,6 +273,8 @@ pub async fn run_action(
       )
       save_env_action(params, action)
     }
+    // 插件合并（design/backlog.md 的 N 条）：{ profile, targets, confirm: "MERGE" }
+    "merge-plugins" => merge_plugins_action(params)
     "repair-packages" => {
       ensure_only_keys(params, ["profile", "home"])
       repair_packages(require_string(params, "profile"), optional_string(params, "home"))
