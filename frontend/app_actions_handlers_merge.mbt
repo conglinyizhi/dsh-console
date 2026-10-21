@@ -59,28 +59,33 @@ fn handle_merge_plugin_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) 
 fn handle_merge_preview(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
     MergePreviewText(res) => {
-      let (ok, text) = interpret_http(res)
+      // 不能用 interpret_http：它回的是给人看的一句话（§80），不是响应体。
+      // 这里要的是 JSON，自己走 HTTP → body → envelope。
       let plugins : Array[(String, String, String)] = []
-      if ok {
-        match open_envelope(text) {
-          Ok(data) => {
-            for item in arr_field(data, "plugins") {
-              match item {
-                Json::Object(obj) => {
-                  let name = str_field(obj, "name")
-                  let version = str_field(obj, "version")
-                  let kind = str_field(obj, "kind")
-                  if name != "" {
-                    plugins.push((name, version, kind))
+      match res {
+        Ok(text) => {
+          let got = parse_http_result(text)
+          if got.status >= 200 && got.status < 300 {
+            match open_envelope(got.body) {
+              Ok(data) =>
+                for item in arr_field(data, "plugins") {
+                  match item {
+                    Json::Object(obj) => {
+                      let name = str_field(obj, "name")
+                      let version = str_field(obj, "version")
+                      let kind = str_field(obj, "kind")
+                      if name != "" {
+                        plugins.push((name, version, kind))
+                      }
+                    }
+                    _ => ()
                   }
                 }
-                _ => ()
-              }
+              Err(_) => ()
             }
-            ()
           }
-          Err(_) => ()
         }
+        Err(_) => ()
       }
       ({ ..model, merge_plugins: plugins, merge_loading: false }, @cmd.none)
     }
