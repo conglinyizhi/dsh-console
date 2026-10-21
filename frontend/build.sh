@@ -21,6 +21,9 @@ cd "$(dirname "$0")"
 export MOON_CC=clang MOON_AR=ar MOON_LD=clang
 export MOON_HOME="${MOON_HOME:-$PWD/.sandbox/moonhome}"
 
+# 0) 构建信息：sha + 构建时刻（页脚要显示它，每次构建前重生成）
+bash "$(dirname "$0")/../scripts/gen-build-info.sh" "$(cd "$(dirname "$0")/.." && pwd)"
+
 echo "== 0/4 清 dist/ =="
 # **不能只增不减**：摘掉的依赖会以旧文件的形式留在 dist 里 —— mdi 字体、
 # dsh-skin.css 这些已经不再生成的东西留着，验收「产物里没有」时就会假通过。

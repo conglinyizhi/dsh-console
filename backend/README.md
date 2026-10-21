@@ -46,7 +46,14 @@ dsh-console 前端的本地接口，用 **MoonBit + moonback** 实现的一版�
 
 ## 构建
 
-标准命令（依赖已缓存时可用）：
+先生成构建信息（短 sha + 构建时刻，写进 `backend/store/build_info.mbt` 与
+`frontend/build_info.mbt`；页脚与 `/api/local/console` 的 `buildSha`/`buildAt` 都读它）：
+
+```bash
+./scripts/gen-build-info.sh          # 前端 build.sh 也会自己调一次
+```
+
+再编译（依赖已缓存时可用）：
 
 ```bash
 cd dsh-console/backend

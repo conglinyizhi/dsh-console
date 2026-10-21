@@ -9,6 +9,7 @@ import {
   "conglinyizhi/dsh-console-backend/dist_static",
   "conglinyizhi/dsh-console-backend/actions",
   "conglinyizhi/dsh-console-backend/releases",
+  "conglinyizhi/dsh-console-backend/store",
   "moonbitlang/async",
   "moonbitlang/async/stdio",
   "moonbitlang/moonback",

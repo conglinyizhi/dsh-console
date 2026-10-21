@@ -2958,3 +2958,9 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
   pointer-events: none;
 }
 .dsh-merge-group { color: $text-dim; font-size: 11.5px; margin: 12px 0 4px; }
+
+/* 页脚版本号（backlog：构建信息）：只读，比灯那行再小一档，不抢戏。 */
+.dsh-side-ver { font-size: 10px; color: $text-dim; opacity: 0.8; cursor: default; }
+
+/* 页脚版本号与状态文字之间留一口气（§78）：两段直接贴住会读成「服务端在线client …」 */
+.dsh-side-ver { margin-left: 6px; }

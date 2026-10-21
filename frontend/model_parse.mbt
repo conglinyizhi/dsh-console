@@ -796,6 +796,8 @@ pub fn parse_console(text : String) -> Result[ConsoleFacts, String] {
     }
   }
   Ok({
+    build_sha: str_field(data, "buildSha"),
+    build_at: str_field(data, "buildAt"),
     state_dir: str_field(data, "stateDir"),
     settings_path: str_field(data, "settingsPath"),
     archive_path: str_field(data, "archivePath"),

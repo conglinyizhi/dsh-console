@@ -37,6 +37,9 @@ async fn console_payload() -> @json.JsonVal noraise {
   let paths = @store.state_paths()
   let registry = @store.load_registry()
   let archive = @store.load_archive()
+  // 构建信息（scripts/gen-build-info.sh 生成）：页脚要显示服务端这一份 sha
+  let build_sha = @store.build_sha
+  let build_at = @store.build_at
   let order = @store.load_order()
   let (last_started, last_started_notes) = @store.load_last_started()
   // 维护作业（design/ops-maintenance-jobs.md §2 / §3）：读不出来的那条也一起交出去，
@@ -114,6 +117,9 @@ async fn console_payload() -> @json.JsonVal noraise {
     job_items.push(@store.bad_job_json(bad))
   }
   let fields : Array[(String, @json.JsonVal)] = [
+    // 构建信息：页脚显示「server <sha>」（scripts/gen-build-info.sh 生成）
+    ("buildSha", @json.JStr(build_sha)),
+    ("buildAt", @json.JStr(build_at)),
     ("stateDir", @json.JStr(paths.dir)),
     ("settingsPath", @json.JStr(paths.settings)),
     ("runtimePath", @json.JStr(paths.runtime)),

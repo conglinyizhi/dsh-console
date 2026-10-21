@@ -144,6 +144,34 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             attrs=mark("side-foot-text", ["shell", "side-foot", "text"]),
             health_label(model.health_state),
           ),
+          // 版本号（只读）：server 与 client 的构建 sha 各一段，悬停给构建时刻。
+          // 服务端没连上时只剩 client 那一段。
+          @html.span(
+            class="dsh-side-ver",
+            attrs=mark("side-version", ["shell", "side-foot", "version"]).title(
+              "client " + build_at + "（本页构建）",
+            ),
+            [
+              @html.span(
+                attrs=mark("side-version-client", ["shell", "side-foot", "client"]),
+                "client " + build_sha,
+              ),
+            ],
+          ),
+          match model.console {
+            Some(facts) =>
+              if facts.build_sha == "" {
+                @html.nothing
+              } else {
+                @html.span(
+                  class="dsh-side-ver",
+                  attrs=mark("side-version-server", ["shell", "side-foot", "server"])
+                    .title("server " + facts.build_at + "（控制台后端构建）"),
+                  " · server " + facts.build_sha,
+                )
+              }
+            None => @html.nothing
+          },
         ],
       ),
     ],

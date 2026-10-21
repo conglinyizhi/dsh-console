@@ -1101,3 +1101,10 @@ loading_block 原来摆「转圈图标 + 两行字」。骨架屏对读屏是空
 - 滑块位置用 calc(N% - N×36px/100)，两端都不越出轨道（原来负外边距在 0% 与 100% 都溢出）。
 - 源名统一走磁盘目录名：隔离 home 的卡片 profile_name 可能为空、卡片名又带端口（review-space-a :18712），
   传这种名字后端按目录找不到 profile，预览因此返回空清单。
+
+## 78 启动日志收成五行，页脚加两端版本号
+
+启动日志改成英文标签五行：进程与地址、static、api（GET/POST）、spa；解释性文字移进 backend/README.md。
+构建信息由 scripts/gen-build-info.sh 从 git 短 sha 与时刻生成（前端、后端各一份常量）。
+GET /api/local/console 带 buildSha / buildAt；页脚状态灯旁显示 client <sha> · server <sha>，
+两段各自悬停给构建时刻，服务端未连上时只显示 client。

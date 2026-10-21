@@ -645,6 +645,9 @@ pub extend JobFact with Eq::{ not_equal, equal }
 /// runtime.json / archive.json 是两份状态文件，浏览器读不到文件系统，
 /// 后端为此单开了一个只读端点（GET /api/local/console）。
 pub(all) struct ConsoleFacts {
+  /// 服务端构建 sha / 时刻（scripts/gen-build-info.sh 生成；空串 = 这一版后端没给）
+  build_sha : String
+  build_at : String
   state_dir : String
   settings_path : String
   archive_path : String
