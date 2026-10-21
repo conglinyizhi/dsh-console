@@ -48,7 +48,13 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     )
   } else {
     for plugin in model.merge_plugins {
-      let (name, version, link) = plugin
+      let (name, version, kind) = plugin
+      let kind_label = match kind {
+        "local-link" => "软链"
+        "local-dir" => "目录"
+        "registry" => "registry（只补声明）"
+        _ => "没装上（只补声明）"
+      }
       let picked = model.merge_plugin_picked.contains(name)
       plugin_rows.push(
         @html.button(
@@ -60,7 +66,7 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           [
             @html.span(class="dsh-merge-check", if picked { "✓" } else { "" }),
             @html.span(name),
-            @html.span(class="dsh-merge-meta", (if link { "软链" } else { "目录" }) +
+            @html.span(class="dsh-merge-meta", kind_label +
               (if version == "" { "" } else { " · " + version })),
           ],
         ),

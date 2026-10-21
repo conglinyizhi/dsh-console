@@ -481,8 +481,8 @@ struct Model {
   merge_confirm : String
   /// 正在分发
   merge_busy : Bool
-  /// 预览接口读回来的插件：名字 / 版本 / 是不是软链
-  merge_plugins : Array[(String, String, Bool)]
+  /// 预览接口读回来的插件：名字 / 版本 / 形态（local-dir / local-link / registry / missing）
+  merge_plugins : Array[(String, String, String)]
   /// 勾中的插件名
   merge_plugin_picked : Array[String]
   /// 预览还在读

@@ -61,7 +61,7 @@ fn handle_merge_preview(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mo
   match msg {
     MergePreviewText(res) => {
       let (ok, text) = interpret_http(res)
-      let plugins : Array[(String, String, Bool)] = []
+      let plugins : Array[(String, String, String)] = []
       if ok {
         match open_envelope(text) {
           Ok(data) => {
@@ -70,12 +70,9 @@ fn handle_merge_preview(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mo
                 Json::Object(obj) => {
                   let name = str_field(obj, "name")
                   let version = str_field(obj, "version")
-                  let link = match obj.get("link") {
-                    Some(Json::True) => true
-                    _ => false
-                  }
+                  let kind = str_field(obj, "kind")
                   if name != "" {
-                    plugins.push((name, version, link))
+                    plugins.push((name, version, kind))
                   }
                 }
                 _ => ()
