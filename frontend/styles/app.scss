@@ -2846,3 +2846,6 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
 }
 .dsh-link-btn:hover { color: $text; }
 .dsh-link-btn:focus-visible { outline: 2px solid $accent; outline-offset: 2px; border-radius: 3px; }
+
+/* 行右端的文字按钮（关于页「切换版本」）：靠右且不占新的一行。 */
+.dsh-row-action { margin-left: auto; }

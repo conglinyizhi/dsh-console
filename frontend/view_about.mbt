@@ -51,21 +51,29 @@ fn version_rows(model : Model, emit : @cmd.Emit[Msg]) -> Array[@html.Html] {
       }
     Some(facts) =>
       [
-        kv_row("dsh 版本", facts.dsh_version, facts.dsh_package_name),
-        // 想换版本的人不该自己去摸「设置里哪一组」：版本号右边给一条直达入口（§66）。
-        @html.div(class="dsh-row", [
-          @html.span(class="dsh-label", ""),
-          @html.span(class="dsh-value", [
+        // 版本号与「切换版本」**同一行**（§66）：按钮靠右，且不再多占一行 ——
+        // 单独一行会让这张表多出一条空标签的行，看着像漏填了值。
+        @html.div(
+          class="dsh-row",
+          attrs=mark("about-version-row", ["about", "version", "row"]),
+          [
+            @html.span(class="dsh-label", "dsh 版本"),
+            @html.span(
+              class="dsh-value",
+              attrs=mark("kv-value", ["about", "version-row", "dsh 版本", "value"])
+                .title(facts.dsh_package_name),
+              facts.dsh_version,
+            ),
             @html.button(
-              class="dsh-link-btn",
+              class="dsh-link-btn dsh-row-action",
               type_="button",
               attrs=mark("about-switch-version", ["about", "version", "switch"])
                 .title("去设置页的「dsh 版本」一组，列本机装着的几份，选一份给以后起的实例用"),
               on_click=@cmd.batch([emit(Navigate(Settings)), emit(SettingsGroupPicked("version"))]),
               [@html.text("切换版本")],
             ),
-          ]),
-        ]),
+          ],
+        ),
         // 这一版的 dsh 是怎么装上去的：值只有四种（pnpm / npm / yarn 全局安装、未知），
         // 凭什么这么判挂在悬停里。它说的是「装法」，不是「版本」，放在版本号下面一行。
         kv_row(
