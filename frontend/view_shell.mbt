@@ -167,7 +167,7 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
                   class="dsh-side-ver",
                   attrs=mark("side-version-server", ["shell", "side-foot", "server"])
                     .title("server " + facts.build_at + "（控制台后端构建）"),
-                  " · server " + facts.build_sha,
+                  "server " + facts.build_sha,
                 )
               }
             None => @html.nothing

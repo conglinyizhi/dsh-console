@@ -155,18 +155,10 @@ async fn main {
   defer app.close()
   let (host, port) = resolve_listen()
   let server = @moonback.listen(host~, port~)
-  // 启动日志：最多五行英文标签 + 路径（怎么判、优先级那些解释在 README 里）
+  // 启动日志只留三行（§79）：这是什么、空一行、该访问的地址。
+  // 静态根、API 清单、gzip、SPA 回退这些细节都在 backend/README.md，不在这里刷屏。
   @stdio.stdout.write(
-    "dsh-console " + @store.build_sha + " (" + @store.build_at + ")  http://\{server.addr}\n" +
-    "  static  " +
-    (match dist_root {
-      Some(p) => p
-      None => "(未找到 dist)"
-    }) +
-    "\n" +
-    "  api     GET  /api/local/{runtime,profiles,logs,processes,instances,dsh-releases,settings,console,fork-progress}\n" +
-    "          POST /api/local/action   (X-DSH-Console: 1)\n" +
-    "  spa     /index.html fallback · gzip precompressed · /api/local/* served first\n",
+    "dsh-console " + @store.build_sha + "\n\nhttp://\{server.addr}\n",
   )
   // serve 跑在控制台主任务组里：detach=false 的实例就挂在这个组上，
   // 控制台退出（含 SIGTERM/SIGINT 的取消）时由运行时的结构化并发按 stopGraceMs 收掉它们。

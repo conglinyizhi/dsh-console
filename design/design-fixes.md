@@ -1108,3 +1108,9 @@ loading_block 原来摆「转圈图标 + 两行字」。骨架屏对读屏是空
 构建信息由 scripts/gen-build-info.sh 从 git 短 sha 与时刻生成（前端、后端各一份常量）。
 GET /api/local/console 带 buildSha / buildAt；页脚状态灯旁显示 client <sha> · server <sha>，
 两段各自悬停给构建时刻，服务端未连上时只显示 client。
+
+## 79 启动日志三行、页脚版本各占一行
+
+启动日志只留三行：dsh-console 加短 sha、空行、http://地址；其余细节移进 README。
+页脚状态灯下把 client / server 两个 sha 分成两行（各占 100% 宽、左缩 16px），
+不再挤在「服务端在线」同一行；两个 sha 不一致时一眼能看出哪边没更新。

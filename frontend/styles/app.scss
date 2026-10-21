@@ -2964,3 +2964,7 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 
 /* 页脚版本号与状态文字之间留一口气（§78）：两段直接贴住会读成「服务端在线client …」 */
 .dsh-side-ver { margin-left: 6px; }
+
+/* 页脚版本号各占一行（§79）：挤在同一行会读成「服务端在线client … · server …」 */
+.dsh-side-foot { flex-wrap: wrap; row-gap: 2px; }
+.dsh-side-ver { display: block; width: 100%; margin-left: 16px; }
