@@ -185,6 +185,12 @@ fn env_shown_id(target : EnvTarget, key : String) -> String {
 ///|
 /// 默认打码的判据是**保守**的：宁可不泄露。键名命中敏感词、或值超过 60 字符，默认打码；
 /// 其余短值默认显示。用户点过「显示 / 隐藏」就以那次选择为准（env_shown 里记着）。
+fn env_proxy_key(key : String) -> Bool {
+  let lower = key.to_lower()
+  lower == "proxy" || lower.has_suffix("_proxy")
+}
+
+///|
 fn env_sensitive_key(key : String) -> Bool {
   let lower = key.to_lower()
   for word in ["key", "password", "passwd", "token", "secret", "credential", "auth", "cookie", "private"] {
@@ -206,7 +212,10 @@ fn env_revealed(model : Model, target : EnvTarget, key : String, value : String)
   if model.env_shown.contains("!" + id) {
     return false
   }
-  !(env_sensitive_key(key) || value.length() > 60)
+  // 代理类是「长但不敏感」的典型（no_proxy / http_proxy / all_proxy…）：
+  // 长度不再触发打码，否则每次都得点一下显示才看得见值（§95）。
+  let proxy_like = env_proxy_key(key)
+  !(env_sensitive_key(key) || (value.length() > 60 && !proxy_like))
 }
 
 ///|
