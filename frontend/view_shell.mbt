@@ -288,16 +288,9 @@ fn route_notice_bar(model : Model) -> @html.Html {
 fn notice_bell(model : Model, emit : @cmd.Emit[Msg], slot : String) -> @html.Html {
   let unread = model.notice_unread
   let count = if unread > notice_history_max { notice_history_max } else { unread }
+  // 铃铛上不再挂未读数量（§97）：数字压在图标上既挤又容易和面板标题混读；
+  // 未读信息只留在 aria-label 与悬停里，给读屏与鼠标用户，不占视觉。
   let kids : Array[@html.Html] = [icon("bell-outline", size=16)]
-  if count > 0 {
-    kids.push(
-      @html.span(
-        class="dsh-bell-count",
-        attrs=mark("notice-bell-count", ["shell", slot, "notice", "bell", "count"]),
-        if count >= notice_history_max { "20+" } else { count.to_string() },
-      ),
-    )
-  }
   @html.button(
     id=notice_bell_id(),
     class=if model.notice_panel { "dsh-icon-btn dsh-bell active" } else { "dsh-icon-btn dsh-bell" },
