@@ -165,8 +165,9 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
                   emit,
                 )
               } else {
-                send_action(
-                  model,
+                let (with_progress, poll) = fork_progress_begin(model, row.name, emit)
+                let (next, cmd) = send_action(
+                  with_progress,
                   id,
                   "fork-profile",
                   row_name(model, id),
@@ -174,6 +175,7 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
                   params_for_row(model, id, "profile"),
                   emit,
                 )
+                (next, @cmd.batch([cmd, poll]))
               }
             None => (model, @cmd.none)
           }
@@ -400,9 +402,10 @@ fn handle_fork_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
       let id = model.fork_confirm_id
       let cleared = { ..model, fork_confirm_id: "", fork_confirm_return: "" }
       match find_row(cleared.rows, id) {
-        Some(_) =>
-          send_action(
-            cleared,
+        Some(row) => {
+          let (with_progress, poll) = fork_progress_begin(cleared, row.name, emit)
+          let (next, cmd) = send_action(
+            with_progress,
             id,
             "fork-profile",
             row_name(cleared, id),
@@ -410,6 +413,8 @@ fn handle_fork_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
             params_for_row(cleared, id, "profile"),
             emit,
           )
+          (next, @cmd.batch([cmd, poll]))
+        }
         None => (cleared, @cmd.none)
       }
     }

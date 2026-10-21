@@ -2875,3 +2875,27 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
 .dsh-env-option { padding: 8px 0; }
 .dsh-env-empty { padding: 8px 0 0; }
 section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
+
+/* 加载态骨架（§73）：三根灰条按真内容行宽递减，静态不闪 —— 全页唯一的动效留给启动态那颗状态点。 */
+.dsh-loading-lines { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; }
+.dsh-loading-bar { display: block; height: 10px; border-radius: 5px; background: rgba(232, 230, 225, 0.1); }
+.dsh-loading-bar.bar-1 { width: 180px; }
+.dsh-loading-bar.bar-2 { width: 120px; }
+.dsh-loading-bar.bar-3 { width: 80px; }
+
+/* 派生进度条（§72）：宽度按 10% 分档，不用内联样式。 */
+.dsh-fork-progress-track { height: 8px; border-radius: 4px; background: rgba(232, 230, 225, 0.12); overflow: hidden; margin: 10px 0 8px; }
+.dsh-fork-progress-fill { height: 100%; background: $accent; transition: width 0.2s linear; }
+.dsh-fork-progress-fill.step-0 { width: 0%; }
+.dsh-fork-progress-fill.step-10 { width: 10%; }
+.dsh-fork-progress-fill.step-20 { width: 20%; }
+.dsh-fork-progress-fill.step-30 { width: 30%; }
+.dsh-fork-progress-fill.step-40 { width: 40%; }
+.dsh-fork-progress-fill.step-50 { width: 50%; }
+.dsh-fork-progress-fill.step-60 { width: 60%; }
+.dsh-fork-progress-fill.step-70 { width: 70%; }
+.dsh-fork-progress-fill.step-80 { width: 80%; }
+.dsh-fork-progress-fill.step-90 { width: 90%; }
+.dsh-fork-progress-fill.step-100 { width: 100%; }
+.dsh-fork-progress-note { margin: 0; color: $text-dim; }
+.dsh-dialog-foot-note { color: $text-dim; font-size: 11.5px; }

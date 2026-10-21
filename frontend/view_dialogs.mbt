@@ -650,3 +650,58 @@ fn note_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 // ── 新建实例框（design/design-fixes.md §19.1）───────────────
+
+///|
+/// 派生拷贝的进度框（§72）。拷完由轮询把 active 置假、框自动收掉；
+/// 成功与失败仍由派生那条请求的回执去说，这里只说「拷到哪儿了」。
+fn fork_progress_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let name = if model.fork_progress_name == "" { "副本" } else { model.fork_progress_name }
+  let total = model.fork_progress_total
+  let files = model.fork_progress_files
+  let pct = if total <= 0 { 0 } else { files * 100 / total }
+  let bucket = (pct / 10) * 10
+  let card = @html.div(class="dsh-dialog-card dsh-fork-progress", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("fork-progress-title", ["dialog", "fork-progress", "title"]),
+      "正在派生 " + name,
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("fork-progress-count", ["dialog", "fork-progress", "count"]),
+      if total <= 0 {
+        "正在数要拷多少文件…"
+      } else {
+        "正在拷贝文件 " + files.to_string() + " / " + total.to_string()
+      },
+    ),
+    @html.div(
+      class="dsh-fork-progress-track",
+      attrs=mark("fork-progress-track", ["dialog", "fork-progress", "track"])
+        .role("progressbar")
+        .aria_valuenow(pct.to_string()),
+      [
+        @html.div(
+          class="dsh-fork-progress-fill step-" + bucket.to_string(),
+          attrs=mark("fork-progress-fill", ["dialog", "fork-progress", "fill"])
+            .data_set("pct", pct.to_string()),
+          @html.nothing,
+        ),
+      ],
+    ),
+    @html.p(
+      class="dsh-dialog-message dsh-fork-progress-note",
+      "带 node_modules 一起拷；拷完会自动隔离到它自己的 home",
+    ),
+    @html.div(class="dsh-dialog-foot", [
+      @html.span(class="dsh-dialog-foot-note", "拷完这里会自己关掉"),
+    ]),
+  ])
+  dialog(
+    "fork-progress-dialog",
+    "正在派生 " + name,
+    @cmd.none,
+    emit.map(fn(key : @html.Keyboard) { if key.key() == "Escape" { Noop } else { Noop } }),
+    card,
+  )
+}

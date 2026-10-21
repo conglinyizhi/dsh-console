@@ -1066,3 +1066,16 @@ SettingsGroupPicked("version")，落在 /settings/version，省得用户自己�
 
 量数（1280，.dsh-main 内可见字符）：设置六组 902 → 682（−24%），关于 444 → 406；
 面板 3 → 2；按钮数不变；390 宽 scrollWidth == clientWidth == 390；验收 30 项全过。
+
+## 72 派生拷贝带进度的框
+
+派生要拷整个目录（含 node_modules），那条 POST 带不回中间进度，另开 GET /api/local/fork-progress 轮询：
+后端在拷贝时按文件更新 files/total，拷完 active=false。界面在派生开始后摆一只进度框，
+每 400ms 读一次；拷完框自动收掉，成功失败仍由那条 POST 的回执去说。
+框里写明「带 node_modules 一起拷；拷完会自动隔离到它自己的 home」。
+
+## 73 整幅加载态改成骨架条
+
+loading_block 原来摆「转圈图标 + 两行字」。骨架屏对读屏是空白，句子对眼睛是噪音：
+可见部分换成三根灰条（静态、不闪），那两句进 sr-only 保留 role=status 的语义。
+日志页、维护页作业、回收站三处共用这一个组件，一起变。

@@ -129,9 +129,14 @@ fn loading_block(name : String, title : String, detail : String) -> @html.Html {
     class="dsh-loading",
     attrs=mark(name, ["loading", name]).data_set("state", "loading"),
     [
-      @html.span(class="dsh-loading-icon", [icon("refresh", size=22)]),
-      @html.p(class="dsh-loading-line", title),
-      @html.p(class="dsh-loading-sub", detail),
+      // 可见的一行字换成三根灰条（§73）：句子对读屏是必要的，对眼睛是噪音。
+      @html.div(class="dsh-loading-lines", [
+        @html.span(class="dsh-loading-bar bar-1", [@html.nothing]),
+        @html.span(class="dsh-loading-bar bar-2", [@html.nothing]),
+        @html.span(class="dsh-loading-bar bar-3", [@html.nothing]),
+      ]),
+      @html.p(class="dsh-sr-only", title),
+      @html.p(class="dsh-sr-only", detail),
     ],
   )
 }
