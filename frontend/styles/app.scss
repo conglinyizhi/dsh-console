@@ -3037,3 +3037,8 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 .dsh-env-radio-text { font-size: 12.5px; }
 .dsh-setting-input { appearance: textfield; -moz-appearance: textfield; }
 .dsh-setting-input::-webkit-outer-spin-button, .dsh-setting-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* 「全局启动变量」那一行（§100）：左说明、右按钮，与其他设置项同一套两列节奏。 */
+.dsh-setting-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
+.dsh-setting-row .dsh-settings-section-note { margin: 0; }
+.dsh-setting-row .dsh-btn { justify-self: end; }

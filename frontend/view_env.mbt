@@ -745,9 +745,23 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         ),
         "全局启动变量",
       ),
-      @html.p(class="dsh-settings-section-note", "起实例时挂进子进程的变量"),
-      // N8：不再内联整张表 —— 一行摘要 + 「编辑…」开专窗（Windows 10 之后那种 PATH 编辑器）
-      env_summary(model, target, emit),
+      // 一条设置项占一行（§100）：左边标题与说明，右边一颗「编辑…」。
+      // 摘要文字（已设置 N 条 · 键名…）撤掉 —— 那是给眼睛的噪音，想看在专窗里看。
+      @html.div(
+        class="dsh-setting-row",
+        attrs=mark("env-open-row", ["settings", "env", "open-row"]),
+        [
+          @html.p(class="dsh-settings-section-note", "起实例时挂进子进程的变量"),
+          @html.button(
+            class="dsh-btn",
+            type_="button",
+            attrs=mark("env-open", ["settings", "env", "global", "open"])
+              .title("打开全局启动变量编辑器：增删改、长值展开、预设"),
+            on_click=emit(EnvGlobalOpen),
+            [@html.text("编辑…")],
+          ),
+        ],
+      ),
       env_options_block(model, emit),
     ],
   )
