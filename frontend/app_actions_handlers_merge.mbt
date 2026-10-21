@@ -176,10 +176,14 @@ fn handle_merge_slide(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model
       }
     MergeSlideRelease => {
       let stopped = { ..model, merge_dragging: false }
-      if stopped.merge_slide >= 95 {
+      // 提交区起点按「轨道宽度 - 72px」算出来存在 merge_zone_pct 里（按下时更新）
+      if stopped.merge_slide >= stopped.merge_zone_pct {
         handle_merge_submit({ ..stopped, merge_slide: 100 }, MergeSubmit, emit)
       } else {
-        ({ ..stopped, merge_slide: 0 }, @cmd.none)
+        (
+          notice_err({ ..stopped, merge_slide: 0 }, "没到右侧，这次迁移取消了"),
+          @cmd.none,
+        )
       }
     }
     MergeSlideKey(key) =>

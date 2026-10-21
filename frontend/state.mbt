@@ -483,6 +483,8 @@ struct Model {
   merge_busy : Bool
   /// 滑动确认的进度（0..100，到 95 以上才提交）
   merge_slide : Int
+  /// 提交区起点百分比（按下时按轨道宽度算，视觉与松手判定都用它）
+  merge_zone_pct : Int
   /// 对话框当前第几步（1 = 选插件，2 = 选目标）
   merge_step : Int
   /// 正在拖滑块：只有按下之后才跟随指针
@@ -579,10 +581,12 @@ priv enum Msg {
   /// 两步之间切换（1 选插件 / 2 选目标）
   MergeStepNext
   MergeStepPrev
-  MergeSlideStart
+  /// 按下滑块：记下这条轨道的提交区起点百分比
+  MergeSlideStart(Int)
   MergeSlide(Int)
   /// 松开滑块：到 95 以上才提交，否则弹回左端
-  MergeSlideRelease
+  /// 松开滑块：带上松手那一刻的百分比
+  MergeSlideRelease(Int)
   /// 键盘操作（方向键 / End / Enter）
   MergeSlideKey(String)
   /// 点「分发」：发 merge-plugins
@@ -984,6 +988,7 @@ fn initial_model() -> Model {
     merge_confirm: "",
     merge_busy: false,
     merge_slide: 0,
+    merge_zone_pct: 90,
     merge_step: 1,
     merge_dragging: false,
     merge_plugins: [],

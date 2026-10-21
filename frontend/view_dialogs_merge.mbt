@@ -248,7 +248,11 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     ),
     if step == 3 && picked_plugins && model.merge_targets.length() > 0 {
       @html.div(
-        class="dsh-merge-slide",
+        class=if model.merge_slide >= model.merge_zone_pct {
+          "dsh-merge-slide in-zone"
+        } else {
+          "dsh-merge-slide"
+        },
         attrs=mark("merge-confirm", ["dialog", "merge", "confirm"])
           .id("dsh-merge-slide")
           .tabindex(0)
@@ -256,13 +260,16 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           .aria_label("向右滑动分发")
           .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
           .on_pointerdown(fn(_event) {
-            // 按下只置「正在拖」：位移交给 pointermove（它只在拖动期间生效）。
-            emit(MergeSlideStart)
+            // 按下：按当前轨道宽度算提交区起点（zone_px = 72，球宽 36×2）并存进 model；
+            // 位移交给 pointermove（它只在拖动期间生效）。
+            emit(MergeSlideStart(js_slide_zone_pct("dsh-merge-slide", 72)))
           })
           .on_pointermove(fn(event) {
             emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
           })
-          .on_pointerup(fn(_event) { emit(MergeSlideRelease) })
+          .on_pointerup(fn(event) {
+            emit(MergeSlideRelease(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+          })
           .on_keydown(fn(event) {
             let key = event.key()
             if key == " " {
@@ -272,7 +279,14 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             }
           }),
         [
-          @html.span(class="dsh-merge-slide-hint", "向右滑动分发"),
+          @html.span(
+            class="dsh-merge-slide-hint",
+            if model.merge_slide >= model.merge_zone_pct {
+              "松手开始迁移"
+            } else {
+              "向右滑动分发"
+            },
+          ),
           @html.div(
             class="dsh-merge-slide-knob",
             style=["left: " + model.merge_slide.to_string() + "%"],

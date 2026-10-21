@@ -2997,3 +2997,7 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 
 /* 滑动条与下方汇总文字之间留出气口（§82）：原来两者贴着，文字压到轨道下沿 */
 .dsh-merge-slide { margin: 10px 0 18px; }
+
+/* 滑动确认的提交区（N6d）：球进右侧 72px 那块，整条轨道变绿、提示换成「松手开始迁移」。 */
+.dsh-merge-slide.in-zone { border-color: $accent; background: rgba(79, 140, 255, 0.18); }
+.dsh-merge-slide.in-zone .dsh-merge-slide-hint { color: $text; }

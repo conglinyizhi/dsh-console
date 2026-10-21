@@ -726,3 +726,13 @@ extern "js" fn js_slide_percent(track_id : String, client_x : Double) -> Int =
   #|   const pct = Math.round(((client_x - r.left) / r.width) * 100);
   #|   return Math.max(0, Math.min(100, pct));
   #| }
+///|
+/// 提交区起点百分比：(宽度 - zone_px) / 宽度 × 100。轨道宽度随视口变，别写死 90。
+extern "js" fn js_slide_zone_pct(track_id : String, zone_px : Int) -> Int =
+  #| (track_id, zone_px) => {
+  #|   const el = document.getElementById(track_id);
+  #|   if (!el) return 90;
+  #|   const w = el.getBoundingClientRect().width;
+  #|   if (w <= 0) return 90;
+  #|   return Math.max(0, Math.min(100, Math.round(((w - zone_px) / w) * 100)));
+  #| }
