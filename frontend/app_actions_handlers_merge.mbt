@@ -291,7 +291,7 @@ fn handle_merge_done(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
       let (ok, note) = interpret_http(res)
       let cleared = { ..model, merge_busy: false }
       if ok {
-        (notice_ok(cleared, note, "分发插件"), @cmd.none)
+        (notice_ok(cleared, note, ""), @cmd.none)
       } else {
         (notice_err(cleared, note), @cmd.none)
       }

@@ -715,7 +715,13 @@ pub async fn merge_plugins_action(params : Json) -> @json.JsonVal raise ActionEr
           }
           "失败 " + bad.join("；") + "。"
         }) +
-        "cordis.patch.yml 这一版没有动（要改覆盖项得手动）。",
+        (if reports.any(fn(r) {
+          r.patch_added.length() > 0 || r.patch_overwritten.length() > 0
+        }) {
+          "cordis.patch.yml 已迁移（备份在各自快照目录）。"
+        } else {
+          ""
+        }),
       ),
     ),
   ])
@@ -1005,8 +1011,14 @@ async fn migrate_patch(
     Ok(s) => s
     Err(_) => ""
   }
-  // 目标 patch 本身解析不了（不是 "- " 列表）：不动它，如实报错（回滚语义：原文保持）
-  if @json.trim_both(target_text) != "" && patch_blocks(target_text).length() == 0 {
+  // 空文件与空列表 "[]" 都是合法起点（§85）：当作没有条目，继续往里补。
+  // 只有「有内容但切不出条目」才是解析不了 —— 那种不动它，如实报错。
+  let target_empty = match @json.trim_both(target_text) {
+    "" => true
+    "[]" => true
+    _ => false
+  }
+  if !target_empty && patch_blocks(target_text).length() == 0 {
     return Err("目标 cordis.patch.yml 解析不了（不是 patch 列表），没有动它")
   }
   let (added, overwritten, new_text) = merge_patch_text(target_text, source_text, names)
