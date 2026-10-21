@@ -226,7 +226,7 @@ dsh web 的首次握手是 URL 里的 `?token=…`，不带就是一个 401 页�
   复制的是 `webUrl`。剪贴板先走 `navigator.clipboard`，失败退到 `document.execCommand`，
   两条都失败就如实报失败（提示条上那句「已复制」必须对应真写进去的东西）。
 
-真跑过的证据在 `../evidence-frontend-weburl/`：探针 `probe-weburl.mjs` 从页面上真点
+真跑过的证据在 `../design/evidence/evidence-frontend-weburl/`：探针 `probe-weburl.mjs` 从页面上真点
 （`Input.dispatchMouseEvent`，不是 `element.click()` —— 没有真手势 `window.open` 会被弹窗拦截），
 抓 `window.open` 收到的原值、新标签的 target、剪贴板读回的内容，以及新标签自己的文档状态。
 

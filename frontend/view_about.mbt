@@ -255,153 +255,16 @@ fn dsh_version_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 手动启动那两条命令用哪只 profile 的名字：优先读数里的 currentProfile（DSH_PROFILE），
-/// 其次是 profiles 读数列出来的第一只，最后才退回读数里的 dshProfile。
-/// 三处都没有就给空串，界面写占位 <名字> —— 不写死一个 "web" 出来。
-fn manual_start_profile(model : Model) -> String {
-  match model.profiles {
-    Some(facts) => {
-      match facts.current_profile {
-        Some(name) =>
-          if name == "" {
-            ""
-          } else {
-            name
-          }
-        None =>
-          if facts.profiles.length() > 0 {
-            facts.profiles[0].name
-          } else {
-            model_profile_fallback(model)
-          }
-      }
-    }
-    None => model_profile_fallback(model)
-  }
-}
-
 ///|
-/// 兜底：runtime 读数里的 dshProfile。两处都没有就是空串。
-fn model_profile_fallback(model : Model) -> String {
-  match model.runtime {
-    Some(facts) =>
-      match facts.dsh_profile {
-        Some(name) => name
-        None => ""
-      }
-    None => ""
-  }
-}
-
-///|
-/// 稳定环境那条的 home：runtime 读数里的 dshHome（控制台自己的 home），
-/// 读不到再看 profiles 读数里的 dshHome。都没有给空串（界面写占位）。
-fn manual_start_home(model : Model) -> String {
-  match model.runtime {
-    Some(facts) =>
-      if facts.dsh_home == "" {
-        manual_start_home_from_profiles(model)
-      } else {
-        facts.dsh_home
-      }
-    None => manual_start_home_from_profiles(model)
-  }
-}
-
-///|
-fn manual_start_home_from_profiles(model : Model) -> String {
-  match model.profiles {
-    Some(facts) => facts.dsh_home
-    None => ""
-  }
-}
-
-///|
-/// 锁版本那条的包目录：生效那一份候选（active）的 dir，没有 active 就取第一份。
-/// 空串 = 读数里没有候选（界面写占位 <包目录>）。
-fn manual_start_package(model : Model) -> String {
-  let facts = match model.runtime {
-    None => return ""
-    Some(facts) => facts
-  }
-  if facts.dsh_candidates.length() == 0 {
-    return ""
-  }
-  for cand in facts.dsh_candidates {
-    if cand.active {
-      return cand.dir
-    }
-  }
-  facts.dsh_candidates[0].dir
-}
-
-///|
-/// 关于页「手动启动」里的一条命令：标签 + 命令本身 + 一句说明。
-fn manual_start_row(label : String, command : String, note : String, key : String) -> @html.Html {
-  // 说明不进正文（§68）：这一块的读者是「控制台起不来、要照着敲」的人，
-  // 他要的是那条命令；解释放悬停，正文只留标签与命令两行。
-  @html.div(
-    class="dsh-manual-row",
-    attrs=mark("manual-start-row", ["about", "manual-start", key]).title(note),
-    [
-      @html.span(
-        class="dsh-manual-label",
-        attrs=mark("manual-start-label", ["about", "manual-start", key, "label"]),
-        label,
-      ),
-      @html.code(
-        class="dsh-manual-cmd",
-        attrs=mark("manual-start-cmd", ["about", "manual-start", key, "cmd"]).title(command),
-        command,
-      ),
-    ],
-  )
-}
-
-///|
-/// 关于页「手动启动」那一块（规格第 8 节）。
-///
-/// 用途只有一个：控制台不可用时，使用者照着敲就能起来。所以名字、home、包目录
-/// 全部照当前读数填 —— 不写死 web、不写死 ~/.dsh、也不写死某个版本的目录。
-/// 读数还没回来时写占位（<名字> / <DSH_HOME> / <包目录>）并说清是占位，不假装已经填好了。
-fn manual_start_panel(model : Model) -> @html.Html {
-  let profile = manual_start_profile(model)
-  let name = if profile == "" { "<名字>" } else { profile }
-  let home = manual_start_home(model)
-  let home_text = if home == "" { "<DSH_HOME>" } else { home }
-  let pkg = manual_start_package(model)
-  let stable = "DSH_HOME=" + home_text + " dsh --profile " + name
-  let locked = if pkg == "" {
-    "node <包目录>/lib/bin.js --profile " + name
-  } else {
-    "node " + pkg + "/lib/bin.js --profile " + name
-  }
-  let stable_note = if home == "" {
-    "读数里还没有 DSH_HOME，这一条先用占位；它起的是控制台自己那个稳定环境"
-  } else {
-    "稳定环境这条用 " + home_text + " 起 " + name + "，dsh 取 PATH 上那一个"
-  }
-  let locked_note = if pkg == "" {
-    "读数里还没有生效的包目录，这一条先用占位；它锁的是这一份 dsh，不吃 PATH"
-  } else {
-    "锁版本这条直接用 " + pkg + " 这一份 dsh，环境里换了版本也不影响它"
-  }
-  @html.div(
-    class="dsh-panel",
-    attrs=mark("manual-start-panel", ["about", "manual-start"]),
-    [
-      // 末尾那句「隔离的那只换 home」是特例提示，收进标题的悬停（降密度）：
-      // 这一块的读者要的是两条命令，照抄就能起；隔离 home 那一档的人会看这里。
-      @html.h2(
-        class="dsh-panel-title",
-        attrs=@html.Attrs::build().title("隔离的那只把 DSH_HOME 换成它自己的 home 路径即可"),
-        "手动启动",
-      ),
-      @html.div(class="dsh-manual", [
-        manual_start_row("稳定环境", stable, stable_note, "stable"),
-        manual_start_row("锁版本", locked, locked_note, "pinned"),
-      ]),
-    ],
+/// 「手动启动」那两条命令不再渲染进页面（§71）：静态说明在 design/manual-start.md，
+/// 人也好 agent 也好直接读那个文件；页面上只留一句指向它的说明。
+fn about_manual_note() -> @html.Html {
+  @html.p(
+    class="dsh-foot",
+    attrs=mark("about-manual-note", ["about", "manual-start", "note"]).title(
+      "为什么要看文件：控制台起不来时这条页面本身也可能打不开，静态文件在仓库里随手可读"
+    ),
+    "手动启动命令见 design/manual-start.md（静态说明，不在这页渲染）",
   )
 }
 
@@ -438,7 +301,7 @@ fn about_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         ],
       ),
 
-      manual_start_panel(model),
+      about_manual_note(),
     ],
   )
 }

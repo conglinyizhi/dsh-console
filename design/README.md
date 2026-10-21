@@ -17,6 +17,8 @@
 | `drag-reorder-cards.md` | 卡片拖动与落点语义 |
 | `data-name-plan.md` | 探针与自动化依赖的 `data-name` 约定 |
 | `rabbita-md2-cheatsheet.md` | rabbita 的写法备忘（查语法用） |
+| `manual-start.md` | 手动启动 dsh 的静态说明（不经过网页渲染；关于页只留一句指向） |
+| `evidence/` | 取证截图与探针输出（menu / weburl / menu-flip 三个目录） |
 
 ## 历史取证（不再维护，读时先看日期）
 
