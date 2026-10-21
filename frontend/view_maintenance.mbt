@@ -78,7 +78,7 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           loading_block(
             "jobs-loading",
             "正在读取作业…",
-            "控制台自身状态的读数还在路上。这里先摆加载态。「还没有作业」要等读数回来才敢说。",
+            "读数还在路上；「还没有作业」要等读数回来才敢说。",
           ),
         )
       }
@@ -93,8 +93,10 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
               @html.p(class="dsh-empty-line", "读不到作业记录。"),
               @html.p(
                 class="dsh-empty-sub",
-                "这一版控制台还没有作业读数。这与「还没有作业」不是一回事。" +
-                "重启控制台之后再看一次。",
+                attrs=mark("jobs-missing-note", ["maintenance", "missing-field", "note"]).title(
+                  "这一版控制台还没有作业读数。这与「还没有作业」不是一回事。重启控制台之后再看一次。",
+                ),
+                "读不到作业读数（不是「没有作业」），重启控制台再看。",
               ),
             ],
           ),
@@ -109,7 +111,10 @@ fn maintenance_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
               @html.p(class="dsh-empty-line", "还没有作业。"),
               @html.p(
                 class="dsh-empty-sub",
-                "一条作业是按顺序做完的事，中间停止也不会丢进度。",
+                attrs=mark("jobs-empty-note", ["maintenance", "empty", "note"]).title(
+                  "一条作业是按顺序做完的事，中间停止也不会丢进度。",
+                ),
+                "按顺序做完，中途停止不丢进度。",
               ),
               // 行动号召（design/design-fixes.md 第 3 条）：一颗真能点的按钮。
               // 它把焦点送到上面「当前版本」那一格（选目标版本的那一格）：

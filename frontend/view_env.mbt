@@ -638,11 +638,16 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     class="dsh-settings-section",
     attrs=mark("env-section", ["settings", "env", "section"]),
     [
-      @html.h3(class="dsh-settings-section-title", "全局启动变量"),
-      @html.p(
-        class="dsh-settings-section-note",
-        "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以再覆盖其中的键",
+      // 小标题带完整说明的悬停；正文只留前半句（降密度）：后半句「某只 profile 可以覆盖」
+      // 讲的是抽屉里那一张表，正摆在设置页的人此刻用不上。
+      @html.h3(
+        class="dsh-settings-section-title",
+        attrs=@html.Attrs::build().title(
+          "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以在抽屉里再覆盖其中的键",
+        ),
+        "全局启动变量",
       ),
+      @html.p(class="dsh-settings-section-note", "起实例时挂进子进程的变量"),
       env_table(model, target, "还没有启动变量，加一行就会在起实例时带上", true, emit),
       env_options_block(model, emit),
     ],

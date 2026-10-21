@@ -102,7 +102,35 @@ fn source_label(model : Model, source : String) -> String {
 
 ///|
 /// 元信息行：读成功写真实口径（含实际读到的文件路径），读失败写真实原因，不留空。
+/// 可见部分只留「读了多少行 + 多大」（§降密度）：路径 / 目录依据 / 读于 / 只读 收进悬停，
+/// 一个字都没丢，入口在 title 上。
 fn logs_meta(model : Model) -> String {
+  let got = match model.logs {
+    None => return "只读"
+    Some(facts) => facts
+  }
+  if !got.read_ok {
+    return "读取失败"
+  }
+  let rows = got.lines.length().to_string() + " 行"
+  let size = match got.file_size {
+    Some(bytes) => format_bytes(bytes)
+    None => "大小未知"
+  }
+  let head = match got.path {
+    Some(path) => path
+    None => "只读"
+  }
+  if got.truncated {
+    "尾部 " + rows + " · " + size + " · " + head + "（窗口已截断）"
+  } else {
+    "尾部 " + rows + " · " + size + " · " + head
+  }
+}
+
+///|
+/// 元信息的全文（悬停用）：路径、目录依据、读取时刻与「只读」都在这一份里。
+fn logs_meta_full(model : Model) -> String {
   let got = match model.logs {
     None => return "只读"
     Some(facts) => facts
@@ -255,7 +283,7 @@ fn logs_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         ]),
         @html.span(
           class="dsh-meta",
-          attrs=mark("logs-meta", ["logs", "meta"]).title(logs_meta(model)),
+          attrs=mark("logs-meta", ["logs", "meta"]).title(logs_meta_full(model)),
           logs_meta(model),
         ),
         @html.button(

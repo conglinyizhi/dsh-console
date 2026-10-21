@@ -93,24 +93,18 @@ fn snapshot_history(
     ),
   ]
   if row.snapshots.length() == 0 {
-    // 空态只留三个字：这一组里已经有一颗「创建快照」按钮，长句子只是把一组按钮隔断。
-    // 完整说明进悬停（「动配置之前先拍一张，出了问题能还原」也在那儿）。
-    let old_backend = row.snapshots_source == "这一版读数里没有「配置快照」这一项"
-    let text = if old_backend { "这一版读数里没有配置快照，暂时拍不了也还原不了。" } else { "还没有快照" }
-    items.push(
-      @html.p(
-        class="dsh-snapshot-empty",
-        attrs=mark("drawer-snapshot-empty", ["overview", "drawer", row.id, "snapshot", "empty"])
-          .title(
-            if old_backend {
-              row.snapshots_source
-            } else {
-              "还没有快照。动配置之前可以先拍一张，出了问题能还原。" + row.snapshots_source
-            },
-          ),
-        text,
-      ),
-    )
+    // 「还没有快照」不再单占一行（§69）：空态是常态，这一行每天挂着只是噪声。
+    // 只有老后端缺这一项时才留一行 —— 那是「读不到」，与「还没拍过」不是一回事。
+    if row.snapshots_source == "这一版读数里没有「配置快照」这一项" {
+      items.push(
+        @html.p(
+          class="dsh-snapshot-empty",
+          attrs=mark("drawer-snapshot-empty", ["overview", "drawer", row.id, "snapshot", "empty"])
+            .title(row.snapshots_source),
+          "这一版读数里没有配置快照，暂时拍不了也还原不了。",
+        ),
+      )
+    }
   } else {
     for snap in row.snapshots {
       items.push(

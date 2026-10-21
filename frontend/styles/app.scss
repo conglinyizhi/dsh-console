@@ -2849,3 +2849,11 @@ body[data-alt="1"] .dsh-btn.dsh-open-ui { background: linear-gradient(rgba($gold
 
 /* 行右端的文字按钮（关于页「切换版本」）：靠右且不占新的一行。 */
 .dsh-row-action { margin-left: auto; }
+
+/* 「一切正常」那一行（§69）：状态组里的健康读数，不占框、不提亮。 */
+.dsh-drawer-ok {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: $text-dim;
+}

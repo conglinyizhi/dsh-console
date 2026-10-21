@@ -647,13 +647,22 @@ fn drawer_state_block(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.
   drawer_section("状态", "state", [
     @html.div(class="dsh-drawer-light-line", light_line),
     @html.p(class="dsh-drawer-why", attrs=why_attrs, row.light_reason),
-    problem_hint(
-      "drawer-health",
-      ["overview", "drawer", row.id, "health"],
-      row.health_text,
-      row.health_hint,
-      row.health_free,
-    ),
+    if health_is_quiet(row) {
+      @html.p(
+        class="dsh-drawer-ok",
+        attrs=mark("drawer-health-ok", ["overview", "drawer", row.id, "health", "ok"])
+          .title(row.health_hint),
+        row.health_text,
+      )
+    } else {
+      problem_hint(
+        "drawer-health",
+        ["overview", "drawer", row.id, "health"],
+        row.health_text,
+        row.health_hint,
+        row.health_free,
+      )
+    },
     // 缺包那一行与那颗按钮已经不在这里了（§40.2）：搬进「配置」组，降成一句低调的小字
     // + 一颗「安装」（见 repair_action）。状态组只留「还有没有别的毛病」。
   ])
@@ -708,6 +717,16 @@ fn repair_action(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
       [icon("cube-outline", size=13), @html.span(label)],
     ),
   ])
+}
+
+///|
+/// 「健康」这一格是不是「一切正常」那一档（§69）：缺包被设置忽略时只说补丁在不在，
+/// 这类话不该占一块填满的框。自由文本（未知问题）永远不算安静。
+fn health_is_quiet(row : Row) -> Bool {
+  if row.health_free || row.health_text == "" {
+    return false
+  }
+  row.health_text.has_prefix("声明的包都已安装") || row.health_text.has_prefix("cordis.patch.yml 也在")
 }
 
 ///|

@@ -274,12 +274,17 @@ fn setting_row(model : Model, def : SettingDef, emit : @cmd.Emit[Msg]) -> @html.
 }
 
 ///|
-/// 少数设置项除正文说明之外还有一句悬停（design/design-fixes.md §40.4）。
+/// 设置项除正文说明之外还有一句悬停（design/design-fixes.md §40.4、降密度那一轮）。
 ///
-/// 正文那句回答「要不要开」，悬停这句回答「开了之后原来那些缺口还在不在、还能不能处理」——
-/// 两句话的读者不是同一个时刻的人。
+/// 正文只回答「这一项管什么」；悬停回答「改了会怎样、什么情况下不用管它」。
+/// 这些后半句原先都摊在正文里，每条多出一句之后，一页四条读起来像一段说明书；
+/// 收进悬停之后正文一句一条，需要权衡的时候鼠标停在说明上就有。
 fn setting_hint(key : String) -> String {
   match key {
+    "probe.timeoutMs" => "调大能容下慢实例，代价是扫描变慢"
+    "probe.concurrency" => "调大扫得快，瞬时占用的文件描述符也更多"
+    "logs.defaultTail" => "日志页自己写着实际读到了多少行"
+    "ui.sidebarCollapsed" => "窄屏不看这一项：那一档的侧栏从顶部汉堡滑出，不占位"
     "profile.ignoreMissingBundles" => "缺的包仍然可以在抽屉里安装；关掉这一项，缺包会重新算作警告"
     _ => ""
   }
@@ -364,9 +369,15 @@ fn settings_index(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 fn settings_panel(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let group = setting_group_of(model.settings_group)
   let defs = settings_table.filter(fn(def) { def.group == group.id })
+  // 分组说明不再单独占一行（降密度）：它是下面几条设置项的摘要，同一屏说两遍。
+  // 原文收进标题的悬停 —— 想知道「这一组管什么」的时候那里还读得到。
+  let title_attrs = if group.note == "" {
+    @html.Attrs::build()
+  } else {
+    @html.Attrs::build().title(group.note)
+  }
   let children : Array[@html.Html] = [
-    @html.h2(class="dsh-settings-panel-title", group.label),
-    @html.p(class="dsh-settings-panel-note", group.note),
+    @html.h2(class="dsh-settings-panel-title", attrs=title_attrs, group.label),
     @html.div(class="dsh-settings-rows", defs.map(fn(def) { setting_row(model, def, emit) })),
   ]
   // §62.1：表格接在「进程」组那两条设置项后面（不单独占一组）
@@ -490,18 +501,19 @@ fn settings_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     class="dsh-settings-page",
     attrs=mark("settings-page", ["settings", "page"]).data_set("level", level),
     [
+      // 「改动即保存」不再单独占一行（降密度）：跟标题并排，和总览页同一套页头写法。
+      // 落盘路径照旧收在悬停里 —— 那是排查时才要读的一句。
       @html.header(class="dsh-settings-head", [
         @html.h1(class="dsh-page-title", "设置"),
         source_badge(model.tag_settings, ["settings", "head", "source-badge"]),
-      ]),
-      // 落盘路径是排查用的细节，收进悬停：使用者只需要知道「改动即保存」
-      @html.p(
-        class="dsh-settings-note",
-        attrs=mark("settings-note", ["settings", "note"]).title(
-          "每个键单独保存一次；落盘位置 $XDG_STATE_HOME/dsh-console/settings.json",
+        @html.span(
+          class="dsh-head-note",
+          attrs=mark("settings-note", ["settings", "note"]).title(
+            "每个键单独保存一次；落盘位置 $XDG_STATE_HOME/dsh-console/settings.json",
+          ),
+          "改动即保存。",
         ),
-        "改动即保存。",
-      ),
+      ]),
       // 窄屏第二级的返回键（宽屏不显示）
       settings_back_row(emit),
       // 保存成功 / 失败从 §14 起走外壳那一条全局提示：本页不留第二份（§14.4）

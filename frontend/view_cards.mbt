@@ -187,9 +187,12 @@ fn card_name_text(row : Row) -> String {
 fn card_port(row : Row, port : Int) -> @html.Html {
   @html.span(
     class="dsh-card-port",
-    attrs=mark("card-port", ["overview", "card", row.id, "port"]),
+    attrs=mark("card-port", ["overview", "card", row.id, "port"])
+      .title("监听端口 " + port.to_string()),
     [
-      @html.span(class="dsh-card-port-label", "端口："),
+      // 「端口：」三个字在窄卡上会把名字挤成省略号（§69）。这里只留一个冒号，
+      // 完整说法进悬停；端口号本身仍原样显示。
+      @html.span(class="dsh-card-port-label", ":"),
       @html.text(port.to_string()),
     ],
   )
