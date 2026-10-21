@@ -742,8 +742,21 @@ extern "js" fn js_slide_zone_pct(track_id : String, zone_px : Int) -> Int =
 /// 仍然发给它。鼠标的 pointerId 恒为 1；指针捕获失败就退回原来的「移出即失控」。
 extern "js" fn js_slide_capture(track_id : String) -> Unit =
   #| (track_id) => {
-  #|   try {
-  #|     const el = document.getElementById(track_id);
-  #|     if (el && el.setPointerCapture) el.setPointerCapture(1);
-  #|   } catch (e) {}
+  #|   const el = document.getElementById(track_id);
+  #|   if (!el) return;
+  #|   if (el.__dshDrag) return;
+  #|   const fire = (type, ev) => {
+  #|     const Ctor = type === "pointermove" ? PointerEvent : PointerEvent;
+  #|     el.dispatchEvent(new Ctor(type, { clientX: ev.clientX, clientY: ev.clientY, bubbles: true }));
+  #|   };
+  #|   const move = (ev) => fire("pointermove", ev);
+  #|   const up = (ev) => {
+  #|     fire("pointerup", ev);
+  #|     window.removeEventListener("pointermove", move, true);
+  #|     window.removeEventListener("pointerup", up, true);
+  #|     el.__dshDrag = false;
+  #|   };
+  #|   window.addEventListener("pointermove", move, true);
+  #|   window.addEventListener("pointerup", up, true);
+  #|   el.__dshDrag = true;
   #| }
