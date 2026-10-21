@@ -433,12 +433,14 @@ async fn place_plugin(plugin : LocalPlugin, target_dir : String) -> Result[Bool,
   }
   let dest = @json.join_path(dest_dir, @json.basename(plugin.name))
   let mut overwritten = false
-  if @json.exists(dest) {
+  // 悬空软链（指向已不存在的路径）在 exists() 里是 false，但目录项还在：
+  // 不先删就会在建链时报「File exists」（§83 实测踩到）。
+  let dest_is_link = match @json.read_link(dest) {
+    Ok(_) => true
+    Err(_) => false
+  }
+  if @json.exists(dest) || dest_is_link {
     overwritten = true
-    let dest_is_link = match @json.read_link(dest) {
-      Ok(_) => true
-      Err(_) => false
-    }
     let removed = if dest_is_link {
       @fsx.remove_file(dest)
     } else {

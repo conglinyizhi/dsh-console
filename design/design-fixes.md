@@ -1120,3 +1120,9 @@ GET /api/local/console 带 buildSha / buildAt；页脚状态灯旁显示 client 
 按下时只置「正在拖」（MergeSlideStart），位移交给 pointermove —— 之前 pointerdown 直接发位移、
 而位移处理器要求「已在拖」，两者互锁，滑块永远不动。
 实测：按住从左拖到右，data-slide 9 → 99；松手命中提交，回执按预期落到后端。
+
+## 83 分发时悬空软链挡住建链
+
+目标 @local/<name> 若是一条指向已不存在路径的软链，exists() 返回 false、目录项却还在，
+于是跳过删除、建链时报 File exists。现在先 read_link 判「是不是链接」，链接一律先删。
+实测：目标里放一条悬空链，分发后回执 ok、overwritten 列出该包、链接指向新的源。
