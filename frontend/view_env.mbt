@@ -373,13 +373,19 @@ fn env_scope_line(target : EnvTarget, emit : @cmd.Emit[Msg]) -> @html.Html {
         attrs=mark("env-scope-text", ["settings", "env", target.scope_id, "scope-text"]),
         text,
       ),
-      @html.button(
-        class="dsh-link-btn",
-        type_="button",
-        attrs=mark("env-goto-process", ["settings", "env", target.scope_id, "goto-process"]),
-        on_click=emit(EnvGotoProcess),
-        [@html.text("去设置 → 进程")],
-      ),
+      // 全局那一份本来就在设置 → 进程里打开，再给「去设置 → 进程」是让用户原地转圈（§98）；
+      // 只有 profile 那一份才需要这条指路。
+      if target.scope == "global" {
+        @html.nothing
+      } else {
+        @html.button(
+          class="dsh-link-btn",
+          type_="button",
+          attrs=mark("env-goto-process", ["settings", "env", target.scope_id, "goto-process"]),
+          on_click=emit(EnvGotoProcess),
+          [@html.text("去设置 → 进程")],
+        )
+      },
     ],
   )
 }
