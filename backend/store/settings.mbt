@@ -147,7 +147,7 @@ fn apply_one(current : Settings, key : String, json : Json) -> Result[Settings, 
       }
     }
     "process.detach" | "ui.archiveOpenByDefault" | "ui.sidebarCollapsed" |
-    "safety.deleteToTrash" | "profile.ignoreMissingBundles" => {
+    "ui.showBetaFeatures" | "safety.deleteToTrash" | "profile.ignoreMissingBundles" => {
       let value = match as_bool(json) {
         Some(v) => v
         None => return Err("要布尔值，收到 " + describe(json))
