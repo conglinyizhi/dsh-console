@@ -13,6 +13,8 @@ pub(all) struct EnvFile {
   global : Map[String, String]
   profiles : Map[String, Map[String, String]]
   options : EnvOptions
+  /// 用户明确删掉的键名（原样大小写）：下次保存不再自动补出它的大小写对偶
+  suppressed : Array[String]
 }
 
 ///|
@@ -97,7 +99,12 @@ pub async fn env_file_path() -> String noraise {
 ///|
 /// 读一份（文件不在 / 读不动 / 解析不了 → 空表；坏文件不让接口挂掉）。
 pub async fn load_env_file() -> EnvFile noraise {
-  let empty : EnvFile = { global: Map([]), profiles: Map([]), options: default_env_options() }
+  let empty : EnvFile = {
+    global: Map([]),
+    profiles: Map([]),
+    options: default_env_options(),
+    suppressed: [],
+  }
   let path = env_file_path()
   let text = match @json.read_text_file(path) {
     Ok(t) => t
@@ -140,7 +147,15 @@ pub async fn load_env_file() -> EnvFile noraise {
     }
     None => default_env_options()
   }
-  { global, profiles, options }
+  // suppressed：用户明确删掉的键名（原样大小写）
+  let suppressed : Array[String] = []
+  for item in @json.json_array(field_of(json, "suppressed")) {
+    match @json.json_string(item) {
+      Some(s) => suppressed.push(s)
+      None => ()
+    }
+  }
+  { global, profiles, options, suppressed }
 }
 
 ///|
@@ -175,7 +190,7 @@ pub fn env_map_json(entries : Map[String, String]) -> @json.JsonVal {
 ///|
 /// 大小写成对补齐（§94）：全小写的键顺手写一份全大写，全大写的写一份全小写；
 /// 显式写了混合大小写（FooBar）的键原样留着，不拆成两份 —— 那是使用者刻意的写法。
-fn expand_case_variants(entries : Map[String, String]) -> Map[String, String] {
+fn expand_case_variants(entries : Map[String, String], suppressed : Array[String]) -> Map[String, String] {
   let out : Map[String, String] = Map([])
   for pair in entries.iter() {
     out[pair.0] = pair.1
@@ -188,12 +203,12 @@ fn expand_case_variants(entries : Map[String, String]) -> Map[String, String] {
     let has_lower = lower != key
     if has_upper && !has_lower {
       // 全小写：补一份全大写
-      if !entries.contains(upper) {
+      if !entries.contains(upper) && !suppressed.contains(upper) {
         out[upper] = pair.1
       }
     } else if has_lower && !has_upper {
       // 全大写：补一份全小写
-      if !entries.contains(lower) {
+      if !entries.contains(lower) && !suppressed.contains(lower) {
         out[lower] = pair.1
       }
     }
@@ -206,12 +221,12 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
   let path = env_file_path()
   let file = {
     ..file,
-    global: expand_case_variants(file.global),
+    global: expand_case_variants(file.global, file.suppressed),
   }
   let profiles_fields : Array[(String, @json.JsonVal)] = []
   for pair in file.profiles.iter() {
     if pair.1.size() > 0 {
-      profiles_fields.push((pair.0, env_map_json(expand_case_variants(pair.1))))
+      profiles_fields.push((pair.0, env_map_json(expand_case_variants(pair.1, file.suppressed))))
     }
   }
   let json = @json.JObj([
@@ -224,6 +239,7 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
         ("merge", @json.JStr(file.options.merge)),
       ]),
     ),
+    ("suppressed", @json.jstr_array(file.suppressed)),
   ])
   match @fsx.ensure_dir(@json.dirname(path)) {
     Ok(_) => ()

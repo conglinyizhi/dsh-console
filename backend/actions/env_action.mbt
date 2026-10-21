@@ -40,15 +40,51 @@ pub async fn save_env_action(params : Json, action : String) -> @json.JsonVal ra
   let loaded = @store.load_env_file()
   let mut home = ""
   let mut profile = ""
+  // suppressed（N9 增补）：上次有的键、这次没有、但它的对偶还在 → 记成「用户明确删掉的」，
+  // 下次保存不再自动补回；这次显式写回的键从名单里移除。
+  let prev_entries = if scope == "global" {
+    loaded.global
+  } else {
+    let h = require_string(params, "home")
+    let p = require_string(params, "profile")
+    match loaded.profiles.get(@store.profile_env_key(h, p)) {
+      Some(m) => m
+      None => Map([])
+    }
+  }
+  let suppressed : Array[String] = []
+  for key in loaded.suppressed {
+    if !entries.contains(key) {
+      suppressed.push(key)
+    }
+  }
+  for pair in prev_entries.iter() {
+    let name = pair.0
+    if entries.contains(name) {
+      continue
+    }
+    let upper = name.to_upper()
+    let lower = name.to_lower()
+    let dual = if name == upper && upper != lower {
+      lower
+    } else if name == lower && upper != lower {
+      upper
+    } else {
+      ""
+    }
+    if dual != "" && entries.contains(dual) && !suppressed.contains(name) {
+      suppressed.push(name)
+    }
+  }
   let file = if scope == "global" {
-    { ..loaded, global: entries }
+    { ..loaded, global: entries, suppressed }
   } else {
     home = require_string(params, "home")
     profile = require_string(params, "profile")
     let key = @store.profile_env_key(home, profile)
     let profiles = Map(loaded.profiles.iter().collect())
     profiles[key] = entries
-    { ..loaded, profiles }
+    { ..loaded, profiles, suppressed }
   }
   // options（§62.2）：可选；只认 keep_system 与 merge，别的值 bad-params
   let options = match @json.json_field(params, "options") {
