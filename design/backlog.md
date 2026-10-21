@@ -93,3 +93,13 @@
 - 回执：逐只写「复制了哪几个包 / 新增了哪几条 bundles / 跳过了什么」，失败不影响其它只。
 
 不做（这一版）：cordis.patch.yml 的合并、备注与环境变量跟过去、目标反向回传。
+
+### N8 启动环境变量编辑器（Windows PATH 编辑器那种专窗；未完成）
+现状：设置页「进程」组内联整张表（view_env.mbt env_settings_body → env_table），profile 对话框已有。
+下一步（落点已摸清，勿再侦察）：
+1 state.mbt：env_global_open、env_expanded、Msg EnvGlobalOpen/Close、EnvSuggestFill(scope)、EnvToggleExpand(key)
+2 设置页：把 env_table 换成一行摘要（已设置 N 条 · 键1、键2、键3；空态「还没设置」）+「编辑…」
+3 新 env_global_dialog（720px，挂到 view_overview 的 dialogs，紧邻 env_profile_dialog：330 行）
+4 值 >60 字符时渲染 2 行 textarea + 展开/收起（EnvToggleExpand）
+5 底部「填入本机代理建议」：env_entries_with 只补缺、不覆盖，回执写补了哪几条、哪几条本来就有
+6 截图 720/390 + 验收 30 项
