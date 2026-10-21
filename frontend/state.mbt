@@ -481,6 +481,8 @@ struct Model {
   merge_confirm : String
   /// 正在分发
   merge_busy : Bool
+  /// 滑动确认的进度（0..100，到 95 以上才提交）
+  merge_slide : Int
   /// 预览接口读回来的插件：名字 / 版本 / 形态（local-dir / local-link / registry / missing）
   merge_plugins : Array[(String, String, String)]
   /// 勾中的插件名
@@ -569,8 +571,12 @@ priv enum Msg {
   MergeOpen(id~ : String, return_id~ : String)
   /// 目标勾/取消勾（profile 名）
   MergeTargetToggle(String)
-  /// 确认串输入
-  MergeConfirmInput(String)
+  /// 滑动确认：指针/键盘把滑块推到某个百分比
+  MergeSlide(Int)
+  /// 松开滑块：到 95 以上才提交，否则弹回左端
+  MergeSlideRelease
+  /// 键盘操作（方向键 / End / Enter）
+  MergeSlideKey(String)
   /// 点「分发」：发 merge-plugins
   MergeSubmit
   /// 点「取消」（或 Esc / 遮罩）
@@ -969,6 +975,7 @@ fn initial_model() -> Model {
     merge_targets: [],
     merge_confirm: "",
     merge_busy: false,
+    merge_slide: 0,
     merge_plugins: [],
     merge_plugin_picked: [],
     merge_loading: false,

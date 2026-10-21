@@ -32,8 +32,8 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   }
   // 两步：先选插件（≥1 只）才展开选目标；确认串仍是 MERGE
   let picked_plugins = model.merge_plugin_picked.length() > 0
-  let ready = model.merge_confirm == "MERGE" && model.merge_targets.length() > 0 &&
-    picked_plugins
+  let ready = model.merge_targets.length() > 0 && picked_plugins && !model.merge_busy
+  let slide = model.merge_slide
   // 第一步：插件（名字 + 版本 + 软链/目录），默认全不选
   let plugin_rows : Array[@html.Html] = []
   if model.merge_loading {
@@ -43,10 +43,12 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       @html.p(
         class="dsh-merge-empty",
         attrs=mark("merge-empty", ["dialog", "merge", "empty"]),
-        "这一只里没有本地插件（node_modules/@local 与 file:/link: 依赖都是空的）。",
+        "这一只里没有可分发或可声明的插件。",
       ),
     )
   } else {
+    let local_rows : Array[@html.Html] = []
+    let other_rows : Array[@html.Html] = []
     for plugin in model.merge_plugins {
       let (name, version, kind) = plugin
       let kind_label = match kind {
@@ -56,7 +58,12 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         _ => "没装上（只补声明）"
       }
       let picked = model.merge_plugin_picked.contains(name)
-      plugin_rows.push(
+      let target_rows = if kind == "local-dir" || kind == "local-link" {
+        local_rows
+      } else {
+        other_rows
+      }
+      target_rows.push(
         @html.button(
           class=if picked { "dsh-merge-target on" } else { "dsh-merge-target" },
           type_="button",
@@ -71,6 +78,18 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           ],
         ),
       )
+    }
+    if local_rows.length() > 0 {
+      plugin_rows.push(@html.p(class="dsh-merge-group", attrs=mark("merge-group-local", ["dialog", "merge", "group", "local"]), "本地插件（可分发实体）"))
+      for r in local_rows {
+        plugin_rows.push(r)
+      }
+    }
+    if other_rows.length() > 0 {
+      plugin_rows.push(@html.p(class="dsh-merge-group", attrs=mark("merge-group-other", ["dialog", "merge", "group", "other"]), "已安装的其它插件（只补声明）"))
+      for r in other_rows {
+        plugin_rows.push(r)
+      }
     }
   }
   let rows : Array[@html.Html] = []
@@ -124,21 +143,45 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       model.merge_targets.length().to_string() + " 只；" +
       (if model.merge_targets.length() == 0 { "先勾目标" } else { "输入 MERGE 才能点分发" }),
     ),
-    @html.input(
-      input_type=Text,
-      id="dsh-merge-dialog-input",
-      class="dsh-dialog-input",
-      value=model.merge_confirm,
-      placeholder="输入 MERGE",
-      attrs=mark("merge-confirm-input", ["dialog", "merge", "confirm"]),
-      on_input=emit.map(fn(text) { MergeConfirmInput(text) }),
+    @html.div(
+      id="dsh-merge-slide",
+      class="dsh-merge-slide",
+      attrs=mark("merge-confirm", ["dialog", "merge", "confirm"])
+        .tabindex(0)
+        .data_set("slide", slide.to_string())
+        .aria_label("向右滑动分发")
+        .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
+        .on_pointerdown(fn(event) {
+          emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+        })
+        .on_pointermove(fn(event) {
+          emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+        })
+        .on_pointerup(fn(_event) { emit(MergeSlideRelease) })
+        .on_keydown(fn(event) {
+          let key = event.key()
+          if key == " " {
+            emit(MergeSlideKey("Space"))
+          } else {
+            emit(MergeSlideKey(key))
+          }
+        }),
+      [
+        @html.span(class="dsh-merge-slide-hint", "向右滑动分发"),
+        @html.div(
+          class="dsh-merge-slide-knob",
+          style=["left: " + slide.to_string() + "%"],
+          attrs=mark("merge-knob", ["dialog", "merge", "knob"]),
+          [icon("send", size=14)],
+        )
+      ],
     ),
     @html.div(class="dsh-dialog-foot", [
       @html.button(
         id="dsh-merge-dialog-ok",
         class="dsh-dialog-btn primary",
         type_="button",
-        disabled=!ready || model.merge_busy,
+        disabled=!ready,
         attrs=mark("merge-dialog-ok", ["dialog", "merge", "ok"]),
         on_click=emit(MergeSubmit),
         [@html.text(if model.merge_busy { "分发中…" } else { "分发" })],

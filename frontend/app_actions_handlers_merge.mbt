@@ -21,6 +21,7 @@ fn handle_merge_open(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
               merge_plugins: [],
               merge_plugin_picked: [],
               merge_loading: true,
+              merge_slide: 0,
             },
             merge_preview_cmd(source, emit),
           )
@@ -126,10 +127,29 @@ fn handle_merge_toggle(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mod
 }
 
 ///|
-/// 确认串输入。
-fn handle_merge_input(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+/// 滑动确认：指针把滑块推到某个百分比；到 95 以上松手才提交（低于就弹回）。
+fn handle_merge_slide(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
   match msg {
-    MergeConfirmInput(text) => ({ ..model, merge_confirm: text }, @cmd.none)
+    MergeSlide(v) => ({ ..model, merge_slide: if v < 0 { 0 } else if v > 100 { 100 } else { v } }, @cmd.none)
+    MergeSlideRelease =>
+      if model.merge_slide >= 95 {
+        handle_merge_submit({ ..model, merge_slide: 100 }, MergeSubmit, emit)
+      } else {
+        ({ ..model, merge_slide: 0 }, @cmd.none)
+      }
+    MergeSlideKey(key) =>
+      if key == "End" || (key == "Enter" && model.merge_slide >= 95) {
+        handle_merge_submit({ ..model, merge_slide: 100 }, MergeSubmit, emit)
+      } else if key == "ArrowRight" || key == "ArrowUp" || key == "Space" {
+        let next = model.merge_slide + 10
+        if next >= 100 {
+          handle_merge_submit({ ..model, merge_slide: 100 }, MergeSubmit, emit)
+        } else {
+          ({ ..model, merge_slide: next }, @cmd.none)
+        }
+      } else {
+        (model, @cmd.none)
+      }
     _ => (model, @cmd.none)
   }
 }
@@ -144,7 +164,7 @@ fn handle_merge_cancel(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Mod
       } else {
         let back = model.merge_return
         (
-          { ..model, merge_source: "", merge_targets: [], merge_confirm: "" },
+          { ..model, merge_source: "", merge_targets: [], merge_confirm: "", merge_slide: 0 },
           if back == "" { @cmd.none } else { focus_after_render(back) },
         )
       }
@@ -161,8 +181,8 @@ fn handle_merge_submit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
       let targets = model.merge_targets
       let confirm = model.merge_confirm
       let back = model.merge_return
-      if source == "" || targets.length() == 0 || confirm != "MERGE" ||
-        model.merge_plugin_picked.length() == 0 {
+      let _ = confirm
+      if source == "" || targets.length() == 0 || model.merge_plugin_picked.length() == 0 {
         (model, @cmd.none)
       } else {
         // 用磁盘目录名（web），不是卡片上带端口的那串（web :3080）：后端按 profile 目录找源。
@@ -190,6 +210,7 @@ fn handle_merge_submit(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Mode
           merge_source: "",
           merge_targets: [],
           merge_confirm: "",
+          merge_slide: 0,
           merge_busy: true,
         }
         (

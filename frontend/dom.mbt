@@ -715,3 +715,14 @@ fn scroll_bottom_after_render(id : String) -> @cmd.Cmd {
 fn scroll_into_view_after_render(id : String) -> @cmd.Cmd {
   @cmd.custom_cmd(fn(_scheduler) { js_scroll_into_view_id(id) }, kind=@cmd.after_render)
 }
+///|
+/// 滑动确认：指针在轨道里的百分比（0..100，按轨道宽度算）。
+extern "js" fn js_slide_percent(track_id : String, client_x : Double) -> Int =
+  #| (track_id, client_x) => {
+  #|   const el = document.getElementById(track_id);
+  #|   if (!el) return 0;
+  #|   const r = el.getBoundingClientRect();
+  #|   if (r.width <= 0) return 0;
+  #|   const pct = Math.round(((client_x - r.left) / r.width) * 100);
+  #|   return Math.max(0, Math.min(100, pct));
+  #| }
