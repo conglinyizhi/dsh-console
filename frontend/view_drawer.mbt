@@ -868,6 +868,6 @@ fn drawer_merge_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
       .data_set("action", "merge")
       .title("把这一只里的本地插件（node_modules/@local 与 file:/link: 依赖）分到别的 profile"),
     on_click=emit(MergeOpen(id=row.id, return_id="dsh-drawer-merge")),
-    [icon("send", size=14), @html.span("分发插件…")],
+    [icon("puzzle-outline", size=14), @html.span("分发插件…")],
   )
 }

@@ -316,7 +316,7 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
                 js_slide_capture("dsh-merge-slide")
                 emit(MergeSlideStart(js_slide_zone_pct("dsh-merge-slide", 72)))
               }),
-            [icon("send", size=14)],
+            [icon("chevron-right", size=14)],
           ),
         ],
       )
