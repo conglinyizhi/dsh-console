@@ -182,8 +182,31 @@ fn env_shown_id(target : EnvTarget, key : String) -> String {
 }
 
 ///|
-fn env_revealed(model : Model, target : EnvTarget, key : String) -> Bool {
-  model.env_shown.contains(env_shown_id(target, key))
+///|
+/// 默认打码的判据是**保守**的：宁可不泄露。键名命中敏感词、或值超过 60 字符，默认打码；
+/// 其余短值默认显示。用户点过「显示 / 隐藏」就以那次选择为准（env_shown 里记着）。
+fn env_sensitive_key(key : String) -> Bool {
+  let lower = key.to_lower()
+  for word in ["key", "password", "passwd", "token", "secret", "credential", "auth", "cookie", "private"] {
+    if lower.contains(word) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn env_revealed(model : Model, target : EnvTarget, key : String, value : String) -> Bool {
+  let id = env_shown_id(target, key)
+  // 用户按过「显示」的记成 id；按过「隐藏」的记成 "!" + id（一份数组两种记号，
+  // 免得再加一个字段 —— 两个方向都要能表达，否则短值默认可见就没法手动藏）。
+  if model.env_shown.contains(id) {
+    return true
+  }
+  if model.env_shown.contains("!" + id) {
+    return false
+  }
+  !(env_sensitive_key(key) || value.length() > 60)
 }
 
 ///|
@@ -287,7 +310,7 @@ fn env_value_cell(
   value : String,
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
-  if !env_revealed(model, target, key) {
+  if !env_revealed(model, target, key, env_control_text(model, target, key, value)) {
     return @html.span(
       class="dsh-env-mask",
       attrs=mark("env-mask", ["settings", "env", target.scope_id, key, "mask"])
@@ -334,7 +357,7 @@ fn env_row(
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
   let locked = env_is_reserved(model, key)
-  let revealed = env_revealed(model, target, key)
+  let revealed = env_revealed(model, target, key, env_control_text(model, target, key, value))
   let ops : Array[@html.Html] = if locked {
     [
       @html.span(
@@ -756,7 +779,7 @@ fn env_readonly_value(
   key : String,
   value : String,
 ) -> @html.Html {
-  if !env_revealed(model, target, key) {
+  if !env_revealed(model, target, key, value) {
     return @html.span(
       class="dsh-env-mask",
       attrs=mark("env-mask", ["settings", "env", target.scope_id, key, "mask"])
@@ -781,7 +804,7 @@ fn env_readonly_row(
   value : String,
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
-  let revealed = env_revealed(model, target, key)
+  let revealed = env_revealed(model, target, key, value)
   @html.div(
     class="dsh-env-row",
     attrs=mark("env-row", ["settings", "env", target.scope_id, key])
@@ -1078,7 +1101,7 @@ fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.p(
       class="dsh-dialog-message",
       attrs=mark("env-dialog-message", ["settings", "env", "dialog", "message"]),
-      "起实例时挂进子进程的变量；每只 profile 可以在抽屉里覆盖其中的键。值默认打码，点「显示」看原文。",
+      "含 key / password / token 这类字样的变量默认打码，点显示可看。起实例时挂进子进程的变量；每只 profile 可以在抽屉里覆盖其中的键。值默认打码，点「显示」看原文。",
     ),
     env_table(model, target, "还没有启动变量，加一行就会在起实例时带上", true, emit),
     @html.div(class="dsh-dialog-foot", [

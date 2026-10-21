@@ -215,17 +215,24 @@ fn handle_env_reveal(model : Model, msg : Msg, _emit : @cmd.Emit[Msg]) -> (Model
       match env_target_for_scope(model, scope) {
         None => (model, @cmd.none)
         Some(target) => {
+          // 三态：现在露着 → 记「明确隐藏」（"!" 前缀）；现在蒙着 → 记「明确显示」
           let id = env_shown_id(target, key)
-          let revealed = model.env_shown.contains(id)
+          let hidden_id = "!" + id
+          let entries = env_entries_of(model, target)
+          let mut value = ""
+          for pair in entries {
+            if pair.0 == key {
+              value = pair.1
+            }
+          }
+          let now_shown = env_revealed(model, target, key, value)
           let shown : Array[String] = []
           for item in model.env_shown {
-            if item != id {
+            if item != id && item != hidden_id {
               shown.push(item)
             }
           }
-          if !revealed {
-            shown.push(id)
-          }
+          shown.push(if now_shown { hidden_id } else { id })
           ({ ..model, env_shown: shown }, @cmd.none)
         }
       }
