@@ -3047,3 +3047,7 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
    行距由 .dsh-setting-row 与上面几条同一个节奏给，否则它比邻居高出一截。 */
 .dsh-settings-section { margin-top: 0; padding-top: 0; }
 .dsh-environment-section, .dsh-settings-section-title { margin-top: 0; }
+
+/* 与相邻设置项同一套行距（§102）：其它行由 .dsh-setting 给 12px 上下留白，
+   这一行不是那个类，所以显式补上同样的值；分区自身不再额外加留白。 */
+.dsh-setting-row { padding: 12px 0; }
