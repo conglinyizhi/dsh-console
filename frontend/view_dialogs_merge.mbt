@@ -14,10 +14,11 @@ fn merge_plugin_row(model : Model, name : String, version : String, kind : Strin
   let meta = kind_label + (if version == "" { "" } else { " · " + version })
   @html.div(
     class=if picked { "dsh-merge-row on" } else { "dsh-merge-row" },
-    attrs=mark("merge-plugin", ["dialog", "merge", "plugin", name]).data_set(
-      "picked",
-      if picked { "true" } else { "false" },
-    ),
+    attrs=mark("merge-plugin", ["dialog", "merge", "plugin", name])
+      .id("dsh-merge-plugin-" + name)
+      .data_set("picked", if picked { "true" } else { "false" })
+      .role("button")
+      .on_click(fn(_event) { emit(MergePluginToggle(name)) }),
     [
       @html.span(class="dsh-merge-ico", [icon("puzzle-outline", size=16)]),
       @html.div(class="dsh-merge-main", [
@@ -29,15 +30,13 @@ fn merge_plugin_row(model : Model, name : String, version : String, kind : Strin
           @html.div(class="dsh-merge-desc", description)
         },
       ]),
-      switch_control(
-        picked,
-        false,
-        name,
-        "分发这一只",
-        emit(MergePluginToggle(name)),
-        small=true,
-        key=name,
-        elem_id="dsh-merge-plugin-switch",
+      // 开关只是这一段的状态显示（整行才是可点的那个）；id 带行名，不重复
+      @html.span(
+        class=if picked { "dsh-switch small on" } else { "dsh-switch small" },
+        attrs=mark("merge-plugin-switch", ["dialog", "merge", "plugin-switch", name])
+          .id("dsh-merge-plugin-switch-" + name)
+          .aria_hidden("true"),
+        @html.nothing,
       ),
     ],
   )
@@ -58,25 +57,23 @@ fn merge_target_row(model : Model, row : Row, emit : @cmd.Emit[Msg]) -> @html.Ht
   let meta = row.kind + port_part
   @html.div(
     class=if picked { "dsh-merge-row on" } else { "dsh-merge-row" },
-    attrs=mark("merge-target", ["dialog", "merge", "target", name]).data_set(
-      "picked",
-      if picked { "true" } else { "false" },
-    ),
+    attrs=mark("merge-target", ["dialog", "merge", "target", name])
+      .id("dsh-merge-target-" + name)
+      .data_set("picked", if picked { "true" } else { "false" })
+      .role("button")
+      .on_click(fn(_event) { emit(MergeTargetToggle(name)) }),
     [
       @html.span(class="dsh-merge-ico", [icon("cube-outline", size=16)]),
       @html.div(class="dsh-merge-main", [
         @html.div(class="dsh-merge-name", row.name),
         @html.div(class="dsh-merge-meta", meta),
       ]),
-      switch_control(
-        picked,
-        false,
-        name,
-        "分发到这一只",
-        emit(MergeTargetToggle(name)),
-        small=true,
-        key=name,
-        elem_id="dsh-merge-target-switch",
+      @html.span(
+        class=if picked { "dsh-switch small on" } else { "dsh-switch small" },
+        attrs=mark("merge-target-switch", ["dialog", "merge", "target-switch", name])
+          .id("dsh-merge-target-switch-" + name)
+          .aria_hidden("true"),
+        @html.nothing,
       ),
     ],
   )
