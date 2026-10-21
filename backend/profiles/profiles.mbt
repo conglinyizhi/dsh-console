@@ -312,12 +312,93 @@ async fn declared_bundles(dir : String) -> Array[String] noraise {
 /// 有 pnpm-lock.yaml 用 pnpm、有 package-lock.json 用 npm，都没有按 pnpm
 /// （控制台自己这套生态就是 pnpm，缺 lock 时它最可能是这个项目的包管理器）。
 pub async fn repair_command_of(dir : String) -> String noraise {
-  if @json.exists(@json.join_path(dir, "pnpm-lock.yaml")) {
-    "pnpm install --prefer-offline"
-  } else if @json.exists(@json.join_path(dir, "package-lock.json")) {
-    "npm install --prefer-offline"
-  } else {
-    "pnpm install --prefer-offline"
+  repair_manager_of(dir) + " install --prefer-offline"
+}
+
+///|
+/// 这只 profile 该用哪个包管理器（§F）：
+/// 先认 package.json 的 packageManager 字段（"pnpm@9.1.0" → "pnpm"），
+/// 再按 lock 文件：pnpm-lock.yaml → pnpm、package-lock.json → npm，都没有按 pnpm。
+pub async fn repair_manager_of(dir : String) -> String noraise {
+  match package_manager_field(dir) {
+    Some(name) => name
+    None =>
+      if @json.exists(@json.join_path(dir, "package-lock.json")) &&
+        !@json.exists(@json.join_path(dir, "pnpm-lock.yaml")) {
+        "npm"
+      } else {
+        "pnpm"
+      }
+  }
+}
+
+///|
+/// package.json 里声明的 packageManager（只取 @ 前面那段；读不到给 None）。
+async fn package_manager_field(dir : String) -> String? noraise {
+  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+    Ok(t) => t
+    Err(_) => return None
+  }
+  let json = match @json.json_parse(text) {
+    Some(j) => j
+    None => return None
+  }
+  let raw = match @json.json_field(json, "packageManager") {
+    Some(v) =>
+      match @json.json_string(v) {
+        Some(s) => s
+        None => return None
+      }
+    None => return None
+  }
+  let trimmed = @json.trim_both(raw)
+  if trimmed == "" {
+    return None
+  }
+  match @json.index_of(trimmed, "@") {
+    Some(i) => Some(@json.slice(trimmed, 0, i))
+    None => Some(trimmed)
+  }
+}
+
+///|
+/// 这个可执行文件在不在 PATH 上（返回找到的绝对路径，找不到给 None）。
+/// 不跑子进程：直接扫 PATH 里的目录，省得等一次 spawn。
+pub async fn manager_in_path(name : String) -> String? noraise {
+  let path = match @json.env_value("PATH") {
+    Some(p) => p
+    None => return None
+  }
+  for part in path.split(":") {
+    let dir = @json.owned(part)
+    let candidate = @json.join_path(dir, name)
+    if @json.exists(candidate) {
+      return Some(candidate)
+    }
+  }
+  None
+}
+
+///|
+/// 补包前先拦住的那几种情况（§F）：真拦下来时给一句人话，能跑就给 None。
+/// · 这只 profile 用 Yarn PnP（有 .pnp.cjs）→ 不走 node_modules，控制台不代跑；
+/// · 选中的包管理器不在 PATH 上 → 直接说「这台机器上没有包管理器」，别等超时。
+pub async fn repair_refusal(dir : String) -> (String, String)? noraise {
+  let manager = repair_manager_of(dir)
+  if manager == "yarn" && @json.exists(@json.join_path(dir, ".pnp.cjs")) {
+    return Some((
+      "unsupported-manager",
+      "这只 profile 用的是 Yarn PnP（有 .pnp.cjs）：包不在 node_modules 里，补包得用它自己的 yarn，" +
+      "控制台不代跑。",
+    ))
+  }
+  match manager_in_path(manager) {
+    Some(_) => None
+    None =>
+      Some((
+        "no-package-manager",
+        "这台机器上没有包管理器：" + manager + " 不在 PATH 上（补包要它；先装上或换一只 profile）",
+      ))
   }
 }
 

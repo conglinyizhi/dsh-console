@@ -553,6 +553,18 @@ Body: { "action": "<动作名>", "params": { ... } }   delete-profile 硬删时�
 > `busy` / `install-failed` / `install-incomplete` 是补包那一轮（第九轮）加的三个码：
 > 同一只 profile 已经有一个补包在跑（`busy`，409）、包管理器退出码非 0 或超时（`install-failed`）、
 > 装完了按 `dsh.profile.bundles` 重算仍缺（`install-incomplete`）。后两条的 message 都带日志路径。
+>
+> 后来又拆/加了三个（都在补包这一族，message 都带日志路径或直接说清原因）：
+> - `packages-not-found`（500）：跑完仍缺包，且 install 日志里有 registry 说「没这个包」的证据
+>   （`ERR_PNPM_FETCH_404` / `404 Not Found` / `E404`）。message 列出缺的包名并说「得改 package.json」——
+>   这一档重试多少次都没用，下一步是改声明，不是再点一次。
+> - `no-package-manager`（500）：开跑**之前**就拦下——这只 profile 选中的包管理器不在 `PATH` 上。
+>   不拦的话要等满 120 秒超时，而等下去也不会有转机。
+> - `unsupported-manager`（500）：这只 profile 是 Yarn PnP（目录里有 `.pnp.cjs`），包不在 `node_modules` 里，
+>   控制台不代跑，说明里让用它自己的 yarn。
+>
+> 补包用哪个包管理器：先认 `package.json` 的 `packageManager` 字段（`pnpm@9.1.0` → `pnpm`），
+> 再按 lock 文件（`pnpm-lock.yaml` → pnpm、`package-lock.json` → npm），都没有按 pnpm。
 
 > `dsh-not-installed` 是版本切换那一轮加的第八个码（原契约七码之外）。为什么单开一条：
 > 那是**调用方点了一个不是安装的目录**，不是读写失败 —— message 里把「这台机器上装着哪几份」都列出来了，

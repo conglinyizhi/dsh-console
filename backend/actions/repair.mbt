@@ -92,6 +92,18 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
   let missing_before = @profiles.missing_bundles_in(dir, shared)
   let command = @profiles.repair_command_of(dir)
   let argv = @profiles.repair_argv_of(dir)
+  // §F：跑之前先拦两种跑不成的 —— 包管理器不在机器上、或这只 profile 是 Yarn PnP。
+  // 拦在这里是为了不等那 120 秒超时：这两种情况等下去也不会有转机。
+  match @profiles.repair_refusal(dir) {
+    Some(pair) => {
+      // 新码在 respond.mbt 的 fail() 白名单之外会被收敛成 io-error，这里用 bad-params：
+      // 语义是「这次请求在这个环境下办不成」，不是服务端读写失败。
+      let _ = pair.0
+      fail("bad-params", pair.1)
+      abort("unreachable: fail 一定抛错")
+    }
+    None => ()
+  }
   let state = @store.state_paths()
   let logs_dir = @json.join_path(state.dir, "logs")
   match @fsx.ensure_dir(logs_dir) {
@@ -196,6 +208,8 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
   }
   let duration = (@async.now() - began).to_int()
   let missing_after = @profiles.missing_bundles_in(dir, shared)
+  // §E：日志里有没有「registry 说没这个包」的证据 —— 有的话，重试多少次都没用，下一步是改 package.json。
+  let not_in_registry = log_mentions_missing(log_path)
   let outcome = @json.JObj([
     ("profile", @json.JStr(profile)),
     ("home", @json.JStr(home)),
@@ -216,6 +230,16 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
       "补包超过 " + (repair_timeout_ms / 1000).to_string() + " 秒，已经收掉；日志 " + log_path,
     )
     abort("unreachable: fail 一定抛错")
+  } else if not_in_registry {
+    // §E 第一档：registry 里根本没有（404 / ERR_PNPM_FETCH_404）。退出码通常非 0，但也可能
+    // 「其它包装上了、这一个没装上」而退出 0 —— 两条出口都先看这个证据。
+    set_failure_outcome(outcome)
+    fail(
+      "install-incomplete",
+      "这几个在 registry 里找不到，得改 package.json：" + join_names(missing_after) +
+      "（重试不会变好）；日志 " + log_path,
+    )
+    abort("unreachable: fail 一定抛错")
   } else if exit_code != 0 {
     set_failure_outcome(outcome)
     fail(
@@ -229,7 +253,7 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
     fail(
       "install-incomplete",
       "装了，但还缺 " + missing_after.length().to_string() + " 个（" +
-      join_names(missing_after) + "）；日志 " + log_path,
+      join_names(missing_after) + "），可以重试；日志 " + log_path,
     )
     abort("unreachable: fail 一定抛错")
   } else {
@@ -244,6 +268,18 @@ async fn run_repair(profile : String, home : String, dir : String) -> @json.Json
       ),
     ])
   }
+}
+
+///|
+/// 日志里有没有「registry 里没有这个包」的证据（§E）：pnpm 的 ERR_PNPM_FETCH_404 / 404 Not Found。
+async fn log_mentions_missing(path : String) -> Bool noraise {
+  let text = match @json.read_text_file(path) {
+    Ok(t) => t
+    Err(_) => return false
+  }
+  let upper = text.to_upper()
+  upper.contains("ERR_PNPM_FETCH_404") || upper.contains("404 NOT FOUND") ||
+  upper.contains("E404") || upper.contains("NOT FOUND - 404")
 }
 
 ///|
