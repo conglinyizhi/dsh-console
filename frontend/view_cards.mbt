@@ -328,19 +328,19 @@ fn card_home_badge(row : Row) -> @html.Html {
   if row.home_kind != "isolated" {
     return @html.nothing
   }
-  let where_text = if row.home_path == "" { "这只 profile 的独立 home" } else { row.home_path }
+  let where_text = if row.home_path == "" { "它自己的目录" } else { row.home_path }
   @html.span(
     class="dsh-home-badge",
     attrs=mark("card-home-badge", ["overview", "card", row.id, "home"])
       .data_set("home-kind", row.home_kind)
       .role("img")
-      .aria_label("独立 home")
+      .aria_label("隔离")
       .title(
-        "独立 home：这只 profile 的目录在 " + where_text +
+        "隔离：这只 profile 的目录在 " + where_text +
         " 里，它起的实例用自己的 sessions / storages / logs，炸也炸不到别的 profile。" +
         "状态灯的颜色照旧只看运行状态，与这一道金边无关",
       ),
-    [@html.text("独立 home")],
+    [@html.text("隔离")],
   )
 }
 

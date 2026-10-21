@@ -352,7 +352,7 @@ fn manual_start_panel(model : Model) -> @html.Html {
       ]),
       @html.p(
         class="dsh-foot",
-        "隔离到独立 home 的 profile 也这样起：把 DSH_HOME 换成那份隔离 home 的路径即可" +
+        "隔离到自己的 home 的 profile 也这样起：把 DSH_HOME 换成那份隔离 home 的路径即可" +
         "（总览抽屉里「配置 home」那一格写着路径）。",
       ),
     ],

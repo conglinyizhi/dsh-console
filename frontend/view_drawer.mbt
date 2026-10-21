@@ -264,7 +264,7 @@ fn drawer_open_ui_split(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @htm
 fn home_kind_text(kind : String) -> String {
   match kind {
     "trial" => "试跑"
-    "isolated" => "独立"
+    "isolated" => "隔离"
     "shared" => "共用"
     _ => "读不到"
   }
@@ -303,7 +303,7 @@ fn home_field_hint(row : Row) -> String {
     (if row.home_kind_source == "" { "" } else { "\n依据：" + row.home_kind_source })
   } else {
     let kind_line = match row.home_kind {
-      "isolated" => "独立：起实例用的是这份 home，与共用 DSH_HOME 分开"
+      "isolated" => "隔离：起实例用的是这份 home，与共用 DSH_HOME 分开"
       "shared" => "共用：与控制台自己的 DSH_HOME 是同一份"
       "trial" => "试跑：维护作业开的一次性 home，作业收尾时删掉"
       _ => "这一版读数里没有「配置 home」这一项：独立还是共用，这一格不猜"
@@ -502,13 +502,13 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
           .data_set("action", "deisolate-home")
           .data_set("state", if moving { "moving" } else { "idle" })
           .title(
-            "把这份 profile 的目录移回共用 home（" + row.home_path +
+            "把这份 profile 的目录移至共用 home（" + row.home_path +
             "/profiles），这份额外 home 里剩下的会话与插件状态移到回收站，可以捞回来",
           ),
         on_click=emit(RowAction(row.id, DeisolateHome)),
         [
           icon("home-outline"),
-          @html.span(if moving { "正在移动…" } else { "移回共用 home" }),
+          @html.span(if moving { "正在移动…" } else { "移至共用 home" }),
         ],
       ),
     )
@@ -545,7 +545,7 @@ fn drawer_controls(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Htm
         on_click=emit(RowAction(row.id, IsolateHome)),
         [
           icon("folder-move-outline"),
-          @html.span(if moving { "正在移动…" } else { "移到独立 home" }),
+          @html.span(if moving { "正在移动…" } else { "移至隔离 home" }),
         ],
       ),
     )

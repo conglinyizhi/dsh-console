@@ -226,7 +226,7 @@ fn handle_row_action(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
             id,
             "isolate-profile",
             row_name(model, id),
-            "移到独立 home",
+            "移至隔离 home",
             match find_row(model.rows, id) {
               Some(row) => params_of(profile_name_pairs(row))
               None => ""

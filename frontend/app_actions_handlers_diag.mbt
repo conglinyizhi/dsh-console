@@ -55,7 +55,7 @@ fn handle_home_deisolate_confirm(model : Model, msg : Msg, emit : @cmd.Emit[Msg]
             confirm_id,
             "deisolate-profile",
             row.name,
-            "移回共用 home",
+            "移至共用 home",
             params,
             emit,
             confirm="DELETE",

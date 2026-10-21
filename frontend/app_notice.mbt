@@ -170,9 +170,9 @@ fn action_receipt(
       None => ("", "")
     }
     let text = if to == "" {
-      name + " 已经移到独立 home。"
+      name + " 已经移至隔离 home。"
     } else {
-      name + " 已经移到独立 home：" + to + "（原来那份不再留在共用 home 里）。"
+      name + " 已经移至隔离 home：" + to + "（原来那份不再留在共用 home 里）。"
     }
     let hint = match outcome {
       Some(outcome) =>
@@ -200,9 +200,9 @@ fn action_receipt(
       None => ""
     }
     let head = if to == "" {
-      name + " 的目录已经移回共用 home。"
+      name + " 的目录已经移至共用 home。"
     } else {
-      name + " 的目录已经移回共用 home：" + to + "。"
+      name + " 的目录已经移至共用 home：" + to + "。"
     }
     let tail = if trash == "" {
       ""

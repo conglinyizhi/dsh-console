@@ -281,12 +281,12 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 文案照 design/deep-home-isolation.md §9.4 第 3 条 / §9.5：
   // 移回本身不动内容，进回收站的是「剩下那份 home 里的会话与插件状态」，而且能捞回来。
   let where_text = if path == "" { "这份额外 home" } else { path }
-  let message = "移回共用 home 会把这份额外 home 里剩下的会话与插件状态移到回收站，可以捞回来。"
+  let message = "移至共用 home 会把这份额外 home 里剩下的会话与插件状态移到回收站，可以捞回来。"
   let card = @html.div(class="dsh-dialog-card", [
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("home-dialog-title", ["dialog", "home-confirm-dialog", "title"]),
-      "移回共用 home？",
+      "移至共用 home？",
     ),
     @html.p(
       class="dsh-dialog-message",
@@ -301,7 +301,7 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         type_="button",
         attrs=mark("home-dialog-ok", ["dialog", "home-confirm-dialog", "ok"]),
         on_click=emit(HomeDeisolateConfirm),
-        [@html.text("移回共用 home")],
+        [@html.text("移至共用 home")],
       ),
       @html.button(
         class="dsh-dialog-btn",
@@ -314,7 +314,7 @@ fn home_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "home-confirm-dialog",
-    "移回共用 home " + name + "？",
+    "移至共用 home " + name + "？",
     emit(HomeDeisolateCancel),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {
