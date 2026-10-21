@@ -664,6 +664,19 @@ pub async fn create_base_profile(name_in : String) -> BaseProfileOutcome raise A
     }
     None => ()
   }
+  // 给新 profile 写一条默认备注（§64）：没有备注时卡片第二行是空的，界面看着像少了什么。
+  // 与「从某只派生」那一条同一套落点（<profile 目录>/.dsh-note.txt），只是文案不同。
+  // 写失败不算建失败：目录已经建好并核对过，为一个备注把整件事报成失败是假报。
+  let note_path = @json.join_path(dir, @profiles.note_file_name)
+  let note_stamp = match @json.local_stamp_from_epoch_ms(@async.now()) {
+    Some(s) =>
+      match @json.local_zone_name() {
+        Some(zone) => s + " " + zone
+        None => s
+      }
+    None => @json.iso_from_epoch_ms(@async.now()) + "（本地时区读不到，按 UTC）"
+  }
+  let _ = @fsx.write_text_atomic(note_path, "从基础模板新建 · " + note_stamp)
   // 默认隔离，与派生同一档（design/deep-home-isolation.md 第 8 节）。
   // 隔离失败不许让「建成了」变成「失败了」：profile 已经在磁盘上、也核对过了，
   // 为了一个 home 把整件事报成失败是假报 —— 原因原样带回去，回执照实说。
