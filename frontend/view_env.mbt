@@ -483,10 +483,10 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
-/// 抽屉「配置」组里那一颗：打开这只 profile 的启动环境对话框（§61.3）。
+/// 抽屉「操作」组里那一颗：打开这只 profile 的启动环境对话框（§61.3）。
 ///
-/// 名字写全「这只 profile 的启动环境」而不是「环境变量」：它只影响这一只，
-/// 与设置页那一组（全局）是一对，短名字容易被读成「又在设置页看见过」。
+/// 名字用「环境变量」四个字：它在「操作」组里，上下文已经说明了这是「这一只的」，
+/// 长名字（「这只 profile 的启动环境」）反而要占半行。作用域写在悬停里说清。
 fn drawer_env_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
   @html.button(
     class="dsh-btn",
@@ -494,9 +494,11 @@ fn drawer_env_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     disabled=row.busy,
     attrs=mark("drawer-env", ["overview", "drawer", row.id, "action", "env"])
       .data_set("action", "env")
-      .title("起这只 profile 时挂进子进程的变量；这里设的同名键覆盖全局那一份"),
+      .title(
+        "这只 profile 的启动环境：起它时挂进子进程的变量，同名键覆盖设置页那份全局的",
+      ),
     on_click=emit(EnvProfileOpen(row.id)),
-    [icon("key-variant"), @html.span("这只 profile 的启动环境")],
+    [icon("key-variant"), @html.span("环境变量")],
   )
 }
 
