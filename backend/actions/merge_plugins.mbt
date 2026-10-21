@@ -1078,7 +1078,7 @@ fn merge_note(reports : Array[MergeTarget]) -> String {
   }
   let base = copied.to_string() + " 个插件复制完成"
   if failed > 0 {
-    base + "，" + failed.to_string() + " 个插件复制失败，详见日志"
+    base + "，" + failed.to_string() + " 个插件复制失败，详细原因在「日志 → 动作」里本次这一条"
   } else if overwritten > 0 {
     base + "，其中 " + overwritten.to_string() + " 个插件产生覆盖"
   } else {
