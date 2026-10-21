@@ -2994,3 +2994,6 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 @media (max-width: 520px) {
   .dsh-merge-card { width: 100%; max-width: none; }
 }
+
+/* 滑动条与下方汇总文字之间留出气口（§82）：原来两者贴着，文字压到轨道下沿 */
+.dsh-merge-slide { margin: 10px 0 18px; }

@@ -1114,3 +1114,9 @@ GET /api/local/console 带 buildSha / buildAt；页脚状态灯旁显示 client 
 启动日志只留三行：dsh-console 加短 sha、空行、http://地址；其余细节移进 README。
 页脚状态灯下把 client / server 两个 sha 分成两行（各占 100% 宽、左缩 16px），
 不再挤在「服务端在线」同一行；两个 sha 不一致时一眼能看出哪边没更新。
+
+## 82 滑动确认能真正拖动
+
+按下时只置「正在拖」（MergeSlideStart），位移交给 pointermove —— 之前 pointerdown 直接发位移、
+而位移处理器要求「已在拖」，两者互锁，滑块永远不动。
+实测：按住从左拖到右，data-slide 9 → 99；松手命中提交，回执按预期落到后端。

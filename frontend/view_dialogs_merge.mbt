@@ -227,8 +227,9 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           .data_set("slide", model.merge_slide.to_string())
           .aria_label("向右滑动分发")
           .title("拖到最右端（或按 End / 方向键到最右）才分发；松手没到位会弹回")
-          .on_pointerdown(fn(event) {
-            emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
+          .on_pointerdown(fn(_event) {
+            // 按下只置「正在拖」：位移交给 pointermove（它只在拖动期间生效）。
+            emit(MergeSlideStart)
           })
           .on_pointermove(fn(event) {
             emit(MergeSlide(js_slide_percent("dsh-merge-slide", event.get_client_x())))
