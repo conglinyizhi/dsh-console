@@ -736,22 +736,25 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     class="dsh-settings-section",
     attrs=mark("env-section", ["settings", "env", "section"]),
     [
-      // 小标题带完整说明的悬停；正文只留前半句（降密度）：后半句「某只 profile 可以覆盖」
-      // 讲的是抽屉里那一张表，正摆在设置页的人此刻用不上。
-      @html.h3(
-        class="dsh-settings-section-title",
-        attrs=@html.Attrs::build().title(
-          "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以在抽屉里再覆盖其中的键",
-        ),
-        "全局启动变量",
-      ),
-      // 一条设置项占一行（§100）：左边标题与说明，右边一颗「编辑…」。
-      // 摘要文字（已设置 N 条 · 键名…）撤掉 —— 那是给眼睛的噪音，想看在专窗里看。
-      @html.div(
-        class="dsh-setting-row",
-        attrs=mark("env-open-row", ["settings", "env", "open-row"]),
-        [
-          @html.p(class="dsh-settings-section-note", "起实例时挂进子进程的变量"),
+      // 直接复刻下面「继承系统环境变量」那一行的结构（§103）：左 main、右 control。
+      // 之前把标题和按钮塞进同一个 div，行距怎么调都对不齐。
+      @html.div(class="dsh-env-option", [
+        @html.div(class="dsh-env-option-main", [
+          @html.div(
+            class="dsh-env-option-name",
+            attrs=mark("env-open-name", ["settings", "env", "open", "name"])
+              .title(
+                "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以在抽屉里再覆盖其中的键",
+              ),
+            "全局启动变量",
+          ),
+          @html.p(
+            class="dsh-env-option-desc",
+            attrs=mark("env-open-desc", ["settings", "env", "open", "desc"]),
+            "起实例时挂进子进程的变量",
+          ),
+        ]),
+        @html.div(class="dsh-env-option-control", [
           @html.button(
             class="dsh-btn",
             type_="button",
@@ -760,8 +763,8 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             on_click=emit(EnvGlobalOpen),
             [@html.text("编辑…")],
           ),
-        ],
-      ),
+        ]),
+      ]),
       env_options_block(model, emit),
     ],
   )
