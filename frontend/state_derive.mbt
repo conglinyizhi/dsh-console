@@ -40,7 +40,7 @@ pub let not_in_console_home_note : String = "这只 profile 不在控制台的 D
 ///|
 /// 页脚那颗灯的轮询间隔（毫秒）与单次探测的超时（design/design-fixes.md §31.1）：
 /// 每 5 秒查一次，单次超过 3 秒没有应答就算这一次失败。
-pub let health_poll_ms : Int = 5000
+pub let health_poll_ms : Int = 3000
 
 ///|
 pub let health_timeout_ms : Int = 3000

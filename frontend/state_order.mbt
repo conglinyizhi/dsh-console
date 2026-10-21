@@ -626,7 +626,9 @@ fn in_use_by(fact : ProfileFact, running : Array[InstanceFact], profiles_home : 
             Some(h) => h
             None => ""
           }
-          if same_home(inst_home, profiles_home) {
+          // home 认不出时（隔离读数缺字段）宁可当成共享 home：藏错一行是列表少一条，
+          // 不藏就是「同一只 profile 同时出现在运行中与已停止」两处（§92 实测到的 bug）
+          if same_home(inst_home, profiles_home) || fact.home_path == "" {
             return true
           }
         }
