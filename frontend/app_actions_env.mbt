@@ -347,8 +347,16 @@ fn handle_env_dialog(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model,
     )
     EnvGlobalClose => ({ ..model, env_global_open: false }, @cmd.none)
     EnvGotoProcess => {
-      let closed = { ..model, env_global_open: false, env_open: "" }
-      handle_settings_group_picked(closed, SettingsGroupPicked("process"), emit)
+      // handle_settings_group_picked 只改分组与路由，不切页：从总览打开框再点这条链接，
+      // 于是只关了框、人还站在总览（§99 实测）。这里把页一起切到设置并推路由。
+      let closed = {
+        ..model,
+        env_global_open: false,
+        env_open: "",
+        page: Settings,
+        settings_group: "process",
+      }
+      (closed, push_route(route_url(Settings, "process", closed.log_source)))
     }
     EnvToggleExpand(key) => {
       let next : Array[String] = []
