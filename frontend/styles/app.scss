@@ -3012,3 +3012,10 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 
 /* 滑块只认按住球（§90）：球自己接 pointerdown，轨道上的其它位置不启动拖动。 */
 .dsh-merge-slide-knob { pointer-events: auto; cursor: grab; }
+
+/* N8：启动变量编辑器（摘要行 / 720 宽专窗 / 长值展开） */
+.dsh-env-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
+.dsh-env-summary-text { color: $text-mid; font-size: 12.5px; overflow: hidden; }
+.dsh-env-dialog { width: 720px; max-width: 92vw; }
+.dsh-env-long { display: flex; align-items: flex-start; gap: 8px; width: 100%; }
+.dsh-env-input.is-wide { height: 56px; min-height: 56px; }

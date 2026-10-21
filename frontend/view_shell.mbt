@@ -595,6 +595,13 @@ fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       global_notice(model, emit),
       // 通知历史侧栏（§36）：也挂在 shell 这一层 —— 打开时切页不该把它带走。
       notice_panel(model, emit),
+      // 全局启动变量专窗（§94）：它从设置页打开，而设置页不渲染总览的 dialogs 列表，
+      // 挂在 shell 才会出现（挂在 overview 里时探针永远 open:false）。
+      if model.env_global_open {
+        env_global_dialog(model, emit)
+      } else {
+        @html.nothing
+      },
     ],
   )
 }

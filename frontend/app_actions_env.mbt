@@ -330,3 +330,64 @@ fn handle_env_saved(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, 
     _ => (model, @cmd.none)
   }
 }
+///|
+/// N8：全局启动变量专窗 + 长值展开 + 「填入本机代理建议」。
+fn handle_env_dialog(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd.Cmd) {
+  match msg {
+    EnvGlobalOpen => (
+      { ..model, env_global_open: true, env_expanded: [] },
+      focus_after_render("dsh-env-global-close"),
+    )
+    EnvGlobalClose => ({ ..model, env_global_open: false }, @cmd.none)
+    EnvToggleExpand(key) => {
+      let next : Array[String] = []
+      let mut had = false
+      for item in model.env_expanded {
+        if item == key {
+          had = true
+        } else {
+          next.push(item)
+        }
+      }
+      if !had {
+        next.push(key)
+      }
+      ({ ..model, env_expanded: next }, @cmd.none)
+    }
+    EnvSuggestFill(scope_id) => {
+      let target = if scope_id == env_target_global().scope_id {
+        Some(env_target_global())
+      } else {
+        env_target_open(model)
+      }
+      match target {
+        Some(t) => {
+          let entries = env_entries_of(model, t)
+          let added : Array[String] = []
+          let kept : Array[String] = []
+          let mut merged = entries
+          for pair in env_suggestion_pairs() {
+            if entries.any(fn(e) { e.0 == pair.0 }) {
+              kept.push(pair.0)
+            } else {
+              added.push(pair.0)
+              merged = env_entries_with(merged, pair.0, pair.1)
+            }
+          }
+          if added.length() == 0 {
+            (model, @cmd.none)
+          } else {
+            // 回执要具体：补了哪几条、哪几条本来就有
+            let text = "补了 " + added.join("、") + " " + added.length().to_string() +
+              " 条（" + (if kept.length() == 0 { "没有本来就在的" } else { kept.join("、") + " 本来就有" }) +
+              "）"
+            let (next, cmd) = env_save(model, t, merged, emit)
+            (notice_ok(next, text, "启动变量建议"), cmd)
+          }
+        }
+        None => (model, @cmd.none)
+      }
+    }
+    _ => (model, @cmd.none)
+  }
+}

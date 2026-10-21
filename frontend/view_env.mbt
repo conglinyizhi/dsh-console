@@ -295,9 +295,11 @@ fn env_value_cell(
       "••••••",
     )
   }
-  @html.input(
+  let long = value.length() > 60
+  let expanded = model.env_expanded.contains(key)
+  let input = @html.input(
     input_type=Text,
-    class="dsh-env-input",
+    class=if long && expanded { "dsh-env-input is-wide" } else { "dsh-env-input" },
     value=env_control_text(model, target, key, value),
     attrs=mark("env-input", ["settings", "env", target.scope_id, key, "input"])
       .aria_label(key + " 的值")
@@ -305,6 +307,21 @@ fn env_value_cell(
     on_input=emit.map(fn(text) { EnvDraft(target.scope, key, text) }),
     on_change=emit.map(fn(text) { EnvCommit(target.scope, key, text) }),
   )
+  if !long {
+    return input
+  }
+  @html.div(class="dsh-env-long", [
+    input,
+    @html.button(
+      class="dsh-env-btn",
+      type_="button",
+      attrs=mark("env-expand", ["settings", "env", target.scope_id, key, "expand"]).title(
+        "值很长：展开成多行看全，改完失焦即存",
+      ),
+      on_click=emit(EnvToggleExpand(key)),
+      [@html.text(if expanded { "收起" } else { "展开" })],
+    ),
+  ])
 }
 
 ///|
@@ -473,6 +490,27 @@ fn env_table(
   }
   if editable {
     body.push(env_add_row(model, target, emit))
+    // N8：只补缺、不覆盖；没有缺项时禁用（点了也不会写坏）
+    let mut missing_count = 0
+    for pair in env_suggestion_pairs() {
+      if !entries.any(fn(e) { e.0 == pair.0 }) {
+        missing_count = missing_count + 1
+      }
+    }
+    body.push(
+      @html.div(class="dsh-env-suggest-row", [
+        @html.button(
+          class="dsh-env-btn",
+          type_="button",
+          disabled=missing_count == 0,
+          attrs=mark("env-suggest", ["settings", "env", target.scope_id, "suggest"]).title(
+            "把本机代理那一组变量补进来：只补缺的键，已有的一律不覆盖",
+          ),
+          on_click=emit(EnvSuggestFill(target.scope_id)),
+          [@html.text("填入本机代理建议")],
+        ),
+      ]),
+    )
   } else {
     body.push(
       @html.p(
@@ -650,7 +688,8 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         "全局启动变量",
       ),
       @html.p(class="dsh-settings-section-note", "起实例时挂进子进程的变量"),
-      env_table(model, target, "还没有启动变量，加一行就会在起实例时带上", true, emit),
+      // N8：不再内联整张表 —— 一行摘要 + 「编辑…」开专窗（Windows 10 之后那种 PATH 编辑器）
+      env_summary(model, target, emit),
       env_options_block(model, emit),
     ],
   )
@@ -1002,6 +1041,96 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {
         EnvProfileClose
+      } else {
+        Noop
+      }
+    }),
+    card,
+  )
+}
+///|
+/// N8：使用者这台机器上绕代理要挂的一组变量（只作「建议」，不是缺省值）。
+/// 只补缺：已有的键一律不覆盖。
+pub fn env_suggestion_pairs() -> Array[(String, String)] {
+  [
+    ("no_proxy", "localhost,127.0.0.1,::1,[::1],tokenflux.dev"),
+    ("NO_PROXY", "localhost,127.0.0.1,::1,[::1],tokenflux.dev"),
+    ("NODE_USE_ENV_PROXY", "1"),
+    ("NODE_OPTIONS", "--network-family-autoselection-attempt-timeout=3000"),
+  ]
+}
+///|
+/// N8：设置页里的摘要行（已设置 N 条 · 前三个键名）+「编辑…」。
+/// 空态写「还没设置」，但「编辑…」照样在——入口不能因为没有条目就消失。
+fn env_summary(model : Model, target : EnvTarget, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let entries = env_entries_of(model, target)
+  let names : Array[String] = []
+  for pair in entries {
+    if names.length() < 3 {
+      names.push(pair.0)
+    }
+  }
+  let text = if entries.length() == 0 {
+    "还没设置"
+  } else {
+    "已设置 " + entries.length().to_string() + " 条 · " + names.join("、") +
+    (if entries.length() > 3 { " …" } else { "" })
+  }
+  @html.div(
+    class="dsh-env-summary",
+    attrs=mark("env-summary", ["settings", "env", target.scope_id, "summary"]),
+    [
+      @html.span(
+        class="dsh-env-summary-text",
+        attrs=mark("env-summary-text", ["settings", "env", target.scope_id, "summary-text"]),
+        text,
+      ),
+      @html.button(
+        class="dsh-btn",
+        type_="button",
+        attrs=mark("env-open", ["settings", "env", target.scope_id, "open"])
+          .title("打开启动变量编辑器：增删改、长值展开、只补缺的建议"),
+        on_click=emit(EnvGlobalOpen),
+        [@html.text("编辑…")],
+      ),
+    ],
+  )
+}
+
+///|
+/// N8：全局启动变量的专窗（720 宽；窄屏整屏单列）。
+fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
+  let target = env_target_global()
+  let card = @html.div(class="dsh-dialog-card dsh-env-dialog", [
+    @html.h2(
+      class="dsh-dialog-title",
+      attrs=mark("env-dialog-title", ["settings", "env", "dialog", "title"]),
+      "全局启动变量",
+    ),
+    @html.p(
+      class="dsh-dialog-message",
+      attrs=mark("env-dialog-message", ["settings", "env", "dialog", "message"]),
+      "起实例时挂进子进程的变量；每只 profile 可以在抽屉里覆盖其中的键。值默认打码，点「显示」看原文。",
+    ),
+    env_table(model, target, "还没有启动变量，加一行就会在起实例时带上", true, emit),
+    @html.div(class="dsh-dialog-foot", [
+      @html.button(
+        id="dsh-env-global-close",
+        class="dsh-dialog-btn",
+        type_="button",
+        attrs=mark("env-dialog-close", ["settings", "env", "dialog", "close"]),
+        on_click=emit(EnvGlobalClose),
+        [@html.text("关闭")],
+      ),
+    ]),
+  ])
+  dialog(
+    "env-global-dialog",
+    "全局启动变量",
+    emit(EnvGlobalClose),
+    emit.map(fn(key : @html.Keyboard) {
+      if key.key() == "Escape" {
+        EnvGlobalClose
       } else {
         Noop
       }

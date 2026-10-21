@@ -30,7 +30,12 @@ pub fn app() -> @rabbita.Val[@html.Html] {
       (
         boot,
         @cmd.batch([
-          load(emit),
+          @cmd.batch([
+            load_runtime(emit),
+            load_readings(emit),
+            load_console(emit),
+            load_releases(emit),
+          ]),
           enter,
           read_settings,
           listen_popstate(emit),

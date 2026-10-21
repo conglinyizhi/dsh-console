@@ -393,6 +393,10 @@ struct Model {
   env_add_value : String
   /// 抽屉里「这只 profile 的启动变量」对话框指着哪一行（空串 = 关着）
   env_open : String
+  /// 设置页那颗「编辑…」开的是全局对话框（与抽屉那只 profile 的对话框互不影响）
+  env_global_open : Bool
+  /// 长值展开了的行（键名；失焦保存后不清，方便对着看）
+  env_expanded : Array[String]
   /// 这只在跑的实例，启动变量是不是已经**解锁修改**（M / 只读档）。
   ///
   /// 默认 false：实例在跑时那张表先按只读摆（改完要下次启动才生效，先让人看清
@@ -790,6 +794,13 @@ priv enum Msg {
   EnvReveal(String, String)
   /// 打开抽屉里这只 profile 的启动环境对话框（带行 id）
   EnvProfileOpen(String)
+  /// 设置页「编辑…」：打开全局启动变量的专窗
+  EnvGlobalOpen
+  EnvGlobalClose
+  /// 长值那一行展开 / 收起
+  EnvToggleExpand(String)
+  /// 把本机代理建议里缺的键补进这个作用域（只补缺）
+  EnvSuggestFill(String)
   EnvProfileClose
   /// 这只在跑：只读档上那颗「仍然修改」—— 解锁本次编辑（不改任何读数，只翻本地一格）
   EnvEditUnlock
@@ -958,6 +969,8 @@ fn initial_model() -> Model {
     env_add_key: "",
     env_add_value: "",
     env_open: "",
+    env_global_open: false,
+    env_expanded: [],
     env_edit_unlocked: false,
     // 生效方式：还没读到 options 段时按缺省摆（inherit=true / override），
     // 但界面不摆这两项 —— env_options_known 才是「后端有没有这一版」的判据。
@@ -1049,16 +1062,3 @@ fn readings_pending(model : Model) -> Bool {
   !model.built
 }
 
-
-// ── 拉取 ────────────────────────────────────────────────────
-
-///|
-fn load(emit : @cmd.Emit[Msg]) -> @cmd.Cmd {
-  @cmd.batch([
-    load_runtime(emit),
-    load_console(emit),
-    load_readings(emit),
-  ])
-}
-
-///|

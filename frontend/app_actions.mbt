@@ -363,6 +363,10 @@ fn update_inner(model : Model, msg : Msg, emit : @cmd.Emit[Msg]) -> (Model, @cmd
     EnvInheritToggled(_) => handle_env_options(model, msg, emit)
     EnvMergePicked(_) => handle_env_options(model, msg, emit)
     EnvReveal(_, _) => handle_env_reveal(model, msg, emit)
+    EnvGlobalOpen => handle_env_dialog(model, msg, emit)
+    EnvGlobalClose => handle_env_dialog(model, msg, emit)
+    EnvToggleExpand(_) => handle_env_dialog(model, msg, emit)
+    EnvSuggestFill(_) => handle_env_dialog(model, msg, emit)
     EnvProfileOpen(_) => handle_env_profile_open(model, msg, emit)
     EnvProfileClose => handle_env_profile_close(model, msg, emit)
     // 只读档上那颗「仍然修改」（M）：只翻本地一格
