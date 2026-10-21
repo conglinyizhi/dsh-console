@@ -588,19 +588,32 @@ fn env_merge_radio(
   hint : String,
   emit : @cmd.Emit[Msg],
 ) -> @html.Html {
-  @html.label(
-    class="dsh-env-radio",
-    attrs=mark("env-merge-" + value, ["settings", "env", "options", "merge", value]).title(hint),
+  let on = model.env_merge == value
+  // N10：不用浏览器原生 radio，改成项目自己的圆点 + 标签（与开关同族）；
+  // role=radio + data-checked 给读屏与探针看，键盘走外层 radiogroup 的方向键。
+  @html.button(
+    class=if on { "dsh-env-radio on" } else { "dsh-env-radio" },
+    type_="button",
+    attrs=mark("env-merge-" + value, ["settings", "env", "options", "merge", value])
+      .title(hint)
+      .role("radio")
+      .data_set("checked", if on { "true" } else { "false" })
+      .aria_label(label)
+      .on_keydown(fn(event) {
+        let key = event.key()
+        if key == "ArrowRight" || key == "ArrowDown" {
+          emit(EnvMergePicked("append"))
+        } else if key == "ArrowLeft" || key == "ArrowUp" {
+          emit(EnvMergePicked("override"))
+        } else if key == " " || key == "Enter" {
+          emit(EnvMergePicked(value))
+        } else {
+          @cmd.none
+        }
+      }),
+    on_click=emit(EnvMergePicked(value)),
     [
-      @html.input(
-        input_type=Radio,
-        name="dsh-env-merge",
-        id="dsh-env-merge-" + value,
-        class="dsh-env-radio-input",
-        value=value,
-        checked=model.env_merge == value,
-        on_change=emit.map(fn(_text) { EnvMergePicked(value) }),
-      ),
+      @html.span(class="dsh-env-radio-dot", @html.nothing),
       @html.span(class="dsh-env-radio-text", label),
     ],
   )

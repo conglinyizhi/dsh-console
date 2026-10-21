@@ -3028,3 +3028,12 @@ section[data-name="about-page"] { gap: 16px; padding: 16px 24px 24px; }
 .dsh-setting-control { justify-self: end; }
 .dsh-env-summary { min-width: 0; flex-wrap: wrap; row-gap: 6px; }
 .dsh-env-summary-text { min-width: 0; overflow-wrap: anywhere; }
+
+/* N10：控件风格统一 —— 单选改成项目自己的圆点；数字框去掉原生 spinner。 */
+.dsh-env-radio { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid $line; border-radius: 999px; background: transparent; color: $text; cursor: pointer; }
+.dsh-env-radio.on { border-color: $accent; }
+.dsh-env-radio-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid $line-strong; display: inline-block; }
+.dsh-env-radio.on .dsh-env-radio-dot { border-color: $accent; box-shadow: inset 0 0 0 3px $accent; }
+.dsh-env-radio-text { font-size: 12.5px; }
+.dsh-setting-input { appearance: textfield; -moz-appearance: textfield; }
+.dsh-setting-input::-webkit-outer-spin-button, .dsh-setting-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
