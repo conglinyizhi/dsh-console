@@ -1,0 +1,24 @@
+{
+ "title": "DSH 控制台",
+ "scrollW": 1280,
+ "clientW": 1280,
+ "overflowX": false,
+ "textLen": 306,
+ "textHead": "DSH 控制台\n实例总览\n维护\n日志\n设置\n回收站\n关于\n\n服务端在线\nclient 3b921a1\nserver 3b921a1\n\n实例总览\n实例总览\n＋\n新建实例\n当前运行的实例 (1)\ndsh\n:3080\n上次启动 10-21 20:46\n已停止的实例 (5)\nweb-dev\n隔离\n从 web 派生 · 10-16 15:02 CST 另塞安flkajlksdf 塞翻领森将空大jflksafjdfdjflksdjflksdaflk",
+ "markers": {
+  "真实数据": false,
+  "读取失败": false,
+  "实例总览": true
+ },
+ "counts": {
+  "buttons": 11,
+  "links": 0,
+  "selects": 0,
+  "inputs": 0,
+  "cards": 14,
+  "icons": 0
+ },
+ "consoleIssues": [],
+ "consoleIssueCount": 0,
+ "shot": "30-verify.png.png"
+}

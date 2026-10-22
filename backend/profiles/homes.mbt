@@ -568,7 +568,7 @@ async fn layout_home(
     Ok(_) => ()
     Err(e) => {
       @store.note_raw(e.raw)
-      return Err(("io-error", "建目录失败"))
+      return Err(("io-error", "建软链失败"))
     }
   }
   let src_skills = @json.join_path(dsh_home, "skills")
@@ -577,8 +577,8 @@ async fn layout_home(
     match @fsx.make_symlink_fs(src_skills, @json.join_path(home, "skills")) {
       Ok(_) => skills_linked = true
       Err(e) => {
-      @store.note_raw(e.raw)
-      return Err(("io-error", "写文件失败"))
+        @store.note_raw(e.raw)
+        return Err(("io-error", "建软链失败"))
     }
     }
   }

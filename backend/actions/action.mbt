@@ -1038,6 +1038,11 @@ async fn handle_action(
       // durationMs / logPath / missingBefore / missingAfter）。ActionError 只装得下
       // code 与 message，所以动作在抛错之前把 outcome 放进 failure_outcome，
       // 这里取走并清空 —— 取走即清，下一笔失败不会捡到上一笔的细节。
+      //
+      // 原始错误文本（OSError 之类）必须在这里**先取一次**：这次失败有两处要它 ——
+      // 审计行（raw）与回执（error.raw）。store 那个格子取一次就清，
+      // 谁后取谁拿到空串；从前是 error_json 自己去取，于是审计这一侧永远是空的。
+      let raw = @store.take_raw()
       let _ = audit(
         action,
         audit_params,
@@ -1045,8 +1050,9 @@ async fn handle_action(
         Some(code),
         Some(message),
         take_failure_outcome(),
+        raw~,
       )
-      send_write_error(res, code, message, read_at)
+      send_write_error(res, code, message, read_at, raw~)
       return
     }
   }

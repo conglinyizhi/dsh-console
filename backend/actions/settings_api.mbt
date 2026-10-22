@@ -107,7 +107,10 @@ async fn handle_settings_put(
   match @store.save_settings(updated) {
     Ok(_) => ()
     Err(e) => {
-      send_write_error(res, "io-error", e, read_at)
+      // 原始 OSError 取一份带进回执（取一次就清，见 store/raw.mbt）：
+      // message 说结论，raw 给排查用，界面默认不显示
+      let raw = @store.take_raw()
+      send_write_error(res, "io-error", e, read_at, raw~)
       return
     }
   }

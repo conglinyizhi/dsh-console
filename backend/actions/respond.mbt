@@ -66,8 +66,10 @@ pub fn status_for_code(code : String) -> Int32 {
 
 ///|
 /// 错误体：code + message（只写结论），有原始文本时多一个 raw。
-fn error_json(code : String, message : String) -> @json.JsonVal {
-  let raw = @store.take_raw()
+///
+/// raw 由调用方传进来，不在这里 @store.take_raw()：那个格子取一次就清空，
+/// 而失败那条路上有两处要读它（审计行 + 这个回执）。在这里取，审计只能拿到空串。
+fn error_json(code : String, message : String, raw : String) -> @json.JsonVal {
   let fields : Array[(String, @json.JsonVal)] = [
     ("code", @json.JStr(code)),
     ("message", @json.JStr(message)),
@@ -101,11 +103,15 @@ pub async fn send_write_ok(
 
 ///|
 /// 写失败外壳。
+///
+/// raw：这次失败的原始错误文本（OSError 之类）。缺省就是不附带 ——
+/// 传它的一侧必须自己先 @store.take_raw() 取一份（取一次就清，见 store/raw.mbt）。
 pub async fn send_write_error(
   res : @moonback.Responder,
   code : String,
   message : String,
   read_at : String,
+  raw~ : String = "",
 ) -> Unit {
   @localapi.send_json(
     res,
@@ -114,7 +120,7 @@ pub async fn send_write_error(
       ("ok", @json.JBool(false)),
       ("readOnly", @json.JBool(false)),
       ("readAt", @json.JStr(read_at)),
-      ("error", error_json(code, message)),
+      ("error", error_json(code, message, raw)),
     ]),
     extra_headers=[("X-Local-Api", local_api_read_write)],
   )

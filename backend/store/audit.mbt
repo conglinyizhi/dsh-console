@@ -1,6 +1,8 @@
 // 审计：audit.jsonl —— 每个动作追加一行，超过阈值就滚动（契约第五节）。
 //
-// 一行一个 JSON 对象，字段固定：at / action / params / ok / code / message / outcome。
+// 一行一个 JSON 对象，字段固定：at / action / params / ok / code / message / outcome，
+// 失败那笔另可带 raw（原始 OSError 之类，给人查用；空则整个键都不出现）。
+// raw 只进这一行审计，不进回执的提示条 —— 提示条说结论，原文留给日志。
 //
 // 滚动口径（README「运行时登记、归档与审计」一节写了同一份）：
 //   · 触发：现有文件字节数 > audit_max_bytes（缺省 8 MiB）
@@ -61,6 +63,9 @@ let audit_archive_suffix : String = ".jsonl"
 
 ///|
 /// 组装一行审计。
+///
+/// raw：这次失败的原始错误文本。缺省空串 —— 空就不带这个键，
+/// 免得每一笔成功（或者没有原文的失败）都挂一个 "raw":"" 让人以为日志里有东西。
 pub fn audit_line(
   at : String,
   action : String,
@@ -69,8 +74,9 @@ pub fn audit_line(
   code : String?,
   message : String?,
   outcome : @json.JsonVal,
+  raw~ : String = "",
 ) -> @json.JsonVal {
-  @json.JObj([
+  let fields : Array[(String, @json.JsonVal)] = [
     ("at", @json.JStr(at)),
     ("action", @json.JStr(action)),
     ("params", params),
@@ -78,7 +84,12 @@ pub fn audit_line(
     ("code", @json.str_or_null(code)),
     ("message", @json.str_or_null(message)),
     ("outcome", outcome),
-  ])
+  ]
+  if raw != "" {
+    // 原始文本只落在这里：回执的 message 仍是给人读的结论
+    fields.push(("raw", @json.JStr(raw)))
+  }
+  @json.JObj(fields)
 }
 
 ///|

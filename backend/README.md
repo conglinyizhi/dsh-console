@@ -583,6 +583,11 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 （取走即清）写进审计 —— 所以**失败那笔审计与成功那笔形状一致**，`/logs/actions` 里能直接
 看到日志路径。写入点与抛出点之间没有 await，两笔并发失败不会互串。
 
+**原始错误原文（`raw`）只落审计，不进提示条**：`message` 说的是结论（「写文件失败」），
+原文（`OSError("@fs.mkdir()… Permission denied")` 这类）跟在那行的 `raw` 上，回执里也带一份
+`error.raw` 给排查用。store 的那个格子（`store/raw.mbt`）**取一次就清**，所以 `handle_action`
+的失败分支必须**先取一次**再构造回执：从前是 `error_json` 自己去取，于是审计那一侧永远是空串。
+
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
 **对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
 
@@ -825,7 +830,7 @@ profile 里的软链（典型是 `node_modules/@local/*`）是**相对路径**�
 | `runtime.json` | 控制台**自己起过**的实例：`{ pid, port, home, profile, startedAt, logPath, detached }` | 起实例成功 / 停止 / 重启 |
 | `archive.json` | 归档记录：`{ profile, home, archivedAt }`（第二轮删掉了 `merged`；**旧文件里带 `merged` 仍能读**，那个键被忽略。**没有 `home` 的旧记录也照读**：读成空串，按名字参与判重与取消归档） | 归档 / 取消归档 |
 | `trash-origins.json` | 回收站条目各自的**来源 home**：`{ "<目录名>": "<home>" }`，恢复按它归位（没有来源的旧条目落回控制台自己的 home，并说出来） | 删除进回收站 / 恢复 / 彻底删除 |
-| `audit.jsonl` | 每个动作一行：`{ at, action, params, ok, code, message, outcome }`，**超阈值轮转**（口径见下） | 每个动作（含失败与 403）、以及 settings 的 PUT |
+| `audit.jsonl` | 每个动作一行：`{ at, action, params, ok, code, message, outcome }`，**失败那笔另带 `raw`**（原始 OSError 之类；空则整个键都不出现），**超阈值轮转**（口径见下） | 每个动作（含失败与 403）、以及 settings 的 PUT |
 | `audit.jsonl` 的归档 | `.archive/audit-<UTC 时间戳>.jsonl`：滚出去的那份原样搬过去（含它自己的说明条），目录里最多留 40 份 | 每次轮转 |
 
 #### `audit.jsonl` 怎么滚动（阈值与保留条数写死在这里）

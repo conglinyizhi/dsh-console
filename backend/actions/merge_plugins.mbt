@@ -930,7 +930,9 @@ pub async fn handle_merge_preview(
   }
   let data = merge_preview_json(source) catch {
     ActionError(code~, message~) => {
-      send_write_error(res, code, message, read_at)
+      // 读侧失败也可能带原始原文（读坏了文件之类）：照样取一份带上，别丢
+      let raw = @store.take_raw()
+      send_write_error(res, code, message, read_at, raw~)
       return
     }
   }

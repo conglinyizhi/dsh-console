@@ -274,6 +274,9 @@ async fn isolated_home_guard(profile : String) -> Unit raise ActionError {
 
 ///|
 /// 写一行审计（失败不让动作失败，把原因回给调用方拼进 note）。
+///
+/// raw：这次失败的原始错误文本。调用方必须在构造回执**之前**先 @store.take_raw()
+/// 取一份传进来 —— 那个格子取一次就清，回执也要用它，两边不能各自去取。
 async fn audit(
   action : String,
   params : @json.JsonVal,
@@ -281,6 +284,7 @@ async fn audit(
   code : String?,
   message : String?,
   outcome : @json.JsonVal,
+  raw~ : String = "",
 ) -> String? noraise {
   let line = @store.audit_line(
     @json.iso_from_epoch_ms(@async.now()),
@@ -290,6 +294,7 @@ async fn audit(
     code,
     message,
     outcome,
+    raw~,
   )
   match @store.append_audit(line) {
     Ok(_) => None

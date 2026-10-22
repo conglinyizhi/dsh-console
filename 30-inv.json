@@ -1,0 +1,184 @@
+{
+ "columns": 4,
+ "dotXsByColumn": [
+  {
+   "colX": 212,
+   "count": 3,
+   "allEqual": true,
+   "dotXs": [
+    259
+   ]
+  },
+  {
+   "colX": 476,
+   "count": 1,
+   "allEqual": true,
+   "dotXs": [
+    523.5
+   ]
+  },
+  {
+   "colX": 742,
+   "count": 1,
+   "allEqual": true,
+   "dotXs": []
+  },
+  {
+   "colX": 1006,
+   "count": 1,
+   "allEqual": true,
+   "dotXs": []
+  }
+ ],
+ "url": "http://127.0.0.1:5390/",
+ "overflow": {
+  "scrollW": 1280,
+  "clientW": 1280,
+  "overflowX": false
+ },
+ "font": {
+  "size": "14px",
+  "family": "\"PingFang SC\", \"Noto Sans CJK SC\", \"Micr"
+ },
+ "cards": [
+  {
+   "i": 0,
+   "name": "dsh",
+   "card": {
+    "x": 212,
+    "y": 140.7,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 210.7
+   },
+   "contentRight": 447.5,
+   "actionsRight": null,
+   "actionsDelta": null,
+   "dot": {
+    "x": 259,
+    "y": 152.7,
+    "w": 13,
+    "h": 13,
+    "right": 272,
+    "bottom": 165.7
+   },
+   "kind": null
+  },
+  {
+   "i": 1,
+   "name": "web-dev",
+   "card": {
+    "x": 212,
+    "y": 258.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 328.8
+   },
+   "contentRight": 447.5,
+   "actionsRight": null,
+   "actionsDelta": null,
+   "dot": null,
+   "kind": null
+  },
+  {
+   "i": 2,
+   "name": "headless",
+   "card": {
+    "x": 476.5,
+    "y": 258.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 729,
+    "bottom": 328.8
+   },
+   "contentRight": 712,
+   "actionsRight": null,
+   "actionsDelta": null,
+   "dot": {
+    "x": 523.5,
+    "y": 270.8,
+    "w": 13,
+    "h": 13,
+    "right": 536.5,
+    "bottom": 283.8
+   },
+   "kind": null
+  },
+  {
+   "i": 3,
+   "name": "web",
+   "card": {
+    "x": 741,
+    "y": 258.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 993.5,
+    "bottom": 328.8
+   },
+   "contentRight": 976.5,
+   "actionsRight": null,
+   "actionsDelta": null,
+   "dot": null,
+   "kind": null
+  },
+  {
+   "i": 4,
+   "name": "review-space-a",
+   "card": {
+    "x": 1005.5,
+    "y": 258.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 1258,
+    "bottom": 328.8
+   },
+   "contentRight": 1241,
+   "actionsRight": null,
+   "actionsDelta": null,
+   "dot": null,
+   "kind": null
+  },
+  {
+   "i": 5,
+   "name": "review-dev",
+   "card": {
+    "x": 212,
+    "y": 340.8,
+    "w": 252.5,
+    "h": 70,
+    "right": 464.5,
+    "bottom": 410.8
+   },
+   "contentRight": 447.5,
+   "actionsRight": null,
+   "actionsDelta": null,
+   "dot": null,
+   "kind": null
+  }
+ ],
+ "invariants": {
+  "dotXsAllEqual": false,
+  "dotXs": [
+   259,
+   523.5
+  ],
+  "allActionsMatchContentRight": false,
+  "actionsDeltas": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "split": null,
+ "menu": {
+  "opened": false
+ },
+ "menuLast": {
+  "opened": false
+ }
+}
