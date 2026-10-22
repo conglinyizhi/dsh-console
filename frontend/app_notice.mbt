@@ -526,7 +526,14 @@ fn failure_note(got : HttpResult) -> String {
       } else if message == "" {
         head + " | " + code
       } else {
-        head + " | " + code + "：" + message
+        // 原始错误文本（若有）接在结论后面：提示条正文只取第一句（「。」「；」之前），
+        // 悬停与通知历史拿到的是整句 —— raw 不上正文（批注 5）。
+        let raw = str_field(err, "raw")
+        if raw == "" {
+          head + " | " + code + "：" + message
+        } else {
+          head + " | " + code + "：" + message + "；原始错误：" + raw
+        }
       }
     }
     _ => head + " | 回执里没有失败原因"
