@@ -147,7 +147,7 @@ async fn fresh_log_text(path : String, from : Int64) -> String noraise {
   let span = size - from
   let cap : Int64 = 65536L
   let len = (if span > cap { cap } else { span }).to_int()
-  match @json.read_text_at(path, from, len) {
+  match @json.read_text_at_fs(path, from, len) {
     Ok(t) => t
     Err(_) => ""
   }

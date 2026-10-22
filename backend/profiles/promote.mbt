@@ -564,14 +564,18 @@ async fn move_package(
   let kind = @fs.kind(source_pkg, follow_symlink=false) catch { _ => Unknown }
   match kind {
     Directory =>
-      match @fsx.copy_tree(source_pkg, target_pkg, []) {
+      match @fsx.copy_tree_fs(source_pkg, target_pkg, []) {
         Ok(stats) =>
           if stats.skipped.length() > 0 {
             notes.push(
               "包里的非普通文件跳过了：" + stats.skipped.join("、"),
             )
           }
-        Err(e) => return Err(e)
+        Err(e) => {
+          // 拷不动会变成本次请求的 io-error 回执：原文交给审计，提示只说结论
+          @store.note_raw(e.raw)
+          return Err(e.summary)
+        }
       }
     SymLink => {
       let link_target = match @json.read_link_fs(source_pkg) {
@@ -641,19 +645,17 @@ async fn apply_promote_inner(
       missing.push(name)
       continue
     }
-    match @fsx.read_bytes(path) {
+    match @fsx.read_bytes_fs(path) {
       Ok(data) => payloads.push((name, data))
-      Err(e) =>
+      Err(e) => {
+        @store.note_raw(e.raw)
         return Err(
           (
             "io-error",
-            "读源 profile 的 " +
-            name +
-            " 失败（" +
-            e +
-            "）；目标里一个文件都没动",
+            "读源 profile 的 " + name + " 失败；目标里一个文件都没动",
           ),
         )
+      }
     }
   }
   // 2. 替换前快照

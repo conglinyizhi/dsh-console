@@ -135,13 +135,15 @@ pub async fn fork_profile(
   let (total_files, _total_dirs) = @fsx.count_tree(source_dir, skip)
   fork_progress_start(target_name, total_files)
   let stats = match
-    @fsx.copy_tree(source_dir, target_dir, skip, on_progress=fn(s) {
+    @fsx.copy_tree_fs(source_dir, target_dir, skip, on_progress=fn(s) {
       fork_progress_step(s.files)
     }) {
     Ok(s) => s
     Err(e) => {
-      fork_progress_finish(e)
-      fail("io-error", e)
+      // 复制失败会变成本次请求的回执：原文交给审计，进度面板与提示都只说结论
+      note_raw(e.raw)
+      fork_progress_finish(e.summary)
+      fail("io-error", e.summary)
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -413,7 +415,7 @@ pub async fn delete_profile(
       Ok(_) => ()
       Err(first) =>
         // 状态目录与 profile 目录不同文件系统时 rename 会 EXDEV：退回复制再删
-        match @fsx.copy_tree(dir, trash_path, []) {
+        match @fsx.copy_tree_fs(dir, trash_path, []) {
           Ok(_) =>
             match @fsx.remove_tree_fs(dir) {
               Ok(_) => ()
@@ -424,8 +426,8 @@ pub async fn delete_profile(
               }
             }
           Err(e) => {
-            note_raw(first.raw)
-            fail("io-error", first.summary + "；退回复制也失败：" + e)
+            note_raw(first.raw + "；退回复制也失败：" + e.raw)
+            fail("io-error", first.summary + "；退回复制也失败：" + e.summary)
           }
         }
     }

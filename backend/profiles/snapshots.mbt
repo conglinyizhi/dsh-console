@@ -332,9 +332,13 @@ pub async fn create_snapshot(
       missing.push(name)
       continue
     }
-    let data = match @fsx.read_bytes(source) {
+    let data = match @fsx.read_bytes_fs(source) {
       Ok(d) => d
-      Err(e) => return Err(e)
+      Err(e) => {
+        // 拍快照读不到源文件 = 这次快照没拍成，会变成 io-error 回执：原文交给审计
+        @store.note_raw(e.raw)
+        return Err(e.summary)
+      }
     }
     match @fsx.write_bytes_fs(@json.join_path(target, name), data) {
       Ok(_) => ()
@@ -426,20 +430,20 @@ pub async fn restore_snapshot(
       missing.push(name)
       continue
     }
-    let data = match @fsx.read_bytes(source) {
+    let data = match @fsx.read_bytes_fs(source) {
       Ok(d) => d
-      Err(e) =>
+      Err(e) => {
+        @store.note_raw(e.raw)
         return Err(
           (
             "io-error",
             "读快照里的 " +
             name +
-            " 失败（" +
-            e +
-            "）；已经写回：" +
+            " 失败；已经写回：" +
             describe_files(restored),
           ),
         )
+      }
     }
     match @fsx.write_bytes_fs(@json.join_path(profile_dir, name), data) {
       Ok(_) => restored.push(name)

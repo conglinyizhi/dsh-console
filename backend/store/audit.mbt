@@ -139,19 +139,22 @@ async fn append_audit_locked(
   let mut attempt = 0
   let mut last = ""
   while attempt < append_attempts {
-    match @fsx.append_text(paths.audit, text) {
+    match @fsx.append_text_fs(paths.audit, text) {
       Ok(_) => return Ok(())
       Err(e) =>
-        if e.contains(tmp_race_marker) && attempt + 1 < append_attempts {
-          last = e
+        // 并发撞车的判据在原文里（临时文件被别的写者先搬走）
+        if e.raw.contains(tmp_race_marker) && attempt + 1 < append_attempts {
+          last = e.raw
           attempt = attempt + 1
           @async.sleep(2 + attempt)
           continue
         } else {
+          // 这一条只能进响应 note（审计自己写不进去时，就没有审计行能落 raw 了），
+          // 所以原文留在这里当证据；不写 note_raw —— 那一格是给失败回执用的。
           let why = match rolled {
             Some(note) =>
-              e + "；另外这一次审计滚动没做成：" + note
-            None => e
+              @json.two_part_text(e) + "；另外这一次审计滚动没做成：" + note
+            None => @json.two_part_text(e)
           }
           return Err(why)
         }

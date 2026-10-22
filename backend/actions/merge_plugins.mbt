@@ -465,9 +465,12 @@ async fn place_plugin(
   } else {
     plugin.path
   }
-  match @fsx.copy_tree(real, dest, []) {
+  match @fsx.copy_tree_fs(real, dest, []) {
     Ok(_) => Ok(overwritten)
-    Err(e) => Err("拷不动 " + real + "：" + e)
+    Err(e) => {
+      note_raw(e.raw)
+      Err("拷不动 " + real)
+    }
   }
 }
 

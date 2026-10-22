@@ -137,7 +137,7 @@ async fn move_remainder_to_trash(
         ),
       )
     Err(first) =>
-      match @fsx.copy_tree(home, dest, []) {
+      match @fsx.copy_tree_fs(home, dest, []) {
         Ok(stats) => {
           let skipped = if stats.skipped.length() > 0 {
             "；跳过了 " + stats.skipped.join("、")
@@ -168,8 +168,8 @@ async fn move_remainder_to_trash(
           }
         }
         Err(e) => {
-          @store.note_raw(first.raw)
-          Err(first.summary + "；退回复制也失败：" + e)
+          @store.note_raw(first.raw + "；退回复制也失败：" + e.raw)
+          Err(first.summary + "；退回复制也失败：" + e.summary)
         }
       }
   }

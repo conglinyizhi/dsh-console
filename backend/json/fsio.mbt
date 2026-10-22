@@ -176,39 +176,69 @@ pub fn join_all(parts : Array[String]) -> String {
 }
 
 ///|
-/// 从文件的指定偏移读出最多 `len` 字节。读不到（含越界、IO 错误）返回 Err。
-/// 这是本工程唯一带偏移的读入口，反向分块读尾靠它。
-pub async fn read_some_at(
+/// 从文件的指定偏移读出最多 `len` 字节（两段式）。这是本工程唯一带偏移的读入口，
+/// 反向分块读尾靠它。
+///
+/// 两句结论分开：「打开文件失败」是 open(2) 那一步（不存在 / 权限 / 是目录），
+/// 「读文件失败（字节）」是拿到 fd 之后 read_at 那一步 —— 两者的下一步排查完全不同。
+pub async fn read_some_at_fs(
   path : String,
   position : Int64,
   len : Int32,
-) -> Result[Bytes, String] noraise {
+) -> Result[Bytes, FsError] noraise {
   if is_sensitive_path(path) {
-    return Err("拒绝读取敏感文件：" + basename(path))
+    // 策略拒绝不是系统失败：结论自己就说完了，raw 留空
+    return Err({ summary: "拒绝读取敏感文件：" + basename(path), raw: "" })
   }
   let file = @fs.open(path, mode=ReadOnly) catch {
-    err => return Err("打不开文件：" + err.to_string())
+    err => return Err({ summary: "打开文件失败", raw: path + "（" + err.to_string() + "）" })
   }
   defer file.close()
   let buf : FixedArray[Byte] = FixedArray::make(len, b'\x00')
   let n = file.read_at(buf, position~, offset=0, len~) catch {
-    err => return Err("读取失败：" + err.to_string())
+    err => return Err({ summary: "读文件失败（字节）", raw: path + "（" + err.to_string() + "）" })
   }
   let view = buf.unsafe_reinterpret_as_bytes()
   Ok(view[:n].to_owned())
 }
 
 ///|
-/// 按偏移读一段并解码成 UTF-8 文本（非法字节按替换字符处理）。
+/// 从文件的指定偏移读出最多 `len` 字节（旧签名，转调壳）。新代码用 read_some_at_fs。
+pub async fn read_some_at(
+  path : String,
+  position : Int64,
+  len : Int32,
+) -> Result[Bytes, String] noraise {
+  match read_some_at_fs(path, position, len) {
+    Ok(bytes) => Ok(bytes)
+    Err(e) => Err(two_part_text(e))
+  }
+}
+
+///|
+/// 按偏移读一段并解码成 UTF-8 文本（两段式；非法字节按替换字符处理）。
 /// 解码放在整段上做，避免多字节字符被窗口边界切断。
+pub async fn read_text_at_fs(
+  path : String,
+  position : Int64,
+  len : Int32,
+) -> Result[String, FsError] noraise {
+  match read_some_at_fs(path, position, len) {
+    Ok(bytes) => Ok(@utf8.decode_lossy(bytes, ignore_bom=true))
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// 按偏移读一段并解码成 UTF-8 文本（旧签名，转调壳）。新代码用 read_text_at_fs。
 pub async fn read_text_at(
   path : String,
   position : Int64,
   len : Int32,
 ) -> Result[String, String] noraise {
-  match read_some_at(path, position, len) {
-    Ok(bytes) => Ok(@utf8.decode_lossy(bytes, ignore_bom=true))
-    Err(e) => Err(e)
+  match read_text_at_fs(path, position, len) {
+    Ok(text) => Ok(text)
+    Err(e) => Err(two_part_text(e))
   }
 }
 

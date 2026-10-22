@@ -210,15 +210,16 @@ async fn read_tail_window(
     max_bytes.to_int64()
   }
   let start = size - want
-  let text = match @json.read_text_at(path, start, want.to_int()) {
+  let text = match @json.read_text_at_fs(path, start, want.to_int()) {
     Ok(t) => t
+    // 读侧说明只给结论：原文该进审计，这条路没有审计行，就不带它
     Err(e) =>
       return {
         ok: false,
         text: "",
         size,
         from_start: false,
-        note: "读不动：" + e,
+        note: "读不动：" + e.summary,
       }
   }
   {
@@ -295,12 +296,12 @@ async fn probe_own_log(path : String, port : Int32) -> TokenFound noraise {
       " 字节没读，不拿那一段里的旧令牌冒险（贴出去可能是个 401 的地址）",
     }
   }
-  let head = match @json.read_text_at(path, 0, head_bytes) {
+  let head = match @json.read_text_at_fs(path, 0, head_bytes) {
     Ok(t) => t
     Err(e) =>
       return {
         token: None,
-        note: "尾部没命中，开头也读不动：" + e,
+        note: "尾部没命中，开头也读不动：" + e.summary,
       }
   }
   match last_token_in(head, port) {

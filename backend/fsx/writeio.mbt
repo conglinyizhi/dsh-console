@@ -193,8 +193,8 @@ async fn write_text_atomic_impl(
 }
 
 ///|
-/// 追加一行到文件（audit.jsonl 用）。文件不存在就建。
-pub async fn append_text(
+/// 追加一行到文件（audit.jsonl 用）。文件不存在就建。失败给底层原文。
+async fn append_text_impl(
   path : String,
   text : String,
 ) -> Result[Unit, String] noraise {
@@ -218,6 +218,30 @@ pub async fn append_text(
 }
 
 ///|
+/// 追加一段文本，两段式：结论「追加失败」+ 原文（原文里带路径）。
+pub async fn append_text_fs(
+  path : String,
+  text : String,
+) -> Result[Unit, @json.FsError] noraise {
+  match append_text_impl(path, text) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "追加失败", raw })
+  }
+}
+
+///|
+/// 追加一段文本（旧签名，转调壳）。新代码用 append_text_fs。
+pub async fn append_text(
+  path : String,
+  text : String,
+) -> Result[Unit, String] noraise {
+  match append_text_fs(path, text) {
+    Ok(_) => Ok(())
+    Err(e) => Err(@json.two_part_text(e))
+  }
+}
+
+///|
 /// 覆盖写文本（非原子）。给不需要原子性的场景用；settings / runtime / archive 一律走原子版。
 pub async fn write_text(
   path : String,
@@ -237,10 +261,30 @@ pub async fn write_text(
 }
 
 ///|
-/// 读原始字节。复制文件用 —— 不经过 UTF-8 解码，二进制不会被改写。
-pub async fn read_bytes(path : String) -> Result[Bytes, String] noraise {
+/// 读原始字节（底层原文版）。复制文件用 —— 不经过 UTF-8 解码，二进制不会被改写。
+async fn read_bytes_impl(path : String) -> Result[Bytes, String] noraise {
   Ok(@fs.read_file(path).binary()) catch {
     err => Err("读不到 " + path + "：" + err.to_string())
+  }
+}
+
+///|
+/// 读原始字节，两段式：结论「读文件失败（字节）」+ 原文（原文里带路径）。
+/// 与文本读入口分开成一句，是因为这两条坏的往往不是同一件事：
+/// 文本读不动常是编码/权限，字节读不动常是文件不在了。
+pub async fn read_bytes_fs(path : String) -> Result[Bytes, @json.FsError] noraise {
+  match read_bytes_impl(path) {
+    Ok(data) => Ok(data)
+    Err(raw) => Err({ summary: "读文件失败（字节）", raw })
+  }
+}
+
+///|
+/// 读原始字节（旧签名，转调壳）。新代码用 read_bytes_fs。
+pub async fn read_bytes(path : String) -> Result[Bytes, String] noraise {
+  match read_bytes_fs(path) {
+    Ok(data) => Ok(data)
+    Err(e) => Err(@json.two_part_text(e))
   }
 }
 
@@ -422,7 +466,7 @@ pub async fn copy_file(
 /// 递归复制目录树。skip 里的名字整棵跳过（用于 node_modules 这种安装产物）。
 /// 只复制普通文件与目录；软链 / socket / 设备文件一律跳过并在 skipped 里记名 ——
 /// 把它们按内容复制出来是假数据，报错又会让整次派生卡在一个无关文件上。
-pub async fn copy_tree(
+async fn copy_tree_impl(
   from : String,
   to : String,
   skip : Array[String],
@@ -476,6 +520,34 @@ pub async fn copy_tree(
     }
   }
   Ok(stats)
+}
+
+///|
+/// 递归复制目录树，两段式：结论「复制失败」+ 原文（原文说清是哪一步、哪个文件）。
+pub async fn copy_tree_fs(
+  from : String,
+  to : String,
+  skip : Array[String],
+  on_progress~ : (CopyStats) -> Unit = fn(_stats) { () },
+) -> Result[CopyStats, @json.FsError] noraise {
+  match copy_tree_impl(from, to, skip, on_progress~) {
+    Ok(stats) => Ok(stats)
+    Err(raw) => Err({ summary: "复制失败", raw })
+  }
+}
+
+///|
+/// 递归复制目录树（旧签名，转调壳）。新代码用 copy_tree_fs。
+pub async fn copy_tree(
+  from : String,
+  to : String,
+  skip : Array[String],
+  on_progress~ : (CopyStats) -> Unit = fn(_stats) { () },
+) -> Result[CopyStats, String] noraise {
+  match copy_tree_fs(from, to, skip, on_progress~) {
+    Ok(stats) => Ok(stats)
+    Err(e) => Err(@json.two_part_text(e))
+  }
 }
 
 ///|

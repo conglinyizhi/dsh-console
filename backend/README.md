@@ -599,7 +599,11 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 | 建软链失败 | `@fsx.make_symlink_fs` | 同上 |
 | **重命名失败** | `@fsx.rename_path_fs` | `<from> -> <to>（OSError(… EXDEV / EACCES …)）` |
 | **改权限失败** | `@fsx.chmod_path_fs` | `<路径>（OSError(…)` |
+| **复制失败** | `@fsx.copy_tree_fs` | 坏在哪一步、哪个文件：`列目录失败：<目录>（…）` / `读不到 <文件>：（…）` / `写文件失败：<文件>（…）` |
+| **追加失败** | `@fsx.append_text_fs` | `追加写失败：<路径>（OSError(…)）` |
 | **读文件失败** | `@json.read_text_file_fs` | `OSError("@fs.read()…")` 之类；敏感文件是「拒绝读取敏感文件：<名字>」，`raw` 留空 |
+| **读文件失败（字节）** | `@fsx.read_bytes_fs` / `@json.read_some_at_fs` | `<路径>（OSError(…)）`（读 fd 那一步失败）；文本读不动与字节读不动常不是同一件事，所以分开一句 |
+| **打开文件失败** | `@json.read_some_at_fs`（open 那一步） | `<路径>（OSError(…)）`（不存在 / 权限 / 是目录） |
 | **读链接失败** | `@json.read_link_fs` | errno 名（`ENOENT 目标不存在`…）或「目标超过 4096 字节，被截断」 |
 
 两段式是 `{ summary, raw }`：`summary` 只进提示文案，`raw` 只进 `@store.note_raw`。
@@ -613,7 +617,8 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 放 json 是因为 json 不依赖本工程的其它包、fsx 依赖 json —— 反过来定义会成环；写侧那几个
 `@fsx.*_fs` 的签名直接写着 `Result[Unit, @json.FsError]`，读写两侧共用这一个类型。
 
-旧的 `read_text_file` / `read_link` / `rename_path` / `chmod_path` 仍在（转调壳，
+旧的 `read_text_file` / `read_link` / `rename_path` / `chmod_path` /
+`copy_tree` / `read_bytes` / `append_text` / `read_some_at` / `read_text_at` 仍在（转调壳，
 内部把 `summary` 与 `raw` 拼回一行给还没切的老调用方），新代码一律走 `_fs` 入口。
 
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。

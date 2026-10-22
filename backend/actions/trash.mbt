@@ -329,7 +329,7 @@ pub async fn restore_from_trash(
   match @fsx.rename_path_fs(path, target) {
     Ok(_) => ()
     Err(first) =>
-      match @fsx.copy_tree(path, target, []) {
+      match @fsx.copy_tree_fs(path, target, []) {
         Ok(_) =>
           match @fsx.remove_tree_fs(path) {
             Ok(_) => ()
@@ -340,8 +340,8 @@ pub async fn restore_from_trash(
             }
           }
         Err(e) => {
-          note_raw(first.raw + "；退回复制也失败：" + e)
-          fail("io-error", first.summary + "；退回复制也失败")
+          note_raw(first.raw + "；退回复制也失败：" + e.raw)
+          fail("io-error", first.summary + "；退回复制也失败：" + e.summary)
         }
       }
   }

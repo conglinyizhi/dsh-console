@@ -67,8 +67,9 @@ pub async fn read_tail_lines(
       size: 0L,
     }
   }
+  // 结论只留一句（json 包够不到 store，记不了 raw）：打开失败就是打开失败
   let handle = @fs.open(file, mode=ReadOnly) catch {
-    err => raise TailError("打不开文件：" + err.to_string())
+    _ => raise TailError("打开文件失败")
   }
   defer handle.close()
   // 文件可能正在被写：以 fd 自己的 size 为准，不用前面那份可能过期的
@@ -101,9 +102,9 @@ pub async fn read_tail_lines(
     let start = actual - window_bytes
     at_start = start <= 0L
     let read_len = (actual - start).to_int()
-    chunk = match read_text_at(file, start, read_len) {
+    chunk = match read_text_at_fs(file, start, read_len) {
       Ok(t) => t
-      Err(e) => raise TailError("读取失败：" + e)
+      Err(e) => raise TailError(e.summary)
     }
     let parts = split_lines(chunk)
     let head_count = parts.length() - 1
