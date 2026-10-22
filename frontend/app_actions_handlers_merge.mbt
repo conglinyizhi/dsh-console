@@ -114,12 +114,13 @@ fn handle_merge_preview(
       // 不能用 interpret_http：它回的是给人看的一句话（§80），不是响应体。
       // 这里要的是 JSON，自己走 HTTP → body → envelope。
       let plugins : Array[(String, String, String, String)] = []
+      let rejected : Array[String] = []
       match res {
         Ok(text) => {
           let got = parse_http_result(text)
           if got.status >= 200 && got.status < 300 {
             match open_envelope(got.body) {
-              Ok(data) =>
+              Ok(data) => {
                 for item in arr_field(data, "plugins") {
                   match item {
                     Json::Object(obj) => {
@@ -134,13 +135,28 @@ fn handle_merge_preview(
                     _ => ()
                   }
                 }
+                // 非法包名（§115）：后端已经拒了，这里把它挑出来单独提示。
+                for item in str_array_field(data, "warnings") {
+                  if item.contains("非法包名") {
+                    rejected.push(item)
+                  }
+                }
+              }
               Err(_) => ()
             }
           }
         }
         Err(_) => ()
       }
-      ({ ..model, merge_plugins: plugins, merge_loading: false, }, @cmd.none)
+      (
+        {
+          ..model,
+          merge_plugins: plugins,
+          merge_loading: false,
+          merge_warn: rejected.join("；"),
+        },
+        @cmd.none,
+      )
     }
     _ => (model, @cmd.none)
   }

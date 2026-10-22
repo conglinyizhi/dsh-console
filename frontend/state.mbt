@@ -503,6 +503,8 @@ struct Model {
   /// 勾中的插件名
   merge_plugin_picked : Array[String]
   /// 预览还在读
+  /// 预览里的非法包名（§115）：界面用红字提示，别让人以为只是没装上
+  merge_warn : String
   merge_loading : Bool
   /// 关框后焦点回哪颗按钮
   merge_return : String
@@ -1013,6 +1015,7 @@ fn initial_model() -> Model {
     merge_plugins: [],
     merge_plugin_picked: [],
     merge_loading: false,
+    merge_warn: "",
     merge_return: "",
     fork_confirm_id: "",
     fork_confirm_return: "",

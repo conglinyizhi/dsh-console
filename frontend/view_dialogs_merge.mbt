@@ -103,6 +103,17 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   let picked_plugins = model.merge_plugin_picked.length() > 0
   let step = model.merge_step
   let step1 : Array[@html.Html] = []
+  // 非法包名用红字单独摆出来（§115）：这不是"没装上"，是名字本身越界被拒，
+  // 混在插件列表里会被当成缺包。
+  if model.merge_warn != "" {
+    step1.push(
+      @html.p(
+        class="dsh-merge-warn dsh-danger",
+        attrs=mark("merge-warn", ["dialog", "merge", "warn"]),
+        model.merge_warn,
+      ),
+    )
+  }
   if model.merge_loading {
     step1.push(
       @html.p(class="dsh-merge-empty", "正在读这一只的插件…"),
