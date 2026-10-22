@@ -157,7 +157,10 @@ async fn run_repair(
   match @fsx.write_text_atomic(log_path, header) {
     Ok(_) => ()
     Err(reason) => {
-      fail("io-error", "建不了补包日志：" + reason)
+      {
+        note_raw(reason)
+        fail("io-error", "建不了补包日志")
+      }
       abort("unreachable: fail 一定抛错")
     }
   }

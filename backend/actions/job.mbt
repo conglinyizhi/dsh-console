@@ -281,7 +281,10 @@ pub async fn job_start(
   match @store.save_job(job) {
     Ok(_) => ()
     Err(e) => {
-      fail("io-error", "作业没能写进 " + @store.job_path(id) + "：" + e)
+      {
+        note_raw(e)
+        fail("io-error", "作业没能写进磁盘")
+      }
       abort("unreachable: fail 一定抛错")
     }
   }

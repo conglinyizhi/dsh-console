@@ -38,6 +38,27 @@ pub(all) suberror ActionError {
 }
 
 ///|
+/// 最近一次失败的**原始错误文本**（OSError 之类）。只在本次请求里用，取一次就清。
+///
+/// 为什么不把它塞进 ActionError：那要给 suberror 加第三格，全后端 40+ 处构造与匹配都要跟着改；
+/// 这一层只需要「出口带上原文」，用一个单格寄存就够了（同一请求内串行，不存在并发覆盖）。
+let raw_slot : Ref[String] = { val: "" }
+
+///|
+/// 记下这次失败的原始文本（进 envelope 的 raw，不进 message）。空串等于不记。
+pub fn note_raw(text : String) -> Unit {
+  raw_slot.val = text
+}
+
+///|
+/// 取走原始文本（取一次就清，避免串到下一次请求）。
+pub fn take_raw() -> String {
+  let text = raw_slot.val
+  raw_slot.val = ""
+  text
+}
+
+///|
 /// 抛一个写动作错误。code 不在表里时收敛成 io-error（不往外造新码）。
 pub fn fail(code : String, message : String) -> Unit raise ActionError {
   let known = codes.any(fn(c) { c == code })
@@ -62,6 +83,21 @@ pub fn status_for_code(code : String) -> Int32 {
     "busy" => 409
     _ => 500
   }
+}
+
+///|
+/// 错误体：code + message（只写结论），有原始文本时多一个 raw。
+fn error_json(code : String, message : String) -> @json.JsonVal {
+  let raw = take_raw()
+  let fields : Array[(String, @json.JsonVal)] = [
+    ("code", @json.JStr(code)),
+    ("message", @json.JStr(message)),
+  ]
+  if raw != "" {
+    // 原始 OSError 之类：给排查用，不进 message、界面默认不显示
+    fields.push(("raw", @json.JStr(raw)))
+  }
+  @json.JObj(fields)
 }
 
 ///|
@@ -99,13 +135,7 @@ pub async fn send_write_error(
       ("ok", @json.JBool(false)),
       ("readOnly", @json.JBool(false)),
       ("readAt", @json.JStr(read_at)),
-      (
-        "error",
-        @json.JObj([
-          ("code", @json.JStr(code)),
-          ("message", @json.JStr(message)),
-        ]),
-      ),
+      ("error", error_json(code, message)),
     ]),
     extra_headers=[("X-Local-Api", local_api_read_write)],
   )
