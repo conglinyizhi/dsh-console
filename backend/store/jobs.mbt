@@ -681,7 +681,13 @@ fn parse_job(json : Json) -> Result[Job, String] {
 /// 刷新之后作业就退回上一步 —— 那一句谎比报错难查。
 pub async fn save_job(job : Job) -> Result[Unit, String] noraise {
   let path = job_path(job.id)
-  @fsx.to_result_unit(@fsx.write_text_atomic_fs(path, @json.encode(job_json(job)) + "\n"))
+  match @fsx.write_text_atomic_fs(path, @json.encode(job_json(job)) + "\n") {
+    Ok(_) => Ok(())
+    Err(e) => {
+      note_raw(e.raw)
+      Err("写文件失败")
+    }
+  }
 }
 
 ///|

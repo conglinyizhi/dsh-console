@@ -144,7 +144,13 @@ pub async fn save_registry(
   for r in entries {
     items.push(record_json(r))
   }
-  @fsx.to_result_unit(@fsx.write_text_atomic_fs(paths.runtime, @json.encode(@json.JArr(items)) + "\n"))
+  match @fsx.write_text_atomic_fs(paths.runtime, @json.encode(@json.JArr(items)) + "\n") {
+    Ok(_) => Ok(())
+    Err(e) => {
+      note_raw(e.raw)
+      Err("写文件失败")
+    }
+  }
 }
 
 ///|
