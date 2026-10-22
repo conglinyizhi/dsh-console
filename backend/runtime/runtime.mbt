@@ -135,7 +135,7 @@ pub(all) struct DshPackage {
 ///|
 /// 读一个 package.json 的 name/version；读不动返回 None。
 async fn read_package(file : String) -> (String, String)? noraise {
-  let text = match @json.read_text_file(file) {
+  let text = match @json.read_text_file_fs(file) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -407,7 +407,7 @@ async fn shim_candidate() -> DshPackage? noraise {
     Some(p) => p
     None => shim
   }
-  let text = match @json.read_text_file(real) {
+  let text = match @json.read_text_file_fs(real) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -752,7 +752,7 @@ pub fn target_arch() -> String {
 ///|
 /// 内核版本。读 /proc/sys/kernel/osrelease（只读），读不到给 "unknown"。
 pub async fn kernel_release() -> String noraise {
-  match @json.read_text_file("/proc/sys/kernel/osrelease") {
+  match @json.read_text_file_fs("/proc/sys/kernel/osrelease") {
     Ok(text) => {
       let t = text.trim().to_owned()
       if t == "" {

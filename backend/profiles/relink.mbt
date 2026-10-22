@@ -156,7 +156,7 @@ pub async fn collect_links(
 ///|
 /// 一条链接的绝对目标：(ok, 目标)。相对链接按「链接自己所在目录」解析；坏链接给 None。
 fn link_target(link : String) -> String? noraise {
-  let text = match @json.read_link(link) {
+  let text = match @json.read_link_fs(link) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -170,7 +170,7 @@ fn link_target(link : String) -> String? noraise {
 /// 把一条链接重写成指向 target 的相对路径（目标不存在时不写）。
 async fn rewrite_link(link : String, target : String) -> Bool noraise {
   let new_text = relative_path(@json.dirname(link), target)
-  let old_text = match @json.read_link(link) {
+  let old_text = match @json.read_link_fs(link) {
     Ok(t) => t
     Err(_) => ""
   }
@@ -229,7 +229,7 @@ pub async fn relink_after_move(
   for link in collect_links(new_dir, []) {
     let suffix = @json.slice_from(link, new_dir.length())
     let old_link = old_dir + suffix
-    let text = match @json.read_link(link) {
+    let text = match @json.read_link_fs(link) {
       Ok(t) => t
       Err(_) => {
         report.links_broken = report.links_broken + 1
@@ -274,7 +274,7 @@ pub async fn carry_symlinks(
   for link in collect_links(from, skip) {
     let suffix = @json.slice_from(link, from.length())
     let dst_link = to + suffix
-    let text = match @json.read_link(link) {
+    let text = match @json.read_link_fs(link) {
       Ok(t) => t
       Err(_) => {
         report.links_broken = report.links_broken + 1
@@ -337,7 +337,7 @@ async fn rewrite_refs(
   let mut total = 0
   for name in ["cordis.patch.yml", "package.json"] {
     let path = @json.join_path(dir, name)
-    let text = match @json.read_text_file(path) {
+    let text = match @json.read_text_file_fs(path) {
       Ok(t) => t
       Err(_) => continue
     }

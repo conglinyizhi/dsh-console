@@ -339,9 +339,12 @@ fn rotation_note(
 ///|
 /// 读一行行的文本；末尾那个换行不算空行。
 async fn read_lines(file : String) -> Result[Array[String], String] noraise {
-  let text = match @json.read_text_file(file) {
+  let text = match @json.read_text_file_fs(file) {
     Ok(t) => t
-    Err(e) => return Err("读不动审计文件 " + file + "：" + e)
+    Err(e) => {
+      note_raw(e.raw)
+      return Err("读不动审计文件 " + file)
+    }
   }
   let n = text.length()
   let body = if n > 0 && text[n - 1] == '\n' {

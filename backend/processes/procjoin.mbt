@@ -137,7 +137,7 @@ pub async fn holders_for_inodes(inodes : Array[Int64]) -> HolderScan noraise {
     let mut home_hint : String? = None
     let matched : Array[Int64] = []
     for name in names {
-      match @json.read_link(fd_dir + "/" + name) {
+      match @json.read_link_fs(fd_dir + "/" + name) {
         Ok(target) => {
           match dsh_home_prefix(target) {
             Some(prefix) =>
@@ -275,13 +275,9 @@ pub async fn read_entry_version(entry : String) -> (String?, String) noraise {
       )
   }
   let file = @json.join_path(dir, "package.json")
-  let text = match @json.read_text_file(file) {
+  let text = match @json.read_text_file_fs(file) {
     Ok(t) => t
-    Err(e) =>
-      return (
-        None,
-        "入口包的 package.json 读不到：" + file + "（" + e + "）",
-      )
+    Err(_) => return (None, "入口包的 package.json 读不到：" + file)
   }
   let parsed = match @json.json_parse(text) {
     Some(j) => j

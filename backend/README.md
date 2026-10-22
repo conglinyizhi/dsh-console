@@ -588,6 +588,30 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 `error.raw` 给排查用。store 的那个格子（`store/raw.mbt`）**取一次就清**，所以 `handle_action`
 的失败分支必须**先取一次**再构造回执：从前是 `error_json` 自己去取，于是审计那一侧永远是空串。
 
+**结论固定这几句（两段式 helper 的 `summary`，别在调用点另造）**：
+
+| 结论 | 出处（helper） | 底层原文 `raw` 里放什么 |
+| --- | --- | --- |
+| 建目录失败 | `@fsx.ensure_dir_fs` | `OSError("@fs.mkdir()…")` 之类 |
+| 写文件失败 | `@fsx.write_text_atomic_fs` / `write_bytes_fs` | `OSError("@fs.write()…")` 之类 |
+| 删文件失败 | `@fsx.remove_file_fs` | 同上 |
+| 删目录失败 | `@fsx.remove_tree_fs` | 同上 |
+| 建软链失败 | `@fsx.make_symlink_fs` | 同上 |
+| **读文件失败** | `@json.read_text_file_fs` | `OSError("@fs.read()…")` 之类；敏感文件是「拒绝读取敏感文件：<名字>」，`raw` 留空 |
+| **读链接失败** | `@json.read_link_fs` | errno 名（`ENOENT 目标不存在`…）或「目标超过 4096 字节，被截断」 |
+
+两段式是 `{ summary, raw }`：`summary` 只进提示文案，`raw` 只进 `@store.note_raw`。
+调用点**只在失败会变成本次请求的回执 / 审计行时**才 `note_raw`；读侧说明（进 `sources`、
+返回 `None`、纯探测）**一律不记 raw** —— 那个格子是进程内单格，读侧写进去会串到下一次无关失败。
+
+调用点保留自己更具体的说法也允许（例如「读不动审计文件 <路径>」「package.json 读不出来」）：
+把原来的系统文本摘掉、只留结论即可；原来那句纯是系统文本时才用 helper 的 `summary`。
+
+上面 fsx 那五个与 json 这两个是两个同形结构（`@fsx.FsError` / `@json.FsError`）：fsx 依赖 json，
+json 反过来引用它会成环，所以各留一份，**形状与口径一致**，调用点只读字段、不写类型名。
+旧的 `read_text_file` / `read_link` 仍在（转调壳，内部用 `two_part_text` 拼回一行），
+新代码一律走 `_fs` 两个入口。
+
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。
 **对「本机恶意进程」不设防** —— 那一层不在这轮范围（契约第一节写明）。
 

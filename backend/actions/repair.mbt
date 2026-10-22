@@ -332,7 +332,7 @@ async fn run_repair(
 ///|
 /// 日志里有没有「registry 里没有这个包」的证据（§E）：pnpm 的 ERR_PNPM_FETCH_404 / 404 Not Found。
 async fn log_mentions_missing(path : String) -> Bool noraise {
-  let text = match @json.read_text_file(path) {
+  let text = match @json.read_text_file_fs(path) {
     Ok(t) => t
     Err(_) => return false
   }
@@ -360,7 +360,7 @@ fn join_names(names : Array[String]) -> String {
 /// 日志最后一条非空行（失败信息只带证据，不把整份日志丢进提示条）。
 /// 读不到就空串 —— 日志本身可能因为磁盘满没写出来，那不该盖住「安装失败」这件事。
 async fn log_tail_line(path : String) -> String noraise {
-  let text = match @json.read_text_file(path) {
+  let text = match @json.read_text_file_fs(path) {
     Ok(t) => t
     Err(_) => return ""
   }

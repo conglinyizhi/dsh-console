@@ -128,7 +128,7 @@ pub let listen_state : String = "0A"
 pub async fn listening_ports() -> Array[Int32] noraise {
   let out : Array[Int32] = []
   for file in ["/proc/net/tcp", "/proc/net/tcp6"] {
-    let text = match @json.read_text_file(file) {
+    let text = match @json.read_text_file_fs(file) {
       Ok(t) => t
       Err(_) => continue
     }
@@ -180,7 +180,7 @@ pub async fn process_alive(pid : Int32) -> Bool noraise {
   if !@fsx.pid_alive(pid) {
     return false
   }
-  match @json.read_text_file("/proc/" + pid.to_string() + "/stat") {
+  match @json.read_text_file_fs("/proc/" + pid.to_string() + "/stat") {
     Ok(text) => {
       let cut = match text.rev_find(")") {
         Some(i) => i

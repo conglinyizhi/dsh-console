@@ -115,7 +115,7 @@ pub async fn locate_version_file() -> String? noraise {
 pub async fn read_console_version() -> (String?, String) noraise {
   match locate_version_file() {
     Some(f) =>
-      match read_text_file(f) {
+      match read_text_file_fs(f) {
         Ok(text) => {
           let v = trim_both(text)
           if v == "" {
@@ -124,10 +124,11 @@ pub async fn read_console_version() -> (String?, String) noraise {
             (Some(v), "仓库根的 VERSION 文件")
           }
         }
-        Err(e) =>
+        // 读侧说明只给结论：原文归审计，这里没有 store 可记，不拼进字符串
+        Err(_) =>
           (
             None,
-            "仓库根的 VERSION 文件读不到：" + f + "（" + e + "）",
+            "仓库根的 VERSION 文件读不到：" + f,
           )
       }
     None => {
@@ -144,7 +145,7 @@ pub async fn read_console_version() -> (String?, String) noraise {
 /// 运行时读前端 package.json 的 version。读不到给 None（上层给 null，不编）。
 /// 换栈过渡期用；VERSION 文件到位后这条只是兜底。
 pub async fn read_frontend_version(dir : String) -> String? noraise {
-  let text = match read_text_file(join_path(dir, "package.json")) {
+  let text = match read_text_file_fs(join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return None
   }

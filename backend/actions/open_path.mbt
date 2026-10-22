@@ -223,7 +223,7 @@ pub async fn open_path(
     })
   }
   let detail = if captured {
-    let text = match @json.read_text_file(capture) {
+    let text = match @json.read_text_file_fs(capture) {
       Ok(t) => t
       Err(_) => ""
     }

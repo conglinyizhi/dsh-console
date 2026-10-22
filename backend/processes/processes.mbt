@@ -57,7 +57,7 @@ pub fn is_dsh_entry(token : String) -> Bool {
 /// 读 /proc/<pid>/cmdline 按 NUL 拆成 argv；读不到或空给 None。
 pub async fn read_argv(pid : Int32) -> Array[String]? noraise {
   let file = proc_root + "/" + @json.int_to_dec(pid) + "/cmdline"
-  let raw = match @json.read_text_file(file) {
+  let raw = match @json.read_text_file_fs(file) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -131,7 +131,7 @@ pub fn read_option(argv : Array[String], name : String) -> String? {
 /// /proc/<pid>/environ 里的某个 key；读不到（别的用户的进程）给 null。
 pub async fn read_env_of(pid : Int32, key : String) -> String? noraise {
   let file = proc_root + "/" + @json.int_to_dec(pid) + "/environ"
-  let raw = match @json.read_text_file(file) {
+  let raw = match @json.read_text_file_fs(file) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -156,7 +156,7 @@ pub async fn fd_home_hint(pid : Int32) -> String? noraise {
     Err(_) => return None
   }
   for name in names {
-    match @json.read_link(fd_dir + "/" + name) {
+    match @json.read_link_fs(fd_dir + "/" + name) {
       Ok(target) =>
         match dsh_home_prefix(target) {
           Some(prefix) => return Some(prefix)
@@ -173,7 +173,7 @@ pub async fn fd_home_hint(pid : Int32) -> String? noraise {
 /// comm 里可能有空格和括号，从最后一个 ')' 之后切。
 pub async fn read_start_ticks(pid : Int32) -> Int64? noraise {
   let file = proc_root + "/" + @json.int_to_dec(pid) + "/stat"
-  let raw = match @json.read_text_file(file) {
+  let raw = match @json.read_text_file_fs(file) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -196,7 +196,7 @@ pub async fn read_start_ticks(pid : Int32) -> Int64? noraise {
 ///|
 /// /proc/uptime 第一段（秒）。
 pub async fn read_uptime_seconds() -> Double? noraise {
-  let raw = match @json.read_text_file(proc_root + "/uptime") {
+  let raw = match @json.read_text_file_fs(proc_root + "/uptime") {
     Ok(t) => t
     Err(_) => return None
   }

@@ -146,9 +146,9 @@ async fn pin_file_text() -> String noraise {
   if !@json.exists(paths.dsh_pin) {
     return "（没有这份文件）"
   }
-  match @json.read_text_file(paths.dsh_pin) {
+  match @json.read_text_file_fs(paths.dsh_pin) {
     Ok(t) => @json.trim_both(t)
-    Err(e) => "（读不出来：" + e + "）"
+    Err(_) => "（读不出来）"
   }
 }
 

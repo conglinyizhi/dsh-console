@@ -101,7 +101,7 @@ pub async fn load_env_file() -> EnvFile noraise {
     suppressed: [],
   }
   let path = env_file_path()
-  let text = match @json.read_text_file(path) {
+  let text = match @json.read_text_file_fs(path) {
     Ok(t) => t
     Err(_) => return empty
   }

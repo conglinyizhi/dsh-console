@@ -68,7 +68,7 @@ async fn declared_plugins(
       out.push(n)
     }
   }
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => ""
   }
@@ -83,7 +83,7 @@ async fn declared_plugins(
   }
   // cordis.patch.yml：一行一条 `name: "@scope/pkg"`（缩进随意，值可能带引号）
   let patch = match
-    @json.read_text_file(@json.join_path(dir, "cordis.patch.yml")) {
+    @json.read_text_file_fs(@json.join_path(dir, "cordis.patch.yml")) {
     Ok(t) => t
     Err(_) => ""
   }
@@ -134,7 +134,7 @@ async fn resolve_package(dir : String, name : String) -> String? noraise {
     @json.join_all([profiles_root(), "packages", name]),
   ]
   for path in candidates {
-    let is_link = match @json.read_link(path) {
+    let is_link = match @json.read_link_fs(path) {
       Ok(_) => true
       Err(_) => false
     }
@@ -153,7 +153,7 @@ async fn plugin_kind_of(dir : String, name : String) -> String noraise {
     Some(p) => p
     None => return "missing"
   }
-  let is_link = match @json.read_link(path) {
+  let is_link = match @json.read_link_fs(path) {
     Ok(_) => true
     Err(_) => false
   }
@@ -172,7 +172,7 @@ async fn plugin_kind_of(dir : String, name : String) -> String noraise {
 ///|
 /// package.json 里这只依赖是不是 file: / link: 声明的（那种才算本地实体）。
 async fn is_local_dep(dir : String, name : String) -> Bool noraise {
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return false
   }
@@ -256,7 +256,7 @@ pub async fn plugin_inventory(dir : String) -> Array[PluginEntry] noraise {
 ///|
 /// 读一份插件的 package.json 拿 description（读不到给空串）。
 async fn plugin_description(dir : String) -> String noraise {
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return ""
   }
@@ -277,7 +277,7 @@ async fn plugin_description(dir : String) -> String noraise {
 ///|
 /// 读一份插件的 package.json 拿 version（读不到给空串）。
 async fn plugin_version(dir : String) -> String noraise {
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return ""
   }
@@ -359,7 +359,7 @@ async fn local_plugins_of(dir : String) -> Array[LocalPlugin] noraise {
         continue
       }
       let entry = @json.join_path(local_dir, name)
-      let is_link = match @json.read_link(entry) {
+      let is_link = match @json.read_link_fs(entry) {
         Ok(_) => true
         Err(_) => false
       }
@@ -372,7 +372,7 @@ async fn local_plugins_of(dir : String) -> Array[LocalPlugin] noraise {
     }
   }
   // package.json 里以 file: / link: 声明的依赖（可能还没装到 node_modules）
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => ""
   }
@@ -431,7 +431,7 @@ async fn place_plugin(
   let mut overwritten = false
   // 悬空软链（指向已不存在的路径）在 exists() 里是 false，但目录项还在：
   // 不先删就会在建链时报「File exists」（§83 实测踩到）。
-  let dest_is_link = match @json.read_link(dest) {
+  let dest_is_link = match @json.read_link_fs(dest) {
     Ok(_) => true
     Err(_) => false
   }
@@ -453,7 +453,7 @@ async fn place_plugin(
   // 一律复制实体（§84）：软链先解析成真实目录，再整份拷过去 —— 目标不再牵着源，
   // 源那边以后怎么改都不会悄悄影响这份副本。目标里同名条目已在上面删过。
   let real = if plugin.is_link {
-    match @json.read_link(plugin.path) {
+    match @json.read_link_fs(plugin.path) {
       Ok(raw) =>
         if raw.has_prefix("/") {
           raw
@@ -787,16 +787,18 @@ async fn merge_into(
   }
   // 3) 补 bundles
   let pkg_path = @json.join_path(target_dir, "package.json")
-  let text = match @json.read_text_file(pkg_path) {
+  let text = match @json.read_text_file_fs(pkg_path) {
     Ok(t) => t
-    Err(e) =>
+    Err(e) => {
+      note_raw(e.raw)
       return {
         ..report,
         snapshot,
         copied,
         overwritten,
-        error: "读不了目标 package.json：" + e,
+        error: "读不了目标 package.json",
       }
+    }
   }
   // 声明的全集：选中的全部名字（含 registry / missing）；实体只拷 plugins 里那几个
   let names : Array[String] = []
@@ -1035,7 +1037,7 @@ async fn migrate_patch(
   names : Array[String],
 ) -> Result[(Array[String], Array[String], String), String] noraise {
   let source_text = match
-    @json.read_text_file(@json.join_path(source_dir, "cordis.patch.yml")) {
+    @json.read_text_file_fs(@json.join_path(source_dir, "cordis.patch.yml")) {
     Ok(s) => s
     Err(_) => ""
   }
@@ -1043,7 +1045,7 @@ async fn migrate_patch(
     return Ok(([], [], ""))
   }
   let target_path = @json.join_path(target_dir, "cordis.patch.yml")
-  let target_text = match @json.read_text_file(target_path) {
+  let target_text = match @json.read_text_file_fs(target_path) {
     Ok(s) => s
     Err(_) => ""
   }
@@ -1099,7 +1101,7 @@ async fn migrate_patch(
       return Err("写文件失败")
     }
   }
-  let ok = match @json.read_text_file(target_path) {
+  let ok = match @json.read_text_file_fs(target_path) {
     Ok(text) => {
       let mut fine = @json.trim_both(text) != "" &&
         patch_blocks(text).length() > 0
@@ -1118,7 +1120,7 @@ async fn migrate_patch(
     Err(_) => false
   }
   if !ok {
-    let _ = match @json.read_text_file(temp_path) {
+    let _ = match @json.read_text_file_fs(temp_path) {
       Ok(text) => {
         let _ = @fsx.write_text_atomic_fs(target_path, text)
         Ok(())

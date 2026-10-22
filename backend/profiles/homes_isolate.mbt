@@ -182,7 +182,7 @@ async fn add_credentials_patch(
   path : String,
   cred_path : String,
 ) -> Result[Unit, String] noraise {
-  let existing = match @json.read_text_file(path) {
+  let existing = match @json.read_text_file_fs(path) {
     Ok(text) => text
     Err(_) => ""
   }

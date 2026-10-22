@@ -139,7 +139,7 @@ async fn path_present(path : String) -> Bool noraise {
 ///|
 /// 读一份配置文件的原文；不在 / 读不动给 None。
 async fn read_config_text(dir : String, name : String) -> String? noraise {
-  match @json.read_text_file(@json.join_path(dir, name)) {
+  match @json.read_text_file_fs(@json.join_path(dir, name)) {
     Ok(text) => Some(text)
     Err(_) => None
   }
@@ -387,7 +387,7 @@ async fn package_names(node_modules : String) -> Array[String] noraise {
 ///|
 /// 一个包目录里 package.json 的 version；读不到给空串（不编一个版本号）。
 async fn package_version(pkg_dir : String) -> String noraise {
-  match @json.read_text_file(@json.join_path(pkg_dir, "package.json")) {
+  match @json.read_text_file_fs(@json.join_path(pkg_dir, "package.json")) {
     Err(_) => ""
     Ok(text) =>
       match @json.json_parse(text) {
@@ -574,9 +574,12 @@ async fn move_package(
         Err(e) => return Err(e)
       }
     SymLink => {
-      let link_target = match @json.read_link(source_pkg) {
+      let link_target = match @json.read_link_fs(source_pkg) {
         Ok(value) => value
-        Err(e) => return Err(e)
+        Err(e) => {
+          @store.note_raw(e.raw)
+          return Err(e.summary)
+        }
       }
       match @fsx.make_symlink_fs(link_target, target_pkg) {
         Ok(_) => ()

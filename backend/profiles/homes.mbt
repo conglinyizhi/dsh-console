@@ -263,7 +263,7 @@ pub(all) struct HomeFact {
 /// 读隔离记录里的 createdAt。没有记录 / 读不动 → (None, 说明)；有记录 → (时刻, 空串)。
 async fn marker_created_at(home : String) -> (String?, String) noraise {
   let path = @json.join_path(home, isolation_marker)
-  match @json.read_text_file(path) {
+  match @json.read_text_file_fs(path) {
     Err(_) => (None, "")
     Ok(text) =>
       match @json.json_parse(text) {
@@ -434,7 +434,7 @@ fn yaml_quote(text : String) -> String {
 /// 只用于回执里那句证据，不参与判断（判断在 verify_isolated）。
 fn node_modules_target_of(pdir : String) -> String {
   let link = @json.join_path(pdir, "node_modules")
-  match @json.read_link(link) {
+  match @json.read_link_fs(link) {
     Ok(target) => target
     Err(_) => ""
   }
@@ -453,9 +453,11 @@ async fn verify_isolated(pdir : String, nm_target : String) -> String? noraise {
     return Some("profile 目录不在：" + pdir)
   }
   let pkg = @json.join_path(pdir, "package.json")
-  match @json.read_text_file(pkg) {
-    Err(e) =>
-      return Some("package.json 读不出来：" + pkg + "（" + e + "）")
+  match @json.read_text_file_fs(pkg) {
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Some("package.json 读不出来：" + pkg)
+    }
     Ok(text) =>
       match @json.json_parse(text) {
         Some(_) => ()
@@ -467,11 +469,11 @@ async fn verify_isolated(pdir : String, nm_target : String) -> String? noraise {
   match kind {
     Directory => ()
     SymLink => {
-      let target = match @json.read_link(link) {
-        Err(e) =>
-          return Some(
-            "node_modules 软链读不出目标：" + link + "（" + e + "）",
-          )
+      let target = match @json.read_link_fs(link) {
+        Err(e) => {
+          @store.note_raw(e.raw)
+          return Some("node_modules 软链读不出目标：" + link)
+        }
         Ok(target) => target
       }
       if !@json.is_dir(link) {

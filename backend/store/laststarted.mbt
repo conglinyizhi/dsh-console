@@ -193,7 +193,7 @@ pub async fn load_last_started() -> (Array[LastStarted], Array[String]) noraise 
   // ② audit.jsonl：审计流水。文件可能很大也可能不在；不在只说明这一路没有贡献，
   // 不写成错误（全新环境本来就没有审计文件）。
   if @json.exists(paths.audit) {
-    match @json.read_text_file(paths.audit) {
+    match @json.read_text_file_fs(paths.audit) {
       Ok(text) => {
         let mut bad_lines = 0
         for raw in text.split("\n") {
@@ -217,7 +217,7 @@ pub async fn load_last_started() -> (Array[LastStarted], Array[String]) noraise 
           )
         }
       }
-      Err(e) => notes.push("读不动 " + paths.audit + "：" + e)
+      Err(_) => notes.push("读不动 " + paths.audit)
     }
   }
   list.sort_by(fn(a, b) { -@json.compare_code_units(a.at, b.at) })

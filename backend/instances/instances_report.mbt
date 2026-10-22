@@ -395,7 +395,7 @@ pub async fn instances_report(
   let per_file : Array[PerFile] = []
   let sockets : Array[ListenSocket] = []
   for src in socket_files {
-    let text = match @json.read_text_file(src.file) {
+    let text = match @json.read_text_file_fs(src.file) {
       Ok(t) => Some(t)
       Err(_) => None
     }

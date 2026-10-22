@@ -161,7 +161,7 @@ fn str_field(json : Json, key : String) -> String {
 ///|
 /// 读一份 meta.json；读不到 / 解析不了给 None（调用方按「读不出来」处理，不编内容）。
 async fn read_meta(path : String) -> SnapshotMeta? noraise {
-  let text = match @json.read_text_file(path) {
+  let text = match @json.read_text_file_fs(path) {
     Ok(t) => t
     Err(_) => return None
   }

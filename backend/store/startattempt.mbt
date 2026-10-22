@@ -150,7 +150,7 @@ pub async fn load_start_attempts() -> (Array[StartAttempt], Array[String]) norai
   let list : Array[StartAttempt] = []
   let notes : Array[String] = []
   if @json.exists(paths.audit) {
-    match @json.read_text_file(paths.audit) {
+    match @json.read_text_file_fs(paths.audit) {
       Ok(text) => {
         let mut bad_lines = 0
         for raw in text.split("\n") {
@@ -175,7 +175,7 @@ pub async fn load_start_attempts() -> (Array[StartAttempt], Array[String]) norai
           )
         }
       }
-      Err(e) => notes.push("读不动 " + paths.audit + "：" + e)
+      Err(_) => notes.push("读不动 " + paths.audit)
     }
   }
   list.sort_by(fn(a, b) { -@json.compare_code_units(a.at, b.at) })

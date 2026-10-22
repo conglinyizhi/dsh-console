@@ -94,9 +94,11 @@ pub async fn read_state_json(path : String) -> (Json?, String?) noraise {
   if !@json.exists(path) {
     return (None, None)
   }
-  let text = match @json.read_text_file(path) {
+  let text = match @json.read_text_file_fs(path) {
     Ok(t) => t
-    Err(e) => return (None, Some("读不动 " + path + "：" + e))
+    // 读侧说明只给结论：系统原文不拼进来（这条 note 进设置的 sources，
+    // 原文该落在审计行的 raw 上，而读这一路没有审计行）
+    Err(_) => return (None, Some("读不动 " + path))
   }
   match @json.json_parse(text) {
     Some(j) => (Some(j), None)

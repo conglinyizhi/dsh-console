@@ -353,7 +353,7 @@ pub async fn command_of_package_dir(dir_in : String) -> DshCommand? noraise {
     None => "node"
   }
   let version = match
-    @json.read_text_file(@json.join_path(dir, "package.json")) {
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(text) =>
       match @json.json_parse(text) {
         Some(json) =>

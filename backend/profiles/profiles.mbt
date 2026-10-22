@@ -51,9 +51,9 @@ pub async fn read_profile_note(dir : String) -> (String, String) noraise {
   if !@json.exists(path) {
     return ("", "默认")
   }
-  match @json.read_text_file(path) {
+  match @json.read_text_file_fs(path) {
     Ok(text) => (text, "文件")
-    Err(e) => ("", "默认（" + path + " 读取失败：" + e + "）")
+    Err(_) => ("", "默认（" + path + " 读取失败）")
   }
 }
 
@@ -298,7 +298,7 @@ async fn locate_bundle_nr(
 ///|
 /// 读 profile 的 package.json，取 dsh.profile.bundles 声明（不是数组就按空处理）。
 async fn declared_bundles(dir : String) -> Array[String] noraise {
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return []
   }
@@ -356,7 +356,7 @@ pub async fn repair_manager_of(dir : String) -> String noraise {
 ///|
 /// package.json 里声明的 packageManager（只取 @ 前面那段；读不到给 None）。
 async fn package_manager_field(dir : String) -> String? noraise {
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -462,7 +462,7 @@ pub async fn missing_bundles_in(
 /// package.json 在不在、读不读得动（"这只 profile 的配置读得到吗"的判据）。
 /// 只 stat + 解析，不改内容。
 async fn package_json_ok(dir : String) -> Bool noraise {
-  match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Err(_) => false
     Ok(text) =>
       match @json.json_parse(text) {
@@ -520,7 +520,7 @@ pub async fn trial_profile_blocker(
 ///|
 /// package.json 里的 name 字段；读不到给 None（Node 侧给 null）。
 async fn package_name(dir : String) -> String? noraise {
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -582,7 +582,7 @@ async fn describe_profile(
   let patch_exists = @json.exists(patch_file)
   let mut patch_lines = 0
   if patch_exists {
-    match @json.read_text_file(patch_file) {
+    match @json.read_text_file_fs(patch_file) {
       Ok(text) => patch_lines = count_lines(text)
       Err(_) => patch_lines = 0
     }

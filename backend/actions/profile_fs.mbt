@@ -589,9 +589,12 @@ async fn check_base_profile(dir : String) -> (String?, Array[String]) noraise {
   if !@json.is_dir(dir) {
     return (Some("profile 目录没建出来：" + dir), [])
   }
-  let text = match @json.read_text_file(@json.join_path(dir, "package.json")) {
+  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
-    Err(e) => return (Some("package.json 读不出来（" + e + "）"), [])
+    Err(e) => {
+      note_raw(e.raw)
+      return (Some("package.json 读不出来"), [])
+    }
   }
   let json = match @json.json_parse(text) {
     Some(j) => j

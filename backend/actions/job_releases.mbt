@@ -66,7 +66,7 @@ async fn job_real_dir(path : String) -> String noraise {
 /// 「要试的确实是作业里写的那一版」——目录被换过的时候，不核对就会拿另一版去验收。
 async fn package_version_of(dir : String) -> String? noraise {
   let file = @json.join_path(dir, "package.json")
-  let text = match @json.read_text_file(file) {
+  let text = match @json.read_text_file_fs(file) {
     Ok(t) => t
     Err(_) => return None
   }

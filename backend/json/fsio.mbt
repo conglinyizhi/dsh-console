@@ -30,16 +30,51 @@ pub fn is_sensitive_path(path : String) -> Bool {
 }
 
 ///|
-/// 读文本文件。敏感文件拒绝读，返回 Err。读不到也返回 Err。
-pub async fn read_text_file(path : String) -> Result[String, String] noraise {
+/// 读失败的两段式：summary 是给人看的结论（不带系统文本），raw 是底层原文（只给排查用）。
+///
+/// 与 fsx 包里的 FsError 形状与口径一致（写侧那几个 helper 早就是两段式了），
+/// 但不共用同一个类型：fsx 依赖 json，json 反过来引用它会成环。
+/// 调用点只读字段、不写类型名，所以拆成两个同形结构与共用一个没有区别。
+pub(all) struct FsError {
+  summary : String
+  raw : String
+}
+
+///|
+/// 两段拼回一行文本（结论 + 原文）。只给转调壳，以及没有 store 可记 raw 的调用方用；
+/// 有审计的地方一律拆着用：结论进提示文案，原文走 @store.note_raw。
+pub fn two_part_text(e : FsError) -> String {
+  if e.raw == "" {
+    e.summary
+  } else {
+    e.summary + "：" + e.raw
+  }
+}
+
+///|
+/// 读文本文件（两段式：结论「读文件失败」+ 原文）。敏感文件拒绝读，读不到也返回 Err。
+pub async fn read_text_file_fs(
+  path : String,
+) -> Result[String, FsError] noraise {
   if is_sensitive_path(path) {
-    return Err("拒绝读取敏感文件：" + basename(path))
+    // 策略拒绝不是系统失败：结论自己就说完了，raw 留空（否则提示里会重复一遍）
+    return Err({ summary: "拒绝读取敏感文件：" + basename(path), raw: "" })
   }
   try {
     let data = @fs.read_file(path)
     Ok(@utf8.decode_lossy(data.binary(), ignore_bom=true))
   } catch {
-    err => Err(err.to_string())
+    err => Err({ summary: "读文件失败", raw: err.to_string() })
+  }
+}
+
+///|
+/// 读文本文件（旧签名，转调壳）。结论与原文拼成一行给还在用字符串的调用方；
+/// 新代码用 read_text_file_fs，把原文交给 @store.note_raw 而不是拼进提示。
+pub async fn read_text_file(path : String) -> Result[String, String] noraise {
+  match read_text_file_fs(path) {
+    Ok(text) => Ok(text)
+    Err(e) => Err(two_part_text(e))
   }
 }
 
@@ -230,23 +265,32 @@ fn errno_text(code : Int32) -> String {
 }
 
 ///|
-/// 读符号链接目标。只读一次 readlink(2)，失败给 Err（人话 + errno 名）。
+/// 读符号链接目标（两段式：结论「读链接失败」+ 原文）。
+/// 只读一次 readlink(2)；失败给 Err（原文是 errno 名或截断说明）。
 /// 同步的：一次系统调用，没有可挂起的点；调用方在 async 上下文里直接调。
-pub fn read_link(path : String) -> Result[String, String] {
+pub fn read_link_fs(path : String) -> Result[String, FsError] {
   let raw_path = @utf8.encode(path)
   let buf = Bytes::make(read_link_cap, b'\x00')
   let n = read_link_raw(raw_path, buf, read_link_cap)
   if n < 0 {
-    return Err("readlink 失败：" + errno_text(-n))
+    return Err({ summary: "读链接失败", raw: errno_text(-n) })
   }
   if n >= read_link_cap {
-    return Err(
-      "readlink 失败：目标超过 " +
-      read_link_cap.to_string() +
-      " 字节，被截断",
-    )
+    return Err({
+      summary: "读链接失败",
+      raw: "目标超过 " + read_link_cap.to_string() + " 字节，被截断",
+    })
   }
   Ok(@utf8.decode_lossy(buf[:n]))
+}
+
+///|
+/// 读符号链接目标（旧签名，转调壳）。新代码用 read_link_fs。
+pub fn read_link(path : String) -> Result[String, String] {
+  match read_link_fs(path) {
+    Ok(text) => Ok(text)
+    Err(e) => Err(two_part_text(e))
+  }
 }
 
 ///|
