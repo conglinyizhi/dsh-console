@@ -733,3 +733,19 @@ fn notice_seq(model : Model) -> Int32 {
     None => 0
   }
 }
+///|
+/// 把「结论。原始错误：原文」切成两段（§104）：正文只留结论，原文进悬停与日志。
+fn split_error_note(full : String) -> (String, String) {
+  let head = StringBuilder()
+  let hint = StringBuilder()
+  let mut seen = false
+  for part in full.split("。原始错误：") {
+    if seen {
+      hint.write_string(part.to_string())
+    } else {
+      head.write_string(part.to_string())
+      seen = true
+    }
+  }
+  (head.to_string(), hint.to_string())
+}

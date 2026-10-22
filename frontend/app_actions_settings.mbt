@@ -327,8 +327,11 @@ fn settings_saved_state(
     } else {
       failed
     }
+    // 结论进正文、原文进悬停（§104）：设置保存失败这条以前直接把整句塞进提示条，
+    // 路径与 OSError 全在脸上；现在按「。原始错误：」切开。
+    let (headline, hint) = split_error_note(label + " 没保存：" + note)
     return (
-      notice_err(failed, label + " 没保存：" + note),
+      notice_put(failed, false, headline, hint, audit=true),
       set_control_after_render(setting_control_id(key), back),
     )
   }
