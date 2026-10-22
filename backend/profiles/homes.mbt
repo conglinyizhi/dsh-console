@@ -527,9 +527,12 @@ async fn layout_home(
   dsh_home : String,
 ) -> Result[HomeLayout, (String, String)] noraise {
   let pdir = @json.join_all([home, "profiles", name])
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(pdir)) {
+  match @fsx.ensure_dir_fs(pdir) {
     Ok(_) => ()
-    Err(e) => return Err(("io-error", e))
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err(("io-error", "建软链失败"))
+    }
   }
   let mut copied = 0
   for file in profile_config_files {
@@ -561,21 +564,30 @@ async fn layout_home(
       ),
     )
   }
-  match @fsx.to_result_unit(@fsx.make_symlink_fs(nm_target, @json.join_path(pdir, "node_modules"))) {
+  match @fsx.make_symlink_fs(nm_target, @json.join_path(pdir, "node_modules")) {
     Ok(_) => ()
-    Err(e) => return Err(("io-error", e))
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err(("io-error", "建目录失败"))
+    }
   }
   let src_skills = @json.join_path(dsh_home, "skills")
   let mut skills_linked = false
   if @json.is_dir(src_skills) {
-    match @fsx.to_result_unit(@fsx.make_symlink_fs(src_skills, @json.join_path(home, "skills"))) {
+    match @fsx.make_symlink_fs(src_skills, @json.join_path(home, "skills")) {
       Ok(_) => skills_linked = true
-      Err(e) => return Err(("io-error", e))
+      Err(e) => {
+      @store.note_raw(e.raw)
+      return Err(("io-error", "写文件失败"))
+    }
     }
   }
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.join_path(home, "logs"))) {
+  match @fsx.ensure_dir_fs(@json.join_path(home, "logs")) {
     Ok(_) => ()
-    Err(e) => return Err(("io-error", e))
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err(("io-error", "写文件失败"))
+    }
   }
   // 凭证：只写路径，不碰文件本身（@json.exists 只 stat，不读内容）
   let cred = @json.join_path(dsh_home, ".credentials.yaml")

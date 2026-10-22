@@ -554,9 +554,12 @@ async fn move_package(
   target_pkg : String,
 ) -> Result[Array[String], String] noraise {
   let notes : Array[String] = []
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.dirname(target_pkg))) {
+  match @fsx.ensure_dir_fs(@json.dirname(target_pkg)) {
     Ok(_) => ()
-    Err(e) => return Err(e)
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err("建目录失败")
+    }
   }
   let kind = @fs.kind(source_pkg, follow_symlink=false) catch { _ => Unknown }
   match kind {
@@ -575,9 +578,12 @@ async fn move_package(
         Ok(value) => value
         Err(e) => return Err(e)
       }
-      match @fsx.to_result_unit(@fsx.make_symlink_fs(link_target, target_pkg)) {
+      match @fsx.make_symlink_fs(link_target, target_pkg) {
         Ok(_) => ()
-        Err(e) => return Err(e)
+        Err(e) => {
+          @store.note_raw(e.raw)
+          return Err("建软链失败")
+        }
       }
       notes.push(
         "这是一条软链，按原样重建（指向 " + link_target + "）",
@@ -664,22 +670,20 @@ async fn apply_promote_inner(
   let written : Array[String] = []
   for pair in payloads {
     let (name, data) = pair
-    match @fsx.to_result_unit(@fsx.write_bytes_fs(@json.join_path(target.dir, name), data)) {
+    match @fsx.write_bytes_fs(@json.join_path(target.dir, name), data) {
       Ok(_) => written.push(name)
-      Err(e) =>
+      Err(e) => {
+        @store.note_raw(e.raw)
         return Err(
           (
             "io-error",
-            "写 " +
-            name +
-            " 失败（" +
-            e +
-            "）；已经写了：" +
+            "写文件失败；已经写了：" +
             describe_files(written) +
             "；替换前快照 " +
             snapshot.id,
           ),
         )
+      }
     }
   }
   // 4. 搬本地包：源 node_modules 里有、目标里没有的

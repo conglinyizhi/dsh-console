@@ -331,15 +331,17 @@ pub async fn restore_from_trash(
     Err(first) =>
       match @fsx.copy_tree(path, target, []) {
         Ok(_) =>
-          match @fsx.to_result_unit(@fsx.remove_tree_fs(path)) {
+          match @fsx.remove_tree_fs(path) {
             Ok(_) => ()
-            Err(e) =>
-              fail(
-                "io-error",
-                first + "；退回复制之后删源头也失败：" + e,
-              )
+            Err(e) => {
+              note_raw(e.raw)
+              fail("io-error", first + "；退回复制之后删源头也失败")
+            }
           }
-        Err(e) => fail("io-error", first + "；退回复制也失败：" + e)
+        Err(e) => {
+          note_raw(e)
+          fail("io-error", first + "；退回复制也失败")
+        }
       }
   }
   // 这一条已经不在回收站里了，来源记录跟着清掉。清不掉不算恢复失败（那一份确实回去了），
@@ -398,9 +400,12 @@ pub async fn purge_trash_item(
   let name = @json.trim_both(dir)
   let (profile, _, _) = split_trash_name(name)
   let (files, bytes, size_source) = measure_entry(path)
-  match @fsx.to_result_unit(@fsx.remove_tree_fs(path)) {
+  match @fsx.remove_tree_fs(path) {
     Ok(_) => ()
-    Err(e) => fail("io-error", e)
+    Err(e) => {
+      note_raw(e.raw)
+      fail("io-error", "删目录失败")
+    }
   }
   // 连来源记录一起清掉：这一份已经不存在了，留着一条指向它的记录只是垃圾。
   // 清不掉不算删除失败（东西确实没了），原因照旧带出去。

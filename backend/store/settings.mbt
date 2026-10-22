@@ -323,8 +323,14 @@ pub fn default_of(s : Settings, key : String) -> @json.JsonVal {
 /// 落盘（原子写）。
 pub async fn save_settings(s : Settings) -> Result[Unit, String] noraise {
   let paths = state_paths()
-  @fsx.to_result_unit(@fsx.write_text_atomic_fs(
+  match @fsx.write_text_atomic_fs(
     paths.settings,
     @json.encode(settings_values_json(s)) + "\n",
-  ))
+  ) {
+    Ok(_) => Ok(())
+    Err(e) => {
+      note_raw(e.raw)
+      Err("写文件失败")
+    }
+  }
 }

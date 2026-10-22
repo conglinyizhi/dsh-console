@@ -211,8 +211,13 @@ async fn add_credentials_patch(
     yaml_quote(cred_path) +
     "\n"
   let text = if body == "" { head + block } else { body + "\n" + head + block }
-  // 这一支的调用方要 Result[Unit, String]：raw 已经在写失败时进 note_raw，这里折回旧口径
-  @fsx.to_result_unit(@fsx.write_text_atomic_fs(path, text))
+  match @fsx.write_text_atomic_fs(path, text) {
+    Ok(_) => Ok(())
+    Err(e) => {
+      @store.note_raw(e.raw)
+      Err("写文件失败")
+    }
+  }
 }
 
 ///|
