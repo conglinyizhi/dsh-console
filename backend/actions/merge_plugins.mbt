@@ -128,6 +128,10 @@ async fn declared_plugins(
 ///   profile/node_modules → 共享 profiles/node_modules（hoisted）→ 共享 profiles/packages → 没有。
 /// 共享 home 走 @runtime.resolve_dsh_home()（不写死 ~/.dsh）。
 async fn resolve_package(dir : String, name : String) -> String? noraise {
+  if !@json.package_name_ok(name) {
+    @rawsink.append_error_line("merge", "拒绝非法包名：" + name)
+    return None
+  }
   let candidates : Array[String] = [
     @json.join_all([dir, "node_modules", name]),
     // hoisted：与 locate_bundle_nr 同一个落点（<home>/profiles/node_modules/<name>）
@@ -320,6 +324,11 @@ pub async fn merge_preview_json(
   let (_declared, unresolved) = declared_plugins(dir)
   let warnings : Array[String] = []
   for name in unresolved {
+    if !@json.package_name_ok(name) {
+      @rawsink.append_error_line("merge", "拒绝非法包名：" + name)
+      warnings.push("非法包名，已拒绝：" + name + "（不能带路径分隔或上级段）")
+      continue
+    }
     warnings.push(
       "patch 里 " +
       name +

@@ -375,3 +375,35 @@ pub async fn list_dir_result(
     Err(e) => Err(two_part_text(e))
   }
 }
+
+///|
+/// 包名合法性（§115）：包名会被拼进 node_modules 下的路径，不能带路径分隔或上级段。
+/// 允许 name 与 @scope/name 两种形状；反斜杠、控制字符、空段、点段一律拒。
+pub fn package_name_ok(name : String) -> Bool {
+  if name == "" {
+    return false
+  }
+  for ch in name {
+    let code = ch.to_int()
+    if code < 32 || code == 92 {
+      return false
+    }
+  }
+  let segs : Array[String] = []
+  for part in name.split("/") {
+    segs.push(part.to_owned())
+  }
+  if segs.length() == 1 {
+    return !is_dot_segment(segs[0]) && !segs[0].has_prefix("@")
+  }
+  if segs.length() != 2 {
+    return false
+  }
+  segs[0].has_prefix("@") && segs[0].length() > 1 && !is_dot_segment(segs[0]) &&
+  !is_dot_segment(segs[1])
+}
+
+///|
+fn is_dot_segment(seg : String) -> Bool {
+  seg == "" || seg == "." || seg == ".."
+}
