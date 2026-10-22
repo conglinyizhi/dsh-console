@@ -45,21 +45,74 @@ async fn console_payload() -> @json.JsonVal noraise {
   // 维护作业（design/ops-maintenance-jobs.md §2 / §3）：读不出来的那条也一起交出去，
   // 不吞 —— 那条记录必须在列表里显示「记录读不出来」+ 原因。
   let (jobs, bad_jobs, job_notes) = @store.load_jobs()
+  // P1 对账（批注 3）：**以 /proc 里的真实进程为准**，runtime.json 只补元数据。
+  // 以前这里是「遍历注册表 → alive = process_alive(pid)」，与 instances 读数是两套判定；
+  // 现在统一走 instances 报告（它已经做过 /proc × 注册表的对账），这里只挑出在跑的那些。
+  let report = @instances.instances_report_with_settings()
   let runtime : Array[@json.JsonVal] = []
-  for r in registry.entries {
+  let mut proc_only = 0
+  for item in report.instances {
+    if item.signature_id == "not-dsh" || item.signature_id == "no-signature" {
+      continue
+    }
+    let pid = match item.pid {
+      Some(p) => p
+      None => continue
+    }
+    // 注册表里那一条（按 pid 对）：只取元数据（日志路径、是否 detach、启动时刻）
+    let mut meta_pid = -1
+    let mut meta_log = ""
+    let mut meta_detached = false
+    let mut meta_started = ""
+    let mut meta_home = ""
+    let mut meta_profile = ""
+    for r in registry.entries {
+      if r.pid == pid {
+        meta_pid = r.pid
+        meta_log = r.log_path
+        meta_detached = r.detached
+        meta_started = r.started_at
+        meta_home = r.home
+        meta_profile = r.profile
+      }
+    }
+    if meta_pid < 0 {
+      // /proc 有、注册表没有 = 外部起的实例
+      proc_only = proc_only + 1
+    }
     runtime.push(
       @json.JObj([
-        ("pid", @json.jint(r.pid)),
-        ("port", @json.jint(r.port)),
-        ("home", @json.JStr(r.home)),
-        ("profile", @json.JStr(r.profile)),
-        ("startedAt", @json.JStr(r.started_at)),
-        ("logPath", @json.JStr(r.log_path)),
-        ("detached", @json.JBool(r.detached)),
-        ("alive", @json.JBool(process_alive(r.pid))),
+        ("pid", @json.jint(pid)),
+        ("port", @json.jint(item.port)),
+        ("home", @json.JStr(if meta_home == "" { match item.dsh_home { Some(h) => h; None => "" } } else { meta_home })),
+        ("profile", @json.JStr(if meta_profile == "" { match item.profile { Some(p) => p; None => "" } } else { meta_profile })),
+        ("startedAt", @json.JStr(meta_started)),
+        ("logPath", @json.JStr(meta_log)),
+        ("detached", @json.JBool(meta_detached)),
+        ("registered", @json.JBool(meta_pid >= 0)),
+        ("alive", @json.JBool(true)),
       ]),
     )
   }
+  // 差异条数（注册表有、/proc 没有 = 陈旧记录；/proc 有、注册表没有 = 外部起的）
+  let mut stale = 0
+  for r in registry.entries {
+    let mut seen = false
+    for item in report.instances {
+      match item.pid {
+        Some(p) => if p == r.pid { seen = true }
+        None => ()
+      }
+    }
+    if !seen {
+      stale = stale + 1
+    }
+  }
+  let reconcile = @json.JObj([
+    ("runtime", @json.jint(runtime.length())),
+    ("registryOnly", @json.jint(stale)),
+    ("procOnly", @json.jint(proc_only)),
+  ])
   let archived : Array[@json.JsonVal] = []
   for r in archive.entries {
     archived.push(@store.archive_json(r))
@@ -121,6 +174,8 @@ async fn console_payload() -> @json.JsonVal noraise {
     job_items.push(@store.bad_job_json(bad))
   }
   let fields : Array[(String, @json.JsonVal)] = [
+    // P1 对账结果：只记差异条数（注册表陈旧 N 条、/proc 有而注册表没有 M 条）
+    ("reconcile", reconcile),
     // 构建信息：页脚显示「server <sha>」（scripts/gen-build-info.sh 生成）
     ("buildSha", @json.JStr(build_sha)),
     ("buildAt", @json.JStr(build_at)),
