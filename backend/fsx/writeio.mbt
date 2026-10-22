@@ -163,7 +163,7 @@ async fn write_text_atomic_impl(
   text : String,
 ) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
-  match ensure_dir(dir) {
+  match ensure_dir_impl(dir) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
@@ -199,7 +199,7 @@ pub async fn append_text(
   text : String,
 ) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
-  match ensure_dir(dir) {
+  match ensure_dir_impl(dir) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
@@ -224,7 +224,7 @@ pub async fn write_text(
   text : String,
 ) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
-  match ensure_dir(dir) {
+  match ensure_dir_impl(dir) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
@@ -252,7 +252,7 @@ async fn write_bytes_impl(
   permission~ : Int32 = 0o600,
 ) -> Result[Unit, String] noraise {
   let dir = @json.dirname(path)
-  match ensure_dir(dir) {
+  match ensure_dir_impl(dir) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
@@ -389,7 +389,7 @@ pub async fn copy_file(
   to : String,
 ) -> Result[Unit, String] noraise {
   match read_bytes(from) {
-    Ok(data) => write_bytes(to, data)
+    Ok(data) => write_bytes_impl(to, data)
     Err(e) => Err(e)
   }
 }
@@ -412,7 +412,7 @@ pub async fn copy_tree(
     cursor = cursor + 1
     let src = pair.0
     let dst = pair.1
-    match ensure_dir(dst) {
+    match ensure_dir_impl(dst) {
       Ok(_) => ()
       Err(e) => return Err(e)
     }
@@ -502,10 +502,6 @@ pub async fn count_tree(
   (files, dirs)
 }
 ///|
-/// 带两段错误的六个入口（批次 A）：summary 只写结论，raw 是底层原文。
-/// 旧签名的六个函数原样保留给尚未迁移的调用点；批次 B 会把它们全部切到下面这组，
-/// 然后删掉旧的。这样两批之间树始终可编译。
-///|
 /// 失败的两段：summary 是给人看的结论（不带系统文本），raw 是底层原文（排查用）。
 pub(all) struct FsError {
   summary : String
@@ -513,25 +509,7 @@ pub(all) struct FsError {
 }
 
 ///|
-/// 兼容层：把 FsError 折回旧的单段 String（结论 + 原文）。批次 B 删掉。
-pub fn fserr_text(e : FsError) -> String {
-  if e.raw == "" {
-    e.summary
-  } else {
-    e.summary + "：" + e.raw
-  }
-}
-
-///|
-/// 兼容包装：Result[Unit, FsError] → Result[Unit, String]（旧口径，含原文）。
-pub fn to_result_unit(r : Result[Unit, FsError]) -> Result[Unit, String] {
-  match r {
-    Ok(u) => Ok(u)
-    Err(e) => Err(fserr_text(e))
-  }
-}
-
-///|
+/// 建目录：结论「建目录失败」，原文进 raw。
 pub async fn ensure_dir_fs(path : String) -> Result[Unit, FsError] noraise {
   match ensure_dir_impl(path) {
     Ok(_) => Ok(())
@@ -581,28 +559,3 @@ pub async fn make_symlink_fs(target : String, path : String) -> Result[Unit, FsE
     Err(raw) => Err({ summary: "建软链失败", raw })
   }
 }
-// 旧的六个公开名：B1 之后只在内部转调 *_fs，外部调用点已切到 *_fs。
-pub async fn ensure_dir(path : String) -> Result[Unit, String] noraise {
-  to_result_unit(ensure_dir_fs(path))
-}
-
-pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, String] noraise {
-  to_result_unit(write_text_atomic_fs(path, text))
-}
-
-pub async fn write_bytes(path : String, data : Bytes) -> Result[Unit, String] noraise {
-  to_result_unit(write_bytes_fs(path, data))
-}
-
-pub async fn remove_file(path : String) -> Result[Unit, String] noraise {
-  to_result_unit(remove_file_fs(path))
-}
-
-pub async fn remove_tree(path : String) -> Result[Unit, String] noraise {
-  to_result_unit(remove_tree_fs(path))
-}
-
-pub async fn make_symlink(target : String, path : String) -> Result[Unit, String] noraise {
-  to_result_unit(make_symlink_fs(target, path))
-}
-

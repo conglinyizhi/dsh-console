@@ -246,11 +246,17 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
   ])
   match @fsx.ensure_dir_fs(@json.dirname(path)) {
     Ok(_) => ()
-    Err(e) => return Err("建目录失败：" + e.summary)
+    Err(e) => {
+      note_raw(e.raw)
+      return Err("建目录失败")
+    }
   }
   match @fsx.write_text_atomic_fs(path, @json.encode(json) + "\n") {
     Ok(_) => ()
-    Err(e) => return Err("写文件失败：" + e.summary)
+    Err(e) => {
+      note_raw(e.raw)
+      return Err("写文件失败")
+    }
   }
   // 权限：先按 600 建，失败也要报（这个文件里是可能含密钥的环境值）
   match @fsx.chmod_path(path, 0o600) {
