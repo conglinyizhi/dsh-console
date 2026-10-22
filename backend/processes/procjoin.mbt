@@ -124,10 +124,11 @@ pub async fn holders_for_inodes(inodes : Array[Int64]) -> HolderScan noraise {
       break
     }
     let fd_dir = proc_root + "/" + @json.int_to_dec(pid) + "/fd"
-    let names = match @json.list_dir_result(fd_dir) {
+    let names = match @json.list_dir_result_fs(fd_dir) {
       Ok(list) => list
-      Err(message) => {
-        if is_denied(message) {
+      Err(e) => {
+        // 判据是 EACCES/EPERM 那几个词，它们只在原文里
+        if is_denied(e.raw) {
           fd_denied = fd_denied + 1
         }
         continue

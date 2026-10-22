@@ -140,9 +140,10 @@ pub async fn job_cleanup_preview(id : String) -> JobOutcome raise ActionError {
   }
   let exists = @json.is_dir(dir)
   let (files, bytes, size_source) = if exists {
-    match @fsx.measure_tree(dir) {
+    match @fsx.measure_tree_fs(dir) {
       Ok((count, size)) => (Some(count), Some(size), "递归数出来的")
-      Err(e) => (None, None, "读不到体积：" + e)
+      // 读侧来源说明只给结论（进回执的 sizeSource），原文进审计
+      Err(e) => (None, None, "读不到体积：" + e.summary)
     }
   } else {
     (Some(0), Some(0L), "这个目录现在不在了")
@@ -289,9 +290,9 @@ pub async fn job_cleanup(
       " 已经不在了，没有可删的；作业收尾。",
     }
   }
-  let (files, bytes, size_source) = match @fsx.measure_tree(dir) {
+  let (files, bytes, size_source) = match @fsx.measure_tree_fs(dir) {
     Ok((count, size)) => (Some(count), Some(size), "递归数出来的")
-    Err(e) => (None, None, "删之前读不到体积：" + e)
+    Err(e) => (None, None, "删之前读不到体积：" + e.summary)
   }
   let size_text = match bytes {
     Some(value) => value.to_string() + " 字节"

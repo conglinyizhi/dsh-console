@@ -593,12 +593,15 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 | 结论 | 出处（helper） | 底层原文 `raw` 里放什么 |
 | --- | --- | --- |
 | 建目录失败 | `@fsx.ensure_dir_fs` | `OSError("@fs.mkdir()…")` 之类 |
-| 写文件失败 | `@fsx.write_text_atomic_fs` / `write_bytes_fs` | `OSError("@fs.write()…")` 之类 |
+| 写文件失败 | `@fsx.write_text_atomic_fs` / `write_text_fs` / `write_bytes_fs` | `OSError("@fs.write()…")` 之类 |
 | 删文件失败 | `@fsx.remove_file_fs` | 同上 |
 | 删目录失败 | `@fsx.remove_tree_fs` | 同上 |
 | 建软链失败 | `@fsx.make_symlink_fs` | 同上 |
 | **重命名失败** | `@fsx.rename_path_fs` | `<from> -> <to>（OSError(… EXDEV / EACCES …)）` |
 | **改权限失败** | `@fsx.chmod_path_fs` | `<路径>（OSError(…)` |
+| **统计失败** | `@fsx.measure_tree_fs` | 坏在哪一步、哪个目录：`列目录失败：<目录>（…）` / `读不到文件大小：<文件>` |
+| **列目录失败** | `@json.list_dir_result_fs` | `<目录>（OSError(…)）`；EACCES / EPERM 那几个词在原文里（`/proc` 的 hidepid 靠它们认） |
+| **读文件状态失败** | `@json.file_size_fs` | `<路径>（OSError(…)）`（stat 不动）；tailread 里 `fd.size()` 那一处只给结论 |
 | **复制失败** | `@fsx.copy_tree_fs` | 坏在哪一步、哪个文件：`列目录失败：<目录>（…）` / `读不到 <文件>：（…）` / `写文件失败：<文件>（…）` |
 | **追加失败** | `@fsx.append_text_fs` | `追加写失败：<路径>（OSError(…)）` |
 | **读文件失败** | `@json.read_text_file_fs` | `OSError("@fs.read()…")` 之类；敏感文件是「拒绝读取敏感文件：<名字>」，`raw` 留空 |
@@ -618,7 +621,8 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 `@fsx.*_fs` 的签名直接写着 `Result[Unit, @json.FsError]`，读写两侧共用这一个类型。
 
 旧的 `read_text_file` / `read_link` / `rename_path` / `chmod_path` /
-`copy_tree` / `read_bytes` / `append_text` / `read_some_at` / `read_text_at` 仍在（转调壳，
+`copy_tree` / `read_bytes` / `append_text` / `read_some_at` / `read_text_at` /
+`write_text` / `measure_tree` / `list_dir_result` 仍在（转调壳，
 内部把 `summary` 与 `raw` 拼回一行给还没切的老调用方），新代码一律走 `_fs` 入口。
 
 为什么这样挡得住网页跨源触发：浏览器不允许跨源请求带自定义头，预检会先拦掉；Origin 校验再挡一层。

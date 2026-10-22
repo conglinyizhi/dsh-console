@@ -55,8 +55,10 @@ pub async fn read_tail_lines(
   file : String,
   tail : Int32,
 ) -> TailRead raise TailError {
-  let size = @fs.file_size(file) catch {
-    err => raise TailError("读不到文件状态：" + err.to_string())
+  // 读文件状态失败也走两段式入口；json 包够不到 store，原文在这里落不了，只留结论
+  let size = match file_size_fs(file) {
+    Ok(v) => v
+    Err(e) => raise TailError(e.summary)
   }
   if size == 0L {
     return {
@@ -74,7 +76,7 @@ pub async fn read_tail_lines(
   defer handle.close()
   // 文件可能正在被写：以 fd 自己的 size 为准，不用前面那份可能过期的
   let actual = handle.size() catch {
-    err => raise TailError("读不到文件状态：" + err.to_string())
+    _ => raise TailError("读文件状态失败")
   }
   if actual == 0L {
     return {

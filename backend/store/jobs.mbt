@@ -731,11 +731,13 @@ pub fn unfinished_of_kind(jobs : Array[Job], kind : String) -> Job? {
 /// 用户会以为那条作业不存在，然后重新开一条 —— 磁盘上那份坏记录永远没人处理。
 pub async fn load_jobs() -> (Array[Job], Array[BadJob], Array[String]) noraise {
   let dir = jobs_dir()
-  let names = match @json.list_dir_result(dir) {
+  let names = match @json.list_dir_result_fs(dir) {
     Ok(list) => list
-    Err(e) =>
+    // 读侧说明只给结论（这条会进设置页的 sources）：原文该进审计，
+    // 这条路是只读接口，没有审计行
+    Err(_) =>
       if @json.exists(dir) {
-        return ([], [], ["列不出作业目录 " + dir + "：" + e])
+        return ([], [], ["列不出作业目录 " + dir])
       } else {
         return ([], [], [])
       }

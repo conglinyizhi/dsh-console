@@ -259,7 +259,7 @@ async fn prune_archives(newest : String, keep : Int32) -> Unit noraise {
     return
   }
   let dir = @json.dirname(newest)
-  let names = match @json.list_dir_result(dir) {
+  let names = match @json.list_dir_result_fs(dir) {
     Ok(l) => l
     Err(_) => return
   }
@@ -423,7 +423,7 @@ pub async fn audit_read_path(audit : String) -> String noraise {
 /// 归档目录里最新的一份（按文件名比，时间戳前缀定长，字典序就是时间序）。
 async fn newest_archive(audit : String) -> String? noraise {
   let dir = @json.join_path(@json.dirname(audit), audit_archive_dir)
-  let names = match @json.list_dir_result(dir) {
+  let names = match @json.list_dir_result_fs(dir) {
     Ok(l) => l
     Err(_) => return None
   }

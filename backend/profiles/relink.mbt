@@ -126,7 +126,7 @@ pub async fn collect_links(
         visited < max_entries {
     let dir = queue[cursor]
     cursor = cursor + 1
-    let names = match @json.list_dir_result(dir) {
+    let names = match @json.list_dir_result_fs(dir) {
       Ok(list) => list
       Err(_) => continue
     }

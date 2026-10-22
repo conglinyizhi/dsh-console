@@ -112,14 +112,15 @@ pub fn split_trash_name(dir : String) -> (String, Int64?, String) {
 ///|
 /// 数一份回收站条目：给 (文件数, 字节数, 来源说明)。数不出来两个都给 None 并写明原因。
 async fn measure_entry(path : String) -> (Int32?, Int64?, String) noraise {
-  match @fsx.measure_tree(path) {
+  match @fsx.measure_tree_fs(path) {
     Ok(pair) =>
       (
         Some(pair.0),
         Some(pair.1),
         "递归数了这一份里的普通文件（软链等非普通文件不计入）",
       )
-    Err(reason) => (None, None, reason)
+    // 数不出来就说结论（进回执的 sizeSource）；原文进审计
+    Err(e) => (None, None, e.summary)
   }
 }
 

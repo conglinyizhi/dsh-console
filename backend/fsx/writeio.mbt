@@ -243,7 +243,7 @@ pub async fn append_text(
 
 ///|
 /// 覆盖写文本（非原子）。给不需要原子性的场景用；settings / runtime / archive 一律走原子版。
-pub async fn write_text(
+async fn write_text_impl(
   path : String,
   text : String,
 ) -> Result[Unit, String] noraise {
@@ -257,6 +257,31 @@ pub async fn write_text(
     Ok(())
   } catch {
     err => Err("写文件失败：" + path + "（" + err.to_string() + "）")
+  }
+}
+
+///|
+/// 覆盖写文本（非原子），两段式：结论「写文件失败」+ 原文（原文里带路径）。
+/// 与 write_text_atomic_fs 同一句结论：调用方只关心「没写成」，原子与否是内部选择。
+pub async fn write_text_fs(
+  path : String,
+  text : String,
+) -> Result[Unit, @json.FsError] noraise {
+  match write_text_impl(path, text) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "写文件失败", raw })
+  }
+}
+
+///|
+/// 覆盖写文本（旧签名，转调壳）。新代码用 write_text_fs。
+pub async fn write_text(
+  path : String,
+  text : String,
+) -> Result[Unit, String] noraise {
+  match write_text_fs(path, text) {
+    Ok(_) => Ok(())
+    Err(e) => Err(@json.two_part_text(e))
   }
 }
 
@@ -416,7 +441,7 @@ async fn remove_tree_impl(path : String) -> Result[Unit, String] noraise {
 ///
 /// 任何一步读不到就给 Err —— 数不全的时候宁可让调用方写「读不到」，
 /// 也不给一个偏小的数冒充这一份的真实体积。
-pub async fn measure_tree(
+async fn measure_tree_impl(
   root : String,
 ) -> Result[(Int32, Int64), String] noraise {
   let mut files = 0
@@ -426,9 +451,10 @@ pub async fn measure_tree(
   while cursor < queue.length() {
     let dir = queue[cursor]
     cursor = cursor + 1
-    let names = match @json.list_dir_result(dir) {
+    let names = match @json.list_dir_result_fs(dir) {
       Ok(list) => list
-      Err(e) => return Err("列目录失败：" + dir + "（" + e + "）")
+      // impl 这一层只负责把原文攒成一句给人查的细节；结论由 *_fs 那一层套
+      Err(e) => return Err("列目录失败：" + dir + "（" + e.raw + "）")
     }
     for name in names {
       let path = @json.join_path(dir, name)
@@ -451,14 +477,38 @@ pub async fn measure_tree(
 }
 
 ///|
+/// 递归数一份目录树，两段式：结论「统计失败」+ 原文（原文说清是哪一步、哪个目录）。
+pub async fn measure_tree_fs(
+  root : String,
+) -> Result[(Int32, Int64), @json.FsError] noraise {
+  match measure_tree_impl(root) {
+    Ok(pair) => Ok(pair)
+    Err(raw) => Err({ summary: "统计失败", raw })
+  }
+}
+
+///|
+/// 递归数一份目录树（旧签名，转调壳）。新代码用 measure_tree_fs。
+pub async fn measure_tree(
+  root : String,
+) -> Result[(Int32, Int64), String] noraise {
+  match measure_tree_fs(root) {
+    Ok(pair) => Ok(pair)
+    Err(e) => Err(@json.two_part_text(e))
+  }
+}
+
+///|
 /// 复制一个普通文件（保留原始字节）。
 pub async fn copy_file(
   from : String,
   to : String,
 ) -> Result[Unit, String] noraise {
-  match read_bytes(from) {
+  match read_bytes_fs(from) {
     Ok(data) => write_bytes_impl(to, data)
-    Err(e) => Err(e)
+    // 只传底层原文：copy_tree 那边已经是「复制失败：<细节>」，细节里再套一层
+    // 「读文件失败（字节）」会读成两层结论。敏感文件那种策略拒绝没有原文，退回结论。
+    Err(e) => Err(if e.raw == "" { e.summary } else { e.raw })
   }
 }
 
@@ -486,9 +536,9 @@ async fn copy_tree_impl(
     }
     stats.dirs = stats.dirs + 1
     on_progress(stats)
-    let names = match @json.list_dir_result(src) {
+    let names = match @json.list_dir_result_fs(src) {
       Ok(list) => list
-      Err(e) => return Err("列目录失败：" + src + "（" + e + "）")
+      Err(e) => return Err("列目录失败：" + src + "（" + e.raw + "）")
     }
     for name in names {
       if name_in(skip, name) {
@@ -598,7 +648,7 @@ pub async fn count_tree(
     let src = queue[cursor]
     cursor = cursor + 1
     dirs = dirs + 1
-    let names = match @json.list_dir_result(src) {
+    let names = match @json.list_dir_result_fs(src) {
       Ok(list) => list
       Err(_) => continue
     }

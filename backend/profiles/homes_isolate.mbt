@@ -560,9 +560,10 @@ pub async fn deisolate_profile(
     None => ()
   }
   // 剩下的东西：整份移进回收站，不删。
-  let (files, bytes, size_source) = match @fsx.measure_tree(home) {
+  let (files, bytes, size_source) = match @fsx.measure_tree_fs(home) {
     Ok((f, b)) => (Some(f), Some(b), "")
-    Err(e) => (None, None, e)
+    // 读侧来源说明只给结论；原文该进审计，而这一条是成功回执里的 sizeSource
+    Err(e) => (None, None, e.summary)
   }
   match move_remainder_to_trash(home, name) {
     Err(why) =>

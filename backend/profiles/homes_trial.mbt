@@ -74,7 +74,7 @@ async fn clear_stale_trial_home(home : String) -> (String, String) noraise {
   if !@json.exists(home) {
     return ("", "")
   }
-  let size_text = match @fsx.measure_tree(home) {
+  let size_text = match @fsx.measure_tree_fs(home) {
     Ok((files, bytes)) =>
       "（" +
       files.to_string() +
@@ -259,7 +259,7 @@ pub async fn remove_trial_home(
   if !@json.is_dir(home) {
     return Ok("一次性 home 本来就不在：" + home)
   }
-  let size_text = match @fsx.measure_tree(home) {
+  let size_text = match @fsx.measure_tree_fs(home) {
     Ok((files, bytes)) =>
       "（" +
       files.to_string() +

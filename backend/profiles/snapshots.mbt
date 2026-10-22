@@ -208,9 +208,10 @@ pub async fn read_snapshots(
   if !@json.is_dir(dir) {
     return ([], "还没有 " + dir + "（这只 profile 没拍过快照）")
   }
-  let names = match @json.list_dir_result(dir) {
+  let names = match @json.list_dir_result_fs(dir) {
     Ok(list) => list
-    Err(e) => return ([], "读不到 " + dir + "：" + e)
+    // 读侧说明只给结论：原文该进审计，这条会进快照列表的 note
+    Err(_) => return ([], "读不到 " + dir)
   }
   let entries : Array[SnapshotEntry] = []
   let problems : Array[String] = []
@@ -257,7 +258,7 @@ async fn prune_snapshots(
   keep_id : String,
 ) -> Array[String] noraise {
   let pruned : Array[String] = []
-  let names = match @json.list_dir_result(dir) {
+  let names = match @json.list_dir_result_fs(dir) {
     Ok(list) => list
     Err(_) => return pruned
   }

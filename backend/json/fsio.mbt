@@ -253,6 +253,15 @@ pub async fn file_size(path : String) -> Int64? noraise {
 }
 
 ///|
+/// 文件字节大小（两段式）：结论「读文件状态失败」+ 原文（原文里带路径）。
+/// 与 file_size 的区别是这条**不吞**失败：判「读不到」与判「是 0 字节」是两件事。
+pub async fn file_size_fs(path : String) -> Result[Int64, FsError] noraise {
+  Ok(@fs.file_size(path)) catch {
+    err => Err({ summary: "读文件状态失败", raw: path + "（" + err.to_string() + "）" })
+  }
+}
+
+///|
 /// 文件 mtime，毫秒。取不到返回 None（对应 Node statSync 抛异常的那一支）。
 /// @fs.mtime 返回 (秒, 纳秒)，这里按毫秒截断，与 JS 的 Date 精度一致。
 pub async fn mtime_ms(path : String) -> Int64? noraise {
@@ -324,12 +333,23 @@ pub fn read_link(path : String) -> Result[String, String] {
 }
 
 ///|
-/// 列目录并把失败原因带出来（list_dir 把失败吞成空数组，判断「空目录」与
-/// 「读不到」时不够用）。
+/// 列目录（两段式）：结论「列目录失败」+ 原文（原文里带路径）。
+/// list_dir 把失败吞成空数组，判断「空目录」与「读不到」时不够用，所以留着这条。
+pub async fn list_dir_result_fs(
+  path : String,
+) -> Result[Array[String], FsError] noraise {
+  Ok(@fs.readdir(path)) catch {
+    err => Err({ summary: "列目录失败", raw: path + "（" + err.to_string() + "）" })
+  }
+}
+
+///|
+/// 列目录并把失败原因带出来（旧签名，转调壳）。新代码用 list_dir_result_fs。
 pub async fn list_dir_result(
   path : String,
 ) -> Result[Array[String], String] noraise {
-  Ok(@fs.readdir(path)) catch {
-    err => Err(err.to_string())
+  match list_dir_result_fs(path) {
+    Ok(list) => Ok(list)
+    Err(e) => Err(two_part_text(e))
   }
 }

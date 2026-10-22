@@ -151,7 +151,7 @@ pub async fn read_env_of(pid : Int32, key : String) -> String? noraise {
 /// 这是**线索**不是结论：认不出给 None，调用方不许拿默认值 $HOME/.dsh 顶替。
 pub async fn fd_home_hint(pid : Int32) -> String? noraise {
   let fd_dir = proc_root + "/" + @json.int_to_dec(pid) + "/fd"
-  let names = match @json.list_dir_result(fd_dir) {
+  let names = match @json.list_dir_result_fs(fd_dir) {
     Ok(list) => list
     Err(_) => return None
   }
