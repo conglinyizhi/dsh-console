@@ -110,9 +110,12 @@ async fn move_remainder_to_trash(
 ) -> Result[(String, String), String] noraise {
   let root = @store.state_paths().trash
   let bucket = @json.join_path(root, trash_homes_dir)
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(bucket)) {
+  match @fsx.ensure_dir_fs(bucket) {
     Ok(_) => ()
-    Err(e) => return Err("建不了回收站的 " + bucket + "：" + e)
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err("建目录失败")
+    }
   }
   let stamp = @async.now().to_string()
   let dest = @json.join_path(bucket, name + "-" + stamp)
@@ -273,12 +276,12 @@ pub async fn isolate_profile(
   }
   let src_parent = @json.join_all([dsh_home, "profiles"])
   let dst_parent = @json.join_all([home, "profiles"])
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(dst_parent)) {
+  match @fsx.ensure_dir_fs(dst_parent) {
     Ok(_) => ()
-    Err(e) =>
-      return Err(
-        ("io-error", "建不了移动的落点 " + dst_parent + "：" + e),
-      )
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err(("io-error", "建目录失败"))
+    }
   }
   // 落点目录已经建了：从这里往后任何一条不过，都要把 <root>/<名字> 收掉再报
   let device_note = match require_same_device(src_parent, dst_parent) {
@@ -491,12 +494,12 @@ pub async fn deisolate_profile(
       ),
     )
   }
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(dst_parent)) {
+  match @fsx.ensure_dir_fs(dst_parent) {
     Ok(_) => ()
-    Err(e) =>
-      return Err(
-        ("io-error", "建不了移动的落点 " + dst_parent + "：" + e),
-      )
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err(("io-error", "建目录失败"))
+    }
   }
   let src_parent = @json.join_all([home, "profiles"])
   match require_same_device(src_parent, dst_parent) {
