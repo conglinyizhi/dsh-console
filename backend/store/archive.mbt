@@ -134,5 +134,11 @@ pub async fn save_archive(
   for r in entries {
     items.push(archive_json(r))
   }
-  @fsx.to_result_unit(@fsx.write_text_atomic_fs(paths.archive, @json.encode(@json.JArr(items)) + "\n"))
+  match @fsx.write_text_atomic_fs(paths.archive, @json.encode(@json.JArr(items)) + "\n") {
+    Ok(_) => Ok(())
+    Err(e) => {
+      note_raw(e.raw)
+      Err("写文件失败")
+    }
+  }
 }
