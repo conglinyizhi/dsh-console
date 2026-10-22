@@ -861,7 +861,7 @@ fn env_options_block(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 /// 它接在那两条设置项后面，所以自己带一个小标题 —— 面板标题是「进程」，
 /// 这一块得说清自己叫「全局启动变量」，不然那张表看上去像第三条设置项。
 fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let target = env_target_global()
+  let _target = env_target_global()
   @html.div(
     class="dsh-settings-section",
     attrs=mark("env-section", ["settings", "env", "section"]),

@@ -810,8 +810,8 @@ fn drawer_controls(
 /// 这个结论的人看的 —— 两个读者不是同一个人。
 fn drawer_state_block(
   row : Row,
-  model : Model,
-  emit : @cmd.Emit[Msg],
+  _model : Model,
+  _emit : @cmd.Emit[Msg],
 ) -> @html.Html {
   let mut why_attrs = mark("drawer-why", [
     "overview",

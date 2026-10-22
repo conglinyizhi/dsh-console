@@ -201,7 +201,8 @@ fn handle_merge_slide(
   emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
   match msg {
-    MergeSlideStart => ({ ..model, merge_dragging: true, }, @cmd.none)
+    MergeSlideStart(zone) =>
+      ({ ..model, merge_dragging: true, merge_zone_pct: zone, }, @cmd.none)
     MergeSlide(v) =>
       if !model.merge_dragging {
         (model, @cmd.none)
@@ -220,8 +221,8 @@ fn handle_merge_slide(
           @cmd.none,
         )
       }
-    MergeSlideRelease => {
-      let stopped = { ..model, merge_dragging: false, }
+    MergeSlideRelease(end) => {
+      let stopped = { ..model, merge_dragging: false, merge_slide: end, }
       // 提交区起点按「轨道宽度 - 72px」算出来存在 merge_zone_pct 里（按下时更新）
       if stopped.merge_slide >= stopped.merge_zone_pct {
         handle_merge_submit({ ..stopped, merge_slide: 100, }, MergeSubmit, emit)

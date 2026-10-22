@@ -742,9 +742,9 @@ fn split_error_note(full : String) -> (String, String) {
   let mut seen = false
   for part in full.split("。原始错误：") {
     if seen {
-      hint.write_string(part.to_string())
+      hint.write_string(part.to_owned())
     } else {
-      head.write_string(part.to_string())
+      head.write_string(part.to_owned())
       seen = true
     }
   }

@@ -64,7 +64,7 @@ fn find_snapshot(snaps : Array[SnapshotFact], id : String) -> SnapshotFact? {
 /// 把「读不到」写成「没有」，正是这套界面一直要避开的那件事。
 fn snapshot_history(
   row : Row,
-  model : Model,
+  _model : Model,
   emit : @cmd.Emit[Msg],
   lead~ : Array[@html.Html] = [],
 ) -> @html.Html {

@@ -438,7 +438,7 @@ fn handle_env_saved(
 fn handle_env_dialog(
   model : Model,
   msg : Msg,
-  emit : @cmd.Emit[Msg],
+  _emit : @cmd.Emit[Msg],
 ) -> (Model, @cmd.Cmd) {
   match msg {
     EnvGlobalOpen =>
