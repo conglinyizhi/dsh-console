@@ -333,6 +333,36 @@ pub async fn env_plan(
       }
     }
   }
+  // 合并这一段抽成纯函数（§106）：入参全是 Map/options，不碰磁盘，
+  // 于是「继承 / 覆盖 / 追加 / profile 覆盖 global」这些规则可以直接单测。
+  let key = profile_env_key(home, profile)
+  let profile_entries = match file.profiles.get(key) {
+    Some(entries) => entries
+    None => Map([])
+  }
+  (opts.keep_system, plan_env_map(file.global, profile_entries, opts, inherited, sep))
+}
+
+///|
+/// 合并后的键值表（按「global 在前、profile 覆盖」的顺序给界面与开发指令用）。
+pub async fn merged_env(
+  home : String,
+  profile : String,
+) -> Map[String, String] noraise {
+  env_for_spawn(home, profile)
+}
+
+///|
+/// 合并的核心（纯函数，§106）：global 在前、profile 覆盖 global；
+/// append 只对「继承来的同键」生效，不继承时没有可拼的东西。
+pub fn plan_env_map(
+  global : Map[String, String],
+  profile : Map[String, String],
+  opts : EnvOptions,
+  inherited : Map[String, String],
+  sep : String,
+) -> Map[String, String] {
+  let out : Map[String, String] = Map([])
   let take = fn(entries : Map[String, String], append : Bool) {
     for pair in entries.iter() {
       if !env_key_allowed(pair.0) {
@@ -346,7 +376,6 @@ pub async fn env_plan(
       } else {
         ""
       }
-      // append 只对「继承来的同键」拼接；不继承时没有可拼的东西
       if append && opts.keep_system && base != "" {
         out[pair.0] = base + sep + pair.1
       } else {
@@ -354,21 +383,7 @@ pub async fn env_plan(
       }
     }
   }
-  take(file.global, opts.merge == "append")
-  let key = profile_env_key(home, profile)
-  match file.profiles.get(key) {
-    // profile 永远覆盖 global：append 不再叠加
-    Some(entries) => take(entries, false)
-    None => ()
-  }
-  (opts.keep_system, out)
-}
-
-///|
-/// 合并后的键值表（按「global 在前、profile 覆盖」的顺序给界面与开发指令用）。
-pub async fn merged_env(
-  home : String,
-  profile : String,
-) -> Map[String, String] noraise {
-  env_for_spawn(home, profile)
+  take(global, opts.merge == "append")
+  take(profile, false)
+  out
 }
