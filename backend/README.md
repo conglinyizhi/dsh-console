@@ -1102,3 +1102,14 @@ backend/
 ├── instances/instances.mbt     # GET /api/local/instances
 └── instances/weburl.mbt        # 带令牌的访问地址（webUrl / webUrlSource）
 ```
+## 已知 warning 与保留原因
+
+这些是 moon check 还会报、但故意不清的项，清掉会动契约：
+
+- unused_async（main.mbt 的 read_releases 等）：本地接口的路由表按 async fn 取签名，去掉 async 要连调用侧一起改。
+- unused_error_type（read_instances 等 raise ReadError）：同上，raise 是路由表的形状。
+- unused_package（json 的 async/fs 等）：编译器的判据与实际使用不一致，删了直接编译失败。
+
+前端的 unused_try（view_shell 的页面主体 try）是已知无效的兜底：MoonBit 的异常是类型化的，
+渲染函数没有 raise 签名就不会抛，因此这层 catch 抓不到东西。保留它是因为将来某个渲染函数
+声明了 raise 就能立刻生效；要彻底消除警告得删掉这段兜底，那等于放弃这个位置的安全网。

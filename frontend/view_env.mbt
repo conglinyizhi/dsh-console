@@ -1287,56 +1287,6 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   )
 }
 
-///|
-/// N8：设置页里的摘要行（已设置 N 条 · 前三个键名）+「编辑…」。
-/// 空态写「还没设置」，但「编辑…」照样在——入口不能因为没有条目就消失。
-fn env_summary(
-  model : Model,
-  target : EnvTarget,
-  emit : @cmd.Emit[Msg],
-) -> @html.Html {
-  let entries = env_entries_of(model, target)
-  let names : Array[String] = []
-  for pair in entries {
-    if names.length() < 3 {
-      names.push(pair.0)
-    }
-  }
-  let text = if entries.length() == 0 {
-    "还没设置"
-  } else {
-    "已设置 " +
-    entries.length().to_string() +
-    " 条 · " +
-    names.join("、") +
-    (if entries.length() > 3 { " …" } else { "" })
-  }
-  @html.div(
-    class="dsh-env-summary",
-    attrs=mark("env-summary", ["settings", "env", target.scope_id, "summary"]),
-    [
-      @html.span(
-        class="dsh-env-summary-text",
-        attrs=mark("env-summary-text", [
-          "settings",
-          "env",
-          target.scope_id,
-          "summary-text",
-        ]),
-        text,
-      ),
-      @html.button(
-        class="dsh-btn",
-        type_="button",
-        attrs=mark("env-open", ["settings", "env", target.scope_id, "open"]).title(
-          "打开启动变量编辑器：增删改、长值展开、只补缺的建议",
-        ),
-        on_click=emit(EnvGlobalOpen),
-        [@html.text("编辑…")],
-      ),
-    ],
-  )
-}
 
 ///|
 /// N8：全局启动变量的专窗（720 宽；窄屏整屏单列）。
