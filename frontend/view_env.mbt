@@ -1287,7 +1287,6 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   )
 }
 
-
 ///|
 /// N8：全局启动变量的专窗（720 宽；窄屏整屏单列）。
 fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {

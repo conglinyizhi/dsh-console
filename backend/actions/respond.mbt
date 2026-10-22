@@ -155,6 +155,7 @@ pub async fn send_method_not_allowed(
     extra_headers=[("Allow", allow), ("X-Local-Api", local_api_read_write)],
   )
 }
+
 ///|
 /// 转调 store 的 raw 寄存（下沉后 actions 侧仍可用旧名字，避免改所有调用点）。
 pub fn note_raw(text : String) -> Unit {

@@ -427,7 +427,10 @@ pub async fn delete_profile(
             }
           Err(e) => {
             note_raw(first.raw + "；退回复制也失败：" + e.raw)
-            fail("io-error", first.summary + "；退回复制也失败：" + e.summary)
+            fail(
+              "io-error",
+              first.summary + "；退回复制也失败：" + e.summary,
+            )
           }
         }
     }
@@ -598,7 +601,8 @@ async fn check_base_profile(dir : String) -> (String?, Array[String]) noraise {
   if !@json.is_dir(dir) {
     return (Some("profile 目录没建出来：" + dir), [])
   }
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(e) => {
       note_raw(e.raw)
@@ -799,7 +803,10 @@ pub async fn create_base_profile(
       @json.iso_from_epoch_ms(@async.now()) +
       "（本地时区读不到，按 UTC）"
   }
-  let _ = @fsx.write_text_atomic_fs(note_path, "从基础模板新建 · " + note_stamp)
+  let _ = @fsx.write_text_atomic_fs(
+    note_path,
+    "从基础模板新建 · " + note_stamp,
+  )
   // 默认隔离，与派生同一档（design/deep-home-isolation.md 第 8 节）。
   // 隔离失败不许让「建成了」变成「失败了」：profile 已经在磁盘上、也核对过了，
   // 为了一个 home 把整件事报成失败是假报 —— 原因原样带回去，回执照实说。

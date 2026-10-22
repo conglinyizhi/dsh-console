@@ -337,12 +337,18 @@ pub async fn restore_from_trash(
             Err(e) => {
               // 两条原文都留着：先重命名失败才走的回退，删源头这一步又失败
               note_raw(first.raw + "；删源头也失败：" + e.raw)
-              fail("io-error", first.summary + "；退回复制之后删源头也失败")
+              fail(
+                "io-error",
+                first.summary + "；退回复制之后删源头也失败",
+              )
             }
           }
         Err(e) => {
           note_raw(first.raw + "；退回复制也失败：" + e.raw)
-          fail("io-error", first.summary + "；退回复制也失败：" + e.summary)
+          fail(
+            "io-error",
+            first.summary + "；退回复制也失败：" + e.summary,
+          )
         }
       }
   }

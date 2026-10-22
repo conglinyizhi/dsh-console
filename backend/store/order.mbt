@@ -179,7 +179,8 @@ pub fn order_json(ids : Array[String]) -> @json.JsonVal {
 /// 而回一句「已保存」，使用者下一次刷新就会看到列表跳回原样，且不知道为什么。
 pub async fn save_order(ids : Array[String]) -> Result[Unit, String] noraise {
   let paths = state_paths()
-  match @fsx.write_text_atomic_fs(paths.order, @json.encode(order_json(ids)) + "\n") {
+  match
+    @fsx.write_text_atomic_fs(paths.order, @json.encode(order_json(ids)) + "\n") {
     Ok(_) => Ok(())
     Err(e) => {
       note_raw(e.raw)

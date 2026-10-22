@@ -84,8 +84,32 @@ async fn console_payload() -> @json.JsonVal noraise {
       @json.JObj([
         ("pid", @json.jint(pid)),
         ("port", @json.jint(item.port)),
-        ("home", @json.JStr(if meta_home == "" { match item.dsh_home { Some(h) => h; None => "" } } else { meta_home })),
-        ("profile", @json.JStr(if meta_profile == "" { match item.profile { Some(p) => p; None => "" } } else { meta_profile })),
+        (
+          "home",
+          @json.JStr(
+            if meta_home == "" {
+              match item.dsh_home {
+                Some(h) => h
+                None => ""
+              }
+            } else {
+              meta_home
+            },
+          ),
+        ),
+        (
+          "profile",
+          @json.JStr(
+            if meta_profile == "" {
+              match item.profile {
+                Some(p) => p
+                None => ""
+              }
+            } else {
+              meta_profile
+            },
+          ),
+        ),
         ("startedAt", @json.JStr(meta_started)),
         ("logPath", @json.JStr(meta_log)),
         ("detached", @json.JBool(meta_detached)),

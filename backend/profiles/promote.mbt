@@ -655,7 +655,9 @@ async fn apply_promote_inner(
         return Err(
           (
             "io-error",
-            "读源 profile 的 " + name + " 失败；目标里一个文件都没动",
+            "读源 profile 的 " +
+            name +
+            " 失败；目标里一个文件都没动",
           ),
         )
       }

@@ -77,10 +77,11 @@ pub async fn save_trash_origins(
   for dir, home in origins {
     fields.push((dir, @json.JStr(home)))
   }
-  match @fsx.write_text_atomic_fs(
-    paths.trash_origins,
-    @json.encode(@json.JObj(fields)) + "\n",
-  ) {
+  match
+    @fsx.write_text_atomic_fs(
+      paths.trash_origins,
+      @json.encode(@json.JObj(fields)) + "\n",
+    ) {
     Ok(_) => Ok(())
     Err(e) => {
       note_raw(e.raw)

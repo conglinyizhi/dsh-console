@@ -615,19 +615,31 @@ fn global_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 }
 
 ///|
+
 ///|
 /// 渲染兜底（批注 5）：某一块渲染抛异常时，不再白屏，给一块「这块没渲染出来」。
 /// 只包页面主体；外壳（侧栏、提示条）在外面，不受影响 —— 否则出错时连重试入口都没了。
 fn render_fallback(area : String, detail : String) -> @html.Html {
   @html.div(
     class="dsh-render-fallback",
-    attrs=mark("render-fallback", ["shell", "render-fallback", area]).title(detail),
+    attrs=mark("render-fallback", ["shell", "render-fallback", area]).title(
+      detail,
+    ),
     [
-      @html.p(class="dsh-render-fallback-title", "这块没渲染出来，刷新可重试"),
+      @html.p(
+        class="dsh-render-fallback-title",
+        "这块没渲染出来，刷新可重试",
+      ),
       @html.p(
         class="dsh-render-fallback-detail",
-        attrs=mark("render-fallback-detail", ["shell", "render-fallback", area, "detail"]),
-        if detail == "" { "没有可显示的异常信息" } else { detail },
+        attrs=mark("render-fallback-detail", [
+          "shell", "render-fallback", area, "detail",
+        ]),
+        if detail == "" {
+          "没有可显示的异常信息"
+        } else {
+          detail
+        },
       ),
     ],
   )

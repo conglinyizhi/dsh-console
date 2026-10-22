@@ -204,10 +204,7 @@ async fn run_repair(
     err => {
       let e = spawn_error(err)
       note_raw(e.raw)
-      fail(
-        "install-failed",
-        "起不了 " + argv[0] + "；日志 " + log_path,
-      )
+      fail("install-failed", "起不了 " + argv[0] + "；日志 " + log_path)
       abort("unreachable: fail 一定抛错")
     }
   }

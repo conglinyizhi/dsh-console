@@ -82,7 +82,11 @@ pub fn dsh_pin_json(pin : DshPin) -> @json.JsonVal {
 /// 回一句「已指定」而盘上没有这份记录，下一次起实例用的还是自动挑出来的那份。
 pub async fn save_dsh_pin(pin : DshPin) -> Result[Unit, String] noraise {
   let paths = state_paths()
-  match @fsx.write_text_atomic_fs(paths.dsh_pin, @json.encode(dsh_pin_json(pin)) + "\n") {
+  match
+    @fsx.write_text_atomic_fs(
+      paths.dsh_pin,
+      @json.encode(dsh_pin_json(pin)) + "\n",
+    ) {
     Ok(_) => Ok(())
     Err(e) => {
       note_raw(e.raw)

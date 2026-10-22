@@ -110,9 +110,9 @@ pub async fn read_tail_lines(
     chunk = match read_text_at_fs(file, start, read_len) {
       Ok(t) => t
       Err(e) => {
-      @rawsink.append_error_line("tailread", e.raw)
-      raise TailError(e.summary)
-    }
+        @rawsink.append_error_line("tailread", e.raw)
+        raise TailError(e.summary)
+      }
     }
     let parts = split_lines(chunk)
     let head_count = parts.length() - 1

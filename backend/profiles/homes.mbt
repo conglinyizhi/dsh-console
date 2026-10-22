@@ -589,7 +589,7 @@ async fn layout_home(
       Err(e) => {
         @store.note_raw(e.raw)
         return Err(("io-error", "建软链失败"))
-    }
+      }
     }
   }
   match @fsx.ensure_dir_fs(@json.join_path(home, "logs")) {

@@ -34,6 +34,7 @@ priv struct LocalPlugin {
 }
 
 ///|
+
 ///|
 /// 把路径里的 . 与 .. 段折掉（绝对路径）。
 fn normalize_path(path : String) -> String {
@@ -68,7 +69,8 @@ async fn declared_plugins(
       out.push(n)
     }
   }
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => ""
   }
@@ -172,7 +174,8 @@ async fn plugin_kind_of(dir : String, name : String) -> String noraise {
 ///|
 /// package.json 里这只依赖是不是 file: / link: 声明的（那种才算本地实体）。
 async fn is_local_dep(dir : String, name : String) -> Bool noraise {
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return false
   }
@@ -256,7 +259,8 @@ pub async fn plugin_inventory(dir : String) -> Array[PluginEntry] noraise {
 ///|
 /// 读一份插件的 package.json 拿 description（读不到给空串）。
 async fn plugin_description(dir : String) -> String noraise {
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return ""
   }
@@ -277,7 +281,8 @@ async fn plugin_description(dir : String) -> String noraise {
 ///|
 /// 读一份插件的 package.json 拿 version（读不到给空串）。
 async fn plugin_version(dir : String) -> String noraise {
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return ""
   }
@@ -372,7 +377,8 @@ async fn local_plugins_of(dir : String) -> Array[LocalPlugin] noraise {
     }
   }
   // package.json 里以 file: / link: 声明的依赖（可能还没装到 node_modules）
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => ""
   }
@@ -446,7 +452,13 @@ async fn place_plugin(
       Ok(_) => ()
       Err(e) => {
         note_raw(e.raw)
-        return Err(if dest_is_link { "删文件失败" } else { "删目录失败" })
+        return Err(
+          if dest_is_link {
+            "删文件失败"
+          } else {
+            "删目录失败"
+          },
+        )
       }
     }
   }

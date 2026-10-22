@@ -298,7 +298,8 @@ async fn locate_bundle_nr(
 ///|
 /// 读 profile 的 package.json，取 dsh.profile.bundles 声明（不是数组就按空处理）。
 async fn declared_bundles(dir : String) -> Array[String] noraise {
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return []
   }
@@ -356,7 +357,8 @@ pub async fn repair_manager_of(dir : String) -> String noraise {
 ///|
 /// package.json 里声明的 packageManager（只取 @ 前面那段；读不到给 None）。
 async fn package_manager_field(dir : String) -> String? noraise {
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return None
   }
@@ -520,7 +522,8 @@ pub async fn trial_profile_blocker(
 ///|
 /// package.json 里的 name 字段；读不到给 None（Node 侧给 null）。
 async fn package_name(dir : String) -> String? noraise {
-  let text = match @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
+  let text = match
+    @json.read_text_file_fs(@json.join_path(dir, "package.json")) {
     Ok(t) => t
     Err(_) => return None
   }

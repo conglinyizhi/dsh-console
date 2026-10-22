@@ -58,13 +58,16 @@ pub async fn read_text_file_fs(
 ) -> Result[String, FsError] noraise {
   if is_sensitive_path(path) {
     // 策略拒绝不是系统失败：结论自己就说完了，raw 留空（否则提示里会重复一遍）
-    return Err({ summary: "拒绝读取敏感文件：" + basename(path), raw: "" })
+    return Err({
+      summary: "拒绝读取敏感文件：" + basename(path),
+      raw: "",
+    })
   }
   try {
     let data = @fs.read_file(path)
     Ok(@utf8.decode_lossy(data.binary(), ignore_bom=true))
   } catch {
-    err => Err({ summary: "读文件失败", raw: err.to_string() })
+    err => Err({ summary: "读文件失败", raw: err.to_string(), })
   }
 }
 
@@ -188,15 +191,26 @@ pub async fn read_some_at_fs(
 ) -> Result[Bytes, FsError] noraise {
   if is_sensitive_path(path) {
     // 策略拒绝不是系统失败：结论自己就说完了，raw 留空
-    return Err({ summary: "拒绝读取敏感文件：" + basename(path), raw: "" })
+    return Err({
+      summary: "拒绝读取敏感文件：" + basename(path),
+      raw: "",
+    })
   }
   let file = @fs.open(path, mode=ReadOnly) catch {
-    err => return Err({ summary: "打开文件失败", raw: path + "（" + err.to_string() + "）" })
+    err =>
+      return Err({
+        summary: "打开文件失败",
+        raw: path + "（" + err.to_string() + "）",
+      })
   }
   defer file.close()
   let buf : FixedArray[Byte] = FixedArray::make(len, b'\x00')
   let n = file.read_at(buf, position~, offset=0, len~) catch {
-    err => return Err({ summary: "读文件失败（字节）", raw: path + "（" + err.to_string() + "）" })
+    err =>
+      return Err({
+        summary: "读文件失败（字节）",
+        raw: path + "（" + err.to_string() + "）",
+      })
   }
   let view = buf.unsafe_reinterpret_as_bytes()
   Ok(view[:n].to_owned())
@@ -257,7 +271,11 @@ pub async fn file_size(path : String) -> Int64? noraise {
 /// 与 file_size 的区别是这条**不吞**失败：判「读不到」与判「是 0 字节」是两件事。
 pub async fn file_size_fs(path : String) -> Result[Int64, FsError] noraise {
   Ok(@fs.file_size(path)) catch {
-    err => Err({ summary: "读文件状态失败", raw: path + "（" + err.to_string() + "）" })
+    err =>
+      Err({
+        summary: "读文件状态失败",
+        raw: path + "（" + err.to_string() + "）",
+      })
   }
 }
 
@@ -312,7 +330,7 @@ pub fn read_link_fs(path : String) -> Result[String, FsError] {
   let buf = Bytes::make(read_link_cap, b'\x00')
   let n = read_link_raw(raw_path, buf, read_link_cap)
   if n < 0 {
-    return Err({ summary: "读链接失败", raw: errno_text(-n) })
+    return Err({ summary: "读链接失败", raw: errno_text(-n), })
   }
   if n >= read_link_cap {
     return Err({
@@ -339,7 +357,11 @@ pub async fn list_dir_result_fs(
   path : String,
 ) -> Result[Array[String], FsError] noraise {
   Ok(@fs.readdir(path)) catch {
-    err => Err({ summary: "列目录失败", raw: path + "（" + err.to_string() + "）" })
+    err =>
+      Err({
+        summary: "列目录失败",
+        raw: path + "（" + err.to_string() + "）",
+      })
   }
 }
 

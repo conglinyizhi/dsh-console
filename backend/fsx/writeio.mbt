@@ -225,7 +225,7 @@ pub async fn append_text_fs(
 ) -> Result[Unit, @json.FsError] noraise {
   match append_text_impl(path, text) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "追加失败", raw })
+    Err(raw) => Err({ summary: "追加失败", raw, })
   }
 }
 
@@ -269,7 +269,7 @@ pub async fn write_text_fs(
 ) -> Result[Unit, @json.FsError] noraise {
   match write_text_impl(path, text) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "写文件失败", raw })
+    Err(raw) => Err({ summary: "写文件失败", raw, })
   }
 }
 
@@ -297,10 +297,12 @@ async fn read_bytes_impl(path : String) -> Result[Bytes, String] noraise {
 /// 读原始字节，两段式：结论「读文件失败（字节）」+ 原文（原文里带路径）。
 /// 与文本读入口分开成一句，是因为这两条坏的往往不是同一件事：
 /// 文本读不动常是编码/权限，字节读不动常是文件不在了。
-pub async fn read_bytes_fs(path : String) -> Result[Bytes, @json.FsError] noraise {
+pub async fn read_bytes_fs(
+  path : String,
+) -> Result[Bytes, @json.FsError] noraise {
   match read_bytes_impl(path) {
     Ok(data) => Ok(data)
-    Err(raw) => Err({ summary: "读文件失败（字节）", raw })
+    Err(raw) => Err({ summary: "读文件失败（字节）", raw, })
   }
 }
 
@@ -371,13 +373,7 @@ pub async fn rename_path(
   match rename_path_fs(from, to, replace~) {
     Ok(_) => Ok(())
     Err(e) =>
-      Err(
-        if e.raw == "" {
-          e.summary
-        } else {
-          e.summary + "：" + e.raw
-        },
-      )
+      Err(if e.raw == "" { e.summary } else { e.summary + "：" + e.raw })
   }
 }
 
@@ -483,7 +479,7 @@ pub async fn measure_tree_fs(
 ) -> Result[(Int32, Int64), @json.FsError] noraise {
   match measure_tree_impl(root) {
     Ok(pair) => Ok(pair)
-    Err(raw) => Err({ summary: "统计失败", raw })
+    Err(raw) => Err({ summary: "统计失败", raw, })
   }
 }
 
@@ -582,7 +578,7 @@ pub async fn copy_tree_fs(
 ) -> Result[CopyStats, @json.FsError] noraise {
   match copy_tree_impl(from, to, skip, on_progress~) {
     Ok(stats) => Ok(stats)
-    Err(raw) => Err({ summary: "复制失败", raw })
+    Err(raw) => Err({ summary: "复制失败", raw, })
   }
 }
 
@@ -611,7 +607,11 @@ pub async fn chmod_path_fs(
     @fs.chmod(path, mode)
     Ok(())
   } catch {
-    err => Err({ summary: "改权限失败", raw: path + "（" + err.to_string() + "）" })
+    err =>
+      Err({
+        summary: "改权限失败",
+        raw: path + "（" + err.to_string() + "）",
+      })
   }
 }
 
@@ -624,13 +624,7 @@ pub async fn chmod_path(
   match chmod_path_fs(path, mode) {
     Ok(_) => Ok(())
     Err(e) =>
-      Err(
-        if e.raw == "" {
-          e.summary
-        } else {
-          e.summary + "：" + e.raw
-        },
-      )
+      Err(if e.raw == "" { e.summary } else { e.summary + "：" + e.raw })
   }
 }
 
@@ -672,10 +666,12 @@ pub async fn count_tree(
 
 ///|
 /// 建目录：结论「建目录失败」，原文进 raw。
-pub async fn ensure_dir_fs(path : String) -> Result[Unit, @json.FsError] noraise {
+pub async fn ensure_dir_fs(
+  path : String,
+) -> Result[Unit, @json.FsError] noraise {
   match ensure_dir_impl(path) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "建目录失败", raw })
+    Err(raw) => Err({ summary: "建目录失败", raw, })
   }
 }
 
@@ -686,38 +682,48 @@ pub async fn write_text_atomic_fs(
 ) -> Result[Unit, @json.FsError] noraise {
   match write_text_atomic_impl(path, text) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "写文件失败", raw })
+    Err(raw) => Err({ summary: "写文件失败", raw, })
   }
 }
 
 ///|
-pub async fn write_bytes_fs(path : String, data : Bytes) -> Result[Unit, @json.FsError] noraise {
+pub async fn write_bytes_fs(
+  path : String,
+  data : Bytes,
+) -> Result[Unit, @json.FsError] noraise {
   match write_bytes_impl(path, data) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "写文件失败", raw })
+    Err(raw) => Err({ summary: "写文件失败", raw, })
   }
 }
 
 ///|
-pub async fn remove_file_fs(path : String) -> Result[Unit, @json.FsError] noraise {
+pub async fn remove_file_fs(
+  path : String,
+) -> Result[Unit, @json.FsError] noraise {
   match remove_file_impl(path) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "删文件失败", raw })
+    Err(raw) => Err({ summary: "删文件失败", raw, })
   }
 }
 
 ///|
-pub async fn remove_tree_fs(path : String) -> Result[Unit, @json.FsError] noraise {
+pub async fn remove_tree_fs(
+  path : String,
+) -> Result[Unit, @json.FsError] noraise {
   match remove_tree_impl(path) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "删目录失败", raw })
+    Err(raw) => Err({ summary: "删目录失败", raw, })
   }
 }
 
 ///|
-pub async fn make_symlink_fs(target : String, path : String) -> Result[Unit, @json.FsError] noraise {
+pub async fn make_symlink_fs(
+  target : String,
+  path : String,
+) -> Result[Unit, @json.FsError] noraise {
   match make_symlink_impl(target, path) {
     Ok(_) => Ok(())
-    Err(raw) => Err({ summary: "建软链失败", raw })
+    Err(raw) => Err({ summary: "建软链失败", raw, })
   }
 }

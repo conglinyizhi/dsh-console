@@ -125,11 +125,7 @@ pub async fn read_console_version() -> (String?, String) noraise {
           }
         }
         // 读侧说明只给结论：原文归审计，这里没有 store 可记，不拼进字符串
-        Err(_) =>
-          (
-            None,
-            "仓库根的 VERSION 文件读不到：" + f,
-          )
+        Err(_) => (None, "仓库根的 VERSION 文件读不到：" + f)
       }
     None => {
       let (dir, src) = resolve_frontend_dir()

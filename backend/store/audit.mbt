@@ -153,7 +153,9 @@ async fn append_audit_locked(
           // 所以原文留在这里当证据；不写 note_raw —— 那一格是给失败回执用的。
           let why = match rolled {
             Some(note) =>
-              @json.two_part_text(e) + "；另外这一次审计滚动没做成：" + note
+              @json.two_part_text(e) +
+              "；另外这一次审计滚动没做成：" +
+              note
             None => @json.two_part_text(e)
           }
           return Err(why)
