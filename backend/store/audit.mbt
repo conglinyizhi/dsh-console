@@ -181,7 +181,7 @@ async fn rotate_if_needed(file : String) -> String? noraise {
   }
   // 归档目录要先在：rename(2) 不会替我们建父目录，缺目录时它直接 ENOENT。
   let archive_dir = @json.dirname(archive)
-  match @fsx.ensure_dir(archive_dir) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(archive_dir)) {
     Ok(_) => ()
     Err(e) => return Some("归档目录建不出来：" + e)
   }
@@ -206,7 +206,7 @@ async fn rotate_if_needed(file : String) -> String? noraise {
   // ① 新内容先落到临时文件；write_text_atomic 会把临时文件 rename 到目标路径上，
   //    这里的目标就是归档名 —— 内容是「旧文件的最近若干条 + 说明条」，
   //    完整流水仍然是旧文件本身（下一步改名过去）
-  match @fsx.write_text_atomic(archive, out.to_string()) {
+  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(archive, out.to_string())) {
     Ok(_) => ()
     Err(e) => return Some("新审计文件没写成：" + e)
   }
@@ -216,7 +216,7 @@ async fn rotate_if_needed(file : String) -> String? noraise {
     Err(e) => return Some("旧审计文件没归档成：" + e)
   }
   // ③ 新主文件就位：同样走临时文件 + rename，写的时候主文件路径上是空的（上一步刚搬走）
-  match @fsx.write_text_atomic(file, out.to_string()) {
+  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(file, out.to_string())) {
     Ok(_) => ()
     Err(e) => return Some("主审计文件没写好：" + e)
   }
@@ -251,7 +251,7 @@ async fn prune_archives(newest : String, keep : Int32) -> Unit noraise {
   let sorted = archives.copy()
   sorted.sort()
   for i = 0; i < sorted.length() - keep; i = i + 1 {
-    let _ = @fsx.remove_file(@json.join_path(dir, sorted[i]))
+    let _ = @fsx.to_result_unit(@fsx.remove_file_fs(@json.join_path(dir, sorted[i])))
   }
 }
 

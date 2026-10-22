@@ -83,7 +83,7 @@ async fn clear_stale_trial_home(home : String) -> (String, String) noraise {
       " 字节）"
     Err(_) => "（体积读不到）"
   }
-  match @fsx.remove_tree(home) {
+  match @fsx.to_result_unit(@fsx.remove_tree_fs(home)) {
     Ok(_) => ("上次留下的 " + home + " 已经先删掉" + size_text, "")
     Err(e) =>
       (
@@ -141,7 +141,7 @@ pub async fn create_trial_home(
   }
   let layout = match layout_home(home, name, src_dir, dsh_home) {
     Err((code, message)) => {
-      let _ = @fsx.remove_tree(home)
+      let _ = @fsx.to_result_unit(@fsx.remove_tree_fs(home))
       return Err(
         (
           code,
@@ -168,14 +168,14 @@ pub async fn create_trial_home(
     ("credentialsKey", @json.JStr(layout.credentials_key)),
     ("nodeModulesTarget", @json.JStr(layout.node_modules_target)),
   ])
-  let marker_write = @fsx.write_text_atomic(
+  let marker_write = @fsx.to_result_unit(@fsx.write_text_atomic_fs(
     @json.join_path(home, isolation_marker),
     @json.encode(marker) + "\n",
-  )
+  ))
   match marker_write {
     Ok(_) => ()
     Err(e) => {
-      let _ = @fsx.remove_tree(home)
+      let _ = @fsx.to_result_unit(@fsx.remove_tree_fs(home))
       return Err(
         (
           "io-error",
@@ -190,7 +190,7 @@ pub async fn create_trial_home(
   }
   match verify_isolated(pdir, layout.node_modules_target) {
     Some(problem) => {
-      let _ = @fsx.remove_tree(home)
+      let _ = @fsx.to_result_unit(@fsx.remove_tree_fs(home))
       return Err(
         (
           "io-error",
@@ -267,7 +267,7 @@ pub async fn remove_trial_home(
       " 字节）"
     Err(_) => "（体积读不到）"
   }
-  match @fsx.remove_tree(home) {
+  match @fsx.to_result_unit(@fsx.remove_tree_fs(home)) {
     Ok(_) => Ok("一次性 home 已经删掉：" + home + size_text)
     Err(e) => Err(("io-error", "一次性 home 没删掉：" + e))
   }

@@ -152,7 +152,7 @@ pub async fn open_path(
     )
   }
   let state = @store.state_paths()
-  let _ = @fsx.ensure_dir(state.dir)
+  let _ = @fsx.to_result_unit(@fsx.ensure_dir_fs(state.dir))
   let capture = @json.join_path(
     state.dir,
     "open-path-" + @async.now().to_string() + ".log",
@@ -194,7 +194,7 @@ pub async fn open_path(
     stderr=out,
   ) catch {
     err => {
-      let _ = @fsx.remove_file(capture)
+      let _ = @fsx.to_result_unit(@fsx.remove_file_fs(capture))
       fail("io-error", "起 " + opener + " 失败：" + err.to_string())
       abort("unreachable: fail 一定抛错")
     }
@@ -227,7 +227,7 @@ pub async fn open_path(
       Ok(t) => t
       Err(_) => ""
     }
-    let _ = @fsx.remove_file(capture)
+    let _ = @fsx.to_result_unit(@fsx.remove_file_fs(capture))
     tail_lines(text, 3)
   } else {
     ""

@@ -177,11 +177,11 @@ async fn rewrite_link(link : String, target : String) -> Bool noraise {
   if old_text == new_text {
     return false
   }
-  match @fsx.remove_file(link) {
+  match @fsx.to_result_unit(@fsx.remove_file_fs(link)) {
     Ok(_) => ()
     Err(_) => return false
   }
-  match @fsx.make_symlink(new_text, link) {
+  match @fsx.to_result_unit(@fsx.make_symlink_fs(new_text, link)) {
     Ok(_) => true
     Err(_) => false
   }
@@ -299,7 +299,7 @@ pub async fn carry_symlinks(
       continue
     }
     let parent = @json.dirname(dst_link)
-    match @fsx.ensure_dir(parent) {
+    match @fsx.to_result_unit(@fsx.ensure_dir_fs(parent)) {
       Ok(_) => ()
       Err(_) => {
         report.links_broken = report.links_broken + 1
@@ -307,7 +307,7 @@ pub async fn carry_symlinks(
       }
     }
     if @json.exists(dst_link) {
-      let _ = @fsx.remove_file(dst_link)
+      let _ = @fsx.to_result_unit(@fsx.remove_file_fs(dst_link))
     }
     // 绝对链接照抄（它不随目录变）；相对链接按目标位置重算
     let new_text = if path_is_absolute(text) {
@@ -315,7 +315,7 @@ pub async fn carry_symlinks(
     } else {
       relative_path(@json.dirname(dst_link), resolved)
     }
-    match @fsx.make_symlink(new_text, dst_link) {
+    match @fsx.to_result_unit(@fsx.make_symlink_fs(new_text, dst_link)) {
       Ok(_) => report.links_fixed = report.links_fixed + 1
       Err(_) => report.links_broken = report.links_broken + 1
     }
@@ -343,7 +343,7 @@ async fn rewrite_refs(
     }
     let (next, count) = replace_path_prefix(text, old_prefix, new_prefix)
     if count > 0 {
-      let _ = @fsx.write_text_atomic(path, next)
+      let _ = @fsx.to_result_unit(@fsx.write_text_atomic_fs(path, next))
       total = total + count
     }
   }

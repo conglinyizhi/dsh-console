@@ -244,11 +244,11 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
     ),
     ("suppressed", @json.jstr_array(file.suppressed)),
   ])
-  match @fsx.ensure_dir(@json.dirname(path)) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.dirname(path))) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
-  match @fsx.write_text_atomic(path, @json.encode(json) + "\n") {
+  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(path, @json.encode(json) + "\n")) {
     Ok(_) => ()
     Err(e) => return Err("写不进 " + path + "：" + e)
   }

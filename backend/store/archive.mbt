@@ -134,5 +134,5 @@ pub async fn save_archive(
   for r in entries {
     items.push(archive_json(r))
   }
-  @fsx.write_text_atomic(paths.archive, @json.encode(@json.JArr(items)) + "\n")
+  @fsx.to_result_unit(@fsx.write_text_atomic_fs(paths.archive, @json.encode(@json.JArr(items)) + "\n"))
 }

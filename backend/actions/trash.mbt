@@ -331,7 +331,7 @@ pub async fn restore_from_trash(
     Err(first) =>
       match @fsx.copy_tree(path, target, []) {
         Ok(_) =>
-          match @fsx.remove_tree(path) {
+          match @fsx.to_result_unit(@fsx.remove_tree_fs(path)) {
             Ok(_) => ()
             Err(e) =>
               fail(
@@ -398,7 +398,7 @@ pub async fn purge_trash_item(
   let name = @json.trim_both(dir)
   let (profile, _, _) = split_trash_name(name)
   let (files, bytes, size_source) = measure_entry(path)
-  match @fsx.remove_tree(path) {
+  match @fsx.to_result_unit(@fsx.remove_tree_fs(path)) {
     Ok(_) => ()
     Err(e) => fail("io-error", e)
   }

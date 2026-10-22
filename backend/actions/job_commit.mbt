@@ -297,7 +297,7 @@ pub async fn job_cleanup(
     Some(value) => value.to_string() + " 字节"
     None => "体积读不到"
   }
-  match @fsx.remove_tree(dir) {
+  match @fsx.to_result_unit(@fsx.remove_tree_fs(dir)) {
     Ok(_) => {
       @store.mark_step(
         job,

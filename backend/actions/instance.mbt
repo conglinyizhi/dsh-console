@@ -510,7 +510,7 @@ pub async fn start_instance_with(
       }
   }
   let log_dir = @json.join_path(target_home, "logs")
-  match @fsx.ensure_dir(log_dir) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(log_dir)) {
     Ok(_) => ()
     Err(e) => fail("io-error", e)
   }

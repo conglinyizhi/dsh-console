@@ -144,7 +144,7 @@ pub async fn save_registry(
   for r in entries {
     items.push(record_json(r))
   }
-  @fsx.write_text_atomic(paths.runtime, @json.encode(@json.JArr(items)) + "\n")
+  @fsx.to_result_unit(@fsx.write_text_atomic_fs(paths.runtime, @json.encode(@json.JArr(items)) + "\n"))
 }
 
 ///|

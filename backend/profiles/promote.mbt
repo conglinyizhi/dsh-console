@@ -554,7 +554,7 @@ async fn move_package(
   target_pkg : String,
 ) -> Result[Array[String], String] noraise {
   let notes : Array[String] = []
-  match @fsx.ensure_dir(@json.dirname(target_pkg)) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.dirname(target_pkg))) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
@@ -575,7 +575,7 @@ async fn move_package(
         Ok(value) => value
         Err(e) => return Err(e)
       }
-      match @fsx.make_symlink(link_target, target_pkg) {
+      match @fsx.to_result_unit(@fsx.make_symlink_fs(link_target, target_pkg)) {
         Ok(_) => ()
         Err(e) => return Err(e)
       }
@@ -664,7 +664,7 @@ async fn apply_promote_inner(
   let written : Array[String] = []
   for pair in payloads {
     let (name, data) = pair
-    match @fsx.write_bytes(@json.join_path(target.dir, name), data) {
+    match @fsx.to_result_unit(@fsx.write_bytes_fs(@json.join_path(target.dir, name), data)) {
       Ok(_) => written.push(name)
       Err(e) =>
         return Err(

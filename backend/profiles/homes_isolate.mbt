@@ -76,7 +76,7 @@ async fn put_back(
 ) -> Result[IsolateOutcome, (String, String)] noraise {
   let note = match @fsx.rename_path(profile_dir, src_dir) {
     Ok(_) =>
-      match @fsx.remove_tree(home) {
+      match @fsx.to_result_unit(@fsx.remove_tree_fs(home)) {
         Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
         Err(e) =>
           "；移动没完成，已经放回原处（" +
@@ -110,7 +110,7 @@ async fn move_remainder_to_trash(
 ) -> Result[(String, String), String] noraise {
   let root = @store.state_paths().trash
   let bucket = @json.join_path(root, trash_homes_dir)
-  match @fsx.ensure_dir(bucket) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(bucket)) {
     Ok(_) => ()
     Err(e) => return Err("建不了回收站的 " + bucket + "：" + e)
   }
@@ -136,7 +136,7 @@ async fn move_remainder_to_trash(
           } else {
             ""
           }
-          match @fsx.remove_tree(home) {
+          match @fsx.to_result_unit(@fsx.remove_tree_fs(home)) {
             Ok(_) =>
               Ok(
                 (
@@ -209,7 +209,7 @@ async fn add_credentials_patch(
     yaml_quote(cred_path) +
     "\n"
   let text = if body == "" { head + block } else { body + "\n" + head + block }
-  @fsx.write_text_atomic(path, text)
+  @fsx.to_result_unit(@fsx.write_text_atomic_fs(path, text))
 }
 
 ///|
@@ -273,7 +273,7 @@ pub async fn isolate_profile(
   }
   let src_parent = @json.join_all([dsh_home, "profiles"])
   let dst_parent = @json.join_all([home, "profiles"])
-  match @fsx.ensure_dir(dst_parent) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(dst_parent)) {
     Ok(_) => ()
     Err(e) =>
       return Err(
@@ -283,7 +283,7 @@ pub async fn isolate_profile(
   // 落点目录已经建了：从这里往后任何一条不过，都要把 <root>/<名字> 收掉再报
   let device_note = match require_same_device(src_parent, dst_parent) {
     Err((code, message)) => {
-      let _ = @fsx.remove_tree(home)
+      let _ = @fsx.to_result_unit(@fsx.remove_tree_fs(home))
       return Err(
         (
           code,
@@ -301,7 +301,7 @@ pub async fn isolate_profile(
   let profile_dir = @json.join_all([home, "profiles", name])
   match move_dir(src_dir, profile_dir) {
     Err((code, message)) => {
-      let _ = @fsx.remove_tree(home)
+      let _ = @fsx.to_result_unit(@fsx.remove_tree_fs(home))
       return Err(
         (
           code,
@@ -336,7 +336,7 @@ pub async fn isolate_profile(
   let mut skills_linked = false
   let src_skills = @json.join_path(dsh_home, "skills")
   if @json.is_dir(src_skills) {
-    match @fsx.make_symlink(src_skills, @json.join_path(home, "skills")) {
+    match @fsx.to_result_unit(@fsx.make_symlink_fs(src_skills, @json.join_path(home, "skills"))) {
       Ok(_) => skills_linked = true
       Err(e) =>
         return put_back(
@@ -348,7 +348,7 @@ pub async fn isolate_profile(
         )
     }
   }
-  match @fsx.ensure_dir(@json.join_path(home, "logs")) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.join_path(home, "logs"))) {
     Ok(_) => ()
     Err(e) =>
       return put_back(
@@ -389,10 +389,10 @@ pub async fn isolate_profile(
     ("credentialsKey", @json.JStr("credentials.config.path")),
   ])
   match
-    @fsx.write_text_atomic(
+    @fsx.to_result_unit(@fsx.write_text_atomic_fs(
       @json.join_path(home, isolation_marker),
       @json.encode(marker) + "\n",
-    ) {
+    )) {
     Ok(_) => ()
     Err(e) =>
       return put_back(
@@ -491,7 +491,7 @@ pub async fn deisolate_profile(
       ),
     )
   }
-  match @fsx.ensure_dir(dst_parent) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(dst_parent)) {
     Ok(_) => ()
     Err(e) =>
       return Err(

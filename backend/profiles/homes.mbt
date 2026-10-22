@@ -527,7 +527,7 @@ async fn layout_home(
   dsh_home : String,
 ) -> Result[HomeLayout, (String, String)] noraise {
   let pdir = @json.join_all([home, "profiles", name])
-  match @fsx.ensure_dir(pdir) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(pdir)) {
     Ok(_) => ()
     Err(e) => return Err(("io-error", e))
   }
@@ -561,19 +561,19 @@ async fn layout_home(
       ),
     )
   }
-  match @fsx.make_symlink(nm_target, @json.join_path(pdir, "node_modules")) {
+  match @fsx.to_result_unit(@fsx.make_symlink_fs(nm_target, @json.join_path(pdir, "node_modules"))) {
     Ok(_) => ()
     Err(e) => return Err(("io-error", e))
   }
   let src_skills = @json.join_path(dsh_home, "skills")
   let mut skills_linked = false
   if @json.is_dir(src_skills) {
-    match @fsx.make_symlink(src_skills, @json.join_path(home, "skills")) {
+    match @fsx.to_result_unit(@fsx.make_symlink_fs(src_skills, @json.join_path(home, "skills"))) {
       Ok(_) => skills_linked = true
       Err(e) => return Err(("io-error", e))
     }
   }
-  match @fsx.ensure_dir(@json.join_path(home, "logs")) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.join_path(home, "logs"))) {
     Ok(_) => ()
     Err(e) => return Err(("io-error", e))
   }

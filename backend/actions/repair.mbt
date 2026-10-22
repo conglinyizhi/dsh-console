@@ -122,7 +122,7 @@ async fn run_repair(
   }
   let state = @store.state_paths()
   let logs_dir = @json.join_path(state.dir, "logs")
-  match @fsx.ensure_dir(logs_dir) {
+  match @fsx.to_result_unit(@fsx.ensure_dir_fs(logs_dir)) {
     Ok(_) => ()
     Err(reason) => {
       fail("io-error", reason)
@@ -154,7 +154,7 @@ async fn run_repair(
     missing_before.length().to_string() +
     "\n" +
     "\n"
-  match @fsx.write_text_atomic(log_path, header) {
+  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(log_path, header)) {
     Ok(_) => ()
     Err(reason) => {
       {

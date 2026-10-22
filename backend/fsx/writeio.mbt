@@ -124,7 +124,7 @@ fn name_in(list : Array[String], name : String) -> Bool {
 
 ///|
 /// 建目录（递归，已存在不算错）。
-pub async fn ensure_dir(path : String) -> Result[Unit, String] noraise {
+async fn ensure_dir_impl(path : String) -> Result[Unit, String] noraise {
   if path == "" {
     return Err("目录路径为空")
   }
@@ -158,7 +158,7 @@ fn next_tmp_seq() -> Int32 {
 ///|
 /// 原子写文本：先写同目录的临时文件，再 rename 覆盖。
 /// 临时文件与目标同目录是有意的 —— 跨文件系统的 rename 不是原子的，也会 EXDEV。
-pub async fn write_text_atomic(
+async fn write_text_atomic_impl(
   path : String,
   text : String,
 ) -> Result[Unit, String] noraise {
@@ -246,7 +246,7 @@ pub async fn read_bytes(path : String) -> Result[Bytes, String] noraise {
 
 ///|
 /// 按字节写文件。
-pub async fn write_bytes(
+async fn write_bytes_impl(
   path : String,
   data : Bytes,
   permission~ : Int32 = 0o600,
@@ -290,7 +290,7 @@ pub async fn rename_path(
 
 ///|
 /// 删一个文件。
-pub async fn remove_file(path : String) -> Result[Unit, String] noraise {
+async fn remove_file_impl(path : String) -> Result[Unit, String] noraise {
   try {
     @fs.remove(path)
     Ok(())
@@ -304,7 +304,7 @@ pub async fn remove_file(path : String) -> Result[Unit, String] noraise {
 ///
 /// 隔离 home 用它摆 node_modules 与 skills（规格第 2 节：软链，不复制）。
 /// 已存在同名路径时算失败 —— 覆盖一条别人摆的软链不是这一次要做的事。
-pub async fn make_symlink(
+async fn make_symlink_impl(
   target : String,
   path : String,
 ) -> Result[Unit, String] noraise {
@@ -330,7 +330,7 @@ pub async fn make_symlink(
 
 ///|
 /// 递归删目录。硬删走这一条。
-pub async fn remove_tree(path : String) -> Result[Unit, String] noraise {
+async fn remove_tree_impl(path : String) -> Result[Unit, String] noraise {
   try {
     @fs.rmdir(path, recursive=true)
     Ok(())
@@ -533,7 +533,7 @@ pub fn to_result_unit(r : Result[Unit, FsError]) -> Result[Unit, String] {
 
 ///|
 pub async fn ensure_dir_fs(path : String) -> Result[Unit, FsError] noraise {
-  match ensure_dir(path) {
+  match ensure_dir_impl(path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "建目录失败", raw })
   }
@@ -544,7 +544,7 @@ pub async fn write_text_atomic_fs(
   path : String,
   text : String,
 ) -> Result[Unit, FsError] noraise {
-  match write_text_atomic(path, text) {
+  match write_text_atomic_impl(path, text) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "写文件失败", raw })
   }
@@ -552,7 +552,7 @@ pub async fn write_text_atomic_fs(
 
 ///|
 pub async fn write_bytes_fs(path : String, data : Bytes) -> Result[Unit, FsError] noraise {
-  match write_bytes(path, data) {
+  match write_bytes_impl(path, data) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "写文件失败", raw })
   }
@@ -560,7 +560,7 @@ pub async fn write_bytes_fs(path : String, data : Bytes) -> Result[Unit, FsError
 
 ///|
 pub async fn remove_file_fs(path : String) -> Result[Unit, FsError] noraise {
-  match remove_file(path) {
+  match remove_file_impl(path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "删文件失败", raw })
   }
@@ -568,7 +568,7 @@ pub async fn remove_file_fs(path : String) -> Result[Unit, FsError] noraise {
 
 ///|
 pub async fn remove_tree_fs(path : String) -> Result[Unit, FsError] noraise {
-  match remove_tree(path) {
+  match remove_tree_impl(path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "删目录失败", raw })
   }
@@ -576,8 +576,33 @@ pub async fn remove_tree_fs(path : String) -> Result[Unit, FsError] noraise {
 
 ///|
 pub async fn make_symlink_fs(target : String, path : String) -> Result[Unit, FsError] noraise {
-  match make_symlink(target, path) {
+  match make_symlink_impl(target, path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "建软链失败", raw })
   }
 }
+// 旧的六个公开名：B1 之后只在内部转调 *_fs，外部调用点已切到 *_fs。
+pub async fn ensure_dir(path : String) -> Result[Unit, String] noraise {
+  to_result_unit(ensure_dir_fs(path))
+}
+
+pub async fn write_text_atomic(path : String, text : String) -> Result[Unit, String] noraise {
+  to_result_unit(write_text_atomic_fs(path, text))
+}
+
+pub async fn write_bytes(path : String, data : Bytes) -> Result[Unit, String] noraise {
+  to_result_unit(write_bytes_fs(path, data))
+}
+
+pub async fn remove_file(path : String) -> Result[Unit, String] noraise {
+  to_result_unit(remove_file_fs(path))
+}
+
+pub async fn remove_tree(path : String) -> Result[Unit, String] noraise {
+  to_result_unit(remove_tree_fs(path))
+}
+
+pub async fn make_symlink(target : String, path : String) -> Result[Unit, String] noraise {
+  to_result_unit(make_symlink_fs(target, path))
+}
+
