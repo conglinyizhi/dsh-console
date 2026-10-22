@@ -160,6 +160,8 @@ async fn main {
   defer app.close()
   let (host, port) = resolve_listen()
   let server = @moonback.listen(host~, port~)
+  // 读路径的原文去处（§109）：单独一个文件，与审计同目录；不配也能跑，只是那几处原文丢弃。
+  @store.configure_read_error_log()
   // 启动日志只留三行（§79）：这是什么、空一行、该访问的地址。
   // 静态根、API 清单、gzip、SPA 回退这些细节都在 backend/README.md，不在这里刷屏。
   @stdio.stdout.write(

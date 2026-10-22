@@ -19,3 +19,33 @@ pub fn take_raw() -> String {
   raw_slot.val = ""
   text
 }
+
+///|
+/// 读路径的原文去处（§109）：这些层不写审计行，也不该往动作槽里写（会串到下一次动作）。
+/// 启动时配一个文件，之后一行一条追加；写失败就吞掉——记日志不能把主流程弄挂。
+let error_log : Ref[String] = { val: "" }
+
+///|
+pub fn configure_error_log(path : String) -> Unit {
+  error_log.val = path
+}
+
+///|
+pub async fn append_error_line(source : String, text : String) -> Unit noraise {
+  let path = error_log.val
+  if path == "" {
+    return
+  }
+  let stamp = @async.now().to_string()
+  try {
+    @fs.write_file(
+      path,
+      stamp + "\t" + source + "\t" + text + "\n",
+      create_mode=OpenOrCreate,
+      append=true,
+      permission=0o600,
+    )
+  } catch {
+    _ => ()
+  }
+}

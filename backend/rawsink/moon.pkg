@@ -1,4 +1,6 @@
 import {
+  "moonbitlang/async/fs" @fs,
+  "moonbitlang/async",
 }
 
 options(

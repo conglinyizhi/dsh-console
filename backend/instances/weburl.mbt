@@ -427,7 +427,10 @@ async fn token_handshakes(
   let result = @async.with_timeout_opt(verify_timeout_ms, attempt) catch {
     // 读侧探测的说明仍然只给结论；原文记进 raw 槽，由动作层写审计（§108）。
     // instances 已经依赖 store，这里直接调，不新增依赖。
-    _ => return (false, "没能验证（探测失败）")
+    err => {
+      @rawsink.append_error_line("weburl", err.to_string())
+      return (false, "没能验证（探测失败）")
+    }
   }
   match result {
     None =>

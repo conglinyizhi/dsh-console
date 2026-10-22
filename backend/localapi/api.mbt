@@ -147,6 +147,7 @@ pub async fn dispatch(
           )
         }
         err => {
+          @rawsink.append_error_line("localapi", err.to_string())
           // 只读接口的 500 体只留结论：这一层够不到 store（localapi 不依赖 store），
           // 原文在这里落不了盘，更不该塞进给界面的错误体
           send_error(
@@ -182,6 +183,7 @@ pub async fn dispatch(
           )
         }
         err => {
+          @rawsink.append_error_line("localapi", err.to_string())
           // 只读接口的 500 体只留结论：这一层够不到 store（localapi 不依赖 store），
           // 原文在这里落不了盘，更不该塞进给界面的错误体
           send_error(
