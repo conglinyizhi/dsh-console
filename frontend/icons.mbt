@@ -138,8 +138,6 @@ fn icon_path(name : String) -> String {
     "play" => "M8,5.14V19.14L19,12.14L8,5.14Z"
     // 「停止」用方块，不用圆点：圆点读起来像状态灯，方块才是停止键
     "stop" => "M18,18H6V6H18V18Z"
-    "home-outline" =>
-      "M12,3L2,12H5V20H19V12H22L12,3M12,6.7L17,11.2V18H7V11.2L12,6.7Z"
     "folder-move-outline" =>
       "M20,18H4V8H20M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6Z"
     "camera-outline" =>

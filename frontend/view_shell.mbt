@@ -617,55 +617,17 @@ fn global_notice(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 ///|
 
 ///|
-/// 渲染兜底（批注 5）：某一块渲染抛异常时，不再白屏，给一块「这块没渲染出来」。
-/// 只包页面主体；外壳（侧栏、提示条）在外面，不受影响 —— 否则出错时连重试入口都没了。
-fn render_fallback(area : String, detail : String) -> @html.Html {
-  @html.div(
-    class="dsh-render-fallback",
-    attrs=mark("render-fallback", ["shell", "render-fallback", area]).title(
-      detail,
-    ),
-    [
-      @html.p(
-        class="dsh-render-fallback-title",
-        "这块没渲染出来，刷新可重试",
-      ),
-      @html.p(
-        class="dsh-render-fallback-detail",
-        attrs=mark("render-fallback-detail", [
-          "shell", "render-fallback", area, "detail",
-        ]),
-        if detail == "" {
-          "没有可显示的异常信息"
-        } else {
-          detail
-        },
-      ),
-    ],
-  )
-}
-
-///|
 fn page_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
-  let area = match model.page {
-    Overview => "overview"
-    Maintenance => "maintenance"
-    Logs => "logs"
-    Settings => "settings"
-    Trash => "trash"
-    About => "about"
-  }
-  let body = try {
-    match model.page {
-      Overview => overview_view(model, emit)
-      Maintenance => maintenance_view(model, emit)
-      Logs => logs_view(model, emit)
-      Settings => settings_view(model, emit)
-      Trash => trash_view(model, emit)
-      About => about_view(model, emit)
-    }
-  } catch {
-    err => render_fallback(area, err.to_string())
+  // 原来这里包了一层 try 当渲染兜底，编译器的 unused_try 把它判掉了：
+  // MoonBit 的异常是类型化的，这些渲染函数没有 raise 签名就不会抛，catch 抓不到东西。
+  // 与其留一层假的保险，不如把这层删掉、把「异常无处可逃」这件事写进 README（§110）。
+  let body = match model.page {
+    Overview => overview_view(model, emit)
+    Maintenance => maintenance_view(model, emit)
+    Logs => logs_view(model, emit)
+    Settings => settings_view(model, emit)
+    Trash => trash_view(model, emit)
+    About => about_view(model, emit)
   }
   // 拖动的「移动 / 松开 / 取消」三件事挂在外壳这一层，不挂在条目或分组上。
   // 理由两条：
