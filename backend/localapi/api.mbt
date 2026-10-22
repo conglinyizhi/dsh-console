@@ -146,12 +146,14 @@ pub async fn dispatch(
             read_at=Some(read_at),
           )
         }
-        err =>
+        _ =>
+          // 只读接口的 500 体只留结论：这一层够不到 store（localapi 不依赖 store），
+          // 原文在这里落不了盘，更不该塞进给界面的错误体
           send_error(
             res,
             500,
             "read-failed",
-            err.to_string(),
+            "只读接口内部错误",
             read_at=Some(read_at),
           )
       }
@@ -178,12 +180,14 @@ pub async fn dispatch(
             read_at=Some(read_at),
           )
         }
-        err =>
+        _ =>
+          // 只读接口的 500 体只留结论：这一层够不到 store（localapi 不依赖 store），
+          // 原文在这里落不了盘，更不该塞进给界面的错误体
           send_error(
             res,
             500,
             "read-failed",
-            err.to_string(),
+            "只读接口内部错误",
             read_at=Some(read_at),
           )
       }

@@ -173,16 +173,18 @@ async fn run_repair(
     permission=0o600,
   ) catch {
     err => {
-      fail(
-        "io-error",
-        "打不开补包日志：" + log_path + "（" + err.to_string() + "）",
-      )
+      // 写侧回执：原文进审计，提示只说结论（哪一个文件由前面的 log_path 那句话交代）
+      let e = open_file_error(err)
+      note_raw(e.raw)
+      fail("io-error", "打不开补包日志：" + log_path)
       abort("unreachable: fail 一定抛错")
     }
   }
   let input = @process.redirect_from_file("/dev/null") catch {
     err => {
-      fail("io-error", "打不开 /dev/null：" + err.to_string())
+      let e = device_error(err)
+      note_raw(e.raw)
+      fail("io-error", "打开设备文件失败")
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -200,14 +202,11 @@ async fn run_repair(
     inherit_env=true,
   ) catch {
     err => {
+      let e = spawn_error(err)
+      note_raw(e.raw)
       fail(
         "install-failed",
-        "起不了 " +
-        argv[0] +
-        "（" +
-        err.to_string() +
-        "）；日志 " +
-        log_path,
+        "起不了 " + argv[0] + "；日志 " + log_path,
       )
       abort("unreachable: fail 一定抛错")
     }

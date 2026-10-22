@@ -606,7 +606,10 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 | **追加失败** | `@fsx.append_text_fs` | `追加写失败：<路径>（OSError(…)）` |
 | **读文件失败** | `@json.read_text_file_fs` | `OSError("@fs.read()…")` 之类；敏感文件是「拒绝读取敏感文件：<名字>」，`raw` 留空 |
 | **读文件失败（字节）** | `@fsx.read_bytes_fs` / `@json.read_some_at_fs` | `<路径>（OSError(…)）`（读 fd 那一步失败）；文本读不动与字节读不动常不是同一件事，所以分开一句 |
-| **打开文件失败** | `@json.read_some_at_fs`（open 那一步） | `<路径>（OSError(…)）`（不存在 / 权限 / 是目录） |
+| **打开文件失败** | `@json.read_some_at_fs`（open 那一步）/ `@actions.open_file_error` | `<路径>（OSError(…)）`（不存在 / 权限 / 是目录） |
+| **打开设备文件失败** | `@actions.device_error` | `OSError(…) `（`/dev/null` 这类拿不到句柄时，子进程没有 stdin/stdout） |
+| **起进程失败** | `@actions.spawn_error` | `OSError(…) `（ENOENT / EACCES / 资源不够之类） |
+| **只读接口内部错误** | 就地（`localapi/api.mbt` 的 500 体） | 这一层够不到 store，原文落不了盘；体里只给这一句 |
 | **读链接失败** | `@json.read_link_fs` | errno 名（`ENOENT 目标不存在`…）或「目标超过 4096 字节，被截断」 |
 
 两段式是 `{ summary, raw }`：`summary` 只进提示文案，`raw` 只进 `@store.note_raw`。
@@ -615,6 +618,10 @@ code 与 message，装不下 `{ command, exitCode, durationMs, logPath, missingB
 
 调用点保留自己更具体的说法也允许（例如「读不动审计文件 <路径>」「package.json 读不出来」）：
 把原来的系统文本摘掉、只留结论即可；原来那句纯是系统文本时才用 helper 的 `summary`。
+
+`@actions` 里那三个（`spawn_error` / `device_error` / `open_file_error`）包的是
+`@process.*` 与 `redirect_*` 抛出的 `Error`：只有 actions 这一层起子进程，所以按
+「哪里用、哪里包」放在 `actions/error_fs.mbt`，不往 fsx/json 里塞进程上下文。
 
 `FsError` 全工程只有一处定义：`@json.FsError`（`json/fsio.mbt`，`{ summary, raw }`）。
 放 json 是因为 json 不依赖本工程的其它包、fsx 依赖 json —— 反过来定义会成环；写侧那几个

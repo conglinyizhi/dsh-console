@@ -425,13 +425,9 @@ async fn token_handshakes(
     @localapi.fetch_path(port, "/?token=" + token, verify_body_bytes)
   }
   let result = @async.with_timeout_opt(verify_timeout_ms, attempt) catch {
-    err => {
-      let detail = match @json.raw_http_message(err) {
-        Some(msg) => msg
-        None => err.to_string()
-      }
-      return (false, "没能验证（" + detail + "）")
-    }
+    // 这是读侧探测的说明（进回执里那句 note），只给结论：
+    // 系统原文在这一层无处可落（探测不写审计），也不该顶着「内部错误」的样子贴给用户
+    _ => return (false, "没能验证（探测失败）")
   }
   match result {
     None =>

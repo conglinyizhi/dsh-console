@@ -599,7 +599,10 @@ async fn move_package(
     Regular =>
       match @fsx.copy_file(source_pkg, target_pkg) {
         Ok(_) => ()
-        Err(e) => return Err(e)
+        Err(e) => {
+          @store.note_raw(e)
+          return Err("复制失败")
+        }
       }
     _ =>
       return Err(

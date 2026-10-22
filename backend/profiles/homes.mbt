@@ -546,7 +546,11 @@ async fn layout_home(
     if @json.exists(from) {
       match @fsx.copy_file(from, @json.join_path(pdir, file)) {
         Ok(_) => copied = copied + 1
-        Err(e) => return Err(("io-error", "复制 " + file + " 失败：" + e))
+        Err(e) => {
+          // copy_file 回的是底层原文（敏感文件那种策略拒绝回结论）：原文进审计，提示只说结论
+          @store.note_raw(e)
+          return Err(("io-error", "复制 " + file + " 失败"))
+        }
       }
     }
   }

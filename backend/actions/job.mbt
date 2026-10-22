@@ -137,7 +137,12 @@ async fn run_capture(
     (code, stdout.text(), stderr.text())
   }
   let result = @async.with_timeout_opt(timeout_ms, attempt) catch {
-    err => return Err(err.to_string())
+    err => {
+      // 起进程（或读它的输出）失败：原文交给审计，提示只说结论
+      let e = spawn_error(err)
+      note_raw(e.raw)
+      return Err(e.summary)
+    }
   }
   match result {
     Some(triple) => Ok(triple)

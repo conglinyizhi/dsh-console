@@ -313,11 +313,19 @@ async fn spawn_child(
     create_mode=OpenOrCreate,
     permission=0o600,
   ) catch {
-    err =>
-      return Err("打不开实例日志 " + log_path + "：" + err.to_string())
+    err => {
+      // 起实例这一路失败会变成这次请求的回执：原文交给审计
+      let e = open_file_error(err)
+      note_raw(e.raw)
+      return Err("打不开实例日志 " + log_path)
+    }
   }
   let input = @process.redirect_from_file("/dev/null") catch {
-    err => return Err("打不开 /dev/null：" + err.to_string())
+    err => {
+      let e = device_error(err)
+      note_raw(e.raw)
+      return Err("打开设备文件失败")
+    }
   }
   if !detach {
     match console_group.val {
@@ -338,10 +346,11 @@ async fn spawn_child(
           )
           return Ok(child.pid)
         } catch {
-          err =>
-            return Err(
-              "spawn 失败（挂控制台任务组）：" + err.to_string(),
-            )
+          err => {
+            let e = spawn_error(err)
+            note_raw(e.raw)
+            return Err("起进程失败（挂到控制台任务组）")
+          }
         }
       None => () // 没有任务组就退回 orphan，语义降级成 detach=true
     }
@@ -356,7 +365,11 @@ async fn spawn_child(
     stderr=out,
     cwd~,
   ) catch {
-    err => return Err("spawn 失败：" + err.to_string())
+    err => {
+      let e = spawn_error(err)
+      note_raw(e.raw)
+      return Err("起进程失败")
+    }
   }
   Ok(pid)
 }

@@ -173,7 +173,9 @@ pub async fn open_path(
         permission=0o600,
       ) catch {
         err => {
-          fail("io-error", "打不开 /dev/null：" + err.to_string())
+          let e = device_error(err)
+          note_raw(e.raw)
+          fail("io-error", "打开设备文件失败")
           abort("unreachable: fail 一定抛错")
         }
       }
@@ -181,7 +183,9 @@ pub async fn open_path(
   }
   let input = @process.redirect_from_file("/dev/null") catch {
     err => {
-      fail("io-error", "打不开 /dev/null：" + err.to_string())
+      let e = device_error(err)
+      note_raw(e.raw)
+      fail("io-error", "打开设备文件失败")
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -194,8 +198,11 @@ pub async fn open_path(
     stderr=out,
   ) catch {
     err => {
+      // 起不来的话先把捕获文件收掉（它是这一趟的一次性产物）
       let _ = @fsx.remove_file_fs(capture)
-      fail("io-error", "起 " + opener + " 失败：" + err.to_string())
+      let e = spawn_error(err)
+      note_raw(e.raw)
+      fail("io-error", "起 " + opener + " 失败")
       abort("unreachable: fail 一定抛错")
     }
   }
