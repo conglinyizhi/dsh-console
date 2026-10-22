@@ -76,15 +76,14 @@ async fn put_back(
 ) -> Result[IsolateOutcome, (String, String)] noraise {
   let note = match @fsx.rename_path(profile_dir, src_dir) {
     Ok(_) =>
-      match @fsx.to_result_unit(@fsx.remove_tree_fs(home)) {
+      match @fsx.remove_tree_fs(home) {
         Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
         Err(e) =>
           "；移动没完成，已经放回原处（" +
           src_dir +
           "），但刚建的 " +
           home +
-          " 没能删掉：" +
-          e
+          " 没能删掉"
       }
     Err(e) =>
       "；移动没完成，也没能放回原处：" +
@@ -139,7 +138,7 @@ async fn move_remainder_to_trash(
           } else {
             ""
           }
-          match @fsx.to_result_unit(@fsx.remove_tree_fs(home)) {
+          match @fsx.remove_tree_fs(home) {
             Ok(_) =>
               Ok(
                 (
@@ -156,7 +155,7 @@ async fn move_remainder_to_trash(
               Err(
                 first +
                 "；退回复制成功了，但删源头失败：" +
-                e +
+                e.raw +
                 "（这份东西在两处各有一份）",
               )
           }
@@ -212,6 +211,7 @@ async fn add_credentials_patch(
     yaml_quote(cred_path) +
     "\n"
   let text = if body == "" { head + block } else { body + "\n" + head + block }
+  // 这一支的调用方要 Result[Unit, String]：raw 已经在写失败时进 note_raw，这里折回旧口径
   @fsx.to_result_unit(@fsx.write_text_atomic_fs(path, text))
 }
 
@@ -286,7 +286,7 @@ pub async fn isolate_profile(
   // 落点目录已经建了：从这里往后任何一条不过，都要把 <root>/<名字> 收掉再报
   let device_note = match require_same_device(src_parent, dst_parent) {
     Err((code, message)) => {
-      let _ = @fsx.to_result_unit(@fsx.remove_tree_fs(home))
+      let _ = @fsx.remove_tree_fs(home)
       return Err(
         (
           code,
@@ -304,7 +304,7 @@ pub async fn isolate_profile(
   let profile_dir = @json.join_all([home, "profiles", name])
   match move_dir(src_dir, profile_dir) {
     Err((code, message)) => {
-      let _ = @fsx.to_result_unit(@fsx.remove_tree_fs(home))
+      let _ = @fsx.remove_tree_fs(home)
       return Err(
         (
           code,
@@ -339,7 +339,7 @@ pub async fn isolate_profile(
   let mut skills_linked = false
   let src_skills = @json.join_path(dsh_home, "skills")
   if @json.is_dir(src_skills) {
-    match @fsx.to_result_unit(@fsx.make_symlink_fs(src_skills, @json.join_path(home, "skills"))) {
+    match @fsx.make_symlink_fs(src_skills, @json.join_path(home, "skills")) {
       Ok(_) => skills_linked = true
       Err(e) =>
         return put_back(
@@ -347,11 +347,14 @@ pub async fn isolate_profile(
           src_dir,
           profile_dir,
           "io-error",
-          "摆 skills 软链失败：" + e,
+          {
+            @store.note_raw(e.raw)
+            "建软链失败"
+          },
         )
     }
   }
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.join_path(home, "logs"))) {
+  match @fsx.ensure_dir_fs(@json.join_path(home, "logs")) {
     Ok(_) => ()
     Err(e) =>
       return put_back(
@@ -359,7 +362,10 @@ pub async fn isolate_profile(
         src_dir,
         profile_dir,
         "io-error",
-        "建 logs/ 失败：" + e,
+        {
+          @store.note_raw(e.raw)
+          "建目录失败"
+        },
       )
   }
   // 凭证：只写路径，不碰文件本身（@json.exists 只 stat，不读内容）
@@ -392,10 +398,10 @@ pub async fn isolate_profile(
     ("credentialsKey", @json.JStr("credentials.config.path")),
   ])
   match
-    @fsx.to_result_unit(@fsx.write_text_atomic_fs(
+    @fsx.write_text_atomic_fs(
       @json.join_path(home, isolation_marker),
       @json.encode(marker) + "\n",
-    )) {
+    ) {
     Ok(_) => ()
     Err(e) =>
       return put_back(
@@ -403,7 +409,10 @@ pub async fn isolate_profile(
         src_dir,
         profile_dir,
         "io-error",
-        "写隔离记录失败：" + e,
+        {
+          @store.note_raw(e.raw)
+          "写文件失败"
+        },
       )
   }
   Ok({
