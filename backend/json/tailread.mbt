@@ -58,7 +58,9 @@ pub async fn read_tail_lines(
   // 读文件状态失败也走两段式入口；json 包够不到 store，原文在这里落不了，只留结论
   let size = match file_size_fs(file) {
     Ok(v) => v
-    Err(e) => raise TailError(e.summary)
+    Err(e) => {
+      raise TailError(e.summary)
+    }
   }
   if size == 0L {
     return {
@@ -106,7 +108,9 @@ pub async fn read_tail_lines(
     let read_len = (actual - start).to_int()
     chunk = match read_text_at_fs(file, start, read_len) {
       Ok(t) => t
-      Err(e) => raise TailError(e.summary)
+      Err(e) => {
+      raise TailError(e.summary)
+    }
     }
     let parts = split_lines(chunk)
     let head_count = parts.length() - 1
