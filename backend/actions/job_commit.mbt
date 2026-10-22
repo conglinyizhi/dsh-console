@@ -297,7 +297,7 @@ pub async fn job_cleanup(
     Some(value) => value.to_string() + " 字节"
     None => "体积读不到"
   }
-  match @fsx.to_result_unit(@fsx.remove_tree_fs(dir)) {
+  match @fsx.remove_tree_fs(dir) {
     Ok(_) => {
       @store.mark_step(
         job,
@@ -359,7 +359,7 @@ pub async fn job_cleanup(
         "cleanup",
         "failed",
         "旧版本包目录没删掉（原因在证据里）",
-        [("dir", dir), ("version", anchor.version), ("error", e)],
+        [("dir", dir), ("version", anchor.version), ("error", e.raw)],
         now,
       )
       match @store.save_job(job) {
@@ -369,7 +369,8 @@ pub async fn job_cleanup(
           abort("unreachable: fail 一定抛错")
         }
       }
-      fail("io-error", "旧版本包目录没删掉：" + e)
+      note_raw(e.raw)
+      fail("io-error", "删目录失败")
       abort("unreachable: fail 一定抛错")
     }
   }
