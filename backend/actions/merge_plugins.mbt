@@ -420,9 +420,12 @@ async fn place_plugin(
   target_dir : String,
 ) -> Result[Bool, String] noraise {
   let dest_dir = @json.join_all([target_dir, "node_modules", "@local"])
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(dest_dir)) {
+  match @fsx.ensure_dir_fs(dest_dir) {
     Ok(_) => ()
-    Err(e) => return Err(e)
+    Err(e) => {
+      note_raw(e.raw)
+      return Err("建目录失败")
+    }
   }
   let dest = @json.join_path(dest_dir, @json.basename(plugin.name))
   let mut overwritten = false
@@ -435,13 +438,16 @@ async fn place_plugin(
   if @json.exists(dest) || dest_is_link {
     overwritten = true
     let removed = if dest_is_link {
-      @fsx.to_result_unit(@fsx.remove_file_fs(dest))
+      @fsx.remove_file_fs(dest)
     } else {
-      @fsx.to_result_unit(@fsx.remove_tree_fs(dest))
+      @fsx.remove_tree_fs(dest)
     }
     match removed {
       Ok(_) => ()
-      Err(e) => return Err("删不掉目标里已有的 " + dest + "：" + e)
+      Err(e) => {
+        note_raw(e.raw)
+        return Err(if dest_is_link { "删文件失败" } else { "删目录失败" })
+      }
     }
   }
   // 一律复制实体（§84）：软链先解析成真实目录，再整份拷过去 —— 目标不再牵着源，
@@ -818,16 +824,18 @@ async fn merge_into(
   match bundles_with(names, text) {
     Ok((added, new_text)) => {
       if added.length() > 0 {
-        match @fsx.to_result_unit(@fsx.write_text_atomic_fs(pkg_path, new_text)) {
+        match @fsx.write_text_atomic_fs(pkg_path, new_text) {
           Ok(_) => ()
-          Err(e) =>
+          Err(e) => {
+            note_raw(e.raw)
             return {
               ..report,
               snapshot,
               copied,
               overwritten,
-              error: "写不进目标 package.json：" + e,
+              error: "写文件失败",
             }
+          }
         }
       }
       // 4) N6b：迁 cordis.patch.yml（失败这只目标 ok=false，快照仍在）
@@ -1059,24 +1067,34 @@ async fn migrate_patch(
     @json.join_all([target_dir, ".snapshots", snapshot]),
     "cordis.patch.yml.bak",
   )
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(@json.dirname(backup_path))) {
-    Ok(_) => ()
-    Err(e) => return Err("建不了快照目录：" + e)
-  }
-  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(backup_path, target_text)) {
-    Ok(_) => ()
-    Err(e) => return Err("备份 patch 失败：" + e)
-  }
-  let temp_path = @json.join_path(target_dir, ".cordis.patch.yml.merge-bak")
-  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(temp_path, target_text)) {
-    Ok(_) => ()
-    Err(e) => return Err("写临时备份失败：" + e)
-  }
-  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(target_path, new_text)) {
+  match @fsx.ensure_dir_fs(@json.dirname(backup_path)) {
     Ok(_) => ()
     Err(e) => {
-      let _ = @fsx.to_result_unit(@fsx.remove_file_fs(temp_path))
-      return Err("写目标 patch 失败：" + e)
+      note_raw(e.raw)
+      return Err("建目录失败")
+    }
+  }
+  match @fsx.write_text_atomic_fs(backup_path, target_text) {
+    Ok(_) => ()
+    Err(e) => {
+      note_raw(e.raw)
+      return Err("写文件失败")
+    }
+  }
+  let temp_path = @json.join_path(target_dir, ".cordis.patch.yml.merge-bak")
+  match @fsx.write_text_atomic_fs(temp_path, target_text) {
+    Ok(_) => ()
+    Err(e) => {
+      note_raw(e.raw)
+      return Err("写临时文件失败")
+    }
+  }
+  match @fsx.write_text_atomic_fs(target_path, new_text) {
+    Ok(_) => ()
+    Err(e) => {
+      note_raw(e.raw)
+      let _ = @fsx.remove_file_fs(temp_path)
+      return Err("写文件失败")
     }
   }
   let ok = match @json.read_text_file(target_path) {
@@ -1099,17 +1117,20 @@ async fn migrate_patch(
   }
   if !ok {
     let _ = match @json.read_text_file(temp_path) {
-      Ok(text) => @fsx.to_result_unit(@fsx.write_text_atomic_fs(target_path, text))
+      Ok(text) => {
+        let _ = @fsx.write_text_atomic_fs(target_path, text)
+        Ok(())
+      }
       Err(e) => Err(e)
     }
-    let _ = @fsx.to_result_unit(@fsx.remove_file_fs(temp_path))
+    let _ = @fsx.remove_file_fs(temp_path)
     return Err(
       "迁移后的 patch 校验不过，已回滚到备份（" +
       backup_path +
       "）",
     )
   }
-  let _ = @fsx.to_result_unit(@fsx.remove_file_fs(temp_path))
+  let _ = @fsx.remove_file_fs(temp_path)
   Ok((added, overwritten, backup_path))
 }
 

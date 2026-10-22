@@ -510,9 +510,12 @@ pub async fn start_instance_with(
       }
   }
   let log_dir = @json.join_path(target_home, "logs")
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(log_dir)) {
+  match @fsx.ensure_dir_fs(log_dir) {
     Ok(_) => ()
-    Err(e) => fail("io-error", e)
+    Err(e) => {
+      note_raw(e.raw)
+      fail("io-error", "建目录失败")
+    }
   }
   let log_path = @json.join_path(
     log_dir,

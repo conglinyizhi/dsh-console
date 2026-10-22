@@ -122,10 +122,11 @@ async fn run_repair(
   }
   let state = @store.state_paths()
   let logs_dir = @json.join_path(state.dir, "logs")
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(logs_dir)) {
+  match @fsx.ensure_dir_fs(logs_dir) {
     Ok(_) => ()
-    Err(reason) => {
-      fail("io-error", reason)
+    Err(e) => {
+      note_raw(e.raw)
+      fail("io-error", "建目录失败")
       abort("unreachable: fail 一定抛错")
     }
   }
@@ -154,12 +155,12 @@ async fn run_repair(
     missing_before.length().to_string() +
     "\n" +
     "\n"
-  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(log_path, header)) {
+  match @fsx.write_text_atomic_fs(log_path, header) {
     Ok(_) => ()
-    Err(reason) => {
+    Err(e) => {
       {
-        note_raw(reason)
-        fail("io-error", "建不了补包日志")
+        note_raw(e.raw)
+        fail("io-error", "写文件失败")
       }
       abort("unreachable: fail 一定抛错")
     }
