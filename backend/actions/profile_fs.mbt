@@ -183,9 +183,12 @@ pub async fn fork_profile(
   let note_text = @profiles.fork_note_text(source_name, stamp, source_note)
   // 备注写失败不许让派生失败：目录已经拷好了，为了一个备注把整次派生报成失败是假报。
   // 这里把失败收成一个原因字符串，调用方原样写进 outcome。
-  let note_error = match @fsx.to_result_unit(@fsx.write_text_atomic_fs(note_path, note_text)) {
+  let note_error = match @fsx.write_text_atomic_fs(note_path, note_text) {
     Ok(_) => None
-    Err(e) => Some(e)
+    Err(e) => {
+      note_raw(e.raw)
+      Some("写文件失败")
+    }
   }
   // mtime 在拷贝与写备注**之后**读：这才是这一趟真实留下的"最近改动"，
   // 也正是它在列表里排最前面的依据。读不到给 None + 原因，不拿当前时间冒充。
@@ -373,9 +376,12 @@ pub async fn delete_profile(
     None => ""
   }
   if given == "DELETE" {
-    match @fsx.to_result_unit(@fsx.remove_tree_fs(dir)) {
+    match @fsx.remove_tree_fs(dir) {
       Ok(_) => ()
-      Err(e) => fail("io-error", e)
+      Err(e) => {
+        note_raw(e.raw)
+        fail("io-error", "删目录失败")
+      }
     }
     return {
       profile: name,
@@ -393,9 +399,12 @@ pub async fn delete_profile(
     let stamp = @async.now().to_string()
     let trash_dir_name = name + "-" + stamp
     let trash_path = @json.join_path(paths.trash, trash_dir_name)
-    match @fsx.to_result_unit(@fsx.ensure_dir_fs(paths.trash)) {
+    match @fsx.ensure_dir_fs(paths.trash) {
       Ok(_) => ()
-      Err(e) => fail("io-error", e)
+      Err(e) => {
+        note_raw(e.raw)
+        fail("io-error", "建目录失败")
+      }
     }
     match @fsx.rename_path(dir, trash_path) {
       Ok(_) => ()
@@ -403,10 +412,12 @@ pub async fn delete_profile(
         // 状态目录与 profile 目录不同文件系统时 rename 会 EXDEV：退回复制再删
         match @fsx.copy_tree(dir, trash_path, []) {
           Ok(_) =>
-            match @fsx.to_result_unit(@fsx.remove_tree_fs(dir)) {
+            match @fsx.remove_tree_fs(dir) {
               Ok(_) => ()
-              Err(e) =>
-                fail("io-error", first + "；退回复制也失败：" + e)
+              Err(e) => {
+                note_raw(e.raw)
+                fail("io-error", "删目录失败")
+              }
             }
           Err(e) => fail("io-error", first + "；退回复制也失败：" + e)
         }
@@ -475,9 +486,12 @@ pub async fn set_profile_note(
   if text == "" {
     // 空串 = 删文件。本来就没有这个文件也算成：这一步是幂等的，不给前端制造无谓的 not-found
     if @json.exists(path) {
-      match @fsx.to_result_unit(@fsx.remove_file_fs(path)) {
+      match @fsx.remove_file_fs(path) {
         Ok(_) => ()
-        Err(e) => fail("io-error", e)
+        Err(e) => {
+          note_raw(e.raw)
+          fail("io-error", "删文件失败")
+        }
       }
     }
     return { profile: name, dir, path, removed: true, chars: 0, }
@@ -493,9 +507,12 @@ pub async fn set_profile_note(
       " 字符",
     )
   }
-  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(path, text)) {
+  match @fsx.write_text_atomic_fs(path, text) {
     Ok(_) => ()
-    Err(e) => fail("io-error", e)
+    Err(e) => {
+      note_raw(e.raw)
+      fail("io-error", "写文件失败")
+    }
   }
   { profile: name, dir, path, removed: false, chars, }
 }
@@ -611,9 +628,12 @@ async fn remove_failed_base_profile(dir : String) -> String noraise {
   if !@json.exists(dir) {
     return "刚建的 " + dir + " 本来就没留下"
   }
-  match @fsx.to_result_unit(@fsx.remove_tree_fs(dir)) {
+  match @fsx.remove_tree_fs(dir) {
     Ok(_) => "刚建的 " + dir + " 已经删掉，没留半成品"
-    Err(e) => "刚建的 " + dir + " 没删掉：" + e + "（要手动删）"
+    Err(e) => {
+      note_raw(e.raw)
+      "刚建的 " + dir + " 没删掉（要手动删）"
+    }
   }
 }
 
@@ -767,10 +787,7 @@ pub async fn create_base_profile(
       @json.iso_from_epoch_ms(@async.now()) +
       "（本地时区读不到，按 UTC）"
   }
-  let _ = @fsx.to_result_unit(@fsx.write_text_atomic_fs(
-    note_path,
-    "从基础模板新建 · " + note_stamp,
-  ))
+  let _ = @fsx.write_text_atomic_fs(note_path, "从基础模板新建 · " + note_stamp)
   // 默认隔离，与派生同一档（design/deep-home-isolation.md 第 8 节）。
   // 隔离失败不许让「建成了」变成「失败了」：profile 已经在磁盘上、也核对过了，
   // 为了一个 home 把整件事报成失败是假报 —— 原因原样带回去，回执照实说。

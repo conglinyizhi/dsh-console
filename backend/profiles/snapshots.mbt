@@ -278,7 +278,7 @@ async fn prune_snapshots(
     if id == keep_id {
       continue
     }
-    match @fsx.to_result_unit(@fsx.remove_tree_fs(@json.join_path(dir, id))) {
+    match @fsx.remove_tree_fs(@json.join_path(dir, id)) {
       Ok(_) => {
         pruned.push(id)
         remaining = remaining - 1
@@ -302,9 +302,12 @@ pub async fn create_snapshot(
   let trimmed = @json.trim_both(reason_in)
   let reason = if trimmed == "" { default_snapshot_reason } else { trimmed }
   let dir = snapshots_dir_of(profile_dir)
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(dir)) {
+  match @fsx.ensure_dir_fs(dir) {
     Ok(_) => ()
-    Err(e) => return Err(e)
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err("建目录失败")
+    }
   }
   let mut ms = @async.now()
   while @json.exists(@json.join_path(dir, ms.to_string())) {
@@ -312,9 +315,12 @@ pub async fn create_snapshot(
   }
   let id = ms.to_string()
   let target = @json.join_path(dir, id)
-  match @fsx.to_result_unit(@fsx.ensure_dir_fs(target)) {
+  match @fsx.ensure_dir_fs(target) {
     Ok(_) => ()
-    Err(e) => return Err(e)
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err("建目录失败")
+    }
   }
   let copied : Array[String] = []
   let missing : Array[String] = []
@@ -330,9 +336,12 @@ pub async fn create_snapshot(
       Ok(d) => d
       Err(e) => return Err(e)
     }
-    match @fsx.to_result_unit(@fsx.write_bytes_fs(@json.join_path(target, name), data)) {
+    match @fsx.write_bytes_fs(@json.join_path(target, name), data) {
       Ok(_) => ()
-      Err(e) => return Err(e)
+      Err(e) => {
+        @store.note_raw(e.raw)
+        return Err("写文件失败")
+      }
     }
     copied.push(name)
     files = files + 1
@@ -347,9 +356,12 @@ pub async fn create_snapshot(
       ("bytes", @json.JNum(bytes.to_int().to_double())),
     ]),
   )
-  match @fsx.to_result_unit(@fsx.write_text_atomic_fs(@json.join_path(target, "meta.json"), meta)) {
+  match @fsx.write_text_atomic_fs(@json.join_path(target, "meta.json"), meta) {
     Ok(_) => ()
-    Err(e) => return Err("meta.json 没写进去：" + e)
+    Err(e) => {
+      @store.note_raw(e.raw)
+      return Err("写文件失败")
+    }
   }
   let pruned = prune_snapshots(dir, keep_id)
   Ok({ id, dir: target, at, reason, files, bytes, copied, missing, pruned, })
@@ -429,20 +441,17 @@ pub async fn restore_snapshot(
           ),
         )
     }
-    match @fsx.to_result_unit(@fsx.write_bytes_fs(@json.join_path(profile_dir, name), data)) {
+    match @fsx.write_bytes_fs(@json.join_path(profile_dir, name), data) {
       Ok(_) => restored.push(name)
-      Err(e) =>
+      Err(e) => {
+        @store.note_raw(e.raw)
         return Err(
           (
             "io-error",
-            "写回 " +
-            name +
-            " 失败（" +
-            e +
-            "）；已经写回：" +
-            describe_files(restored),
+            "写文件失败；已经写回：" + describe_files(restored),
           ),
         )
+      }
     }
   }
   Ok({
