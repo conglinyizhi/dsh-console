@@ -501,3 +501,83 @@ pub async fn count_tree(
   }
   (files, dirs)
 }
+///|
+/// 带两段错误的六个入口（批次 A）：summary 只写结论，raw 是底层原文。
+/// 旧签名的六个函数原样保留给尚未迁移的调用点；批次 B 会把它们全部切到下面这组，
+/// 然后删掉旧的。这样两批之间树始终可编译。
+///|
+/// 失败的两段：summary 是给人看的结论（不带系统文本），raw 是底层原文（排查用）。
+pub(all) struct FsError {
+  summary : String
+  raw : String
+}
+
+///|
+/// 兼容层：把 FsError 折回旧的单段 String（结论 + 原文）。批次 B 删掉。
+pub fn fserr_text(e : FsError) -> String {
+  if e.raw == "" {
+    e.summary
+  } else {
+    e.summary + "：" + e.raw
+  }
+}
+
+///|
+/// 兼容包装：Result[Unit, FsError] → Result[Unit, String]（旧口径，含原文）。
+pub fn to_result_unit(r : Result[Unit, FsError]) -> Result[Unit, String] {
+  match r {
+    Ok(u) => Ok(u)
+    Err(e) => Err(fserr_text(e))
+  }
+}
+
+///|
+pub async fn ensure_dir_fs(path : String) -> Result[Unit, FsError] noraise {
+  match ensure_dir(path) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "建目录失败", raw })
+  }
+}
+
+///|
+pub async fn write_text_atomic_fs(
+  path : String,
+  text : String,
+) -> Result[Unit, FsError] noraise {
+  match write_text_atomic(path, text) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "写文件失败", raw })
+  }
+}
+
+///|
+pub async fn write_bytes_fs(path : String, data : Bytes) -> Result[Unit, FsError] noraise {
+  match write_bytes(path, data) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "写文件失败", raw })
+  }
+}
+
+///|
+pub async fn remove_file_fs(path : String) -> Result[Unit, FsError] noraise {
+  match remove_file(path) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "删文件失败", raw })
+  }
+}
+
+///|
+pub async fn remove_tree_fs(path : String) -> Result[Unit, FsError] noraise {
+  match remove_tree(path) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "删目录失败", raw })
+  }
+}
+
+///|
+pub async fn make_symlink_fs(target : String, path : String) -> Result[Unit, FsError] noraise {
+  match make_symlink(target, path) {
+    Ok(_) => Ok(())
+    Err(raw) => Err({ summary: "建软链失败", raw })
+  }
+}
