@@ -74,25 +74,31 @@ async fn put_back(
   code : String,
   message : String,
 ) -> Result[IsolateOutcome, (String, String)] noraise {
-  let note = match @fsx.rename_path(profile_dir, src_dir) {
+  let note = match @fsx.rename_path_fs(profile_dir, src_dir) {
     Ok(_) =>
       match @fsx.remove_tree_fs(home) {
         Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
-        Err(e) =>
+        Err(e) => {
+          // 放回原处成了，但刚建的 home 没删掉：这一笔也是回执，原文交给审计
+          @store.note_raw(e.raw)
           "；移动没完成，已经放回原处（" +
           src_dir +
           "），但刚建的 " +
           home +
           " 没能删掉"
+        }
       }
-    Err(e) =>
+    Err(e) => {
+      // 回滚也失败：这一笔会变成 io-error 回执，原文交给审计
+      @store.note_raw(e.raw)
       "；移动没完成，也没能放回原处：" +
-      e +
+      e.summary +
       "（" +
       profile_dir +
       " 现在还在那儿，要手动挪回 " +
       src_dir +
       "）"
+    }
   }
   Err((code, message + note))
 }
@@ -123,7 +129,7 @@ async fn move_remainder_to_trash(
       "回收站里已经有这一条了：" + dest + "（不覆盖）",
     )
   }
-  match @fsx.rename_path(home, dest) {
+  match @fsx.rename_path_fs(home, dest) {
     Ok(_) =>
       Ok(
         (
@@ -143,7 +149,7 @@ async fn move_remainder_to_trash(
               Ok(
                 (
                   dest,
-                  first +
+                  first.summary +
                   "；退回复制再删（" +
                   stats.files.to_string() +
                   " 个文件" +
@@ -151,16 +157,20 @@ async fn move_remainder_to_trash(
                   "）",
                 ),
               )
-            Err(e) =>
+            Err(e) => {
+              // 原文只进审计：提示条说结论，两条原文（重命名 / 删源头）拼在 raw 里
+              @store.note_raw(first.raw + "；删源头也失败：" + e.raw)
               Err(
-                first +
-                "；退回复制成功了，但删源头失败：" +
-                e.raw +
-                "（这份东西在两处各有一份）",
+                first.summary +
+                "；退回复制成功了，但删源头失败（这份东西在两处各有一份）",
               )
+            }
           }
         }
-        Err(e) => Err(first + "；退回复制也失败：" + e)
+        Err(e) => {
+          @store.note_raw(first.raw)
+          Err(first.summary + "；退回复制也失败：" + e)
+        }
       }
   }
 }
@@ -530,16 +540,18 @@ pub async fn deisolate_profile(
   let relink = relink_after_move(src_dir, dst)
   match verify_isolated(dst, "") {
     Some(problem) => {
-      let note = match @fsx.rename_path(dst, src_dir) {
+      let note = match @fsx.rename_path_fs(dst, src_dir) {
         Ok(_) => "；移动没完成，已经放回原处（" + src_dir + "）"
-        Err(e) =>
+        Err(e) => {
+          @store.note_raw(e.raw)
           "；移动没完成，也没能放回原处：" +
-          e +
+          e.summary +
           "（" +
           dst +
           " 现在在共用 home 里，要手动挪回 " +
           src_dir +
           "）"
+        }
       }
       return Err(
         ("io-error", "移动之后的核对没过：" + problem + note),

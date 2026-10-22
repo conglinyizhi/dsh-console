@@ -228,9 +228,11 @@ async fn rotate_if_needed(file : String) -> String? noraise {
     }
   }
   // ② 旧文件改名到归档：从这一步起旧流水在归档里，完整可读
-  match @fsx.rename_path(file, archive, replace=true) {
+  match @fsx.rename_path_fs(file, archive, replace=true) {
     Ok(_) => ()
-    Err(e) => return Some("旧审计文件没归档成：" + e)
+    // 滚动没做成只是这一笔的 note（动作本身已经发生了），不是本次请求的回执：
+    // 不往 raw 那个格子里写，免得串到下一次无关失败的审计行
+    Err(e) => return Some("旧审计文件没归档成：" + e.summary)
   }
   // ③ 新主文件就位：同样走临时文件 + rename，写的时候主文件路径上是空的（上一步刚搬走）
   match @fsx.write_text_atomic_fs(file, out.to_string()) {

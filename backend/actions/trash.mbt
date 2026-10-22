@@ -326,7 +326,7 @@ pub async fn restore_from_trash(
     )
   }
   let (files, bytes, size_source) = measure_entry(path)
-  match @fsx.rename_path(path, target) {
+  match @fsx.rename_path_fs(path, target) {
     Ok(_) => ()
     Err(first) =>
       match @fsx.copy_tree(path, target, []) {
@@ -334,13 +334,14 @@ pub async fn restore_from_trash(
           match @fsx.remove_tree_fs(path) {
             Ok(_) => ()
             Err(e) => {
-              note_raw(e.raw)
-              fail("io-error", first + "；退回复制之后删源头也失败")
+              // 两条原文都留着：先重命名失败才走的回退，删源头这一步又失败
+              note_raw(first.raw + "；删源头也失败：" + e.raw)
+              fail("io-error", first.summary + "；退回复制之后删源头也失败")
             }
           }
         Err(e) => {
-          note_raw(e)
-          fail("io-error", first + "；退回复制也失败")
+          note_raw(first.raw + "；退回复制也失败：" + e)
+          fail("io-error", first.summary + "；退回复制也失败")
         }
       }
   }

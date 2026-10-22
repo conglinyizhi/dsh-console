@@ -30,11 +30,11 @@ pub fn is_sensitive_path(path : String) -> Bool {
 }
 
 ///|
-/// 读失败的两段式：summary 是给人看的结论（不带系统文本），raw 是底层原文（只给排查用）。
+/// 失败的两段式：summary 是给人看的结论（不带系统文本），raw 是底层原文（只给排查用）。
 ///
-/// 与 fsx 包里的 FsError 形状与口径一致（写侧那几个 helper 早就是两段式了），
-/// 但不共用同一个类型：fsx 依赖 json，json 反过来引用它会成环。
-/// 调用点只读字段、不写类型名，所以拆成两个同形结构与共用一个没有区别。
+/// **全工程唯一的一处定义**：读侧（json 的 read_text_file_fs / read_link_fs）与
+/// 写侧（fsx 的 ensure_dir_fs / rename_path_fs / chmod_path_fs …）共用它。
+/// 放 json 是因为 json 不依赖任何本工程的包，fsx 依赖 json —— 反向定义会成环。
 pub(all) struct FsError {
   summary : String
   raw : String

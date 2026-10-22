@@ -259,9 +259,13 @@ pub async fn save_env_file(file : EnvFile) -> Result[Unit, String] noraise {
     }
   }
   // 权限：先按 600 建，失败也要报（这个文件里是可能含密钥的环境值）
-  match @fsx.chmod_path(path, 0o600) {
+  match @fsx.chmod_path_fs(path, 0o600) {
     Ok(_) => Ok(())
-    Err(e) => Err("写好了但改不成 600：" + e)
+    Err(e) => {
+      // 这是写侧的最后一步，失败会变成本次请求的 io-error 回执：原文交给审计
+      note_raw(e.raw)
+      Err("写好了但改不成 600")
+    }
   }
 }
 

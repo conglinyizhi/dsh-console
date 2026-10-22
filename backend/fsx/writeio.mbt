@@ -271,19 +271,43 @@ pub async fn path_exists(path : String) -> Bool noraise {
 }
 
 ///|
-/// 重命名 / 移动（目录也行）。
-pub async fn rename_path(
+/// 重命名 / 移动（目录也行），两段式：结论「重命名失败」+ 原文。
+///
+/// raw 里带上 from -> to：失败时「哪一条没挪成」是排查的第一句，
+/// 而它属于证据、不属于提示条 —— 提示条只说结论。
+pub async fn rename_path_fs(
   from : String,
   to : String,
   replace~ : Bool = false,
-) -> Result[Unit, String] noraise {
+) -> Result[Unit, @json.FsError] noraise {
   try {
     @fs.rename(from, to, replace~)
     Ok(())
   } catch {
     err =>
+      Err({
+        summary: "重命名失败",
+        raw: from + " -> " + to + "（" + err.to_string() + "）",
+      })
+  }
+}
+
+///|
+/// 重命名 / 移动（旧签名，转调壳）。新代码用 rename_path_fs。
+pub async fn rename_path(
+  from : String,
+  to : String,
+  replace~ : Bool = false,
+) -> Result[Unit, String] noraise {
+  match rename_path_fs(from, to, replace~) {
+    Ok(_) => Ok(())
+    Err(e) =>
       Err(
-        "改名失败：" + from + " -> " + to + "（" + err.to_string() + "）",
+        if e.raw == "" {
+          e.summary
+        } else {
+          e.summary + "：" + e.raw
+        },
       )
   }
 }
@@ -455,16 +479,36 @@ pub async fn copy_tree(
 }
 
 ///|
-/// 改文件权限（env.json 要 600：里面可能含密钥）。
-pub async fn chmod_path(
+/// 改文件权限（env.json 要 600：里面可能含密钥），两段式：结论「改权限失败」+ 原文。
+/// raw 里带上路径：同一个进程一上午会改好几个文件的权限，认得出是哪一个才算证据。
+pub async fn chmod_path_fs(
   path : String,
   mode : Int32,
-) -> Result[Unit, String] noraise {
+) -> Result[Unit, @json.FsError] noraise {
   try {
     @fs.chmod(path, mode)
     Ok(())
   } catch {
-    err => Err(path + " 改权限失败：" + err.to_string())
+    err => Err({ summary: "改权限失败", raw: path + "（" + err.to_string() + "）" })
+  }
+}
+
+///|
+/// 改文件权限（旧签名，转调壳）。新代码用 chmod_path_fs。
+pub async fn chmod_path(
+  path : String,
+  mode : Int32,
+) -> Result[Unit, String] noraise {
+  match chmod_path_fs(path, mode) {
+    Ok(_) => Ok(())
+    Err(e) =>
+      Err(
+        if e.raw == "" {
+          e.summary
+        } else {
+          e.summary + "：" + e.raw
+        },
+      )
   }
 }
 
@@ -501,16 +545,12 @@ pub async fn count_tree(
   }
   (files, dirs)
 }
-///|
-/// 失败的两段：summary 是给人看的结论（不带系统文本），raw 是底层原文（排查用）。
-pub(all) struct FsError {
-  summary : String
-  raw : String
-}
+// 失败的两段式类型（@json.FsError：summary=结论、raw=原文）定义在 json 包 ——
+// 它是最底层，读写两侧都用那一份，这里是唯一的一处定义。
 
 ///|
 /// 建目录：结论「建目录失败」，原文进 raw。
-pub async fn ensure_dir_fs(path : String) -> Result[Unit, FsError] noraise {
+pub async fn ensure_dir_fs(path : String) -> Result[Unit, @json.FsError] noraise {
   match ensure_dir_impl(path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "建目录失败", raw })
@@ -521,7 +561,7 @@ pub async fn ensure_dir_fs(path : String) -> Result[Unit, FsError] noraise {
 pub async fn write_text_atomic_fs(
   path : String,
   text : String,
-) -> Result[Unit, FsError] noraise {
+) -> Result[Unit, @json.FsError] noraise {
   match write_text_atomic_impl(path, text) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "写文件失败", raw })
@@ -529,7 +569,7 @@ pub async fn write_text_atomic_fs(
 }
 
 ///|
-pub async fn write_bytes_fs(path : String, data : Bytes) -> Result[Unit, FsError] noraise {
+pub async fn write_bytes_fs(path : String, data : Bytes) -> Result[Unit, @json.FsError] noraise {
   match write_bytes_impl(path, data) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "写文件失败", raw })
@@ -537,7 +577,7 @@ pub async fn write_bytes_fs(path : String, data : Bytes) -> Result[Unit, FsError
 }
 
 ///|
-pub async fn remove_file_fs(path : String) -> Result[Unit, FsError] noraise {
+pub async fn remove_file_fs(path : String) -> Result[Unit, @json.FsError] noraise {
   match remove_file_impl(path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "删文件失败", raw })
@@ -545,7 +585,7 @@ pub async fn remove_file_fs(path : String) -> Result[Unit, FsError] noraise {
 }
 
 ///|
-pub async fn remove_tree_fs(path : String) -> Result[Unit, FsError] noraise {
+pub async fn remove_tree_fs(path : String) -> Result[Unit, @json.FsError] noraise {
   match remove_tree_impl(path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "删目录失败", raw })
@@ -553,7 +593,7 @@ pub async fn remove_tree_fs(path : String) -> Result[Unit, FsError] noraise {
 }
 
 ///|
-pub async fn make_symlink_fs(target : String, path : String) -> Result[Unit, FsError] noraise {
+pub async fn make_symlink_fs(target : String, path : String) -> Result[Unit, @json.FsError] noraise {
   match make_symlink_impl(target, path) {
     Ok(_) => Ok(())
     Err(raw) => Err({ summary: "建软链失败", raw })

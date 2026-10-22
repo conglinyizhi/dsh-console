@@ -364,9 +364,13 @@ async fn move_dir(
   from : String,
   to : String,
 ) -> Result[Unit, (String, String)] noraise {
-  match @fsx.rename_path(from, to) {
+  match @fsx.rename_path_fs(from, to) {
     Ok(_) => Ok(())
-    Err(e) => Err(("io-error", "移动没完成：" + e))
+    Err(e) => {
+      // 这一支会变成本次请求的 io-error 回执：原文交给审计，提示只说结论
+      @store.note_raw(e.raw)
+      Err(("io-error", "移动没完成"))
+    }
   }
 }
 

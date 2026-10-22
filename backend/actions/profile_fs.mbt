@@ -305,9 +305,12 @@ pub async fn rename_profile(
       )
     None => ()
   }
-  match @fsx.rename_path(from, to) {
+  match @fsx.rename_path_fs(from, to) {
     Ok(_) => ()
-    Err(e) => fail("io-error", e)
+    Err(e) => {
+      note_raw(e.raw)
+      fail("io-error", "重命名失败")
+    }
   }
   { profile: from_name, new_name: to_name, from, to, }
 }
@@ -406,7 +409,7 @@ pub async fn delete_profile(
         fail("io-error", "建目录失败")
       }
     }
-    match @fsx.rename_path(dir, trash_path) {
+    match @fsx.rename_path_fs(dir, trash_path) {
       Ok(_) => ()
       Err(first) =>
         // 状态目录与 profile 目录不同文件系统时 rename 会 EXDEV：退回复制再删
@@ -415,11 +418,15 @@ pub async fn delete_profile(
             match @fsx.remove_tree_fs(dir) {
               Ok(_) => ()
               Err(e) => {
-                note_raw(e.raw)
+                // 两条原文都留着：先重命名失败才走的回退，删源头这一步又失败
+                note_raw(first.raw + "；删目录也失败：" + e.raw)
                 fail("io-error", "删目录失败")
               }
             }
-          Err(e) => fail("io-error", first + "；退回复制也失败：" + e)
+          Err(e) => {
+            note_raw(first.raw)
+            fail("io-error", first.summary + "；退回复制也失败：" + e)
+          }
         }
     }
     // 记下「这一条是从哪个 home 删的」。恢复时按它归位，所以这一步就是
