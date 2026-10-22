@@ -532,7 +532,7 @@ fn failure_note(got : HttpResult) -> String {
         if raw == "" {
           head + " | " + code + "：" + message
         } else {
-          head + " | " + code + "：" + message + "；原始错误：" + raw
+          head + " | " + code + "：" + message + "。原始错误：" + raw
         }
       }
     }
