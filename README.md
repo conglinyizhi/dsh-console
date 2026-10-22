@@ -100,3 +100,23 @@ node design/run-acceptance.mjs http://127.0.0.1:5390/
   图标已经是内联 SVG，没有字体文件。
 - 跑验收时动画探针会点一次「启动」，点到起不来的 profile（如 `headless`）会在
   `~/.dsh/logs/` 留一份一行的失败日志。探针会停掉自己起的实例，但**清不掉失败留下的日志**。
+## 许可证
+
+本仓库（dsh-console）以 **MIT** 发布，见 [LICENSE](LICENSE)。Copyright (c) 2026 Clzhi。
+
+用到的依赖（均为 Apache-2.0，与本仓库的 MIT 兼容）：
+
+- [moonbitlang/core](https://github.com/moonbitlang/core)（MoonBit 标准库与运行时）— Apache-2.0
+- [moonbit-community/rabbita](https://mooncakes.io/docs/#/moonbit-community/rabbita) 0.15.7（前端框架）— Apache-2.0
+- [conglinyizhi/precss](https://mooncakes.io/docs/#/conglinyizhi/precss) 0.1.4（样式编译）— Apache-2.0
+- [moonbitlang/moonback](https://mooncakes.io/docs/#/moonbitlang/moonback) 0.8.6（HTTP 服务）— Apache-2.0
+- [moonbitlang/async](https://mooncakes.io/docs/#/moonbitlang/async) 0.22.4 / 0.21.2（异步 IO）— Apache-2.0
+
+第三方材料：
+
+- 图标路径数据取自 **@mdi/js 7.4.47**（Pictogrammers，Apache-2.0 / Pictogrammers Free License）。
+  取数与版权声明见 [frontend/vendor/licenses/mdi-NOTICE.md](frontend/vendor/licenses/mdi-NOTICE.md)；
+  仓库只固化 26 条 SVG 路径常量，不分发上游字体与样式表。
+
+> 说明：上述依赖的许可证依据是 MoonBit 包注册表的 `license` 声明（均为 Apache-2.0）。
+> 精确版本包的 LICENSE 原文未随仓库分发，取包需联网。
