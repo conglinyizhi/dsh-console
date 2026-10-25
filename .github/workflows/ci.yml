@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# 同一分支上的旧任务直接取消，新的跑完为准。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # MoonBit 工具链用官方安装脚本，不用第三方 action。
+      # 装完把 ~/.moon/bin 追加到 PATH（后续步骤才看得见 moon）。
+      - name: Install MoonBit (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Install MoonBit (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: moon version
+        run: moon version
+
+      # backend/rawsink/rawsink_wbtest.mbt 往 .tmp-verify/rawsink-test 里写一行再读回来，
+      # 但自己不建目录（本地有这个目录，是跑测试时留下的）。干净检出里没有它，
+      # 写会被内部 catch 吞掉、读会失败，所以测试之前先建出来。
+      - name: Prepare test scratch dir
+        shell: bash
+        run: mkdir -p backend/.tmp-verify/rawsink-test
+
+      - name: moon check (backend)
+        working-directory: backend
+        run: moon check
+
+      # native 目标要 C 编译器：ubuntu / macos runner 自带 clang。
+      # windows runner 装了 VS，但 cl.exe / link.exe 默认不在 PATH 里，
+      # 要另引 msvc-dev-cmd 之类的 action 才能链接；这里不做，
+      # Windows 只验类型检查（check），构建与测试交给另外两个平台。
+      - name: moon test (backend, native)
+        if: runner.os != 'Windows'
+        working-directory: backend
+        run: moon test --target native
+
+      - name: moon build (backend, native)
+        if: runner.os != 'Windows'
+        working-directory: backend
+        run: moon build --target native
+
+      # 前端构建链是 bash 脚本（gzip / find / wc），Windows runner 不跑这一步。
+      # MOON_HOME 显式指到默认的 ~/.moon：build.sh 自己会兜底到 .sandbox/moonhome，
+      # 那是本机只读 ~/.moon 的权宜目录，CI 里不用。
+      - name: Build frontend
+        if: runner.os != 'Windows'
+        working-directory: frontend
+        run: MOON_HOME="$HOME/.moon" ./build.sh

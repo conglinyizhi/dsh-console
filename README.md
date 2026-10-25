@@ -1,34 +1,47 @@
 # DSH 控制台
 
+[English](README.en.md) · [![CI](https://github.com/conglinyizhi/dsh-console/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/conglinyizhi/dsh-console/actions/workflows/ci.yml) · [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f.svg)](LICENSE)
+
+![dsh-console 界面截图](docs/screenshot.png)
+
 本机 DSH（DeepSeek Harness）的图形控制台。一个 MoonBit 原生后端 + 一个 rabbita 前端，
 后端同时提供只读接口、可写动作与静态资源，前端产物由它直接服务（同一个端口，无需另起服务）。
 
 作用范围：读 `~/.dsh` 下的 profile 与日志、探测本机在跑的 dsh 实例、按需起停实例、
 管理 profile（派生 / 重命名 / 归档 / 删除 / 备注）与一组控制台设置。
 
+**给谁用**：在本机跑 DSH 的人。不想在终端里翻日志、拼 dsh 命令、对着 `~/.dsh` 数 profile 的时候，
+用它把这几件事放到一页里看和点。它只服务本机，不打算做成远程面板。
+
 ## 跑起来
+
+需要：MoonBit 工具链（`moon`）、一个 C 编译器（native 构建要用，clang 或 gcc）、
+bash 与 gzip（前端构建链用）。Node 只在跑「验收」那一步需要。
 
 ```bash
 # 1) 构建前端（产物落 frontend/dist）
-cd frontend && MOON_HOME=$PWD/.sandbox/moonhome ./build.sh
+cd frontend && ./build.sh
 
-# 2) 构建后端
-cd ../backend && MOON_HOME=$PWD/.sandbox/moonhome \
-  MOON_CC=clang MOON_AR=ar MOON_LD=clang moon build --target native
+# 2) 构建后端（产物 backend/_build/native/debug/build/dsh-console-backend.exe）
+cd ../backend && moon build --target native
 
 # 3) 起服务（静态根会自动上溯到 frontend/dist，不用设环境变量）
-MOON_HOME=$PWD/.sandbox/moonhome ./_build/native/debug/build/dsh-console-backend.exe
+./_build/native/debug/build/dsh-console-backend.exe
 # → http://127.0.0.1:5390/
 ```
 
-`MOON_HOME` 必须是**各自目录下的** `.sandbox/moonhome`（那里才有依赖索引与缓存；
-在仓库根下设会报 `Failed to resolve the module dependency graph`）。
+> 本仓库的开发机上 `~/.moon` 挂在只读文件系统上，moon 写不进 registry 缓存，所以本地构建跑在
+> 各目录下的 `.sandbox/moonhome` 里（`frontend/build.sh` 默认就用它；后端要自己加
+> `MOON_HOME=$PWD/.sandbox/moonhome`）。`~/.moon` 可写的机器和 CI 都不需要这一条。
+> 另外前端 `build.sh` 自己会导出 `MOON_CC=clang MOON_AR=ar MOON_LD=clang`；后端手工构建时如果
+> 默认的 C 工具链不对，照抄这三个就行。
 
-端口、静态根、以及是否只读，都可以用环境变量覆盖（见 `backend/README.md`）。
+端口与静态根可以用环境变量覆盖（`DSH_CONSOLE_BACKEND_HOST` / `DSH_CONSOLE_BACKEND_PORT` /
+`DSH_CONSOLE_DIST`），细节见 [backend/README.md](backend/README.md)。
 
 ## 它能做什么
 
-**看**（只读，五个 GET 接口）：运行中的实例（端口 / profile / 版本 / DSH_HOME / 运行时长 / 握手地址）、
+**看**（只读 GET 接口）：运行中的实例（端口 / profile / 版本 / DSH_HOME / 运行时长 / 握手地址）、
 磁盘上的 profile（patch 行数、lock 时刻、插件声明与安装、缺包、备注）、日志（宿主 / 审计 / 某只实例）、
 本机进程、控制台自身读数。
 
@@ -39,8 +52,9 @@ MOON_HOME=$PWD/.sandbox/moonhome ./_build/native/debug/build/dsh-console-backend
 能恢复回 profile 目录，也能彻底删掉。删完的回执只讲「进回收站了 / 删掉了」，
 路径与 `mode` 这些收在悬停里，不摊在正文上。
 
-**配**：设置页十项（探测超时与并发、端口起点、进程 detach 与停止宽限、日志默认行数、
-归档区默认展开、宽屏侧栏是否收起、删除是否进回收站），**每一项都接到真实行为上**。
+**配**：设置页十二项（探测超时、探测并发、候选端口上限、端口起点、进程 detach 与停止宽限、
+日志默认行数、归档区默认展开、beta 功能开关、宽屏侧栏是否收起、缺包警告、删除是否进回收站），
+**每一项都接到真实行为上**。
 
 ## 安全边界（如实说，别当成登录）
 
@@ -88,6 +102,14 @@ node design/run-acceptance.mjs http://127.0.0.1:5390/
 装置与决策留档见 `design/`：`write-api-contract.md`（接口契约）、`backlog.md`（待办与悬着的验证）、
 `frontend-parity-checklist.md`（与 Vue 版的对齐清单）。
 
+## 持续集成
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) 在 push 到 `main` 与 pull_request 时跑，
+matrix 是 `ubuntu-latest` / `macos-latest` / `windows-latest`，三个平台上都做：
+`moon check`、`moon test`（native 目标）、`moon build --target native`（都在 `backend/`）。
+前端只在 ubuntu 与 macos 上构建（`frontend/build.sh` 依赖 bash、gzip、find、wc）。
+MoonBit 工具链用官方安装脚本装，同分支的旧任务会被 concurrency 取消。
+
 ## 已知边界（没验过的、做不到的）
 
 - **外部起的实例读不到握手令牌**：令牌打在启动它的那个终端里，控制台无从读取。
@@ -100,6 +122,7 @@ node design/run-acceptance.mjs http://127.0.0.1:5390/
   图标已经是内联 SVG，没有字体文件。
 - 跑验收时动画探针会点一次「启动」，点到起不来的 profile（如 `headless`）会在
   `~/.dsh/logs/` 留一份一行的失败日志。探针会停掉自己起的实例，但**清不掉失败留下的日志**。
+
 ## 许可证
 
 本仓库（dsh-console）以 **MIT** 发布，见 [LICENSE](LICENSE)。Copyright (c) 2026 Clzhi。
