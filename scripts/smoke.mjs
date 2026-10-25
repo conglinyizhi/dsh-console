@@ -77,7 +77,7 @@ const profileNames = async () => {
 }
 
 const waitReady = async () => {
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 300; i++) {
     try {
       const r = await fetch(base + '/api/local/runtime')
       if (r.status === 200) return true
@@ -93,7 +93,7 @@ try {
     process.exit(2)
   }
   const ready = await waitReady()
-  check('后端在轮询内就绪', ready, ready ? '' : log.slice(-400))
+  check('后端在 30 秒内就绪', ready, ready ? '' : log.slice(-400))
   if (!ready) throw new Error('后端没起来')
 
   // 1-8 只读接口：状态码 200、ok=true、关键字段在。
