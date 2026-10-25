@@ -6,7 +6,7 @@
 // 它不碰真实的 ~/.dsh：DSH_HOME、XDG_STATE_HOME、隔离 homes 根都指向临时目录。
 // 端口默认 5391，可用 SMOKE_PORT 覆盖。
 
-import { spawn } from 'node:child_process'
+import { spawn, execSync } from 'node:child_process'
 import { request } from 'node:http'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -108,7 +108,22 @@ try {
     process.exit(2)
   }
   const ready = await waitReady()
-  check('后端在 30 秒内就绪', ready, ready ? '' : `exit=${child.exitCode} signal=${child.signalCode} log=${log.slice(-600)}`)
+  if (!ready) {
+    let diag = ''
+    try {
+      diag += execSync('ss -ltnp 2>&1 | head -20 || true', { encoding: 'utf8' })
+    } catch (e) {
+      diag += 'ss failed: ' + e.message
+    }
+    try {
+      diag += execSync(`curl -sv --max-time 2 http://127.0.0.1:${port}/ 2>&1 | tail -20 || true`, { encoding: 'utf8' })
+    } catch (e) {
+      diag += 'curl failed: ' + e.message
+    }
+    check('后端在 30 秒内就绪', false, `exit=${child.exitCode} signal=${child.signalCode}\n--- ss/curl ---\n${diag}\n--- log ---\n${log.slice(-600)}`)
+  } else {
+    check('后端在 30 秒内就绪', true)
+  }
   if (!ready) throw new Error('后端没起来')
 
   // 1-8 只读接口：状态码 200、ok=true、关键字段在。
