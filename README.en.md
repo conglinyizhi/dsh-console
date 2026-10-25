@@ -152,8 +152,7 @@ on the same branch.
   it started, but **cannot clean up that failure log**.
 - **Developed and tested on Linux only**: the code type-checks on macOS and Windows (CI runs all
   three), but the runtime depends on Linux `/proc`: instance detection, process ownership and
-  stopping instances have no other-platform implementation and are untested. Do not expect it to
-  just work.
+  stopping instances have no other-platform implementation and remain unverified.
 
 ## License
 
