@@ -80,3 +80,9 @@ jobs:
         if: runner.os != 'Windows'
         working-directory: frontend
         run: MOON_HOME="$HOME/.moon" ./build.sh
+
+      # 端到端 smoke：起隔离的后端，跑 8 个只读接口、写动作与拒绝路径，
+      # 23 条断言。只在 Linux 跑一次：它依赖 /proc 探测实例，另外两个平台没有。
+      - name: Smoke (e2e)
+        if: runner.os == 'Linux'
+        run: node scripts/smoke.mjs
