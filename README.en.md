@@ -150,6 +150,10 @@ on the same branch.
 - During acceptance the motion probe clicks "Start" once; hitting a profile that cannot start
   (e.g. `headless`) leaves a one-line failure log in `~/.dsh/logs/`. The probe stops the instances
   it started, but **cannot clean up that failure log**.
+- **Developed and tested on Linux only**: the code type-checks on macOS and Windows (CI runs all
+  three), but the runtime depends on Linux `/proc`: instance detection, process ownership and
+  stopping instances have no other-platform implementation and are untested. Do not expect it to
+  just work.
 
 ## License
 
