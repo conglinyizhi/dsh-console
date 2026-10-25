@@ -15,7 +15,7 @@ write() {
   local file="$1"
   local title="$2"
   {
-    echo "// $title（由 scripts/gen-build-info.sh 生成，不要手改）"
+    echo "// ${title}（由 scripts/gen-build-info.sh 生成，不要手改）"
     echo "//"
     echo "// build_sha：git 短 sha；build_at：构建时刻（本地时间，给人看的）。"
     echo "pub let build_sha : String = \"$SHA\""
