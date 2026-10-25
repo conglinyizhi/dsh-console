@@ -77,17 +77,23 @@ const profileNames = async () => {
   return (r.json?.data?.profiles || []).map((x) => x.name)
 }
 
+let lastProbe = ''
 const probe = () =>
   new Promise((resolve) => {
     const req = request(
-      { host: '127.0.0.1', port, path: '/api/local/runtime', timeout: 1000 },
+      { host: '127.0.0.1', port, path: '/api/local/runtime', timeout: 2000 },
       (res) => {
         res.resume()
+        lastProbe = 'status=' + res.statusCode
         resolve(res.statusCode === 200)
       },
     )
-    req.on('error', (e) => resolve(false))
+    req.on('error', (e) => {
+      lastProbe = 'error=' + e.code
+      resolve(false)
+    })
     req.on('timeout', () => {
+      lastProbe = 'timeout'
       req.destroy()
       resolve(false)
     })
@@ -116,11 +122,11 @@ try {
       diag += 'ss failed: ' + e.message
     }
     try {
-      diag += execSync(`curl -sv --max-time 2 http://127.0.0.1:${port}/ 2>&1 | tail -20 || true`, { encoding: 'utf8' })
+      diag += execSync(`curl -s -o /dev/null -w 'runtime=%{http_code}\\n' --max-time 2 http://127.0.0.1:${port}/api/local/runtime || true`) + execSync(`curl -s -o /dev/null -w 'root=%{http_code}\\n' --max-time 2 http://127.0.0.1:${port}/ || true`, { encoding: 'utf8' })
     } catch (e) {
       diag += 'curl failed: ' + e.message
     }
-    check('后端在 30 秒内就绪', false, `exit=${child.exitCode} signal=${child.signalCode}\n--- ss/curl ---\n${diag}\n--- log ---\n${log.slice(-600)}`)
+    check('后端在 30 秒内就绪', false, `probe=${lastProbe} exit=${child.exitCode} signal=${child.signalCode}\n--- ss/curl ---\n${diag}\n--- log ---\n${log.slice(-600)}`)
   } else {
     check('后端在 30 秒内就绪', true)
   }
