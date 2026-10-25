@@ -399,7 +399,9 @@ pub fn package_name_ok(name : String) -> Bool {
   if segs.length() != 2 {
     return false
   }
-  segs[0].has_prefix("@") && segs[0].length() > 1 && !is_dot_segment(segs[0]) &&
+  segs[0].has_prefix("@") &&
+  segs[0].length() > 1 &&
+  !is_dot_segment(segs[0]) &&
   !is_dot_segment(segs[1])
 }
 

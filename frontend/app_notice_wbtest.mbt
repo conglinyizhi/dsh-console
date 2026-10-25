@@ -3,14 +3,18 @@
 
 ///|
 test "按句号切开：正文只留第一句" {
-  let (head, hint) = split_error_note("显示 beta 功能 没保存：写文件失败。原始错误：/x（OSError）")
+  let (head, hint) = split_error_note(
+    "显示 beta 功能 没保存：写文件失败。原始错误：/x（OSError）",
+  )
   assert_eq(head, "显示 beta 功能 没保存：写文件失败")
   assert_true(hint.contains("OSError"))
 }
 
 ///|
 test "没有原文标记时整句都是正文，悬停为空" {
-  let (head, hint) = split_error_note("作业没能写进磁盘：写文件失败")
+  let (head, hint) = split_error_note(
+    "作业没能写进磁盘：写文件失败",
+  )
   assert_eq(head, "作业没能写进磁盘：写文件失败")
   assert_eq(hint, "")
 }

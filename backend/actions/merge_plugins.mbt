@@ -326,7 +326,11 @@ pub async fn merge_preview_json(
   for name in unresolved {
     if !@json.package_name_ok(name) {
       @rawsink.append_error_line("merge", "拒绝非法包名：" + name)
-      warnings.push("非法包名，已拒绝：" + name + "（不能带路径分隔或上级段）")
+      warnings.push(
+        "非法包名，已拒绝：" +
+        name +
+        "（不能带路径分隔或上级段）",
+      )
       continue
     }
     warnings.push(

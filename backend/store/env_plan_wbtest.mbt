@@ -27,8 +27,14 @@ test "默认：global 与 profile 合并，profile 覆盖 global" {
 
 ///|
 test "override：继承值被 global 覆盖" {
-  let opts : EnvOptions = { ..default_env_options(), merge: "override" }
-  let plan = plan_env_map(map1("FOO", "global"), Map([]), opts, map1("FOO", "inherited"), ":")
+  let opts : EnvOptions = { ..default_env_options(), merge: "override", }
+  let plan = plan_env_map(
+    map1("FOO", "global"),
+    Map([]),
+    opts,
+    map1("FOO", "inherited"),
+    ":",
+  )
   match plan.get("FOO") {
     Some(v) => assert_eq(v, "global")
     None => assert_true(false)
@@ -37,8 +43,14 @@ test "override：继承值被 global 覆盖" {
 
 ///|
 test "append：继承值在前、global 值接在后面" {
-  let opts : EnvOptions = { ..default_env_options(), merge: "append" }
-  let plan = plan_env_map(map1("FOO", "global"), Map([]), opts, map1("FOO", "inherited"), ":")
+  let opts : EnvOptions = { ..default_env_options(), merge: "append", }
+  let plan = plan_env_map(
+    map1("FOO", "global"),
+    Map([]),
+    opts,
+    map1("FOO", "inherited"),
+    ":",
+  )
   match plan.get("FOO") {
     Some(v) => assert_eq(v, "inherited:global")
     None => assert_true(false)
@@ -47,8 +59,14 @@ test "append：继承值在前、global 值接在后面" {
 
 ///|
 test "不继承时没有可拼的东西，append 退化为覆盖" {
-  let opts : EnvOptions = { keep_system: false, merge: "append" }
-  let plan = plan_env_map(map1("FOO", "global"), Map([]), opts, map1("FOO", "inherited"), ":")
+  let opts : EnvOptions = { keep_system: false, merge: "append", }
+  let plan = plan_env_map(
+    map1("FOO", "global"),
+    Map([]),
+    opts,
+    map1("FOO", "inherited"),
+    ":",
+  )
   match plan.get("FOO") {
     Some(v) => assert_eq(v, "global")
     None => assert_true(false)
@@ -57,8 +75,14 @@ test "不继承时没有可拼的东西，append 退化为覆盖" {
 
 ///|
 test "profile 永远覆盖 global，append 不再叠加" {
-  let opts : EnvOptions = { ..default_env_options(), merge: "append" }
-  let plan = plan_env_map(map1("FOO", "g"), map1("FOO", "p"), opts, map1("FOO", "i"), ":")
+  let opts : EnvOptions = { ..default_env_options(), merge: "append", }
+  let plan = plan_env_map(
+    map1("FOO", "g"),
+    map1("FOO", "p"),
+    opts,
+    map1("FOO", "i"),
+    ":",
+  )
   match plan.get("FOO") {
     Some(v) => assert_eq(v, "p")
     None => assert_true(false)

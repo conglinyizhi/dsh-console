@@ -268,7 +268,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 空态只在真读到空的时候出现
   let pending = readings_pending(model)
   // 一组里的每一条都带上自己的行 id（见 DragItem）：拖动预览要按 id 找锚点
-  let running_list : Array[@html.Html] = running.map(fn(row) { instance_card(row, model, emit) })
+  let running_list : Array[@html.Html] = running.map(fn(row) {
+    instance_card(row, model, emit)
+  })
   if running.length() == 0 {
     if pending {
       running_list.push(
@@ -285,7 +287,9 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       running_list.push(running_empty(running_summary(model), detail, emit))
     }
   }
-  let stopped_list : Array[@html.Html] = stopped.map(fn(row) { instance_card(row, model, emit) })
+  let stopped_list : Array[@html.Html] = stopped.map(fn(row) {
+    instance_card(row, model, emit)
+  })
   if stopped.length() == 0 {
     if pending {
       stopped_list.push(

@@ -2,7 +2,11 @@
 // 这些函数不碰磁盘，moon test 即可；不要在这里起控制台。
 
 ///|
-fn expect_value(entries : Map[String, String], key : String, want : String) -> Unit raise {
+fn expect_value(
+  entries : Map[String, String],
+  key : String,
+  want : String,
+) -> Unit raise {
   match entries.get(key) {
     Some(v) => assert_eq(v, want)
     None => fail("缺少键 " + key)

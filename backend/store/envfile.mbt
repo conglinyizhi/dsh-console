@@ -340,7 +340,10 @@ pub async fn env_plan(
     Some(entries) => entries
     None => Map([])
   }
-  (opts.keep_system, plan_env_map(file.global, profile_entries, opts, inherited, sep))
+  (
+    opts.keep_system,
+    plan_env_map(file.global, profile_entries, opts, inherited, sep),
+  )
 }
 
 ///|

@@ -280,7 +280,6 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   )
 }
 
-
 ///|
 /// 条目的类名：常态是 `dsh-case`，正在被拖的那一条多一档 `drag-image`。
 ///
