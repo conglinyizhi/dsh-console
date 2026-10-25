@@ -7,6 +7,7 @@
 // 端口默认 5391，可用 SMOKE_PORT 覆盖。
 
 import { spawn } from 'node:child_process'
+import { request } from 'node:http'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -76,12 +77,26 @@ const profileNames = async () => {
   return (r.json?.data?.profiles || []).map((x) => x.name)
 }
 
+const probe = () =>
+  new Promise((resolve) => {
+    const req = request(
+      { host: '127.0.0.1', port, path: '/api/local/runtime', timeout: 1000 },
+      (res) => {
+        res.resume()
+        resolve(res.statusCode === 200)
+      },
+    )
+    req.on('error', (e) => resolve(false))
+    req.on('timeout', () => {
+      req.destroy()
+      resolve(false)
+    })
+    req.end()
+  })
+
 const waitReady = async () => {
   for (let i = 0; i < 300; i++) {
-    try {
-      const r = await fetch(base + '/api/local/runtime')
-      if (r.status === 200) return true
-    } catch {}
+    if (await probe()) return true
     await new Promise((r) => setTimeout(r, 100))
   }
   return false
@@ -93,7 +108,7 @@ try {
     process.exit(2)
   }
   const ready = await waitReady()
-  check('后端在 30 秒内就绪', ready, ready ? '' : log.slice(-400))
+  check('后端在 30 秒内就绪', ready, ready ? '' : `exit=${child.exitCode} signal=${child.signalCode} log=${log.slice(-600)}`)
   if (!ready) throw new Error('后端没起来')
 
   // 1-8 只读接口：状态码 200、ok=true、关键字段在。
