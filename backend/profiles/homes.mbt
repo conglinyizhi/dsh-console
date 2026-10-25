@@ -379,7 +379,7 @@ async fn move_dir(
 ///
 /// 设备号不同就停手：跨盘 rename 会给 EXDEV，退化成「复制再删」之后体积一大就不再是
 /// 瞬时的，而使用者要的是「移动」这件事本身。成功时把实测的设备号写进那句话（进悬停）。
-async fn require_same_device(
+fn require_same_device(
   a : String,
   b : String,
 ) -> Result[String, (String, String)] noraise {

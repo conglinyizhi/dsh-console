@@ -100,6 +100,8 @@ async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
 /// 以及缓存空 / 过期时由这条接口顺手叫起的后台刷新 —— 都不在这条请求里等。
 /// 三个源全没答上来也算读到了（读数里 sources 全是 ok=false）——
 /// 读不到是一个事实，不是接口错误；这里按路由表的签名套一层。
+/// 路由表要求 handler 是 async，这条同步路径抑制该标注的冗余警告。
+#warnings("-unused_async")
 async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
   // cached_releases 只读缓存，不 await：这一条请求因此不会被三个源的网络拖住。
   let value = @releases.cached_releases()

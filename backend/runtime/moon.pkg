@@ -4,7 +4,6 @@ import {
   "conglinyizhi/dsh-console-backend/processes",
   "conglinyizhi/dsh-console-backend/store",
   "moonbitlang/async",
-  "moonbitlang/async/fs",
   "moonbitlang/async/types",
 }
 

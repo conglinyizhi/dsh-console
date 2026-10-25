@@ -55,8 +55,16 @@ jobs:
         shell: bash
         run: mkdir -p backend/.tmp-verify/rawsink-test
 
+      # backend 的 warning 已清零（冗余 raise/async 就地处说明并抑制，未用 import 删掉），
+      # 这里用 --deny-warn 防止回归。
       - name: moon check (backend)
         working-directory: backend
+        run: moon check --deny-warn
+
+      # frontend 还剩一条上游警告：rabbita@0.15.7 依赖已废弃的 hackwaly/moonback。
+      # 那不是本仓库的依赖，改不了；其余警告已清零，所以这一档不挂 --deny-warn。
+      - name: moon check (frontend)
+        working-directory: frontend
         run: moon check
 
       # native 目标要 C 编译器：ubuntu / macos runner 自带 clang。

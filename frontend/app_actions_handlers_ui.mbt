@@ -143,11 +143,6 @@ fn handle_row_action(
             },
             focus_select_after_render("dsh-rename-input"),
           )
-        Delete =>
-          (
-            { ..model, confirm_id: id, confirm_return: drawer_delete_id(), },
-            focus_after_render("dsh-confirm-ok"),
-          )
         // 打开编辑框是纯前端的事，真正的写动作在保存那一步（NoteConfirm）
         Note => (model, emit(NoteOpen(id)))
         Archive =>

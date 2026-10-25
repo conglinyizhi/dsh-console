@@ -19,7 +19,6 @@ fn action_name(key : ActionKey) -> String {
     Note => "note"
     Archive => "archive"
     Unarchive => "unarchive"
-    Delete => "delete"
     Logs => "logs"
     Dir => "dir"
     Config => "config"
@@ -281,16 +280,6 @@ fn instance_card(row : Row, model : Model, emit : @cmd.Emit[Msg]) -> @html.Html 
   )
 }
 
-///|
-/// 一组里的一条：卡片节点 + 它的行 id。
-///
-/// 为什么要把 id 与节点摆在一起：拖动预览要按 id 找到「哪一条该插到哪儿」，
-/// 而 @html.Html 是不透明的 —— 想从节点里反查行 id 只能去翻 DOM，
-/// 那是把渲染期该知道的事推给浏览器。并排存着，查找就是一次数组遍历。
-priv struct DragItem {
-  id : String
-  node : @html.Html
-}
 
 ///|
 /// 条目的类名：常态是 `dsh-case`，正在被拖的那一条多一档 `drag-image`。

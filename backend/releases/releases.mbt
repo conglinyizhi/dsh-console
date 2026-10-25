@@ -518,6 +518,8 @@ async fn installed_versions() -> Array[String] noraise {
 /// 组装 /api/local/dsh-releases 的 data 对象。
 ///
 /// 三个源并发问（@async.all 保序：回来得早晚不影响谁排第几，采用顺序才稳定）。
+/// 路由表要求 handler 带 raise，这条路径实际不会失败，抑制这处冗余标注。
+#warnings("-unused_error_type")
 pub async fn read_releases() -> @json.JsonVal raise @localapi.ReadError {
   let proxy = resolve_proxy()
   let tasks : Array[async () -> Answer] = []

@@ -38,7 +38,6 @@ priv enum ActionKey {
   Note
   Archive
   Unarchive
-  Delete
   /// 切到日志页并把来源设成这一行对应的实例（第三轮：不再落进兜底）
   Logs
   /// 打开这只 profile 的工作目录（POST open-path，kind=dir）

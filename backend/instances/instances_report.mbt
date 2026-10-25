@@ -558,6 +558,8 @@ fn profile_health_json(health : @profiles.ProfileHealth?) -> @json.JsonVal {
 
 ///|
 /// 组装 /api/local/instances 的 data 对象。
+/// 路由表要求 handler 带 raise，这条路径实际不会失败，抑制这处冗余标注。
+#warnings("-unused_error_type")
 pub async fn read_instances() -> @json.JsonVal raise @localapi.ReadError {
   let report = instances_report_with_settings()
   let sources : Array[String] = []

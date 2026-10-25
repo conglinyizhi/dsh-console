@@ -173,7 +173,7 @@ fn drag_live_region(model : Model) -> @html.Html {
 /// 外壳包着整页，指针在页面里哪儿都是一路冒泡上去的。
 fn row_group(
   group : String,
-  items : Array[DragItem],
+  items : Array[@html.Html],
   model : Model,
   _emit : @cmd.Emit[Msg],
 ) -> @html.Html {
@@ -183,7 +183,7 @@ fn row_group(
   let attrs = mark("row-group", ["overview", "rows", group])
     .data_set("group", group)
     .data_set("drop-index", model.drag_at_index.to_string())
-  let kids : Array[@html.Html] = items.map(fn(item) { item.node })
+  let kids : Array[@html.Html] = items
   // 占位块里放的是被拖那一条自己的名字：一眼看出「是它要落到这儿」
   let dragged_row = match find_row(model.rows, model.drag_id) {
     Some(row) => row
@@ -268,42 +268,33 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 空态只在真读到空的时候出现
   let pending = readings_pending(model)
   // 一组里的每一条都带上自己的行 id（见 DragItem）：拖动预览要按 id 找锚点
-  let running_list : Array[DragItem] = running.map(fn(row) {
-    { id: row.id, node: instance_card(row, model, emit), }
-  })
+  let running_list : Array[@html.Html] = running.map(fn(row) { instance_card(row, model, emit) })
   if running.length() == 0 {
     if pending {
-      running_list.push({
-        id: "",
-        node: card_loading(
+      running_list.push(
+        card_loading(
           "running-loading", "正在读取实例读数…", "实例与 profile 的读数还在路上。这里先摆加载态。「确实一个都没有」要等读数回来才敢说。",
         ),
-      })
+      )
     } else {
       // 读数失败时把原因带上（那一档标记里有）；读到了就没这一句
       let detail = match model.tag_instances {
         Some(tag) => tag.detail
         None => ""
       }
-      running_list.push({
-        id: "",
-        node: running_empty(running_summary(model), detail, emit),
-      })
+      running_list.push(running_empty(running_summary(model), detail, emit))
     }
   }
-  let stopped_list : Array[DragItem] = stopped.map(fn(row) {
-    { id: row.id, node: instance_card(row, model, emit), }
-  })
+  let stopped_list : Array[@html.Html] = stopped.map(fn(row) { instance_card(row, model, emit) })
   if stopped.length() == 0 {
     if pending {
-      stopped_list.push({
-        id: "",
-        node: card_loading(
+      stopped_list.push(
+        card_loading(
           "stopped-loading", "正在读取 profile 读数…", "profile 的读数还在路上，这里先摆加载态。",
         ),
-      })
+      )
     } else {
-      stopped_list.push({ id: "", node: stopped_empty(), })
+      stopped_list.push(stopped_empty())
     }
   }
   let dialogs : Array[@html.Html] = []

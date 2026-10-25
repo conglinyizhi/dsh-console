@@ -325,6 +325,8 @@ pub async fn read_processes() -> ProcReport noraise {
 
 ///|
 /// 组装 /api/local/processes 的 data 对象。
+/// 路由表要求 handler 带 raise，这条路径实际不会失败，抑制这处冗余标注。
+#warnings("-unused_error_type")
 pub async fn read_processes_data() -> @json.JsonVal raise @localapi.ReadError {
   let report = read_processes()
   let instances : Array[@json.JsonVal] = []
