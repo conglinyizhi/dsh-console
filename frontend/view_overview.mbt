@@ -257,6 +257,34 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 
 ///|
 /// 实例总览页。
+///|
+/// 没装 DSH 时的引导卡：说清缺什么、给一个安装入口，并说明下面那份是演示数据。
+///
+/// 这一格替代原来的「演示数据 | 真实读取失败」徽标 —— 那个徽标只说「失败了」，
+/// 不告诉人为什么、也不告诉人下一步做什么。
+fn dsh_missing_notice() -> @html.Html {
+  @html.div(class="dsh-empty dsh-missing", [
+    @html.span(class="dsh-empty-icon", [icon("server", size=26)]),
+    @html.p(class="dsh-empty-line", "还没读到本机的 DSH 配置。"),
+    @html.p(
+      class="dsh-empty-sub",
+      "控制台管理的是本机 DSH 的 profile 与实例。如果还没装 DSH，先装一份；如果已经装了，确认 DSH_HOME 指向的是你平时用的那一份。",
+    ),
+    @html.a(
+      href="https://github.com/deepseek-ai/deepseek-harness",
+      target=@html.Target::Blank,
+      rel="noopener",
+      class="dsh-empty-cta",
+      attrs=mark("missing-dsh-install", ["overview", "missing-dsh", "install"]),
+      "去安装 DSH",
+    ),
+    @html.p(
+      class="dsh-empty-sub",
+      "下面显示的是演示数据，用来看一眼界面长什么样。",
+    ),
+  ])
+}
+
 fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 两组各自的顺序都在这里定：自动排序（运行中按实例、已停止按最近改动降序）
   // 之上再叠一层手动顺序表（见 state.mbt 的 display_groups）。
@@ -359,6 +387,11 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           [@html.span(class="dsh-plus", "＋"), @html.span("新建实例")],
         ),
       ]),
+      if model.dsh_missing {
+        dsh_missing_notice()
+      } else {
+        @html.span(class="dsh-missing-none", "")
+      },
       section_head(
         "running",
         "当前运行的实例",
@@ -378,7 +411,8 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
         } else {
           stopped.length().to_string()
         },
-        model.tag_profiles,
+        // 已经在顶部摆过「还没读到 DSH 配置」的引导卡时，这一格不再重复一枚失败徽标
+        if model.dsh_missing { None } else { model.tag_profiles },
       ),
       row_group("stopped", stopped_list, model, emit),
       archived_section(model, emit),

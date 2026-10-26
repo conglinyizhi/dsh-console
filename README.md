@@ -4,8 +4,10 @@
 
 ![dsh-console 界面截图](docs/screenshot.png)
 
-本机 DSH（DeepSeek Harness）的图形控制台。一个 MoonBit 原生后端 + 一个 rabbita 前端，
-后端同时提供只读接口、可写动作与静态资源，前端产物由它直接服务（同一个端口，无需另起服务）。
+本机 DSH（DeepSeek Harness）的图形控制台：管 profile、起停实例、看日志。
+
+一个 MoonBit 原生后端 + 一个 rabbita 前端，后端同时提供只读接口、可写动作与静态资源，
+前端产物由它直接服务（同一个端口，无需另起服务）。
 
 作用范围：读 `~/.dsh` 下的 profile 与日志、探测本机在跑的 dsh 实例、按需起停实例、
 管理 profile（派生 / 重命名 / 归档 / 删除 / 备注）与一组控制台设置。
@@ -13,10 +15,19 @@
 **给谁用**：在本机跑 DSH 的人。不想在终端里翻日志、拼 dsh 命令、对着 `~/.dsh` 数 profile 的时候，
 用它把这几件事放到一页里看和点。它只服务本机，不打算做成远程面板。
 
-## 跑起来
+> 非官方工具，与 DeepSeek 无隶属关系。
 
-需要：MoonBit 工具链（`moon`）、一个 C 编译器（native 构建要用，clang 或 gcc）、
-bash 与 gzip（前端构建链用）。Node 只在跑「验收」那一步需要。
+## 环境准备
+
+- **MoonBit 工具链（`moon`）** —— 必需，前后端都用它构建。装法见
+  [官方下载页](https://www.moonbitlang.com/download/)，装完确认 `moon version` 能跑
+- **C 编译器（clang 或 gcc）** —— 必需。MoonBit 的 native 后端要把它生成的代码编成本机可执行文件
+- **bash** —— 构建前端时用（`frontend/build.sh`）
+- **gzip** —— 构建前端时用。它把 `app.js` 与 `app.css` 各压一份 `.gz`，后端在浏览器支持时直接发压缩版，
+  首屏从约 3.4 MB 降到约 345 KB。没有它也能跑，只是首屏慢
+- **Node.js** —— 可选。只用于端到端 smoke（`node scripts/smoke.mjs`），不装也能正常构建和运行
+
+## 快速开始
 
 ```bash
 # 1) 构建前端（产物落 frontend/dist）
@@ -28,6 +39,15 @@ cd ../backend && moon build --target native
 # 3) 起服务（静态根会自动上溯到 frontend/dist，不用设环境变量）
 ./_build/native/debug/build/dsh-console-backend.exe
 # → http://127.0.0.1:5390/
+```
+
+如果这台机器上还没装 DSH，页面会显示一张引导卡，并先用演示数据把界面摆出来 ——
+那不是报错，是让你先看看它长什么样。
+
+想带着真实感的数据看、又不想碰自己的 `~/.dsh`：
+
+```bash
+./scripts/demo.sh          # 用三个示例 profile 起一份隔离的实例
 ```
 
 > 本仓库的开发机上 `~/.moon` 挂在只读文件系统上，moon 写不进 registry 缓存，所以本地构建跑在
@@ -89,6 +109,16 @@ VERSION     控制台版本（后端读它，关于页显示的就是这个）
 ```
 
 ## 验收
+
+两层。第一层是端到端 smoke，不需要浏览器：它起一份隔离的后端，跑 23 条断言
+（8 个只读接口、派生/改名/备注/归档/删除/恢复、5 条拒绝路径、首页与未知接口），
+不碰你自己的 `~/.dsh`。
+
+```bash
+node scripts/smoke.mjs
+```
+
+第二层是界面验收，需要 Chromium：
 
 ```bash
 node design/run-acceptance.mjs http://127.0.0.1:5390/

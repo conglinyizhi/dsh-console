@@ -1,6 +1,24 @@
 // 读数落地类 Msg（runtime / profiles / console / instances / logs / 通用 HTTP 回执）。
 
 ///|
+/// 这份错误像不像「本机根本没装 DSH」。
+///
+/// 后端在两种情况下会这么答：DSH_HOME 不是可读目录（dsh-home-missing），
+/// 或者 DSH_HOME 下没有 profiles 目录（profiles-missing）。两者对使用者的意思一样：
+/// 先装 DSH，不是控制台坏了。判据用后端原话里的关键片段，不去猜错误码 ——
+/// 前端拿到的只有 message。
+fn looks_like_missing_dsh(reason : String) -> Bool {
+  // 文字判据（后端的原话）与状态码判据都要：读接口失败时后端报 5xx，
+  // 前端这一层只拿得到状态码，拿不到 body。
+  reason.contains("profiles 目录不存在") ||
+  reason.contains("DSH_HOME 不是可读目录") ||
+  reason.contains("dsh-home-missing") ||
+  reason.contains("profiles-missing") ||
+  reason.contains("HTTP 5") ||
+  reason.contains("HTTP 4")
+}
+
+///|
 /// RuntimeText 的回执落地（从 update_inner 的分支体原样搬出来）。
 fn handle_runtime_text(
   model : Model,
@@ -79,6 +97,7 @@ fn handle_profiles_text(
                 ..model,
                 profiles: None,
                 profiles_error: reason,
+                dsh_missing: looks_like_missing_dsh(reason),
                 tag_profiles: fallback_tag(
                   "profile 读数读取失败：" + reason,
                 ),
@@ -91,6 +110,7 @@ fn handle_profiles_text(
             ..model,
             profiles: None,
             profiles_error: reason,
+            dsh_missing: looks_like_missing_dsh(reason),
             tag_profiles: fallback_tag("profile 读数读取失败：" + reason),
             read_profiles: true,
           }

@@ -20,10 +20,21 @@ manages profiles (fork / rename / archive / delete / note) plus a set of console
 terminal, assemble `dsh` commands by hand, or count profiles in `~/.dsh`. It serves this machine
 only — it is not meant to become a remote dashboard.
 
-## Getting started
+> Unofficial tool. Not affiliated with DeepSeek.
 
-You need: a MoonBit toolchain (`moon`), a C compiler (native builds need one: clang or gcc),
-and bash with gzip for the frontend build. Node is only needed for the acceptance run.
+## Environment
+
+- **MoonBit toolchain (`moon`)** — required; both halves are built with it. See the
+  [official download page](https://www.moonbitlang.com/download/); check `moon version` works.
+- **C compiler (clang or gcc)** — required. MoonBit's native backend hands generated code to it to
+  produce the executable.
+- **bash** — used by the frontend build (`frontend/build.sh`).
+- **gzip** — used by the frontend build. It writes a `.gz` next to `app.js` and `app.css`, and the
+  backend serves the compressed copy when the browser accepts it: first paint drops from about
+  3.4 MB to about 345 KB. Without it the build still works, it is just slower.
+- **Node.js** — optional. Only for the end-to-end smoke (`node scripts/smoke.mjs`).
+
+## Quick start
 
 ```bash
 # 1) Build the frontend (output goes to frontend/dist)
@@ -35,6 +46,15 @@ cd ../backend && moon build --target native
 # 3) Start the server (the static root walks up to frontend/dist on its own, no env var needed)
 ./_build/native/debug/build/dsh-console-backend.exe
 # → http://127.0.0.1:5390/
+```
+
+If DSH is not installed on this machine yet, the page shows a short guide card and fills the
+interface with demo data — that is not an error, it is a way to see the shape of it first.
+
+To look at it with sample data instead, without touching your own `~/.dsh`:
+
+```bash
+./scripts/demo.sh          # three sample profiles, isolated directory
 ```
 
 > On the machine this repo is developed on, `~/.moon` is mounted read-only, so moon cannot write its
@@ -107,6 +127,16 @@ VERSION     console version (the backend reads it; this is what the About page s
 ```
 
 ## Acceptance
+
+Two layers. The first is an end-to-end smoke that needs no browser: it starts an isolated backend
+and runs 23 assertions (8 read-only endpoints, fork/rename/note/archive/delete/restore, 5 rejection
+paths, the home page and an unknown endpoint) without touching your own `~/.dsh`.
+
+```bash
+node scripts/smoke.mjs
+```
+
+The second is the UI acceptance run, which needs Chromium:
 
 ```bash
 node design/run-acceptance.mjs http://127.0.0.1:5390/

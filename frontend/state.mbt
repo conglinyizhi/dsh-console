@@ -130,6 +130,9 @@ struct Model {
   runtime_time : String
   profiles : ProfilesFacts?
   profiles_error : String
+  // 本机没装 DSH（或 DSH_HOME 里没有 profiles）：这时不摆演示数据徽标，
+  // 改摆一张「先去装 DSH」的引导卡。判据见 looks_like_missing_dsh。
+  dsh_missing : Bool
   instances : InstancesFacts?
   instances_error : String
   // 五处数据源标记。None = 这一份读到了真读数，界面上不摆任何徽标
@@ -850,6 +853,7 @@ fn initial_model() -> Model {
     runtime_time: "—",
     profiles: None,
     profiles_error: "",
+    dsh_missing: false,
     instances: None,
     instances_error: "",
     // 初始那几副标记是「读取中」，不是「演示数据」：请求还在路上，
