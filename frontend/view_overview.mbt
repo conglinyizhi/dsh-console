@@ -257,6 +257,7 @@ fn archived_section(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
 
 ///|
 /// 实例总览页。
+
 ///|
 /// 没装 DSH 时的引导卡：说清缺什么、给一个安装入口，并说明下面那份是演示数据。
 ///
@@ -285,6 +286,7 @@ fn dsh_missing_notice() -> @html.Html {
   ])
 }
 
+///|
 fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   // 两组各自的顺序都在这里定：自动排序（运行中按实例、已停止按最近改动降序）
   // 之上再叠一层手动顺序表（见 state.mbt 的 display_groups）。
@@ -412,7 +414,11 @@ fn overview_view(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
           stopped.length().to_string()
         },
         // 已经在顶部摆过「还没读到 DSH 配置」的引导卡时，这一格不再重复一枚失败徽标
-        if model.dsh_missing { None } else { model.tag_profiles },
+        if model.dsh_missing {
+          None
+        } else {
+          model.tag_profiles
+        },
       ),
       row_group("stopped", stopped_list, model, emit),
       archived_section(model, emit),
