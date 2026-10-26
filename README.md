@@ -6,26 +6,26 @@
 
 本机 DSH（DeepSeek Harness）的图形控制台：管 profile、起停实例、看日志。
 
-一个 MoonBit 原生后端 + 一个 rabbita 前端，后端同时提供只读接口、可写动作与静态资源，
-前端产物由它直接服务（同一个端口，无需另起服务）。
+一个 MoonBit 原生后端加一个 rabbita 前端。后端同时提供只读接口、可写动作与静态资源，
+前端产物由它直接服务。同一个端口，不用另起服务。
 
 作用范围：读 `~/.dsh` 下的 profile 与日志、探测本机在跑的 dsh 实例、按需起停实例、
 管理 profile（派生 / 重命名 / 归档 / 删除 / 备注）与一组控制台设置。
 
-**给谁用**：在本机跑 DSH 的人。不想在终端里翻日志、拼 dsh 命令、对着 `~/.dsh` 数 profile 的时候，
-用它把这几件事放到一页里看和点。它只服务本机，不打算做成远程面板。
+给在本机跑 DSH 的人用。不想在终端里翻日志、拼 dsh 命令、对着 `~/.dsh` 数 profile 的时候，
+用它把这几件事放到一页里看和点。它只服务本机，没打算做成远程面板。
 
 > 非官方工具，与 DeepSeek 无隶属关系。
 
 ## 环境准备
 
-- **MoonBit 工具链（`moon`）** —— 必需，前后端都用它构建。装法见
+- MoonBit 工具链（`moon`）：必需，前后端都用它构建。装法见
   [官方下载页](https://www.moonbitlang.com/download/)，装完确认 `moon version` 能跑
-- **C 编译器（clang 或 gcc）** —— 必需。MoonBit 的 native 后端要把它生成的代码编成本机可执行文件
-- **bash** —— 构建前端时用（`frontend/build.sh`）
-- **gzip** —— 构建前端时用。它把 `app.js` 与 `app.css` 各压一份 `.gz`，后端在浏览器支持时直接发压缩版，
+- C 编译器（clang 或 gcc）：必需。MoonBit 的 native 后端把生成的代码编成本机可执行文件
+- bash：构建前端时用（`frontend/build.sh`）
+- gzip：构建前端时用。它把 `app.js` 与 `app.css` 各压一份 `.gz`，后端在浏览器支持时直接发压缩版，
   首屏从约 3.4 MB 降到约 345 KB。没有它也能跑，只是首屏慢
-- **Node.js** —— 可选。只用于端到端 smoke（`node scripts/smoke.mjs`），不装也能正常构建和运行
+- Node.js：可选。只用于端到端 smoke（`node scripts/smoke.mjs`），不装也能构建和运行
 
 ## 快速开始
 
@@ -41,8 +41,8 @@ cd ../backend && moon build --target native
 # → http://127.0.0.1:5390/
 ```
 
-如果这台机器上还没装 DSH，页面会显示一张引导卡，并先用演示数据把界面摆出来 ——
-那不是报错，是让你先看看它长什么样。
+如果这台机器上还没装 DSH，页面会显示一张引导卡，并先用演示数据把界面摆出来。
+这样可以先看看它长什么样。
 
 想带着真实感的数据看、又不想碰自己的 `~/.dsh`：
 
@@ -50,42 +50,51 @@ cd ../backend && moon build --target native
 ./scripts/demo.sh          # 用三个示例 profile 起一份隔离的实例
 ```
 
-> 本仓库的开发机上 `~/.moon` 挂在只读文件系统上，moon 写不进 registry 缓存，所以本地构建跑在
-> 各目录下的 `.sandbox/moonhome` 里（`frontend/build.sh` 默认就用它；后端要自己加
-> `MOON_HOME=$PWD/.sandbox/moonhome`）。`~/.moon` 可写的机器和 CI 都不需要这一条。
-> 另外前端 `build.sh` 自己会导出 `MOON_CC=clang MOON_AR=ar MOON_LD=clang`；后端手工构建时如果
-> 默认的 C 工具链不对，照抄这三个就行。
+> 本仓库的开发机上 `~/.moon` 挂的是只读文件系统，moon 写不进 registry 缓存。
+> 所以本地构建跑在各目录下的 `.sandbox/moonhome` 里。`frontend/build.sh` 默认就用它，
+> 后端要自己加 `MOON_HOME=$PWD/.sandbox/moonhome`。`~/.moon` 可写的机器和 CI 不用管这一条。
+>
+> 前端 `build.sh` 会自己导出 `MOON_CC=clang MOON_AR=ar MOON_LD=clang`。
+> 后端手工构建时如果默认的 C 工具链不对，照抄这三个。
 
 端口与静态根可以用环境变量覆盖（`DSH_CONSOLE_BACKEND_HOST` / `DSH_CONSOLE_BACKEND_PORT` /
 `DSH_CONSOLE_DIST`），细节见 [backend/README.md](backend/README.md)。
 
 ## 它能做什么
 
-**看**（只读 GET 接口）：运行中的实例（端口 / profile / 版本 / DSH_HOME / 运行时长 / 握手地址）、
+### 看
+
+只读 GET 接口：运行中的实例（端口 / profile / 版本 / DSH_HOME / 运行时长 / 握手地址）、
 磁盘上的 profile（patch 行数、lock 时刻、插件声明与安装、缺包、备注）、日志（宿主 / 审计 / 某只实例）、
 本机进程、控制台自身读数。
 
-**管**（写动作，统一走 `POST /api/local/action`）：启动 / 停止 / 重启实例、派生副本、
+### 管
+
+写动作统一走 `POST /api/local/action`：启动 / 停止 / 重启实例、派生副本、
 重命名、编辑备注、归档 / 取消归档、删除、打开工作目录 / 打开配置。
 
-**捞**：侧栏「回收站」（`/trash`）列出删除进回收站的每一份（profile 名、删除时刻、文件数、体积），
-能恢复回 profile 目录，也能彻底删掉。删完的回执只讲「进回收站了 / 删掉了」，
-路径与 `mode` 这些收在悬停里，不摊在正文上。
+### 回收站
 
-**配**：设置页十二项（探测超时、探测并发、候选端口上限、端口起点、进程 detach 与停止宽限、
+侧栏「回收站」（`/trash`）列出删除进回收站的每一份（profile 名、删除时刻、文件数、体积），
+能恢复回 profile 目录，也能彻底删掉。删完的回执只说「进回收站了」或「删掉了」，
+路径和 `mode` 收在悬停里。
+
+### 设置
+
+设置页十二项（探测超时、探测并发、候选端口上限、端口起点、进程 detach 与停止宽限、
 日志默认行数、归档区默认展开、beta 功能开关、宽屏侧栏是否收起、缺包警告、删除是否进回收站），
-**每一项都接到真实行为上**。
+每一项都接到真实行为上。
 
-## 安全边界（如实说，别当成登录）
+## 安全边界
 
-- 只绑 `127.0.0.1`，**没有账号体系**
-- 写动作必须带 `X-DSH-Console: 1` 头 + 校验 `Origin` —— 这挡得住浏览器跨源页面触发，
-  **挡不住本机其它进程**（那一层不在当前范围内）
-- 删除默认进回收站（`safety.deleteToTrash`）；硬删要在请求里带 `confirm: "DELETE"`，
-  彻底删掉回收站里的一份要带 `confirm: "PURGE"`（两条都从 body **顶层**读）
-- 「打开工作目录 / 打开配置」只接受枚举目标（profile 名 + kind），**不接受客户端给的路径**
-- 起实例默认 detach：**控制台被杀掉，已起的实例仍然活着**（已实测）
-- 实例的握手令牌从它的启动日志里读，**只用于拼「打开 Web UI」的地址，不写进审计、不写进悬停**
+- 只绑 `127.0.0.1`，没有账号体系
+- 写动作必须带 `X-DSH-Console: 1` 头并校验 `Origin`。这挡得住浏览器跨源页面触发，
+  挡不住本机其它进程。那一层不在当前范围内
+- 删除默认进回收站（`safety.deleteToTrash`）。硬删要在请求里带 `confirm: "DELETE"`，
+  彻底删掉回收站里的一份要带 `confirm: "PURGE"`。两条都从 body 顶层读
+- 「打开工作目录 / 打开配置」只接受枚举目标（profile 名 + kind），不接受客户端给的路径
+- 起实例默认 detach：控制台被杀掉，已起的实例仍然活着（已实测）
+- 实例的握手令牌从它的启动日志里读，只用于拼「打开 Web UI」的地址，不写进审计，不写进悬停
 
 ## 数据落在哪
 
@@ -127,7 +136,7 @@ node design/run-acceptance.mjs http://127.0.0.1:5390/
 一条命令跑完二十多项判定：几何不变量（状态点跨卡对齐、按钮组右缘贴内容右缘、菜单锚点）、
 交互（对话框居中且在最上层可点、取消与点遮罩能关、菜单每项都可点到）、
 日志（滚动、级别配色、来源下拉含全部在跑实例）、动效、类名契约。
-**探针本身也验过**：拿 Vue 版对旧基线跑，同一套判定同样全过。
+探针本身也验过：拿 Vue 版对旧基线跑，同一套判定同样全过。
 
 装置与决策留档见 `design/`：`write-api-contract.md`（接口契约）、`backlog.md`（待办与悬着的验证）、
 `frontend-parity-checklist.md`（与 Vue 版的对齐清单）。
@@ -142,35 +151,35 @@ MoonBit 工具链用官方安装脚本装，同分支的旧任务会被 concurre
 
 ## 已知边界（没验过的、做不到的）
 
-- **外部起的实例读不到握手令牌**：令牌打在启动它的那个终端里，控制台无从读取。
+- 外部起的实例读不到握手令牌：令牌打在启动它的那个终端里，控制台无从读取。
   这类实例的「打开 Web UI」会说明原因并给出裸地址，不会给一个点了 401 的链接。
-- **权限不足（EACCES）那条分支没有实测**：沙箱里所有进程都属于自己，造不出真的权限拒绝。
+- 权限不足（EACCES）那条分支没有实测：沙箱里所有进程都属于自己，造不出真的权限拒绝。
   代码在，但没验过。
-- **多用户 / hidepid 场景没覆盖**：`/proc` 读不到别的用户进程时，只填得出端口。
-- **路由是路径式**（`/settings/safety`）。敲 hash 形式（`#/settings`）会落到首页，没有别名解析。
-- **首屏靠 gzip**：`app.js` 约 1.5 MB，压后约 170 KB（后端按 `Accept-Encoding` 发 `.gz`）。
+- 多用户 / hidepid 场景没覆盖：`/proc` 读不到别的用户进程时，只填得出端口。
+- 路由是路径式（`/settings/safety`）。敲 hash 形式（`#/settings`）会落到首页，没有别名解析。
+- 首屏靠 gzip：`app.js` 约 1.5 MB，压后约 170 KB（后端按 `Accept-Encoding` 发 `.gz`）。
   图标已经是内联 SVG，没有字体文件。
 - 跑验收时动画探针会点一次「启动」，点到起不来的 profile（如 `headless`）会在
   `~/.dsh/logs/` 留一份一行的失败日志。探针会停掉自己起的实例，但**清不掉失败留下的日志**。
-- **只在 Linux 上开发与测试**：macOS 与 Windows 上代码可以通过类型检查（CI 三平台都跑），
+- 只在 Linux 上开发与测试：macOS 与 Windows 上代码可以通过类型检查（CI 三平台都跑），
   但运行时依赖 Linux 的 `/proc`：实例探测、进程归属、停止实例这几块还没有别的平台的实现，
   功能未验证。
 
 ## 许可证
 
-本仓库（dsh-console）以 **MIT** 发布，见 [LICENSE](LICENSE)。Copyright (c) 2026 Clzhi。
+本仓库（dsh-console）以 MIT 发布，见 [LICENSE](LICENSE)。Copyright (c) 2026 Clzhi。
 
 用到的依赖（均为 Apache-2.0，与本仓库的 MIT 兼容）：
 
-- [moonbitlang/core](https://github.com/moonbitlang/core)（MoonBit 标准库与运行时）— Apache-2.0
-- [moonbit-community/rabbita](https://mooncakes.io/docs/#/moonbit-community/rabbita) 0.15.7（前端框架）— Apache-2.0
-- [conglinyizhi/precss](https://mooncakes.io/docs/#/conglinyizhi/precss) 0.1.4（样式编译）— Apache-2.0
-- [moonbitlang/moonback](https://mooncakes.io/docs/#/moonbitlang/moonback) 0.8.6（HTTP 服务）— Apache-2.0
-- [moonbitlang/async](https://mooncakes.io/docs/#/moonbitlang/async) 0.22.4 / 0.21.2（异步 IO）— Apache-2.0
+- [moonbitlang/core](https://github.com/moonbitlang/core)（MoonBit 标准库与运行时），Apache-2.0
+- [moonbit-community/rabbita](https://mooncakes.io/docs/#/moonbit-community/rabbita) 0.15.7（前端框架），Apache-2.0
+- [conglinyizhi/precss](https://mooncakes.io/docs/#/conglinyizhi/precss) 0.1.4（样式编译），Apache-2.0
+- [moonbitlang/moonback](https://mooncakes.io/docs/#/moonbitlang/moonback) 0.8.6（HTTP 服务），Apache-2.0
+- [moonbitlang/async](https://mooncakes.io/docs/#/moonbitlang/async) 0.22.4 / 0.21.2（异步 IO），Apache-2.0
 
 第三方材料：
 
-- 图标路径数据取自 **@mdi/js 7.4.47**（Pictogrammers，Apache-2.0 / Pictogrammers Free License）。
+- 图标路径数据取自 @mdi/js 7.4.47（Pictogrammers，Apache-2.0 / Pictogrammers Free License）。
   取数与版权声明见 [frontend/vendor/licenses/mdi-NOTICE.md](frontend/vendor/licenses/mdi-NOTICE.md)；
   仓库只固化 26 条 SVG 路径常量，不分发上游字体与样式表。
 
