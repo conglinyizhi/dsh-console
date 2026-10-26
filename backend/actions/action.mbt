@@ -340,6 +340,7 @@ pub async fn run_action(
     // 两条都先过「这只 profile 有实例在跑就拒」的守卫（见 actions/snapshots.mbt）。
     "snapshot-profile" => snapshot_profile_action(params)
     "restore-snapshot" => restore_snapshot_action(params, confirm)
+    "delete-snapshot" => delete_snapshot_action(params)
     // ── 整体替换（design/ops-maintenance-jobs.md 第 17 节）────────────
     // 预览只读；应用要先重跑一遍 blockers 再动磁盘（见 actions/promote.mbt）。
     "promote-preview" => promote_preview_action(params)

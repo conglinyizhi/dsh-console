@@ -709,6 +709,8 @@ priv enum Msg {
   SnapshotRestoreOpen(String, String, String)
   SnapshotRestoreConfirm
   SnapshotRestoreCancel
+  // 删掉一份快照（行 id / 快照 id）。快照本身就是备份，所以不弹确认框。
+  SnapshotDelete(String, String)
   // 整体替换（design/ops-maintenance-jobs.md §17.3）：打开侧栏（带目标行 id）/
   // 选中一只源 / 预览回执 / 开确认框 / 确认替换 / 取消 / 关侧栏
   PromoteOpen(String)

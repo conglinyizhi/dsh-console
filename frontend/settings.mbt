@@ -13,6 +13,7 @@
 //   ui.sidebarCollapsed      false   宽屏侧栏是否收成图标栏（窄屏不看这一项）
 //   safety.deleteToTrash     true    删除进回收站还是硬删
 //   profile.ignoreMissingBundles true 缺包是否参与状态灯（§40，缺省不报警）
+//   snapshot.keep           20      每只 profile 保留多少份配置快照
 //
 // 这个文件只做三件事：列键（顺序、分组、控件、说明）、从 GET 的响应里取值、
 // 拼 PUT 的请求体。**界面不编数值**：接口没给的键就写「接口未返回该键」，
@@ -197,6 +198,14 @@ let settings_table : Array[SettingDef] = [
     desc: "宽屏下把侧栏收成一列图标，主区更宽；悬停图标可以看到名字。",
     kind: CBool,
     fallback: VBool(false),
+  },
+  {
+    key: "snapshot.keep",
+    group: "safety",
+    label: "快照保留份数",
+    desc: "每只 profile 保留多少份配置快照，超出的按时间删最旧。",
+    kind: CNum(1, 200, " 份"),
+    fallback: VInt(20),
   },
   {
     key: "safety.deleteToTrash",

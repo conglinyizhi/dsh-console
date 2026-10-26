@@ -261,6 +261,7 @@ fn update_inner(
       handle_snapshot_restore_open(model, msg, emit)
     SnapshotRestoreConfirm => handle_snapshot_restore_confirm(model, msg, emit)
     SnapshotRestoreCancel => handle_snapshot_restore_cancel(model, msg, emit)
+    SnapshotDelete(_, _) => handle_snapshot_delete(model, msg, emit)
     PromoteOpen(_) => handle_promote_open(model, msg, emit)
     PromoteSourcePicked(_) => handle_promote_source_picked(model, msg, emit)
     PromotePreviewDone(_) => handle_promote_preview_done(model, msg, emit)

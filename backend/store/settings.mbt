@@ -23,6 +23,8 @@ pub struct Settings {
   /// 忽略缺包警告（design/design-fixes.md §40）：开（缺省）时缺包不参与状态灯判定、
   /// 也不产生「有警告」；关掉回到旧行为（缺包 → 黄）。缺包仍然可以在抽屉里修。
   profile_ignore_missing_bundles : Bool
+  /// 每只 profile 保留多少份配置快照。超出按时间删最旧（见 profiles/snapshots.mbt）。
+  snapshot_keep : Int32
 }
 
 ///|
@@ -64,12 +66,17 @@ pub let key_profile_ignore_missing_bundles : String = "profile.ignoreMissingBund
 pub let key_ui_show_beta : String = "ui.showBetaFeatures"
 
 ///|
+/// 快照保留份数：整数，缺省 20。
+pub let key_snapshot_keep : String = "snapshot.keep"
+
+///|
 /// 契约里的键序（响应的 values / defaults / sources 都按这个顺序出）。
 pub fn settings_keys() -> Array[String] {
   [
     key_probe_timeout_ms, key_probe_concurrency, key_probe_max_candidates, key_instance_base_port,
     key_process_detach, key_process_stop_grace_ms, key_logs_default_tail, key_ui_archive_open_by_default,
     key_ui_sidebar_collapsed, key_ui_show_beta, key_safety_delete_to_trash, key_profile_ignore_missing_bundles,
+    key_snapshot_keep,
   ]
 }
 
@@ -89,6 +96,7 @@ pub fn default_settings() -> Settings {
     ui_show_beta: false,
     safety_delete_to_trash: true,
     profile_ignore_missing_bundles: true,
+    snapshot_keep: 20,
   }
 }
 
@@ -110,6 +118,7 @@ fn range_of(key : String) -> (Int32, Int32) {
     "instance.basePort" => (1, 65535)
     "process.stopGraceMs" => (0, 600000)
     "logs.defaultTail" => (1, 1000)
+    "snapshot.keep" => (1, 200)
     _ => (0, 0)
   }
 }
@@ -127,7 +136,8 @@ fn apply_one(
     | "probe.maxCandidates"
     | "instance.basePort"
     | "process.stopGraceMs"
-    | "logs.defaultTail" => {
+    | "logs.defaultTail"
+    | "snapshot.keep" => {
       let value = match as_int(json) {
         Some(v) => v
         None => return Err("要整数，收到 " + describe(json))
@@ -150,6 +160,7 @@ fn apply_one(
         "instance.basePort" => Ok({ ..current, instance_base_port: value, })
         "process.stopGraceMs" =>
           Ok({ ..current, process_stop_grace_ms: value, })
+        "snapshot.keep" => Ok({ ..current, snapshot_keep: value, })
         _ => Ok({ ..current, logs_default_tail: value, })
       }
     }
@@ -289,6 +300,7 @@ pub fn settings_values_json(s : Settings) -> @json.JsonVal {
       key_profile_ignore_missing_bundles,
       @json.JBool(s.profile_ignore_missing_bundles),
     ),
+    (key_snapshot_keep, @json.jint(s.snapshot_keep)),
   ])
 }
 
@@ -303,6 +315,7 @@ pub fn value_of(s : Settings, key : String) -> @json.JsonVal {
     "process.detach" => @json.JBool(s.process_detach)
     "process.stopGraceMs" => @json.jint(s.process_stop_grace_ms)
     "logs.defaultTail" => @json.jint(s.logs_default_tail)
+    "snapshot.keep" => @json.jint(s.snapshot_keep)
     "ui.archiveOpenByDefault" => @json.JBool(s.ui_archive_open_by_default)
     "ui.sidebarCollapsed" => @json.JBool(s.ui_sidebar_collapsed)
     "ui.showBetaFeatures" => @json.JBool(s.ui_show_beta)

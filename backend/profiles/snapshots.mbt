@@ -66,6 +66,8 @@ pub(all) struct SnapshotOutcome {
   missing : Array[String]
   /// 这一趟按上限淘汰掉的旧快照 id（从旧到新）
   pruned : Array[String]
+  /// 内容和最近一份完全一致，这一趟没有新建（id 指向那份旧快照）
+  skipped : Bool
 }
 
 ///|
@@ -253,8 +255,65 @@ pub async fn read_snapshots(
 /// 还原第一步会先拍一张「还原前」，要是那张把正被还原的这一份挤掉，
 /// 后面就会对着一个空目录读文件，回一句「快照里一个都没有」，而用户要的正是它。
 /// 跳过它、删下一份旧的，条数下一次拍照时自然收敛回上限。
+
+///|
+/// .snapshots 下最新的那份 id（纯数字目录里最大的）。没有快照时给 None。
+async fn latest_snapshot_id(dir : String) -> String? noraise {
+  let names = match @json.list_dir_result_fs(dir) {
+    Ok(list) => list
+    Err(_) => return None
+  }
+  let mut best : String? = None
+  for name in names {
+    if @json.is_all_digits(name) && @json.is_dir(@json.join_path(dir, name)) {
+      match best {
+        Some(cur) => if snapshot_desc(name, cur) < 0 { best = Some(name) }
+        None => best = Some(name)
+      }
+    }
+  }
+  best
+}
+
+///|
+/// profile 当前的三个文件，和某一份快照里的三个文件是否逐字节一致。
+///
+/// 缺的那几个按「两边都没有」算一致：profile 里没有 package.json 时，
+/// 快照里也不会存它，这种一致不该被当成「有变化」。
+async fn same_as_snapshot(
+  profile_dir : String,
+  snap_dir : String,
+) -> Bool noraise {
+  for name in snapshot_file_names {
+    let cur = @json.join_path(profile_dir, name)
+    let old = @json.join_path(snap_dir, name)
+    let cur_exists = @json.exists(cur)
+    let old_exists = @json.exists(old)
+    if cur_exists != old_exists {
+      return false
+    }
+    if !cur_exists {
+      continue
+    }
+    let a = match @fsx.read_bytes_fs(cur) {
+      Ok(d) => d
+      Err(_) => return false
+    }
+    let b = match @fsx.read_bytes_fs(old) {
+      Ok(d) => d
+      Err(_) => return false
+    }
+    if a != b {
+      return false
+    }
+  }
+  true
+}
+
+///|
 async fn prune_snapshots(
   dir : String,
+  keep : Int32,
   keep_id : String,
 ) -> Array[String] noraise {
   let pruned : Array[String] = []
@@ -273,7 +332,7 @@ async fn prune_snapshots(
   // 接着删下一份旧的 —— 于是份数仍然是 20，被还原的那一份也还在。
   let mut remaining = ids.length()
   let mut pos = ids.length() - 1
-  while remaining > snapshot_keep && pos >= 0 {
+  while remaining > keep && pos >= 0 {
     let id = ids[pos]
     pos = pos - 1
     if id == keep_id {
@@ -309,6 +368,26 @@ pub async fn create_snapshot(
       @store.note_raw(e.raw)
       return Err("建目录失败")
     }
+  }
+  // 和最近一份完全一致就不新建：合并插件、晋级、还原前这几处都会自动拍，
+  // 连着做几次同样的动作不该占掉保留份数。
+  match latest_snapshot_id(dir) {
+    Some(prev) =>
+      if same_as_snapshot(profile_dir, @json.join_path(dir, prev)) {
+        return Ok({
+          id: prev,
+          dir: @json.join_path(dir, prev),
+          at: @json.iso_from_epoch_ms(@json.parse_dec64(prev)),
+          reason,
+          files: 0,
+          bytes: 0L,
+          copied: [],
+          missing: [],
+          pruned: [],
+          skipped: true,
+        })
+      }
+    None => ()
   }
   let mut ms = @async.now()
   while @json.exists(@json.join_path(dir, ms.to_string())) {
@@ -368,8 +447,21 @@ pub async fn create_snapshot(
       return Err("写文件失败")
     }
   }
-  let pruned = prune_snapshots(dir, keep_id)
-  Ok({ id, dir: target, at, reason, files, bytes, copied, missing, pruned, })
+  // 上限从设置读（缺省 20）：每次拍的时候现读，改了设置下一张就按新值收敛
+  let keep = @store.load_settings().values.snapshot_keep
+  let pruned = prune_snapshots(dir, keep, keep_id)
+  Ok({
+    id,
+    dir: target,
+    at,
+    reason,
+    files,
+    bytes,
+    copied,
+    missing,
+    pruned,
+    skipped: false,
+  })
 }
 
 ///|

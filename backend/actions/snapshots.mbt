@@ -47,6 +47,7 @@ async fn config_write_guard(profile : String) -> Unit raise ActionError {
 fn snapshot_outcome_json(
   profile : String,
   o : @profiles.SnapshotOutcome,
+  keep : Int32,
 ) -> @json.JsonVal {
   @json.JObj([
     ("profile", @json.JStr(profile)),
@@ -59,13 +60,25 @@ fn snapshot_outcome_json(
     ("copied", @json.jstr_array(o.copied)),
     ("missing", @json.jstr_array(o.missing)),
     ("pruned", @json.jstr_array(o.pruned)),
-    ("keep", @json.jint(@profiles.snapshot_keep)),
+    ("skipped", @json.JBool(o.skipped)),
+    ("keep", @json.jint(keep)),
   ])
 }
 
 ///|
 /// 拍照那一句回执：存了几份、落在哪、这次淘汰了几份旧的。
-fn snapshot_note(profile : String, o : @profiles.SnapshotOutcome) -> String {
+fn snapshot_note(
+  profile : String,
+  o : @profiles.SnapshotOutcome,
+  keep : Int32,
+) -> String {
+  if o.skipped {
+    return "和最近一份快照一模一样（" +
+      o.at +
+      "，原因「" +
+      o.reason +
+      "」），没有新拍一份"
+  }
   let mut text = "已给 " +
     profile +
     " 拍了一张快照：" +
@@ -83,7 +96,7 @@ fn snapshot_note(profile : String, o : @profiles.SnapshotOutcome) -> String {
   if o.pruned.length() > 0 {
     text = text +
       "；超过 " +
-      @profiles.snapshot_keep.to_string() +
+      keep.to_string() +
       " 份，淘汰了最旧的 " +
       o.pruned.length().to_string() +
       " 份（" +
@@ -118,10 +131,11 @@ pub async fn snapshot_profile_action(
       abort("unreachable: fail 一定抛错")
     }
   }
+  let keep = @store.load_settings().values.snapshot_keep
   @json.JObj([
     ("action", @json.JStr("snapshot-profile")),
-    ("outcome", snapshot_outcome_json(profile, outcome)),
-    ("note", @json.JStr(snapshot_note(profile, outcome))),
+    ("outcome", snapshot_outcome_json(profile, outcome, keep)),
+    ("note", @json.JStr(snapshot_note(profile, outcome, keep))),
   ])
 }
 
@@ -206,9 +220,80 @@ pub async fn restore_snapshot_action(
         ("dir", @json.JStr(outcome.dir)),
         ("restored", @json.jstr_array(outcome.restored)),
         ("missingInSnapshot", @json.jstr_array(outcome.missing_in_snapshot)),
-        ("preSnapshot", snapshot_outcome_json(profile, outcome.pre_snapshot)),
+        (
+          "preSnapshot",
+          snapshot_outcome_json(
+            profile,
+            outcome.pre_snapshot,
+            @store.load_settings().values.snapshot_keep,
+          ),
+        ),
       ]),
     ),
     ("note", @json.JStr(note)),
+  ])
+}
+
+///|
+/// delete-snapshot：删掉一份快照。
+///
+/// 快照本身就是备份，所以这里不弹确认框；但 id 必须过 snapshot_path_checked ——
+/// 只认纯数字、且拼出来的路径正好在 <profile>/.snapshots 下。
+pub async fn delete_snapshot_action(
+  params : Json,
+) -> @json.JsonVal raise ActionError {
+  ensure_action_params(params, "删除快照：", ["profile", "snapshot"])
+  let profile = require_string(params, "profile")
+  validate_profile_name(profile)
+  let id = require_string(params, "snapshot")
+  if !@json.is_all_digits(id) {
+    fail(
+      "bad-params",
+      "快照 id 只认数字，并且必须正好在 .snapshots 下：收到了 " +
+      id,
+    )
+  }
+  config_write_guard(profile)
+  let (dir, _home) = @profiles.profile_location(profile)
+  if !@json.is_dir(dir) {
+    fail("not-found", "profile 目录不存在：" + dir)
+  }
+  let path = match @profiles.snapshot_path_checked(dir, id) {
+    Some(p) => p
+    None => {
+      fail(
+        "bad-params",
+        "快照 id 拼出来的路径不在 .snapshots 下：" + id,
+      )
+      abort("unreachable: fail 一定抛错")
+    }
+  }
+  if !@json.is_dir(path) {
+    fail("not-found", "快照不存在：" + path)
+  }
+  match @fsx.remove_tree_fs(path) {
+    Ok(_) => ()
+    Err(e) => {
+      @store.note_raw(e.raw)
+      fail("io-error", "删这份快照失败，磁盘上还在：" + path)
+    }
+  }
+  @json.JObj([
+    ("action", @json.JStr("delete-snapshot")),
+    (
+      "outcome",
+      @json.JObj([
+        ("profile", @json.JStr(profile)),
+        ("snapshot", @json.JStr(id)),
+      ]),
+    ),
+    (
+      "note",
+      @json.JStr(
+        "已删掉 " +
+        @json.iso_from_epoch_ms(@json.parse_dec64(id)) +
+        " 那一份快照",
+      ),
+    ),
   ])
 }

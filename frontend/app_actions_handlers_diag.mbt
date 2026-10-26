@@ -209,6 +209,35 @@ fn handle_snapshot_restore_confirm(
 }
 
 ///|
+/// SnapshotDelete：删掉一份快照。快照本身是备份，这里直接发，不弹确认框。
+fn handle_snapshot_delete(
+  model : Model,
+  msg : Msg,
+  emit : @cmd.Emit[Msg],
+) -> (Model, @cmd.Cmd) {
+  match msg {
+    SnapshotDelete(id, snap) =>
+      match find_row(model.rows, id) {
+        None => (model, @cmd.none)
+        Some(row) => {
+          let pairs = profile_name_pairs(row)
+          pairs.push(("snapshot", json_text_literal(snap)))
+          send_action(
+            model,
+            id,
+            "delete-snapshot",
+            row.name,
+            "删除快照",
+            params_of(pairs),
+            emit,
+          )
+        }
+      }
+    _ => (model, @cmd.none)
+  }
+}
+
+///|
 /// SnapshotRestoreCancel 的回执落地（从 update_inner 的分支体原样搬出来）。
 fn handle_snapshot_restore_cancel(
   model : Model,

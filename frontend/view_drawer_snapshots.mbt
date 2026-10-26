@@ -201,6 +201,23 @@ fn snapshot_history(
               ),
               [@html.text("还原")],
             ),
+            @html.button(
+              class="dsh-snapshot-delete",
+              type_="button",
+              disabled=busy,
+              attrs=mark("drawer-snapshot-delete", [
+                  "overview",
+                  "drawer",
+                  row.id,
+                  "snapshot",
+                  snap.id,
+                  "delete",
+                ])
+                .data_set("snapshot", snap.id)
+                .title("删掉这一份快照，删了就找不回来"),
+              on_click=emit(SnapshotDelete(row.id, snap.id)),
+              [@html.text("删除")],
+            ),
           ],
         ),
       )
