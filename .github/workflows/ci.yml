@@ -63,9 +63,11 @@ jobs:
         if: runner.os == 'Linux'
         run: moon run scripts/cli.mbtx -- build --release
 
-      - name: Build (release, macOS, 全量：临时为了拿前端失败的现场)
+      - name: Build (release, macOS, 临时诊断)
         if: runner.os == 'macOS'
-        run: moon run scripts/cli.mbtx -- build --release
+        run: |
+          cd frontend
+          bash -x build.sh 2>&1 | tail -60
 
       - name: Test (unix)
         if: runner.os != 'Windows'
