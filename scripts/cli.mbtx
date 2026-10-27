@@ -12,7 +12,20 @@
 import {
   "moonbitlang/async@0.22.4",
   "moonbitlang/async@0.22.4/process",
+  "moonbitlang/async@0.22.4/fs",
   "moonbitlang/core/env",
+}
+
+///|
+/// 本地开发机上 ~/.moon 只读，构建跑在 .sandbox/moonhome 里；CI 上没这层，
+/// 返回 None 表示不覆盖 MOON_HOME（用默认的 ~/.moon）。
+async fn local_moon_home(dir : String) -> String? {
+  let p = join(dir, ".sandbox/moonhome")
+  if @fs.exists(p) {
+    Some(p)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -72,10 +85,11 @@ async fn build(root : String, release : Bool) -> Int {
   println("== 构建模式：" + mode + " ==")
 
   // 前端：build.sh 自己会调 gen-build-info.sh，BUILD_MODE 决定写 dev 还是 release
-  let mut env : Map[String, String] = Map([
-    ("BUILD_MODE", mode),
-    ("MOON_HOME", join(frontend, ".sandbox/moonhome")),
-  ])
+  let env : Map[String, String] = Map([("BUILD_MODE", mode)])
+  match local_moon_home(frontend) {
+    Some(h) => env["MOON_HOME"] = h
+    None => ()
+  }
   println("-- 前端")
   let fc = run_cmd("bash", ["build.sh"], frontend, env)
   if fc != 0 {
@@ -84,17 +98,18 @@ async fn build(root : String, release : Bool) -> Int {
   }
 
   // 后端：release 时才加 --release（优化 + strip 由 moon 自己决定）
-  env = Map([
-    ("MOON_HOME", join(backend, ".sandbox/moonhome")),
-    ("BUILD_MODE", mode),
-  ])
+  let benv : Map[String, String] = Map([("BUILD_MODE", mode)])
+  match local_moon_home(backend) {
+    Some(h) => benv["MOON_HOME"] = h
+    None => ()
+  }
   let args : Array[String] = if release {
     ["build", "--target", "native", "--release"]
   } else {
     ["build", "--target", "native"]
   }
   println("-- 后端")
-  let bc = run_cmd("moon", args, backend, env)
+  let bc = run_cmd("moon", args, backend, benv)
   if bc != 0 {
     println("后端构建失败（exit " + bc.to_string() + "）")
     return bc
@@ -119,9 +134,11 @@ async fn main {
     None => "."
   }
   let backend = join(root, "backend")
-  let backend_env : Map[String, String] = Map([
-    ("MOON_HOME", join(backend, ".sandbox/moonhome")),
-  ])
+  let backend_env : Map[String, String] = Map([])
+  match local_moon_home(backend) {
+    Some(h) => backend_env["MOON_HOME"] = h
+    None => ()
+  }
   match cmd {
     "build" => {
       let code = build(root, release)
@@ -147,12 +164,12 @@ async fn main {
       let bc = run_cmd("moon", ["check", "--deny-warn"], backend, backend_env)
       let frontend = join(root, "frontend")
       println("-- 前端 moon check")
-      let fc = run_cmd(
-        "moon",
-        ["check"],
-        frontend,
-        Map([("MOON_HOME", join(frontend, ".sandbox/moonhome"))]),
-      )
+      let fenv : Map[String, String] = Map([])
+      match local_moon_home(frontend) {
+        Some(h) => fenv["MOON_HOME"] = h
+        None => ()
+      }
+      let fc = run_cmd("moon", ["check"], frontend, fenv)
       if bc != 0 || fc != 0 {
         abort("检查没通过")
       }

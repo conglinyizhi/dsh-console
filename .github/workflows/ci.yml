@@ -55,42 +55,22 @@ jobs:
         shell: bash
         run: mkdir -p backend/.tmp-verify/rawsink-test
 
-      # backend 的 warning 已清零（冗余 raise/async 就地处说明并抑制，未用 import 删掉），
-      # 这里用 --deny-warn 防止回归。
-      - name: moon check (backend)
-        working-directory: backend
-        run: moon check --deny-warn
-
-      # frontend 还剩一条上游警告：rabbita@0.15.7 依赖已废弃的 hackwaly/moonback。
-      # 那不是本仓库的依赖，改不了；其余警告已清零，所以这一档不挂 --deny-warn。
-      - name: moon check (frontend)
-        working-directory: frontend
-        run: moon check
-
-      # native 目标要 C 编译器：ubuntu / macos runner 自带 clang。
-      # windows runner 装了 VS，但 cl.exe / link.exe 默认不在 PATH 里，
-      # 要另引 msvc-dev-cmd 之类的 action 才能链接；这里不做，
-      # Windows 只验类型检查（check），构建与测试交给另外两个平台。
-      - name: moon test (backend, native)
+      # 构建和测试都走 scripts/cli.mbtx —— 和本地开发、发布用的是同一条链。
+      # 加 --release：CI 出的产物是要发出去的，版本标识用 git sha，moon 也开优化。
+      - name: Build (release, unix)
         if: runner.os != 'Windows'
-        working-directory: backend
-        run: moon test --target native
+        run: moon run scripts/cli.mbtx -- build --release
 
-      - name: moon build (backend, native)
+      - name: Test (unix)
         if: runner.os != 'Windows'
-        working-directory: backend
-        run: moon build --target native
+        run: moon run scripts/cli.mbtx -- test
 
-      # 前端构建链是 bash 脚本（gzip / find / wc），Windows runner 不跑这一步。
-      # MOON_HOME 显式指到默认的 ~/.moon：build.sh 自己会兜底到 .sandbox/moonhome，
-      # 那是本机只读 ~/.moon 的权宜目录，CI 里不用。
-      - name: Build frontend
-        if: runner.os != 'Windows'
-        working-directory: frontend
-        run: MOON_HOME="$HOME/.moon" ./build.sh
+      # Windows runner 装不了 native 目标要的链接环境（cl.exe / link.exe 默认不在 PATH），
+      # 只验类型检查：后端 --deny-warn、前端普通 check。
+      - name: Check (Windows)
+        if: runner.os == 'Windows'
+        run: moon run scripts/cli.mbtx -- check
 
-      # 端到端 smoke：起隔离的后端，跑 8 个只读接口、写动作与拒绝路径，
-      # 23 条断言。只在 Linux 跑一次：它依赖 /proc 探测实例，另外两个平台没有。
       - name: Smoke (e2e)
         if: runner.os == 'Linux'
-        run: node scripts/smoke.mjs
+        run: moon run scripts/cli.mbtx -- smoke
