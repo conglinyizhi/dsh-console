@@ -15,7 +15,13 @@ import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repo = dirname(here)
-const bin = process.argv[2] || join(repo, 'backend/_build/native/debug/build/dsh-console-backend.exe')
+// debug 和 release 的产物路径不同：先找 debug，再找 release。
+const candidates = [
+  'backend/_build/native/debug/build/dsh-console-backend.exe',
+  'backend/_build/native/release/build/dsh-console-backend.exe',
+]
+const found = candidates.map((p) => join(repo, p)).find((p) => existsSync(p))
+const bin = process.argv[2] || found || join(repo, candidates[0])
 const port = process.env.SMOKE_PORT || '5391'
 const base = `http://127.0.0.1:${port}`
 
