@@ -330,27 +330,70 @@ fn push_socket(sockets : Array[ListenSocket], row : ListenSocket) -> Unit {
 ///|
 /// 进程侧的补充扫描：按 cmdline 的 --port 找 dsh 进程。
 /// 这是弱证据，只在 inode join 走不通时兜底（真实实例命令行里根本不带 --port）。
+///|
+/// macOS 版的进程侧补充：命令行从 `ps` 拿，DSH_HOME / fd 反查拿不到。
+/// 解析规则与 Linux 那条路共用（is_dsh_entry / read_port / read_option）。
+async fn supplement_processes_ps(
+  socket_inodes : Int32,
+) -> (ProcessSupplement, Array[@processes.ProcSummary]) noraise {
+  let rows = @platform.process_table()
+  let found : Array[@processes.ProcSummary] = []
+  let mut scanned = 0
+  for row in rows {
+    scanned = scanned + 1
+    let argv = @json.split_ws(row.command)
+    if argv.length() == 0 {
+      continue
+    }
+    if !argv.any(fn(t) { @processes.is_dsh_entry(t) }) {
+      continue
+    }
+    let exe = match argv.get(0) {
+      Some(e) => e
+      None => ""
+    }
+    found.push(
+      @processes.make_proc_summary(
+        row.pid,
+        @processes.read_port(argv),
+        @processes.read_option(argv, "--profile"),
+        None,
+        exe,
+        None,
+        None,
+      ),
+    )
+  }
+  let with_port = found.filter(fn(p) { p.port is Some(_) })
+  let note = if found.length() == 0 {
+    "这台机器没有 /proc：只扫了 ps，没找到 dsh 进程"
+  } else {
+    "这台机器没有 /proc：命令行取自 ps，DSH_HOME 与 fd 反查不可用"
+  }
+  (
+    {
+      proc_root: "ps",
+      scanned,
+      dsh_processes: found.length(),
+      with_port: with_port.length(),
+      note,
+      socket_inodes,
+      inode_holders: 0,
+      fd_denied: 0,
+      join_note: "",
+    },
+    found,
+  )
+}
+
 async fn supplement_processes(
   holders : @processes.HolderScan,
   socket_inodes : Int32,
 ) -> (ProcessSupplement, Array[@processes.ProcSummary]) noraise {
-  // macOS 上没有 /proc 的 cmdline / environ / fd，这一层整块降级：
-  // 实例识别只靠端口探测，不假装能按进程反查。
+  // macOS 上没有 /proc 的 environ / fd，走 ps 那一路：cmdline 还能用
+  // （`ps -eo pid=,command=`），只是 DSH_HOME 和 fd 反查拿不到。
   if !@platform.supports_proc_scan() {
-    return (
-      {
-        proc_root: "/proc",
-        scanned: 0,
-        dsh_processes: 0,
-        with_port: 0,
-        note: "这台机器没有 /proc，跳过进程侧扫描",
-        socket_inodes: 0,
-        inode_holders: 0,
-        fd_denied: 0,
-        join_note: "",
-      },
-      [],
-    )
+    return supplement_processes_ps(socket_inodes)
   }
   let report = @processes.read_processes()
   let with_port : Array[@processes.ProcSummary] = []

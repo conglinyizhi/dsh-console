@@ -31,6 +31,28 @@ pub struct ProcSummary {
 }
 
 ///|
+/// 跨包构造 ProcSummary 的唯一入口（字段不是 pub，外面直接写结构字面量不认）。
+pub fn make_proc_summary(
+  pid : Int32,
+  port : Int32?,
+  profile : String?,
+  dsh_home : String?,
+  exe_path : String,
+  started_at : String?,
+  uptime_seconds : Int32?,
+) -> ProcSummary {
+  {
+    pid,
+    port,
+    profile,
+    dsh_home,
+    exe_path,
+    started_at,
+    uptime_seconds,
+  }
+}
+
+///|
 /// readProcesses 的整体结果（instances 接口拿它做进程补充）。
 pub struct ProcReport {
   scanned : Int32
@@ -56,23 +78,7 @@ pub fn is_dsh_entry(token : String) -> Bool {
 ///|
 /// 读 /proc/<pid>/cmdline 按 NUL 拆成 argv；读不到或空给 None。
 pub async fn read_argv(pid : Int32) -> Array[String]? noraise {
-  let file = proc_root + "/" + @json.int_to_dec(pid) + "/cmdline"
-  let raw = match @json.read_text_file_fs(file) {
-    Ok(t) => t
-    Err(_) => return None
-  }
-  let argv : Array[String] = []
-  for part in raw.split("\u{0000}") {
-    let item = part.to_owned()
-    if item != "" {
-      argv.push(item)
-    }
-  }
-  if argv.length() == 0 {
-    None
-  } else {
-    Some(argv)
-  }
+  @platform.process_argv(pid)
 }
 
 ///|

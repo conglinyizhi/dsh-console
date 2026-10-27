@@ -254,3 +254,95 @@ pub async fn file_hash(path : String) -> String? noraise {
     Some(first)
   }
 }
+
+///|
+/// 某个 PID 的 argv。Linux 读 /proc/<pid>/cmdline（NUL 分隔）；macOS 用
+/// `ps -p PID -o command=`（空格分隔，参数里带空格的路径会拆坏，够用）。
+pub async fn process_argv(pid : Int32) -> Array[String]? noraise {
+  if has_proc() {
+    let file = "/proc/" + @json.int_to_dec(pid) + "/cmdline"
+    let raw = match @json.read_text_file_fs(file) {
+      Ok(t) => t
+      Err(_) => return None
+    }
+    let argv : Array[String] = []
+    for part in raw.split("\u{0000}") {
+      let item = @json.owned(part)
+      if item != "" {
+        argv.push(item)
+      }
+    }
+    if argv.length() == 0 {
+      None
+    } else {
+      Some(argv)
+    }
+  } else {
+    let text = sh("ps", ["-p", pid.to_string(), "-o", "command="])
+    let argv : Array[String] = []
+    for token in @json.split_ws(@json.trim_both(text)) {
+      if token != "" {
+        argv.push(token)
+      }
+    }
+    if argv.length() == 0 {
+      None
+    } else {
+      Some(argv)
+    }
+  }
+}
+
+///|
+/// 进程表里的一行：pid + 命令行（连在一起的整串）。
+pub(all) struct ProcessRow {
+  pid : Int32
+  command : String
+}
+
+///|
+/// 列出本机进程（pid + 命令行）。Linux 扫 /proc/<pid>/cmdline；macOS 用
+/// `ps -eo pid=,command=`。只给能被当前用户看见的进程。
+pub async fn process_table() -> Array[ProcessRow] noraise {
+  let out : Array[ProcessRow] = []
+  if has_proc() {
+    let names = match @json.list_dir_result_fs("/proc") {
+      Ok(l) => l
+      Err(_) => return out
+    }
+    for name in names {
+      if !@json.is_all_digits(name) {
+        continue
+      }
+      let pid = @json.parse_dec(name)
+      match process_argv(pid) {
+        Some(argv) => out.push({ pid, command: argv.join(" ") })
+        None => ()
+      }
+    }
+  } else {
+    let text = sh("ps", ["-eo", "pid=,command="])
+    for line in text.split("\n") {
+      let trimmed = @json.trim_both(@json.owned(line))
+      if trimmed == "" {
+        continue
+      }
+      let cols = @json.split_ws(trimmed)
+      let pid_text = match cols.get(0) {
+        Some(p) => p
+        None => continue
+      }
+      let pid = match parse_dec(pid_text) {
+        Some(p) => p
+        None => continue
+      }
+      let cmd = if trimmed.length() > pid_text.length() {
+        @json.trim_both(@json.slice_from(trimmed, pid_text.length()))
+      } else {
+        ""
+      }
+      out.push({ pid, command: cmd })
+    }
+  }
+  out
+}
