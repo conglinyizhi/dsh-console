@@ -56,6 +56,7 @@
 
 ## 杂项
 
+- 还原时的「还原前」快照去重命中后，回执仍写「已先把当前状态拍成一张快照（id）」——那份其实是复用的旧快照（内容一致）。措辞改成「当前状态和最近一份一致，沿用它作为还原前的那张」。
 - 远程（192.168.1.21）实测 `repair-packages` 失败时的文案：`这几个在 registry 里找不到，得改 package.json：（重试不会变好）` 冒号后面空着——找不到的包名列表没拼进去。要查 `install-incomplete` 那一档的 names 来源。
 - 同一台机器上没有 yarn 时，`repair-packages` 回「这台机器上没有包管理器：yarn 不在 PATH 上」——机器上其实有 pnpm/npm，只是这一只 profile 要 yarn。文案可以补一句「换 packageManager 或装上 yarn」。
 - 远程从源码构建后端失败：`moonc link-core` 报 Stack overflow（编译器 ICE），远程 core 是稳定版 `0.10.17+d971670cd`，本机是 nightly `0.10.17+1c70d827d-nightly`。用本机构建的二进制跑的测试。要不要在 README 的已知边界里提一句 nightly 工具链。
