@@ -77,6 +77,8 @@ jobs:
         if: runner.os == 'Windows'
         run: moon run scripts/cli.mbtx -- check
 
+      # macOS 也跑一遍：platform 包在那边走 lsof / ps，不是 /proc 那条路，
+      # 光靠单测证明不了真实行为。
       - name: Smoke (e2e)
-        if: runner.os == 'Linux'
+        if: runner.os != 'Windows'
         run: moon run scripts/cli.mbtx -- smoke
