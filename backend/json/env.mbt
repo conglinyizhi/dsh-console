@@ -28,8 +28,17 @@ async fn environ_from_proc() -> Map[String, String] noraise {
 
 ///|
 /// 进程环境变量表。
+///
+/// Linux 读 /proc/self/environ（拿得到的是这个进程**启动时**的那份）；
+/// macOS 上没有 /proc，回退到本进程自己的环境（@env），否则所有 env 读取
+/// 都会静默变成空值 —— 端口、DSH_HOME 这些参数会全部回到缺省。
 pub async fn environ() -> Map[String, String] noraise {
-  environ_from_proc()
+  let from_proc = environ_from_proc()
+  if from_proc.length() > 0 {
+    from_proc
+  } else {
+    @env.get_env_vars()
+  }
 }
 
 ///|
