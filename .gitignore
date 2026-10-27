@@ -5,3 +5,6 @@
 .tmp-lead*
 30-*.json
 30-verify.png.png
+
+# moon run 单个 .mbtx 时的产物
+scripts/_build/
