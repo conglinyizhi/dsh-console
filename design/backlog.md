@@ -56,6 +56,9 @@
 
 ## 杂项
 
+- 远程（192.168.1.21）实测 `repair-packages` 失败时的文案：`这几个在 registry 里找不到，得改 package.json：（重试不会变好）` 冒号后面空着——找不到的包名列表没拼进去。要查 `install-incomplete` 那一档的 names 来源。
+- 同一台机器上没有 yarn 时，`repair-packages` 回「这台机器上没有包管理器：yarn 不在 PATH 上」——机器上其实有 pnpm/npm，只是这一只 profile 要 yarn。文案可以补一句「换 packageManager 或装上 yarn」。
+- 远程从源码构建后端失败：`moonc link-core` 报 Stack overflow（编译器 ICE），远程 core 是稳定版 `0.10.17+d971670cd`，本机是 nightly `0.10.17+1c70d827d-nightly`。用本机构建的二进制跑的测试。要不要在 README 的已知边界里提一句 nightly 工具链。
 - 复制出来的带令牌地址，实例重启之后失效（提督 2026-10-26 反馈）。`weburl.mbt` 的注释写着「token 每次启动都可能变」，所以旧地址失效本身是设计；要查的是控制台有没有在重启后把界面上的地址换掉、以及复制时有没有提示「重启后要重新复制」。待确认是 UI 没刷新，还是只缺一句提示。
 - 启动后填标页的提示条开头多一个 `；`：`app_actions_instance.mbt` 里 `base_text + "；" + tail`，`base_text` 为空时就成了「；已…」。修法：空串时不加分隔符。
 - 验收的 `probe-animation` 点到起不来的 profile 会留下 `~/.dsh/logs/console-headless-84xx.log` 一份 1 行日志；跑完验收扫一眼 `~/.dsh/logs/`。
