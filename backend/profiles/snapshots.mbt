@@ -32,6 +32,61 @@ pub let default_snapshot_reason : String = "手动快照"
 pub let pre_restore_reason : String = "还原前"
 
 ///|
+/// 一份快照和 profile 当前内容在某个文件上的差异摘要。
+pub(all) struct FileDiff {
+  name : String
+  /// same / changed / only-snapshot / only-current
+  state : String
+  added : Int32
+  removed : Int32
+}
+
+///|
+/// 两份文本的行级差异：新增几行、删掉几行。
+/// 用 LCS 算共同行：add = b 的行数 − 共同行，del = a 的行数 − 共同行。
+/// 配置文件只有几百行，滚动数组的 O(n·m) 够用。
+fn line_diff(a : String, b : String) -> (Int32, Int32) {
+  let la : Array[String] = []
+  for line in a.split("\n") {
+    la.push(@json.owned(line))
+  }
+  let lb : Array[String] = []
+  for line in b.split("\n") {
+    lb.push(@json.owned(line))
+  }
+  let n = la.length()
+  let m = lb.length()
+  if n == 0 || m == 0 {
+    return (m, n)
+  }
+  let prev : Array[Int32] = Array::make(m + 1, 0)
+  let cur : Array[Int32] = Array::make(m + 1, 0)
+  let mut i = 1
+  while i <= n {
+    cur[0] = 0
+    let mut j = 1
+    while j <= m {
+      cur[j] = if la[i - 1] == lb[j - 1] {
+        prev[j - 1] + 1
+      } else if prev[j] >= cur[j - 1] {
+        prev[j]
+      } else {
+        cur[j - 1]
+      }
+      j = j + 1
+    }
+    let mut k = 0
+    while k <= m {
+      prev[k] = cur[k]
+      k = k + 1
+    }
+    i = i + 1
+  }
+  let lcs = prev[m]
+  (m - lcs, n - lcs)
+}
+
+///|
 /// 读数里的一份快照。at / reason / files / bytes 读自 meta.json；
 /// meta.json 读不出来时 at 按目录名（毫秒时间戳）折算，其余给空 / 0，并在来源串里说清。
 pub(all) struct SnapshotEntry {
@@ -40,6 +95,8 @@ pub(all) struct SnapshotEntry {
   reason : String
   files : Int32
   bytes : Int64
+  /// 和 profile 现在那三个文件比，每个文件差多少行（只列有差异或只存在一边的）
+  diff : Array[FileDiff]
 }
 
 ///|
@@ -233,7 +290,44 @@ pub async fn read_snapshots(
         (@json.iso_from_epoch_ms(@json.parse_dec64(name)), "", 0, 0L)
       }
     }
-    entries.push({ id: name, at, reason, files, bytes, })
+    // 和当前 profile 那三个文件比一比：只保留有差异或只存在一边的，全同的省略
+    let diffs : Array[FileDiff] = []
+    for fname in snapshot_file_names {
+      let snap_path = @json.join_path(snapshot_dir, fname)
+      let cur_path = @json.join_path(profile_dir, fname)
+      let snap_exists = @json.exists(snap_path)
+      let cur_exists = @json.exists(cur_path)
+      if !snap_exists && !cur_exists {
+        continue
+      }
+      if !snap_exists {
+        diffs.push({ name: fname, state: "only-current", added: 0, removed: 0, })
+        continue
+      }
+      if !cur_exists {
+        diffs.push({
+          name: fname,
+          state: "only-snapshot",
+          added: 0,
+          removed: 0,
+        })
+        continue
+      }
+      let snap_text = match @json.read_text_file_fs(snap_path) {
+        Ok(t) => t
+        Err(_) => ""
+      }
+      let cur_text = match @json.read_text_file_fs(cur_path) {
+        Ok(t) => t
+        Err(_) => ""
+      }
+      if snap_text == cur_text {
+        continue
+      }
+      let (added, removed) = line_diff(snap_text, cur_text)
+      diffs.push({ name: fname, state: "changed", added, removed, })
+    }
+    entries.push({ id: name, at, reason, files, bytes, diff: diffs, })
   }
   entries.sort_by(fn(a, b) { snapshot_desc(a.id, b.id) })
   let count = entries.length().to_string()

@@ -149,7 +149,34 @@ pub(all) struct SnapshotFact {
   files : Int32
   /// meta.json 里记的字节数。接口给的是数字，按 Double 收（与回收站条目同一口径）
   bytes : Double
+  /// 和 profile 现在那三个文件比的差异摘要（只列有差异或只存在一边的）
+  diff : Array[SnapshotDiffFact]
+}
+
+///|
+/// 一份快照里某个文件和当前内容的差异摘要。
+pub(all) struct SnapshotDiffFact {
+  name : String
+  /// same / changed / only-snapshot / only-current
+  state : String
+  added : Int32
+  removed : Int32
 } derive(Eq)
+
+///|
+pub extend SnapshotDiffFact with Eq::{not_equal, equal}
+
+///|
+pub impl Eq for SnapshotFact with fn equal(
+  self : SnapshotFact,
+  other : SnapshotFact,
+) -> Bool {
+  self.id == other.id &&
+  self.at == other.at &&
+  self.reason == other.reason &&
+  self.files == other.files &&
+  self.bytes == other.bytes
+}
 
 ///|
 pub extend SnapshotFact with Eq::{not_equal, equal}

@@ -268,6 +268,16 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
     let snapshots : Array[SnapshotFact] = []
     for item in arr_field(fact, "snapshots") {
       guard item is Json::Object(snapshot) else { continue }
+      let diffs : Array[SnapshotDiffFact] = []
+      for d in arr_field(snapshot, "diff") {
+        guard d is Json::Object(entry) else { continue }
+        diffs.push({
+          name: str_field(entry, "name"),
+          state: str_field(entry, "state"),
+          added: int_or(entry, "added", 0),
+          removed: int_or(entry, "removed", 0),
+        })
+      }
       snapshots.push({
         id: str_field(snapshot, "id"),
         at: str_field(snapshot, "at"),
@@ -277,6 +287,7 @@ pub fn parse_profiles(text : String) -> Result[ProfilesFacts, String] {
           Some(value) => value
           None => 0.0
         },
+        diff: diffs,
       })
     }
     list.push({

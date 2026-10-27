@@ -712,6 +712,19 @@ async fn describe_profile(
             ("reason", @json.JStr(s.reason)),
             ("files", @json.jint(s.files)),
             ("bytes", @json.JNum(s.bytes.to_int().to_double())),
+            (
+              "diff",
+              @json.JArr(
+                s.diff.map(fn(d) {
+                  @json.JObj([
+                    ("name", @json.JStr(d.name)),
+                    ("state", @json.JStr(d.state)),
+                    ("added", @json.JNum(d.added.to_double())),
+                    ("removed", @json.JNum(d.removed.to_double())),
+                  ])
+                }),
+              ),
+            ),
           ])
         }),
       ),

@@ -389,6 +389,7 @@ fn snapshot_confirm_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     reason: "",
     files: 0,
     bytes: 0.0,
+    diff: [],
   }
   let (name, snap) = match find_row(model.rows, model.snapshot_confirm_id) {
     Some(row) =>

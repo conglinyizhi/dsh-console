@@ -14,6 +14,27 @@ fn snapshot_time_text(snap : SnapshotFact) -> String {
 }
 
 ///|
+/// 和 profile 当前内容比，这一份改了哪些文件、各差多少行。
+/// 全同就写「和当前一致」——这句话本身就是「要不要还原」的答案。
+fn snapshot_diff_text(snap : SnapshotFact) -> String {
+  if snap.diff.length() == 0 {
+    return "和当前一致"
+  }
+  let parts : Array[String] = []
+  for d in snap.diff {
+    let one = match d.state {
+      "changed" =>
+        d.name + " +" + d.added.to_string() + " −" + d.removed.to_string()
+      "only-snapshot" => d.name + "（只在快照里）"
+      "only-current" => d.name + "（只在当前里）"
+      _ => d.name
+    }
+    parts.push(one)
+  }
+  parts.join("；")
+}
+
+///|
 /// 快照那一行的「N 个文件 · X KB」。体积换算与回收站条目同一套（trash_size_text）。
 fn snapshot_size_text(snap : SnapshotFact) -> String {
   snap.files.to_string() + " 个文件 · " + trash_size_text(Some(snap.bytes))
@@ -167,6 +188,18 @@ fn snapshot_history(
                 "reason",
               ]),
               snapshot_reason_text(snap),
+            ),
+            @html.span(
+              class="dsh-snapshot-diff",
+              attrs=mark("drawer-snapshot-diff", [
+                "overview",
+                "drawer",
+                row.id,
+                "snapshot",
+                snap.id,
+                "diff",
+              ]).title("和 profile 现在那三个文件比，差多少行"),
+              snapshot_diff_text(snap),
             ),
             @html.span(
               class="dsh-snapshot-size",
