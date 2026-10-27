@@ -399,7 +399,7 @@ fn merge_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "merge-dialog",
-    "分发插件",
+    "分发我的插件",
     emit(MergeCancel),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {

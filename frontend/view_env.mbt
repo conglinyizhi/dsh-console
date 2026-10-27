@@ -875,7 +875,7 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             attrs=mark("env-open-name", ["settings", "env", "open", "name"]).title(
               "起实例时挂进子进程的变量：这一份是全局的，某只 profile 可以在抽屉里再覆盖其中的键",
             ),
-            "全局启动变量",
+            "全局环境变量",
           ),
           @html.p(
             class="dsh-env-option-desc",
@@ -888,7 +888,7 @@ fn env_settings_body(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
             class="dsh-btn",
             type_="button",
             attrs=mark("env-open", ["settings", "env", "global", "open"]).title(
-              "打开全局启动变量编辑器：增删改、长值展开、预设",
+              "打开全局环境变量编辑器：增删改、长值展开、预设",
             ),
             on_click=emit(EnvGlobalOpen),
             [@html.text("编辑…")],
@@ -913,10 +913,10 @@ fn drawer_env_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
     attrs=mark("drawer-env", ["overview", "drawer", row.id, "action", "env"])
       .data_set("action", "env")
       .title(
-        "这只 profile 的启动变量：起它时挂进子进程的变量，同名键覆盖设置页那份全局的",
+        "这只 profile 的环境变量：起它时挂进子进程，同名键覆盖设置页那份全局的",
       ),
     on_click=emit(EnvProfileOpen(row.id)),
-    [icon("key-variant"), @html.span("启动变量")],
+    [icon("key-variant"), @html.span("环境变量")],
   )
 }
 
@@ -1084,7 +1084,7 @@ fn env_readonly_table(
       @html.p(
         class="dsh-env-empty",
         attrs=mark("env-empty", ["settings", "env", target.scope_id, "empty"]),
-        "这只实例现在没有生效的启动变量",
+        "这只实例现在没有生效的环境变量",
       ),
     )
   } else {
@@ -1182,12 +1182,12 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   //   还没读到设置 → 正在读；读失败 → 说读失败；这只 profile 的目录名 / home 认不出 → 存不了。
   // 「没有单独设置」这一句只说**真读到过、确实没有**那一档（空态与「不知道」不是一回事）。
   let content = if !model.settings_loaded {
-    env_dialog_note(model, "env-loading", "正在读启动变量", "")
+    env_dialog_note(model, "env-loading", "正在读环境变量", "")
   } else if model.settings_error != "" {
     env_dialog_note(
       model,
       "env-unread",
-      "启动变量没读到，暂时改不了",
+      "环境变量没读到，暂时改不了",
       model.settings_error,
     )
   } else {
@@ -1237,7 +1237,7 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("dialog-title", ["dialog", "env-dialog", "title"]),
-      name + " 的启动变量",
+      name + " 的环境变量",
     ),
     match target {
       Some(t) => env_scope_line(t, emit)
@@ -1274,7 +1274,7 @@ fn env_profile_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "env-dialog",
-    name + " 的启动变量",
+    name + " 的环境变量",
     emit(EnvProfileClose),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {
@@ -1295,7 +1295,7 @@ fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
     @html.h2(
       class="dsh-dialog-title",
       attrs=mark("env-dialog-title", ["settings", "env", "dialog", "title"]),
-      "全局启动变量",
+      "全局环境变量",
     ),
     env_scope_line(target, emit),
     @html.p(
@@ -1304,7 +1304,7 @@ fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
       "含 key / password / token 这类字样的变量默认打码，点显示可看。起实例时挂进子进程的变量；每只 profile 可以在抽屉里覆盖其中的键。值默认打码，点「显示」看原文。",
     ),
     env_table(
-      model, target, "还没有启动变量，加一行就会在起实例时带上",
+      model, target, "还没有环境变量，加一行就会在起实例时带上",
       true, emit,
     ),
     @html.div(class="dsh-dialog-foot", [
@@ -1320,7 +1320,7 @@ fn env_global_dialog(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
   ])
   dialog(
     "env-global-dialog",
-    "全局启动变量",
+    "全局环境变量",
     emit(EnvGlobalClose),
     emit.map(fn(key : @html.Keyboard) {
       if key.key() == "Escape" {

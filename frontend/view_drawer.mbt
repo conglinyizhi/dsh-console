@@ -513,7 +513,7 @@ fn drawer_controls(
       row,
       CopyUrl,
       "link-variant",
-      "复制访问地址",
+      "复制地址",
       false,
       !row.url_copyable,
       if row.url_copyable {
@@ -547,7 +547,7 @@ fn drawer_controls(
             row,
             CopyDev,
             "content-copy",
-            "复制开发指令",
+            "复制提示词",
             false,
             false,
             emit,
@@ -1132,7 +1132,7 @@ fn drawer_merge_button(row : Row, emit : @cmd.Emit[Msg]) -> @html.Html {
         "把这一只里的本地插件（node_modules/@local 与 file:/link: 依赖）分到别的 profile",
       ),
     on_click=emit(MergeOpen(id=row.id, return_id="dsh-drawer-merge")),
-    [icon("puzzle-outline", size=14), @html.span("分发插件…")],
+    [icon("puzzle-outline", size=14), @html.span("分发我的插件…")],
   )
 }
 

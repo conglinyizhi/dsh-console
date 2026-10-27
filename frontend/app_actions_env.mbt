@@ -395,15 +395,15 @@ fn handle_env_saved(
         // 拼一个它其实没读到的模式进去，就成了一句凭缺省猜的话
         let text = if scope == "global" {
           if model.env_options_known {
-            "全局启动变量已保存（" +
+            "全局环境变量已保存（" +
             env_mode_text(model) +
             "），下一次启动生效"
           } else {
-            "全局启动变量已保存，下一次启动生效"
+            "全局环境变量已保存，下一次启动生效"
           }
         } else {
           env_open_name(model) +
-          " 的启动变量已保存，下一次启动生效"
+          " 的环境变量已保存，下一次启动生效"
         }
         (
           notice_ok(
@@ -423,7 +423,7 @@ fn handle_env_saved(
         (
           notice_failed_action(
             { ..model, env_draft: drafts, },
-            "启动变量没保存：" + note,
+            "环境变量没保存：" + note,
           ),
           settings_get_cmd(emit),
         )
