@@ -34,4 +34,4 @@ write() {
 
 write "$ROOT/frontend/build_info.mbt" "客户端构建信息"
 write "$ROOT/backend/store/build_info.mbt" "服务端构建信息"
-echo "build-info: $SHA @ $AT（$MODE）"
+echo "build-info: $SHA @ ${AT}（${MODE}）"

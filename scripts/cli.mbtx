@@ -1,3 +1,12 @@
+---
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/process",
+  "moonbitlang/async@0.22.4/fs",
+  "moonbitlang/core/env",
+}
+---
+
 ///|
 /// dsh-console 的构建入口：一条命令管开发构建、生产构建、检查、测试、起服务。
 ///
@@ -9,12 +18,6 @@
 ///   moon run scripts/cli.mbtx -- smoke            端到端 smoke（需要 Node）
 ///
 /// 约定在仓库根目录跑（下面用当前目录当根）。
-import {
-  "moonbitlang/async@0.22.4",
-  "moonbitlang/async@0.22.4/process",
-  "moonbitlang/async@0.22.4/fs",
-  "moonbitlang/core/env",
-}
 
 ///|
 /// 本地开发机上 ~/.moon 只读，构建跑在 .sandbox/moonhome 里；CI 上没这层，
