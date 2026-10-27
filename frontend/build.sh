@@ -19,7 +19,10 @@ cd "$(dirname "$0")"
 
 # native 构建必须显式指定工具链
 export MOON_CC=clang MOON_AR=ar MOON_LD=clang
-export MOON_HOME="${MOON_HOME:-$PWD/.sandbox/moonhome}"
+# 只有沙箱目录真的存在才用它：CI 上没有这层，得让 moon 用默认的 ~/.moon。
+if [ -z "${MOON_HOME:-}" ] && [ -d "$PWD/.sandbox/moonhome" ]; then
+  export MOON_HOME="$PWD/.sandbox/moonhome"
+fi
 
 # 0) 构建信息：sha + 构建时刻（页脚要显示它，每次构建前重生成）
 bash "$(dirname "$0")/../scripts/gen-build-info.sh" "$(cd "$(dirname "$0")/.." && pwd)"
