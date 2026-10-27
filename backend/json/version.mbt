@@ -64,7 +64,7 @@ pub async fn resolve_frontend_dir() -> (String?, String) noraise {
     }
   }
   let exe = exe_path()
-  let shown = if exe == "" { "（读不到 /proc/self/exe）" } else { exe }
+  let shown = if exe == "" { "（读不到自身可执行文件路径）" } else { exe }
   match locate_frontend_dir() {
     Some(dir) =>
       (

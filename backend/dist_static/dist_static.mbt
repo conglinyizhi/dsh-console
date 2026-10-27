@@ -102,7 +102,7 @@ pub async fn locate_dist_dir() -> String? noraise {
 /// 日志里回显 exe 位置；读不到就说读不到，不留空。
 fn exe_note(exe : String) -> String {
   if exe == "" {
-    "（读不到 /proc/self/exe）"
+    "（读不到自身可执行文件路径）"
   } else {
     exe
   }
