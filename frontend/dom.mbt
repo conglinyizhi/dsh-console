@@ -5,6 +5,7 @@
 
 ///|
 /// 按 id 聚焦。找不到就什么都不做（元素可能已经随列表卸载 —— 例如删掉的那一行）。
+
 ///|
 /// 本页引用的 app.js 的 ?v=…（构建时按内容哈希写进去的）。
 /// 读不到就回空串：开发时没有这个参数，界面回落到 git sha。
@@ -16,6 +17,7 @@ extern "js" fn js_asset_version() -> String =
   #|   return m ? m[1] : "";
   #| }
 
+///|
 extern "js" fn js_focus_id(id : String) -> Unit =
   #| id => { const el = document.getElementById(id); if (el && typeof el.focus === 'function') el.focus(); }
 

@@ -1,0 +1,11 @@
+import {
+  "conglinyizhi/dsh-console-backend/json",
+  "conglinyizhi/dsh-console-backend/fsx",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/process",
+  "moonbitlang/core/env",
+}
+
+options(
+  "is-main": false,
+)

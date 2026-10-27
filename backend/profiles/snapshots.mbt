@@ -469,9 +469,8 @@ pub async fn create_snapshot(
     Some(prev) =>
       if same_as_snapshot(profile_dir, @json.join_path(dir, prev)) {
         // 回执说的是「那一份」：时刻和原因都取旧快照自己的，不是这一次请求传的 reason
-        let prev_reason = match read_meta(
-          @json.join_path(@json.join_path(dir, prev), "meta.json"),
-        ) {
+        let prev_reason = match
+          read_meta(@json.join_path(@json.join_path(dir, prev), "meta.json")) {
           Some(m) => m.reason
           None => ""
         }

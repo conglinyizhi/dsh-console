@@ -88,27 +88,6 @@ pub async fn port_listening(port : Int32) -> Bool noraise {
 }
 
 ///|
-/// 十六进制端口。
-fn parse_hex(s : String) -> Int32 {
-  if s == "" {
-    return -1
-  }
-  let mut value = 0
-  for ch in s {
-    let code = ch.to_int()
-    let digit = if code >= 48 && code <= 57 {
-      code - 48
-    } else if code >= 65 && code <= 70 {
-      code - 55
-    } else if code >= 97 && code <= 102 {
-      code - 87
-    } else {
-      return -1
-    }
-    value = value * 16 + digit
-  }
-  value
-}
 
 ///|
 /// /proc/net/tcp(6) 状态列里 LISTEN 的码。
@@ -126,29 +105,7 @@ pub let listen_state : String = "0A"
 /// 两张表都读：IPv4 在 /proc/net/tcp，IPv6 在 /proc/net/tcp6（`::1` 上的监听只出现在后者，
 /// 只听 v6 的服务也不会在 v4 那张表里留行）。
 pub async fn listening_ports() -> Array[Int32] noraise {
-  let out : Array[Int32] = []
-  for file in ["/proc/net/tcp", "/proc/net/tcp6"] {
-    let text = match @json.read_text_file_fs(file) {
-      Ok(t) => t
-      Err(_) => continue
-    }
-    for line in text.split("\n") {
-      let cols = @json.split_ws(@json.owned(line))
-      // 列序：0 sl、1 local_address、2 rem_address、3 st —— 表头行只有两列，在这里被筛掉
-      if cols.length() < 4 || cols[3] != listen_state {
-        continue
-      }
-      let parts = @json.split_ws(cols[1].replace_all(old=":", new=" "))
-      if parts.length() != 2 {
-        continue
-      }
-      let port = parse_hex(parts[1])
-      if port > 0 && !out.contains(port) {
-        out.push(port)
-      }
-    }
-  }
-  out
+  @platform.listening_ports()
 }
 
 ///|
@@ -177,23 +134,7 @@ pub async fn pick_free_port(base : Int32) -> Int32? noraise {
 /// 但它已经死了（端口早就放了，只是父进程还没 wait 它）。
 /// 判据取 /proc/<pid>/stat 第三列的状态位，Z（僵尸）按死处理。
 pub async fn process_alive(pid : Int32) -> Bool noraise {
-  if !@fsx.pid_alive(pid) {
-    return false
-  }
-  match @json.read_text_file_fs("/proc/" + pid.to_string() + "/stat") {
-    Ok(text) => {
-      let cut = match text.rev_find(")") {
-        Some(i) => i
-        None => return true
-      }
-      let fields = @json.split_ws(@json.slice_from(text, cut + 1))
-      match fields.get(0) {
-        Some(state) => state != "Z" && state != "X"
-        None => true
-      }
-    }
-    Err(_) => true
-  }
+  @platform.process_alive(pid)
 }
 
 ///|

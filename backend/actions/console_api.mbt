@@ -33,6 +33,7 @@ async fn delete_mode_fields() -> Array[(String, @json.JsonVal)] noraise {
 
 ///|
 /// 控制台状态响应。
+
 ///|
 /// 这份可执行文件的内容哈希（md5 前 8 位）：二进制一变数字就变。
 ///
@@ -54,30 +55,18 @@ async fn self_hash() -> String noraise {
       if path == "" {
         return @store.build_sha
       }
-      let input = @process.redirect_from_file("/dev/null") catch {
-        _ => return @store.build_sha
+      // Linux 用 md5sum、macOS 用 md5 -q，跨平台的分支收在 platform 包里。
+      let short = match @platform.file_hash(path) {
+        Some(h) => h
+        None => return @store.build_sha
       }
-      let (code, stdout, _) = @process.collect_output(
-        "md5sum", [path], inherit_env=true, stdin=input,
-      ) catch {
-        _ => return @store.build_sha
-      }
-      if code != 0 {
-        return @store.build_sha
-      }
-      let raw = stdout.text() catch { _ => return @store.build_sha }
-      let text = @json.trim_both(raw)
-      let hex = match text.find(" ") {
-        Some(i) => text[:i].to_owned()
-        None => text
-      }
-      let short = if hex.length() >= 8 { hex[:8].to_owned() } else { hex }
       self_hash_cache.val = Some(short)
       short
     }
   }
 }
 
+///|
 async fn console_payload() -> @json.JsonVal noraise {
   let paths = @store.state_paths()
   let registry = @store.load_registry()

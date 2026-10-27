@@ -334,6 +334,24 @@ async fn supplement_processes(
   holders : @processes.HolderScan,
   socket_inodes : Int32,
 ) -> (ProcessSupplement, Array[@processes.ProcSummary]) noraise {
+  // macOS 上没有 /proc 的 cmdline / environ / fd，这一层整块降级：
+  // 实例识别只靠端口探测，不假装能按进程反查。
+  if !@platform.supports_proc_scan() {
+    return (
+      {
+        proc_root: "/proc",
+        scanned: 0,
+        dsh_processes: 0,
+        with_port: 0,
+        note: "这台机器没有 /proc，跳过进程侧扫描",
+        socket_inodes: 0,
+        inode_holders: 0,
+        fd_denied: 0,
+        join_note: "",
+      },
+      [],
+    )
+  }
   let report = @processes.read_processes()
   let with_port : Array[@processes.ProcSummary] = []
   for item in report.instances {

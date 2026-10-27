@@ -1,4 +1,5 @@
 import {
+  "conglinyizhi/dsh-console-backend/platform",
   "conglinyizhi/dsh-console-backend/rawsink",
   "conglinyizhi/dsh-console-backend/json",
   "conglinyizhi/dsh-console-backend/localapi",
