@@ -74,6 +74,12 @@ async fn run_cmd(
   if e != "" {
     println(e)
   }
+  if code != 0 && o == "" && e == "" {
+    // 子进程一声不吭就失败：把现场打出来，不然只剩一个退出码没法查
+    println(
+      "（" + cmd + " 无输出就失败了：cwd=" + cwd + "，exit=" + code.to_string() + "）",
+    )
+  }
   code
 }
 
