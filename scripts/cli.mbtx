@@ -78,23 +78,27 @@ async fn run_cmd(
 }
 
 ///|
-async fn build(root : String, release : Bool) -> Int {
+async fn build(root : String, release : Bool, backend_only : Bool) -> Int {
   let mode = if release { "release" } else { "dev" }
   let frontend = join(root, "frontend")
   let backend = join(root, "backend")
   println("== 构建模式：" + mode + " ==")
 
-  // 前端：build.sh 自己会调 gen-build-info.sh，BUILD_MODE 决定写 dev 还是 release
-  let env : Map[String, String] = Map([("BUILD_MODE", mode)])
-  match local_moon_home(frontend) {
-    Some(h) => env["MOON_HOME"] = h
-    None => ()
-  }
-  println("-- 前端")
-  let fc = run_cmd("bash", ["build.sh"], frontend, env)
-  if fc != 0 {
-    println("前端构建失败（exit " + fc.to_string() + "）")
-    return fc
+  if backend_only {
+    println("-- 跳过前端（--backend-only）")
+  } else {
+    // 前端：build.sh 自己会调 gen-build-info.sh，BUILD_MODE 决定写 dev 还是 release
+    let env : Map[String, String] = Map([("BUILD_MODE", mode)])
+    match local_moon_home(frontend) {
+      Some(h) => env["MOON_HOME"] = h
+      None => ()
+    }
+    println("-- 前端")
+    let fc = run_cmd("bash", ["build.sh"], frontend, env)
+    if fc != 0 {
+      println("前端构建失败（exit " + fc.to_string() + "）")
+      return fc
+    }
   }
 
   // 后端：release 时才加 --release（优化 + strip 由 moon 自己决定）
@@ -129,6 +133,7 @@ async fn main {
   let cmd = argv[0]
   let rest = argv[1:].to_owned()
   let release = rest.any(fn(a) { a == "--release" })
+  let backend_only = rest.any(fn(a) { a == "--backend-only" })
   let root = match @env.current_dir() {
     Some(d) => d
     None => "."
@@ -141,13 +146,13 @@ async fn main {
   }
   match cmd {
     "build" => {
-      let code = build(root, release)
+      let code = build(root, release, backend_only)
       if code != 0 {
         abort("构建失败（exit " + code.to_string() + "）")
       }
     }
     "run" => {
-      let code = build(root, release)
+      let code = build(root, release, backend_only)
       if code != 0 {
         abort("构建失败（exit " + code.to_string() + "）")
       }
