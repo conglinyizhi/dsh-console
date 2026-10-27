@@ -468,11 +468,18 @@ pub async fn create_snapshot(
   match latest_snapshot_id(dir) {
     Some(prev) =>
       if same_as_snapshot(profile_dir, @json.join_path(dir, prev)) {
+        // 回执说的是「那一份」：时刻和原因都取旧快照自己的，不是这一次请求传的 reason
+        let prev_reason = match read_meta(
+          @json.join_path(@json.join_path(dir, prev), "meta.json"),
+        ) {
+          Some(m) => m.reason
+          None => ""
+        }
         return Ok({
           id: prev,
           dir: @json.join_path(dir, prev),
           at: @json.iso_from_epoch_ms(@json.parse_dec64(prev)),
-          reason,
+          reason: prev_reason,
           files: 0,
           bytes: 0L,
           copied: [],

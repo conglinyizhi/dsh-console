@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/core/deque",
+  "moonbitlang/async/internal/coroutine",
+  "moonbitlang/async/internal/cancellable_queue",
+}
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/async",
+  "moonbitlang/async/internal/test_util",
+} for "test"

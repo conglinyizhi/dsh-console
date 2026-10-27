@@ -73,15 +73,15 @@ fn snapshot_note(
   keep : Int32,
 ) -> String {
   if o.skipped {
-    return "和最近一份快照一模一样（" +
+    return "当前状态和最近一份快照的内容完全一致（" +
       o.at +
       "，原因「" +
       o.reason +
-      "」），没有新拍一份"
+      "」），没有新建"
   }
-  let mut text = "已给 " +
+  let mut text = "已记录 " +
     profile +
-    " 拍了一张快照：" +
+    " 的当前状态作为快照：" +
     o.files.to_string() +
     " 个文件 · " +
     o.bytes.to_string() +
@@ -192,11 +192,22 @@ pub async fn restore_snapshot_action(
   } else {
     outcome.restored.join("、")
   }
-  let mut note = "已先把当前状态拍成一张快照（" +
-    outcome.pre_snapshot.id +
+  // 还原前那张：拍成功了说「记录了什么」，内容一致被去重命中时说「沿用了哪一份」
+  let pre_text = if outcome.pre_snapshot.skipped {
+    "当前状态和最近一份快照的内容完全一致（" +
+    outcome.pre_snapshot.at +
     "，原因「" +
-    @profiles.pre_restore_reason +
-    "」），再把 " +
+    outcome.pre_snapshot.reason +
+    "」），沿用它作为还原前的那张"
+  } else {
+    "已记录 " +
+    profile +
+    " 的当前状态作为「还原前」快照（" +
+    outcome.pre_snapshot.id +
+    "）"
+  }
+  let mut note = pre_text +
+    "，再把 " +
     outcome.at +
     " 那一份写回去；恢复了 " +
     outcome.restored.length().to_string() +

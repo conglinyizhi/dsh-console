@@ -5,6 +5,8 @@
 set -euo pipefail
 
 ROOT="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
+# 构建模式：dev（默认，内容哈希）或 release（git sha）。由 scripts/cli.mbtx 传进来。
+MODE="${BUILD_MODE:-dev}"
 SHA="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo)"
 AT="$(date '+%Y-%m-%d %H:%M:%S')"
 if [ -z "$SHA" ]; then
@@ -23,9 +25,13 @@ write() {
     echo ""
     echo "///|"
     echo "pub let build_at : String = \"$AT\""
+    echo ""
+    echo "///|"
+    echo "/// 构建模式：dev 用内容哈希做版本标识，release 用 git sha。"
+    echo "pub let build_mode : String = \"$MODE\""
   } > "$file"
 }
 
 write "$ROOT/frontend/build_info.mbt" "客户端构建信息"
 write "$ROOT/backend/store/build_info.mbt" "服务端构建信息"
-echo "build-info: $SHA @ $AT"
+echo "build-info: $SHA @ $AT（$MODE）"

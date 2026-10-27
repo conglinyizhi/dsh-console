@@ -170,7 +170,13 @@ fn side_nav(model : Model, emit : @cmd.Emit[Msg]) -> @html.Html {
                 attrs=mark("side-version-client", [
                   "shell", "side-foot", "client",
                 ]),
-                "client " + build_sha,
+                // 优先显示资源内容哈希（构建时按 app.js 内容算的，改了就变）；
+                // 读不到才回落到 git sha —— 开发时没有 ?v= 参数就是这一档。
+                "client " +
+                (match js_asset_version() {
+                  "" => build_sha
+                  v => v
+                }),
               ),
             ],
           ),

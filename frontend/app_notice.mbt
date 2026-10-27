@@ -264,15 +264,23 @@ fn action_receipt(
       "" => ""
       short => "（" + short + "）"
     }
-    let text = "已给 " +
+    let skipped = match outcome {
+      Some(o) => bool_field(o, "skipped")
+      None => false
+    }
+    let text = if skipped {
+      "当前状态和最近一份快照的内容完全一致，没有新建。"
+    } else {
+      "已记录 " +
       name +
-      " 拍了一张快照" +
+      " 的当前状态作为快照" +
       when +
       "：" +
       files.to_string() +
       " 个文件 · " +
       trash_size_text(bytes) +
       "。"
+    }
     let hint = backend_hint(note) +
       (if dir == "" { "" } else { "\n快照目录：" + dir })
     return (text, hint)

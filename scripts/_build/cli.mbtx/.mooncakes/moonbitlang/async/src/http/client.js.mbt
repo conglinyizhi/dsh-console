@@ -1,0 +1,326 @@
+// Copyright 2025 International Digital Economy Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+///|
+#external
+priv type JsHeaders
+
+///|
+extern "js" fn JsHeaders::new() -> JsHeaders =
+  #| () => new Headers()
+
+///|
+extern "js" fn JsHeaders::append(
+  headers : JsHeaders,
+  name : String,
+  value : String,
+) =
+  #| (headers, name, value) => headers.append(name, value)
+
+///|
+extern "js" fn JsHeaders::to_array(
+  headers : JsHeaders,
+) -> FixedArray[FixedArray[String]] =
+  #| (headers) => Array.from(headers.entries())
+
+///|
+#external
+priv type JsResponse
+
+///|
+extern "js" fn JsResponse::status(response : JsResponse) -> Int =
+  #| (response) => response.status
+
+///|
+extern "js" fn JsResponse::status_text(response : JsResponse) -> String =
+  #| (response) => response.statusText
+
+///|
+extern "js" fn JsResponse::headers(response : JsResponse) -> JsHeaders =
+  #| (response) => response.headers
+
+///|
+extern "js" fn JsResponse::body(
+  response : JsResponse,
+) -> @js_async.JsReadableStream =
+  #| (response) => response.body ?? new ReadableStream({
+  #|   start(controller) { controller.close() },
+  #| })
+
+///|
+priv struct OngoingRequest {
+  meth : String
+  uri : String
+  body : @buffer.Buffer
+  headers : JsHeaders
+}
+
+///|
+struct Client {
+  host : String
+  protocol : Protocol
+  headers : Headers
+  mut request : OngoingRequest?
+  mut response_body : @js_async.ReadableStream?
+}
+
+///|
+pub fn Client::close(self : Client) -> Unit {
+  self.request = None
+  if self.response_body is Some(response_body) {
+    response_body.close()
+  }
+}
+
+///|
+fn Client::connect(
+  host : String,
+  headers? : Headers = Map([]),
+  protocol? : Protocol = Https,
+  proxy? : Client,
+) -> Client {
+  ignore(proxy)
+  { host, headers, protocol, request: None, response_body: None, }
+}
+
+///|
+/// Create a new HTTP client by connecting to a remote host.
+/// Host should be specified via `protocol://host[:port]`,
+/// where `protocol` is one of `http` or `https`.
+///
+/// `headers` can be used to specify persistent headers for the client,
+/// i.e. all requests made from this client will share these headers.
+/// The ownership of `headers` will be transferred to the new client,
+/// so `headers` should not be used by the caller later.
+/// The headers mentioned in
+/// https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
+/// must not be set in `headers`.
+///
+/// The HTTP client make requests using native fetch API.
+///
+/// The `proxy` argument is not supported on JavaScript backend and has no effect.
+///
+/// `verify` is ignored on JS backend
+#warnings("-unused_async")
+#alias(new, deprecated)
+#label_migration(verify, fill=false, msg="verify is unsupported on Windows")
+pub async fn Client::Client(
+  uri : String,
+  headers? : Headers = Map([]),
+  proxy? : Client,
+  verify? : Bool = true,
+) -> Client {
+  ignore(proxy)
+  ignore(verify)
+  let (protocol, host, path) = resolve_url(uri)
+  guard path is "/" else { raise InvalidFormat }
+  Client::connect(host, protocol~, headers~, proxy?)
+}
+
+///|
+pub impl @io.Writer for Client with fn write_once(self, buf, offset~, len~) {
+  guard! self.request is Some(request)
+  request.body.write_bytes(buf[offset:offset + len])
+  len
+}
+
+///|
+pub extend Client with @io.Writer::{write_once, write, write_reader}
+
+///|
+#warnings("-unused_async")
+pub async fn Client::flush(_ : Client) -> Unit {
+  // no need to flush in JS backend
+  ()
+}
+
+///|
+pub impl @io.Reader for Client with fn _get_internal_buffer(self) {
+  guard! self.response_body is Some(stream)
+  @io.Reader::_get_internal_buffer(stream)
+}
+
+///|
+pub impl @io.Reader for Client with fn _direct_read(
+  self,
+  buf,
+  offset~,
+  max_len~,
+) {
+  guard! self.response_body is Some(stream)
+  @io.Reader::_direct_read(stream, buf, offset~, max_len~)
+}
+
+///|
+pub extend Client with @io.Reader::{
+  read,
+  drop,
+  read_exactly,
+  read_some,
+  read_all,
+  read_until,
+}
+
+///|
+/// End the body of the request currently being sent,
+/// and obtain response from the server.
+/// Should be called immediately after request body is fully sent.
+///
+/// Only the header of the response will be received and returned,
+/// the body of the response can be extracted by using `Client` as a `@io.Reader`.
+///
+/// If the body of the last response is still not consumed,
+/// it will be discarded.
+///
+/// `on_informational_response` is not supported on JS backend,
+/// and will be silently ignored.
+pub async fn Client::end_request(
+  self : Client,
+  on_informational_response? : async (Response) -> Unit,
+) -> Response {
+  ignore(on_informational_response)
+  guard! self.request is Some(request)
+  self.request = None
+  let abort_controller = @js_async.AbortController::new()
+  let js_response = Client::request_ffi(
+    request.uri,
+    request.meth,
+    headers=request.headers,
+    body=request.body.contents(),
+    signal=abort_controller.signal(),
+  ).wait(abort_controller~)
+  self.response_body = Some(
+    @js_async.ReadableStream::from_js(js_response.body()),
+  )
+  let headers : Headers = Map([])
+  for entry in js_response.headers().to_array() {
+    headers[entry[0]] = entry[1]
+  }
+  {
+    code: js_response.status(),
+    reason: js_response.status_text(),
+    headers,
+    cookies: [],
+  }
+}
+
+///|
+extern "js" fn Client::request_ffi(
+  uri : String,
+  meth : String,
+  headers~ : JsHeaders,
+  body~ : Bytes,
+  signal~ : @js_async.AbortSignal,
+) -> @js_async.Promise[JsResponse] =
+  #| (uri, method, headers, body, signal) => {
+  #|   const fixed_body = (method === "GET" || method === "HEAD") ? null : body
+  #|   return fetch(
+  #|     uri,
+  #|     {
+  #|       body: fixed_body,
+  #|       method: method,
+  #|       headers: headers,
+  #|       signal: signal,
+  #|     },
+  #|   )
+  #| }
+
+///|
+/// Send a HTTP request to the server.
+/// Only the header of the request will be sent,
+/// request body can be sent by using `Client` as a `@io.Writer`.
+/// Once request body has been sent,
+/// `end_request` must be called to complete the request and obtain response from the server.
+///
+/// After performing a request,
+/// the next request MUST NOT be made before the request is completed via `end_request`.
+///
+/// In addition to headers in `Client::new`,
+/// extra HTTP headers can be passed via `extra_headers`.
+/// The headers mentioned in
+/// https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
+/// must not be set in `extra_headers`.
+#warnings("-unused_async")
+pub async fn Client::request(
+  self : Client,
+  meth : RequestMethod,
+  path : StringView,
+  extra_headers? : Headers = Map([]),
+) -> Unit {
+  guard! self.request is None
+  let protocol = match self.protocol {
+    Http => "http://"
+    Https => "https://"
+  }
+  let path = if path is ['/', ..] { path } else { "/\{path}" }
+  let uri = "\{protocol}\{self.host}\{path}"
+  let meth = match meth {
+    Get => "GET"
+    Head => "HEAD"
+    Post => "POST"
+    Put => "PUT"
+    Delete => "DELETE"
+    Connect => "CONNECT"
+    Options => "OPTIONS"
+    Trace => "TRACE"
+    Patch => "PATCH"
+  }
+  let headers = JsHeaders::new()
+  for k, v in self.headers {
+    headers.append(k.0, v)
+  }
+  for k, v in extra_headers {
+    headers.append(k.0, v)
+  }
+  let request : OngoingRequest = { meth, uri, headers, body: Buffer(), }
+  self.request = Some(request)
+}
+
+///|
+/// Perform a `GET` request to the server, see `Client::request` for more details.
+#label_migration(body, fill=false, msg="`GET` request should not contain a body")
+pub async fn Client::get(
+  self : Client,
+  path : String,
+  extra_headers? : Headers = Map([]),
+  body? : &@io.Data,
+) -> Response {
+  self.request(Get, path, extra_headers~)
+  if body is Some(body) {
+    self.write(body)
+  }
+  self.end_request()
+}
+
+///|
+/// Perform a `PUT` request to the server, see `Client::request` for more details.
+pub async fn Client::put(
+  self : Client,
+  path : String,
+  body : &@io.Data,
+  extra_headers? : Headers = Map([]),
+) -> Response {
+  self..request(Put, path, extra_headers~)..write(body).end_request()
+}
+
+///|
+/// Perform a `POST` request to the server, see `Client::request` for more details.
+pub async fn Client::post(
+  self : Client,
+  path : String,
+  body : &@io.Data,
+  extra_headers? : Headers = Map([]),
+) -> Response {
+  self..request(Post, path, extra_headers~)..write(body).end_request()
+}

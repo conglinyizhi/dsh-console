@@ -66,6 +66,23 @@ cp "$app_js" dist/assets/app.js
 cp vendor/licenses/mdi-NOTICE.md dist/assets/licenses/
 cp web/index.html dist/index.html
 
+# 3.1) 资源 URL 带内容哈希：文件内容一变，URL 就变，浏览器没有缓存可用。
+#      用内容哈希而不是 git sha —— 没提交的改动也能让 URL 跟着变。
+# dev 用内容哈希（改代码就变）；release 用 git sha（可追溯到提交）。
+if [ "${BUILD_MODE:-dev}" = "release" ]; then
+  APP_HASH=$(git -C "$(dirname "$0")/.." rev-parse --short HEAD 2>/dev/null || echo unknown)
+else
+  if command -v sha256sum >/dev/null 2>&1; then
+    APP_HASH=$(sha256sum dist/assets/app.js | cut -c1-8)
+  else
+    APP_HASH=$(shasum -a 256 dist/assets/app.js | cut -c1-8)
+  fi
+fi
+# 不用 sed -i：macOS 的 BSD sed 要求 -i 后面跟一个空参数，跨平台会踩。
+sed "s/__BUILD__/${APP_HASH}/g" dist/index.html > dist/index.html.tmp
+mv dist/index.html.tmp dist/index.html
+echo "  资源版本号：$APP_HASH"
+
 echo
 echo "== 4/4 预压缩静态资源（gzip -9 -n -k）=="
 # 后端静态服务（backend/dist_static）在 Accept-Encoding 含 gzip、且同名 .gz 真在时直接发 .gz，

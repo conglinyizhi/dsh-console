@@ -1,0 +1,174 @@
+///|
+/// dsh-console 的构建入口：一条命令管开发构建、生产构建、检查、测试、起服务。
+///
+///   moon run scripts/cli.mbtx -- build            开发构建（两端都用内容哈希做版本标识）
+///   moon run scripts/cli.mbtx -- build --release  生产构建（两端都用 git sha，moon 开优化）
+///   moon run scripts/cli.mbtx -- run [--release]  构建后前台起服务
+///   moon run scripts/cli.mbtx -- check            类型检查（后端 deny-warn + 前端）
+///   moon run scripts/cli.mbtx -- test             后端单测
+///   moon run scripts/cli.mbtx -- smoke            端到端 smoke（需要 Node）
+///
+/// 约定在仓库根目录跑（下面用当前目录当根）。
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/process",
+  "moonbitlang/core/env",
+}
+
+///|
+fn join(a : String, b : String) -> String {
+  if a.has_suffix("/") {
+    a + b
+  } else {
+    a + "/" + b
+  }
+}
+
+///|
+fn usage() -> Unit {
+  println(
+    "用法：moon run scripts/cli.mbtx -- <命令> [选项]\n\n" +
+    "  build [--release]   构建前后端（release 用 git sha 与优化编译）\n" +
+    "  run [--release]     构建后前台起服务（Ctrl+C 停）\n" +
+    "  check               类型检查：后端 --deny-warn、前端\n" +
+    "  test                后端单测（native）\n" +
+    "  smoke               端到端 smoke（23 条断言）\n" +
+    "  help                这一屏",
+  )
+}
+
+///|
+/// 跑一条命令，输出原样转发；返回退出码。
+async fn run_cmd(
+  cmd : String,
+  args : Array[String],
+  cwd : String,
+  extra : Map[String, String],
+) -> Int {
+  let (code, out, err) = @process.collect_output(
+    cmd, args, extra_env=extra, inherit_env=true, cwd=cwd,
+  ) catch {
+    _ => {
+      println("起不了 " + cmd)
+      return 127
+    }
+  }
+  let o = out.text() catch { _ => "" }
+  let e = err.text() catch { _ => "" }
+  if o != "" {
+    println(o)
+  }
+  if e != "" {
+    println(e)
+  }
+  code
+}
+
+///|
+async fn build(root : String, release : Bool) -> Int {
+  let mode = if release { "release" } else { "dev" }
+  let frontend = join(root, "frontend")
+  let backend = join(root, "backend")
+  println("== 构建模式：" + mode + " ==")
+
+  // 前端：build.sh 自己会调 gen-build-info.sh，BUILD_MODE 决定写 dev 还是 release
+  let mut env : Map[String, String] = Map([
+    ("BUILD_MODE", mode),
+    ("MOON_HOME", join(frontend, ".sandbox/moonhome")),
+  ])
+  println("-- 前端")
+  let fc = run_cmd("bash", ["build.sh"], frontend, env)
+  if fc != 0 {
+    println("前端构建失败（exit " + fc.to_string() + "）")
+    return fc
+  }
+
+  // 后端：release 时才加 --release（优化 + strip 由 moon 自己决定）
+  env = Map([
+    ("MOON_HOME", join(backend, ".sandbox/moonhome")),
+    ("BUILD_MODE", mode),
+  ])
+  let args : Array[String] = if release {
+    ["build", "--target", "native", "--release"]
+  } else {
+    ["build", "--target", "native"]
+  }
+  println("-- 后端")
+  let bc = run_cmd("moon", args, backend, env)
+  if bc != 0 {
+    println("后端构建失败（exit " + bc.to_string() + "）")
+    return bc
+  }
+  println("构建完成：" + mode)
+  0
+}
+
+///|
+async fn main {
+  let all = @env.args()
+  let argv : Array[String] = if all.length() > 1 { all[1:].to_owned() } else { [] }
+  if argv.length() == 0 {
+    usage()
+    return
+  }
+  let cmd = argv[0]
+  let rest = argv[1:].to_owned()
+  let release = rest.any(fn(a) { a == "--release" })
+  let root = match @env.current_dir() {
+    Some(d) => d
+    None => "."
+  }
+  let backend = join(root, "backend")
+  let backend_env : Map[String, String] = Map([
+    ("MOON_HOME", join(backend, ".sandbox/moonhome")),
+  ])
+  match cmd {
+    "build" => {
+      let code = build(root, release)
+      if code != 0 {
+        abort("构建失败（exit " + code.to_string() + "）")
+      }
+    }
+    "run" => {
+      let code = build(root, release)
+      if code != 0 {
+        abort("构建失败（exit " + code.to_string() + "）")
+      }
+      println("== 起服务：http://127.0.0.1:5390/ ==")
+      let bin = join(root, "backend/_build/native/debug/build/dsh-console-backend.exe")
+      // 前台跑，Ctrl+C 结束；exec 语义由调用方（进程替换）保证不了，这里直接等
+      let code = run_cmd(bin, [], root, Map([]))
+      if code != 0 {
+        abort("构建失败（exit " + code.to_string() + "）")
+      }
+    }
+    "check" => {
+      println("-- 后端 moon check --deny-warn")
+      let bc = run_cmd("moon", ["check", "--deny-warn"], backend, backend_env)
+      let frontend = join(root, "frontend")
+      println("-- 前端 moon check")
+      let fc = run_cmd(
+        "moon",
+        ["check"],
+        frontend,
+        Map([("MOON_HOME", join(frontend, ".sandbox/moonhome"))]),
+      )
+      if bc != 0 || fc != 0 {
+        abort("检查没通过")
+      }
+    }
+    "test" => {
+      let code = run_cmd("moon", ["test", "--target", "native"], backend, backend_env)
+      if code != 0 {
+        abort("构建失败（exit " + code.to_string() + "）")
+      }
+    }
+    "smoke" => {
+      let code = run_cmd("node", ["scripts/smoke.mjs"], root, Map([]))
+      if code != 0 {
+        abort("构建失败（exit " + code.to_string() + "）")
+      }
+    }
+    _ => usage()
+  }
+}

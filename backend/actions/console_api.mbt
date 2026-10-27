@@ -33,12 +33,55 @@ async fn delete_mode_fields() -> Array[(String, @json.JsonVal)] noraise {
 
 ///|
 /// 控制台状态响应。
+///|
+/// 这份可执行文件的内容哈希（md5 前 8 位）：二进制一变数字就变。
+///
+/// 为什么不用 git sha：没提交的改动不会让它变。为什么用 md5sum 而不是自己算：
+/// 碰撞无所谓，只求快；系统里有现成的，30 MB 读一遍加算一百毫秒左右，
+/// 而且只在第一次请求 console 读数时算一次，结果缓存在进程里。
+let self_hash_cache : Ref[String?] = { val: None, }
+
+///|
+async fn self_hash() -> String noraise {
+  // 生产构建用 git sha（可追溯到提交）；开发构建用内容哈希（改了代码就变）。
+  if @store.build_mode == "release" {
+    return @store.build_sha
+  }
+  match self_hash_cache.val {
+    Some(v) => v
+    None => {
+      let path = @json.exe_path()
+      if path == "" {
+        return @store.build_sha
+      }
+      let input = @process.redirect_from_file("/dev/null") catch {
+        _ => return @store.build_sha
+      }
+      let (code, stdout, _) = @process.collect_output(
+        "md5sum", [path], inherit_env=true, stdin=input,
+      ) catch {
+        _ => return @store.build_sha
+      }
+      if code != 0 {
+        return @store.build_sha
+      }
+      let raw = stdout.text() catch { _ => return @store.build_sha }
+      let text = @json.trim_both(raw)
+      let hex = match text.find(" ") {
+        Some(i) => text[:i].to_owned()
+        None => text
+      }
+      let short = if hex.length() >= 8 { hex[:8].to_owned() } else { hex }
+      self_hash_cache.val = Some(short)
+      short
+    }
+  }
+}
+
 async fn console_payload() -> @json.JsonVal noraise {
   let paths = @store.state_paths()
   let registry = @store.load_registry()
   let archive = @store.load_archive()
-  // 构建信息（scripts/gen-build-info.sh 生成）：页脚要显示服务端这一份 sha
-  let build_sha = @store.build_sha
   let build_at = @store.build_at
   let order = @store.load_order()
   let (last_started, last_started_notes) = @store.load_last_started()
@@ -197,11 +240,13 @@ async fn console_payload() -> @json.JsonVal noraise {
   for bad in bad_jobs {
     job_items.push(@store.bad_job_json(bad))
   }
+  let self_sha = self_hash()
   let fields : Array[(String, @json.JsonVal)] = [
     // P1 对账结果：只记差异条数（注册表陈旧 N 条、/proc 有而注册表没有 M 条）
     ("reconcile", reconcile),
-    // 构建信息：页脚显示「server <sha>」（scripts/gen-build-info.sh 生成）
-    ("buildSha", @json.JStr(build_sha)),
+    // 构建信息：页脚显示「server <hash>」。优先用这份二进制自己的内容哈希
+    // （改了代码没提交也能看出来），算不出来才回落 gen-build-info.sh 的 git sha。
+    ("buildSha", @json.JStr(self_sha)),
     ("buildAt", @json.JStr(build_at)),
     ("stateDir", @json.JStr(paths.dir)),
     ("settingsPath", @json.JStr(paths.settings)),
